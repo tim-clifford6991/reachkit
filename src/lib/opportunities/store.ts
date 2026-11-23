@@ -774,7 +774,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .from<{ week_start: string }>("scans")
         .select("week_start")
         .eq("site_id", siteId)
-        .eq("tier", "weekly")
+        .eq("tier", "weekly").not("week_start", "is", null)
         .in("status", ["done", "degraded"])
         .order("week_start", { ascending: false })
         .limit(1);

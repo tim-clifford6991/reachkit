@@ -1,6 +1,6 @@
 // BUILD §11: every statement the weekly measurement sends, so the selection, run and account each hold a rule and no SQL. Nothing here decides.
 // `claimWeek` inserts the `running` row with `week_start` before any spend, and the partial unique index `(site_id, week_start) where tier = 'weekly'`
-// rejects a second insert: that rejection is "already measured", not a race. `week_start` is never updated, so a week's label never moves.
+// rejects a second insert: that rejection is "already measured", not a race. `week_start` moves only when a test site's re-run supersedes the week.
 // `releaseWeek` marks a reportless claim `failed` and keeps it (`fetches.scan_id` references it); `claimWeek` retakes it on the next tick, and
 // readers treat `failed` as no week. A `done` or `degraded` row is never retried.
 // `scans.week_start` and `scans.finished_at` are not in the generated `Database` type, so every query uses one narrow cast against a local row shape.
@@ -145,6 +145,22 @@ export async function claimWeek(a: {
   return row === undefined ? { claimed: false } : { claimed: true, scanId: row.id, retaken: true };
 }
 
+/** A re-run's own `running` row, stamped with no week until it finishes, so its `WEEKLY` budget reads 0¢ and the week's row stands meanwhile. */
+export async function claimRerun(a: { siteId: string; domain: string }): Promise<Claim> {
+  const scanId = crypto.randomUUID();
+  const { error } = await untyped().from<WeekRow>("scans").insert({ id: scanId, site_id: a.siteId, domain: a.domain, tier: "weekly", status: "running" });
+  if (error) throw new Error(`weekly: could not claim the re-run: ${error.message}`);
+  return { claimed: true, scanId };
+}
+
+/** A finished re-run takes the week: the standing row leaves it, kept for its ledger, and the re-run's row is stamped with it. */
+export async function supersedeWeek(a: { siteId: string; weekStart: string; scanId: string }): Promise<void> {
+  const left = await untyped().from<WeekRow>("scans").update({ week_start: null }).eq("site_id", a.siteId).eq("tier", "weekly").eq("week_start", a.weekStart);
+  if (left.error) throw new Error(`weekly: could not supersede the week: ${left.error.message}`);
+  const took = await untyped().from<WeekRow>("scans").update({ week_start: a.weekStart }).eq("id", a.scanId);
+  if (took.error) throw new Error(`weekly: could not supersede the week: ${took.error.message}`);
+}
+
 /** Releases a claim that measured nothing, so the next hourly tick retries
  *  the site inside the same site-local week. The row stays: the ledger's
  *  rows reference it. */
@@ -223,8 +239,11 @@ export async function readSiteZone(siteId: string): Promise<string | null> {
 export async function claimMarketWeek(a: { siteId: string; weekStart: string; scanId: string }): Promise<boolean> {
   const { error } = await dbAdmin().from("market_changes").insert({ site_id: a.siteId, week_start: a.weekStart, scan_id: a.scanId });
   if (error === null) return true;
-  if (error.code === UNIQUE_VIOLATION) return false;
-  throw new Error(`weekly: could not claim the market week: ${error.message}`);
+  if (error.code !== UNIQUE_VIOLATION) throw new Error(`weekly: could not claim the market week: ${error.message}`);
+  // Only a re-run's row differs from the week's claimant, and it takes the week over; the same row again is one claim.
+  const taken = await dbAdmin().from("market_changes").update({ scan_id: a.scanId, changes: null }).eq("site_id", a.siteId).eq("week_start", a.weekStart).neq("scan_id", a.scanId).select("site_id");
+  if (taken.error) throw new Error(`weekly: could not claim the market week: ${taken.error.message}`);
+  return (taken.data ?? []).length > 0;
 }
 
 export async function storeMarketChanges(a: { siteId: string; weekStart: string; changes: readonly object[] }): Promise<void> {

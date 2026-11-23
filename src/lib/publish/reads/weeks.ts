@@ -71,10 +71,10 @@ export function pageWeeks(a: {
     });
 }
 
-/** Writes the weeks not yet on file in one statement, then trims the site's weeks past 57; never on a request. */
-export async function keepWeeks(a: { siteId: string; rows: readonly WeekRow[]; now: Date }): Promise<void> {
+/** Writes the weeks not yet on file in one statement (`again`: every week, over what is on file), then trims the site's weeks past 57; never on a request. */
+export async function keepWeeks(a: { siteId: string; rows: readonly WeekRow[]; now: Date; again?: boolean }): Promise<void> {
   const db = publishDb();
-  const kept = a.rows.length === 0 ? { error: null } : await db.from("publication_weeks").upsert(a.rows, { onConflict: "publication_id,week_start", ignoreDuplicates: true });
+  const kept = a.rows.length === 0 ? { error: null } : await db.from("publication_weeks").upsert(a.rows, { onConflict: "publication_id,week_start", ignoreDuplicates: a.again !== true });
   const trimmed = await db.from("publication_weeks").delete().eq("site_id", a.siteId).lt("week_start", weeksKeptFrom(a.now));
   for (const { error } of [kept, trimmed]) if (error !== null) console.log(JSON.stringify({ event: "publication_weeks_unwritten", siteId: a.siteId, message: error.message }));
 }

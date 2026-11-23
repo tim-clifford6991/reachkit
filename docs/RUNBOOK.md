@@ -228,6 +228,19 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   `not_next_week` before spend; a second send for the same week is `already_measured` at 0¢. Never
   send it without `early` and with `at` in the future: that claims next week and plans from that
   Monday, not from the first unwritten date.
+- **A test site's week, measured again on a fresh budget** (temporary). Only a site whose id is in
+  the Vercel value `WEEKLY_RERUN_SITES` (comma-separated site ids, set by the owner; unset, no site
+  qualifies) may re-run; any other is refused `not_a_test_site` at 0¢. The owner sends
+  `weekly/refresh/subject` with `{siteId, domain, zone, weekStart: <the site's current local
+  Monday>, at: <now, ISO>, rerun: true, key: "weekly:<siteId>:<weekStart>:rerun:<n>"}`, a new `<n>`
+  each time (the same key twice is one run), and `mail: true` only to send the Monday mail again.
+  It measures on a row of its own under a fresh `WEEKLY_C` 40¢, `TOPUP_C` 7¢, `WEEK_RESEARCH_C` 2¢
+  and `WEEK_NEWS_C` 10¢; the week's row is replaced only when it finishes, so a failed re-run leaves
+  the week as it was. The plan recommits from the first unwritten date, and `market_changes` and
+  `publication_weeks` are written again. `DAILY_SITE_C` and the product's day ceiling still apply:
+  a day already at either is refused `spend_ceiling` before spend. Each re-run writes one
+  `ops_events` row of kind `weekly_rerun`, code its key, read `{weekStart, scanId, cents, outcome}`.
+  Add `early: true` with next Monday's `weekStart` to re-run an early pass.
 - **`publish/verify` sleeps 24 hours** before its body, by design. Invoking it is not a way to
   check a page now.
 

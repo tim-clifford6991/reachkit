@@ -36,6 +36,8 @@ async function weeklySite(input: JobInput): Promise<Outcome> {
   if ([siteId, domain, zone, weekStart, at].some((field) => typeof field !== "string")) {
     throw new TypeError("weekly/refresh: a site run needs siteId, domain, zone, weekStart and at");
   }
+  // A re-run is one run per key the owner sends, so it needs its own.
+  if (input.data.rerun === true && typeof input.data.key !== "string") throw new TypeError("weekly/refresh: a re-run needs its own key");
   const result = await startWeeklyScan({
     siteId: siteId as string,
     domain: domain as string,
@@ -43,6 +45,7 @@ async function weeklySite(input: JobInput): Promise<Outcome> {
     weekStart: weekStart as string,
     now: new Date(at as string),
     early: input.data.early === true,
+    ...(input.data.rerun === true && typeof input.data.key === "string" ? { rerun: { key: input.data.key, mail: input.data.mail === true } } : {}),
     ...(input.step === undefined ? {} : { step: input.step }),
   });
   return "degraded" in result ? { outcome: "degraded", subjectId: siteId as string, step: result.degraded } : { outcome: "ran", subjectId: siteId as string };

@@ -120,6 +120,11 @@ const schema = z.object({
   // the ladder shows only the steps ReachKit can prove from its own rows
   // (`src/lib/vendors/gsc`).
   GOOGLE_SEARCH_CONSOLE_KEYS: z.string().min(1).optional(),
+  // The test sites whose week the owner may measure again on a fresh budget, comma-separated ids. `.optional()`: unset, no site qualifies.
+  WEEKLY_RERUN_SITES: z
+    .string()
+    .optional()
+    .transform((value) => (value ?? "").split(",").map((entry) => entry.trim()).filter((entry) => entry.length > 0)),
 });
 
 // `z.infer` alone would make `NANO_API_KEY` `string | undefined` (the
