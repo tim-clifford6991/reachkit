@@ -73,25 +73,25 @@ function searchedAndRead(item: Record<string, unknown>): Pick<AiAnswer, "fanOuts
   return { ...(fanOuts ? { fanOuts } : {}), ...(retrievedUrls ? { retrievedUrls } : {}) };
 }
 
-/** The ChatGPT scraper's result: an item carrying `markdown` and `sources`
- *  — "the sources the model actually cited or relied on in its final
- *  answer" — which is what counts as a citation; `search_results` (what
- *  it retrieved, cited or not) never does, and is kept apart as `retrievedUrls`. */
+/** The ChatGPT scraper's result: the answer is every item in order (a heading, its list, a table), and what counts as a
+ *  citation is `sources` — "the sources the model actually cited or relied on in its final answer" — on the result and on
+ *  each item; `search_results` (what it retrieved, cited or not) never does, and is kept apart as `retrievedUrls`. */
 export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
   if (!isRecord(result)) return undefined;
   if (result.items === null || result.items === undefined) return [];
   if (!Array.isArray(result.items)) return undefined;
-  for (const item of result.items) {
-    if (!isRecord(item)) continue;
-    const text = asString(item.markdown) ?? asString(item.text);
-    const cited = referenceDomains(item.sources);
-    if (!text && cited.length === 0) continue;
-    const model = asString(result.model);
-    // The vendor documents its searches on the result, not the item.
-    const searched = Array.isArray(item.fan_out_queries) || Array.isArray(item.search_results) ? item : result;
-    return [{ answered: true, text: text ?? "", citedDomains: cited, citedUrls: referenceUrls(item.sources), ...searchedAndRead(searched), ...(model ? { model } : {}) }];
-  }
-  return [];
+  const items = result.items.filter(isRecord);
+  const joined = items.flatMap((item) => asString(item.markdown) ?? asString(item.text) ?? []).join("\n\n");
+  const whole = asString(result.markdown) ?? "";
+  // Whichever holds more of the answer: the result's own markdown, or its blocks read in order.
+  const text = whole.length > joined.length ? whole : joined;
+  const sources = [result.sources, ...items.map((item) => item.sources)].flatMap(asArray);
+  const cited = referenceDomains(sources);
+  if (!text && cited.length === 0) return [];
+  const model = asString(result.model);
+  // The vendor documents its searches on the result, not the item.
+  const searched = items.find((item) => Array.isArray(item.fan_out_queries) || Array.isArray(item.search_results)) ?? result;
+  return [{ answered: true, text, citedDomains: cited, citedUrls: referenceUrls(sources), ...searchedAndRead(searched), ...(model ? { model } : {}) }];
 }
 
 export { AI_ANSWER_SOURCES };
