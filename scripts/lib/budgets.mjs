@@ -130,16 +130,26 @@ export function plainWordsFindings({ base, head }) {
 // Patterns the codebase is shedding: the count of src files holding each may fall and never rise.
 export const RATCHETS = { dbAdminCasts: "dbAdmin() as", minimalClients: "interface MinimalClient", fixtureBranches: "isReservedFixtureAccount" };
 
+// Places counted one by one in src code, comments aside: each call that builds a week's plan.
+export const COUNTED = { planBuilders: /(?<!function )\bplanWeek\(/g };
+
+const codeLines = (text) => text.split("\n").filter((line) => !/^\s*(?:\/\/|\/?\*)/.test(line)).join("\n");
+
 // `baseFiles` maps a ratchet to the src files holding it at the base, or is null where no base exists.
 export function ratchetFindings({ budget, files, baseFiles }) {
-  return Object.entries(RATCHETS).flatMap(([name, token]) => {
+  const counted = Object.entries(COUNTED).flatMap(([name, pattern]) => {
+    if (typeof budget?.[name] !== "number") return [`scripts/budgets.json has no ratchets.${name} count`];
+    const n = files.filter((f) => f.rel.startsWith("src/")).reduce((sum, f) => sum + (codeLines(f.text).match(pattern) ?? []).length, 0);
+    return n <= budget[name] ? [] : [`${n} places in src match ${pattern}, over ratchets.${name} ${budget[name]} in scripts/budgets.json; it only goes down`];
+  });
+  return counted.concat(Object.entries(RATCHETS).flatMap(([name, token]) => {
     if (typeof budget?.[name] !== "number") return [`scripts/budgets.json has no ratchets.${name} count`];
     const head = files.filter((f) => f.rel.startsWith("src/") && f.text.includes(token)).map((f) => f.rel);
     const was = baseFiles?.[name];
     if (head.length <= Math.min(budget[name], was?.length ?? Infinity)) return [];
     const added = was ? `; new in ${head.filter((rel) => !was.includes(rel)).join(", ")}` : "";
     return [`${head.length} src files hold "${token}", over ratchets.${name} ${budget[name]} in scripts/budgets.json or the base's ${was?.length ?? "count"}; it only goes down${added}`];
-  });
+  }));
 }
 
 // The archive is kept for reference only, so a move into it is not new code.
