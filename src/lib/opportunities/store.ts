@@ -199,8 +199,8 @@ export interface OpportunityStore {
   /** The volume a pass read for a row it already held unmeasured (SPEC §6,
    *  D64, issue 1301): the column, and the same figure in its evidence. */
   setVolume(opportunityId: string, volume: number, evidence: Evidence): Promise<void>;
-  /** The row's evidence with the shape its stored results page gives it (`readiness.ts`). */
-  setEvidence(opportunityId: string, evidence: Evidence): Promise<void>;
+  /** The row's evidence with the shape its stored results page gives it (`readiness.ts`), and its title where one is given. */
+  setEvidence(opportunityId: string, evidence: Evidence, title?: string): Promise<void>;
   /** Stores the pass's business-fit judgement on a row it already held
    *  (issue 1134): judged once, read by readiness and the ranking. */
   setBusinessFit(opportunityId: string, fit: BusinessFit, source: TopicSource, pageType: PageType | null): Promise<void>;
@@ -682,7 +682,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     setVolume: (opportunityId, volume, evidence) => updateRow("setVolume", opportunityId, { volume, evidence }),
 
-    setEvidence: (opportunityId, evidence) => updateRow("setEvidence", opportunityId, { evidence }),
+    setEvidence: (opportunityId, evidence, title) => updateRow("setEvidence", opportunityId, title === undefined ? { evidence } : { evidence, title }),
 
     setBusinessFit: (opportunityId, fit, source, pageType) => updateRow("setBusinessFit", opportunityId, { business_fit: fit, source, page_type: pageType }),
 

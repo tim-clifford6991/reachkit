@@ -259,10 +259,11 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       row.fit_band = band;
     },
 
-    async setEvidence(opportunityId, evidence) {
+    async setEvidence(opportunityId, evidence, title) {
       const row = state.rows.find((r) => r.id === opportunityId);
       if (row === undefined) return;
       row.evidence = JSON.parse(JSON.stringify(evidence));
+      if (title !== undefined) row.title = title;
     },
 
     async setBusinessFit(opportunityId, fit, source, pageType) {
