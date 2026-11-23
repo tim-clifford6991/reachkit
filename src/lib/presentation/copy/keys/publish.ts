@@ -13,29 +13,9 @@
 // one key #459 held — its drafted sentence clipped the record's badge at
 // 320 px — and the owner approved a badge-length string for it (DECISIONS
 // 2026-09-11), applied byte for byte.
-//
-// 2026-09-06, issue #47 (REQ-063): the four words a published page's
-// weekly standing is spoken as. They live here, and not in `keys/mail.ts`,
-// because they are not the mail's: §4.5's Overview and §4.6's calendar
-// speak the same four, and one home is what stops a screen and a mail
-// wording the same verdict differently. The first surface to read these is
-// the Monday mail, where "a mail never ships a placeholder" (the owner's
-// 2026-09-05 ruling on #93); they stood empty until the owner approved
-// them on 2026-09-10 (#459).
-//
-// The fourth is not a fourth verdict: REQ-063 c6's page carries it "in
-// place of the three", and the line naming *which* of the five causes
-// happened, with the date of the last verdict it received, is a separate
-// sentence a screen speaks — owner-owed and not minted here (the mail
-// carries the standing, not the explanation).
 import type { CopyPartition } from "../registry.ts";
 
 export const PUBLISH_COPY = Object.freeze({
-  "verdict.page.working": "Working",
-  "verdict.page.too_early": "Too early to judge",
-  "verdict.page.not_working": "Not working",
-  "verdict.page.not_judgeable": "No longer judgeable",
-
   // 2026-09-06, issue #46 (BUILD §9, REQ-045 c4). The two things the three
   // draft actions can answer when the state machine refuses.
   //

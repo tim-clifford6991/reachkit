@@ -24,7 +24,7 @@ import type { RecordedFact } from "@/lib/generate/fact";
 import type { PackNeed } from "@/lib/generate/templates/types";
 import type { PageRecord } from "@/lib/publish/record";
 import type { PageReading } from "@/lib/measure/page-reading";
-import type { PageVisits } from "@/lib/publish/reads/model";
+import type { Visits } from "@/lib/publish/reads/visits";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { TakeDownStanding } from "@/lib/publish/take-down/standing";
 import type { PageTarget } from "../../_shell/page-target";
@@ -358,20 +358,16 @@ export interface DraftView extends Required<Standing> {
   domain: string;
 }
 
-/** The customer's own page frame, as the viewer draws it.
- *
- *  Their name and their address and nothing of ReachKit's: SPEC §7 asks for
- *  the page "in the customer's own page frame", and a mark of ours on it
- *  would be the one thing the frame exists to show is absent. */
-/** When the page went live and where, the weekly pass's stored reading of
- *  it, and the label that reading earns (`verdicts/verdict.ts`). */
+/** When the page went live and where, its stored reading and the label it earns (`verdicts/verdict.ts`). */
 export interface LiveFacts {
   since: Date;
   url: string;
   wordpress: boolean;
   reading: PageReading | null;
   label: Label | null;
-  visits: PageVisits;
+  /** Its own 28-day visits (`null` where unread, never 0), and the update the plan holds for it while not moving. */
+  visits: Visits | "wordpress" | null;
+  planned: { on: string; reason: string | null } | null;
   /** What *Edit this page* does (R19): opens the editor on this version, or
    *  opens the version of this address already waiting; `null` draws no
    *  button (a version being written or going out, the reserved account). */

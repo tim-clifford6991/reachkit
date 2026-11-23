@@ -64,7 +64,8 @@ import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
 import { standingAtRead } from "./stage";
 import { readingOf } from "@/lib/measure/page-reading";
-import { readPageVisits } from "@/lib/publish/reads/store";
+import { readVisits } from "@/lib/publish/reads/visits";
+import { plannedUpdateOf } from "./planned";
 import { verdict } from "@/lib/opportunities/verdicts/verdict";
 import { takeDownStanding } from "@/lib/publish/take-down/standing";
 import { askedAs, doneWhen } from "../../calendar/store";
@@ -591,22 +592,21 @@ async function liveOfDraft(client: MinimalClient, siteId: string, draftId: strin
   const { data, error } = await client
     .from<{ id: string; published_at: string | null; destination: string; search_reading: unknown }>("publications")
     .select("id, published_at, destination, search_reading")
-    .eq("draft_id", draftId)
-    .eq("site_id", siteId);
+    .eq("draft_id", draftId).eq("site_id", siteId);
   if (error !== null || data === null) return null;
-  const row = data
-    .filter((each) => each.published_at !== null)
-    .sort((x, y) => y.published_at!.localeCompare(x.published_at!))[0];
+  const row = data.filter((each) => each.published_at !== null).sort((x, y) => y.published_at!.localeCompare(x.published_at!))[0];
   if (row === undefined) return null;
   const reading = readingOf(row.search_reading);
   const since = new Date(row.published_at!);
+  const label = reading === null ? null : verdict(reading, at);
   return {
     since,
     url,
     wordpress: row.destination === "wordpress",
     reading,
-    label: reading === null ? null : verdict(reading, at),
-    visits: row.destination === "wordpress" ? { kind: "wordpress" } : await readPageVisits({ siteId, publicationId: row.id, since, now: at }),
+    label,
+    visits: row.destination === "wordpress" ? "wordpress" : await readVisits({ siteId, now: at, firstLive: since, publicationId: row.id }).catch(() => null),
+    planned: label === "not_moving" ? await plannedUpdateOf(siteId, url) : null,
     edit: await liveEditOf(siteId, draftId),
   };
 }

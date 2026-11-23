@@ -12,7 +12,6 @@ import Link from "next/link";
 import { Check, ExternalLink, Pencil, RefreshCw, Sparkles, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { FIRST_PAGE_PLACES } from "@/lib/measure/page-reading";
-import { READS_KEPT_D } from "@/lib/publish/reads/model";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import type { AnswerEngine } from "@/lib/opportunities/types";
 import { PlaceLine } from "@/ui/charts/PlaceLine";
@@ -86,7 +85,6 @@ function aiSteps(live: LiveFacts, timeZone: string): Step[] {
   const steps: Step[] = [];
   if (!live.wordpress) steps.push({ key: "draft.ladder.read", at: dateOf(reached.readByAi, timeZone), detail: null });
   steps.push({ key: "draft.ladder.linked", at: linked === null || by === null ? linked : `${linked} · ${by}`, detail: null });
-  if (!live.wordpress) steps.push({ key: "draft.ladder.visit", at: dateOf(reached.aiVisit, timeZone), detail: null });
   return steps;
 }
 
@@ -129,17 +127,17 @@ function Ladder(p: { title: CopyKey; steps: readonly Step[]; measured: boolean; 
   );
 }
 
-/** Google search visits as counted on the hosted page: one of five fixed lines, and never a 0. */
-function visitsLine(live: LiveFacts, timeZone: string): string {
+/** The page's 28-day visits by source, and its clicks through while the switch is on and it has visits; never a 0 for unread. */
+function visitsRows(live: LiveFacts, timeZone: string): string[] {
   const { visits } = live;
-  const days = formatCount(READS_KEPT_D);
-  const date = formatDate(live.since, timeZone);
-  if (visits.kind === "wordpress") return copy("draft.live.visits.wordpress");
-  if (visits.kind === "unread") return copy("draft.live.visits.unread");
-  if (visits.kind === "none") return visits.young ? copy("draft.live.visits.none-new") : copy("draft.live.visits.none", { days });
-  const n = formatCount(visits.n);
-  if (visits.young) return visits.n === 1 ? copy("draft.live.visits.since.one", { date }) : copy("draft.live.visits.since", { n, date });
-  return visits.n === 1 ? copy("draft.live.visits.one", { days }) : copy("draft.live.visits", { n, days });
+  if (visits === "wordpress") return [copy("overview.tile.visits.wordpress")];
+  if (visits === null) return [copy("draft.live.visits.unread")];
+  const counts = { n: formatCount(visits.n), a: formatCount(visits.bySource.google), b: formatCount(visits.bySource.ai), c: formatCount(visits.bySource.other) };
+  const record =
+    visits.since === null
+      ? copy("draft.live.visits.record", counts)
+      : copy("draft.live.visits.record.since", { ...counts, date: formatDate(new Date(`${visits.since}T12:00:00Z`), timeZone) });
+  return visits.clicks === null || visits.n === 0 ? [record] : [record, copy("draft.live.clicks", { c: formatCount(visits.clicks) })];
 }
 
 /** The week's figure: its place and how far it moved, or the furthest step
@@ -187,12 +185,13 @@ function ThisWeek(p: { live: LiveFacts; stopped: boolean; timeZone: string }): R
           </>
         )}
         {/* A stopped page is off the site, and its Stopped line already says so. */}
-        {p.stopped ? null : (
-          <p className="text-sm text-base-content/70" data-testid="live-visits">
-            {visitsLine(live, timeZone)}
-          </p>
-        )}
-        {p.stopped || live.visits.kind !== "counted" ? null : <p className="text-xs text-base-content/70">{copy("draft.live.visits.how")}</p>}
+        {p.stopped
+          ? null
+          : visitsRows(live, timeZone).map((row) => (
+              <p key={row} className="text-sm text-base-content/70" data-testid="live-visits">
+                {row}
+              </p>
+            ))}
       </div>
       {moved ? (
         <div className="flex w-full max-w-xs min-w-0 flex-col gap-1" data-testid="live-chart">
@@ -232,12 +231,19 @@ function EditControl(p: { edit: LiveFacts["edit"]; onEdit: () => void }): React.
   );
 }
 
+/** What happens next: a not-moving page names its planned update where the plan holds one. */
+function nextStep(live: LiveFacts, timeZone: string): string {
+  if (live.label === null) return copy("draft.next.unmeasured");
+  if (live.planned === null) return copy(NEXT[live.label]);
+  return copy("draft.next.not_moving.planned", { day: formatShortDay(new Date(`${live.planned.on}T12:00:00Z`), timeZone), reason: live.planned.reason ?? "" }).trim();
+}
+
 /** *How It's Doing*: the week's figure, the two ladders and what happens next. */
 export function HowItsDoing(p: { live: LiveFacts; stopped: boolean; timeZone: string }): React.JSX.Element {
   const { live, timeZone } = p;
   return (
     <section className="flex min-w-0 flex-col gap-5" aria-labelledby={WEEK_ID} data-testid="live-week">
-      {live.label === null ? <span className="badge badge-ghost">{copy("review.label.unmeasured")}</span> : <LabelBadge label={live.label} />}
+      {live.label === null ? null : <LabelBadge label={live.label} className="w-fit" />}
       <ThisWeek live={live} stopped={p.stopped} timeZone={timeZone} />
       <Ladder {...LADDER.google} steps={googleSteps(live, timeZone)} measured={live.reading !== null} />
       <div className="border-base-300 border-t pt-4">
@@ -247,7 +253,7 @@ export function HowItsDoing(p: { live: LiveFacts; stopped: boolean; timeZone: st
         <p className="rounded-box bg-base-200 flex min-w-0 items-start gap-2.5 p-3 text-sm" data-testid="live-next">
           <RefreshCw size={16} strokeWidth={1.75} className="text-primary mt-0.5 shrink-0" aria-hidden />
           <span className="min-w-0 wrap-anywhere">
-            <strong>{copy("draft.next.title")}</strong> {copy(live.label === null ? "draft.next.unmeasured" : NEXT[live.label])}
+            <strong>{copy("draft.next.title")}</strong> {nextStep(live, timeZone)}
           </span>
         </p>
       )}

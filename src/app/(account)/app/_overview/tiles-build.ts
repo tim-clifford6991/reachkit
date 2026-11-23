@@ -17,6 +17,9 @@ export interface TilesView extends TilesModel {
   answers: AiAnswers | null;
   /** The first live page's go-live, as the Pages tile counts it. */
   firstLive: Date | null;
+  /** The site's visits, which Pages Live's rows and source strip read. */
+  visits: Visits | "wordpress" | null;
+  now: Date;
 }
 
 export function buildTiles(a: {
@@ -45,5 +48,5 @@ export function buildTiles(a: {
     window === null
       ? null
       : aiPagesFor(pages.pages, a.pageQuestions, now, { weeks: AI_WINDOW_WEEKS, asked: [...window.asked], linked: [...window.linked], mentioned: [...window.mentioned] });
-  return { ...model, pages, google, ai, answers: latest === undefined ? null : aiAnswersOf(a.passes, latest.weekStart, a.domain), firstLive };
+  return { ...model, pages, google, ai, answers: latest === undefined ? null : aiAnswersOf(a.passes, latest.weekStart, a.domain), firstLive, visits: a.visits, now };
 }

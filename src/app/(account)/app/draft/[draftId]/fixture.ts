@@ -403,7 +403,8 @@ const PUBLISHED: DraftFacts = {
     since: new Date("2026-09-14T14:00:00.000Z"),
     url: "https://blog.example.com/how-to-choose-a-crm-for-a-small-team",
     wordpress: false,
-    visits: { kind: "counted", n: 14, young: false },
+    visits: { n: 14, bySource: { google: 9, ai: 2, other: 3 }, pages: {}, direct: 4, clicks: 2, aiRead: [], since: null, weeks: [] },
+    planned: null,
     reading: {
       at: "2026-10-05T06:00:00.000Z",
       googlebot: true,
