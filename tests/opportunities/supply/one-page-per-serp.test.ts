@@ -112,7 +112,7 @@ describe("one page per distinct results page", () => {
     ]);
   });
 
-  it("a live page on that results page is untouched, and no second page is written beside it", async () => {
+  it("a live page on that results page is untouched, and its topic is kept once, as the page's update", async () => {
     const live = {
       id: "live",
       site_id: SITE_ID,
@@ -140,7 +140,7 @@ describe("one page per distinct results page", () => {
 
     await deriveForPass(fakeCost().ctx, { tier: "weekly", siteId: SITE_ID, report: report(), hasActiveAccess: true });
 
-    expect(state.rows.filter(fromTerm)).toEqual([]);
+    expect(state.rows.filter(fromTerm)).toHaveLength(1);
     const after = state.rows.find((row) => row.id === "live")!;
     expect({ status: after.status, cluster_key: after.cluster_key, absorbed_queries: after.absorbed_queries }).toEqual({
       status: "done",

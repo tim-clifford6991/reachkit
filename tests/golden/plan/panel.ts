@@ -20,7 +20,7 @@ import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured } from "@/lib/measure/measured";
 import { queryKey } from "@/lib/opportunities/cluster";
 import { freshRead, type KindOfBusiness, type TopTenRead } from "@/lib/opportunities/derive/top-ten-kind";
-import { shapedEvidence } from "@/lib/opportunities/readiness";
+import { eligible, shapedEvidence } from "@/lib/opportunities/readiness";
 import { readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
 import { FAMILY_OF, type OpportunityType } from "@/lib/opportunities/types";
 import { demandBand } from "@/lib/opportunities/winnability/band";
@@ -81,7 +81,8 @@ export function panelSite(domain: string): PanelSite {
     const business = businessOf(domain);
     const rows = site.topics!.filter((topic) => malformedSearch(topic.query, site.market!.rivals) === null).map((topic, n) => rowOf(domain, topic, n)).map((row) => {
       const read = freshRead(serps.get(queryKey(row.target_query ?? "")), AT);
-      return { ...row, evidence: shapedEvidence(readOpportunity(row), read, business) };
+      const o = { ...readOpportunity(row), evidence: shapedEvidence(readOpportunity(row), read, business) }; // Today's readiness, the footprint open.
+      return { ...row, evidence: o.evidence, ready: eligible(o, { now: AT, suppression: { retiredUrls: new Set() }, canUpdate: () => true, coveredBy: () => null, footprint: true }) === null };
     });
     return { domain, run, profile: profileOf(site), market: site.market, rows };
   }

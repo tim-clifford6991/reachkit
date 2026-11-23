@@ -125,7 +125,7 @@ export const BUYER_SEARCHES = Object.freeze({
 } as const);
 
 export const TOPIC_FIT = Object.freeze({
-  gate: 2, writeAt: 3, topShare: 0.25, topMin: 3, maxCandidates: 80,
+  gate: 1, writeAt: 3, topShare: 0.25, topMin: 3, maxCandidates: 80,
 } as const);
 
 /** SPEC §6 *Topics from what buyers were seen asking*: the most "People also

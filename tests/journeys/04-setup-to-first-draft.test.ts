@@ -936,7 +936,7 @@ describe("three decisions → deep pass → the first page already on the calend
       // list, before any evening has run, and Plan never ranks (SPEC §7, E5).
       // It runs up to the first Monday's weekly pass (a Monday 7 days, a Sunday 1), never padded past the supply the pass found.
       const depth = await supplyDepth(SITE_ID);
-      expect(depth.unused).toBe(opportunities.rows.length);
+      expect(depth.unused).toBe(Math.min(opportunities.rows.length, (await import("@/lib/config/constants")).PLAN_DEPTH));
       const week = await committedWeek(SITE_ID);
       expect(week.days.length).toBeGreaterThan(0);
       const firstDate = week.days[0]!.date;

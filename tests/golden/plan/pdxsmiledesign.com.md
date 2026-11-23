@@ -1,8 +1,8 @@
 # pdxsmiledesign.com
 
-From `scripts/panel/runs/2026-10-10.json`: 7 stored topics, 4 committed from 2026-10-19.
+From `scripts/panel/runs/2026-10-10.json`: 7 stored topics, 5 committed from 2026-10-19.
 
-Supply: 4 of 10 committed, short 5; stored topics category 6, best_x 1.
+Supply: 5 of 10 committed, short 5; stored topics category 6, best_x 1.
 
 | Place | Day | Search | Type | Page | Fit | Volume | Points | Parts | Rule | Written as |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -10,9 +10,9 @@ Supply: 4 of 10 committed, short 5; stored topics category 6, best_x 1.
 | 1 | 2026-10-20 | cosmetic dentist in portland oregon | listed_page | offering | 3 | 320 | 3 | fit 3 + demand 2 + outsized -2 | best | — |
 | 2 | 2026-10-21 | dentist near me in portland | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
 | 3 | 2026-10-22 | cosmetic teeth straightening options portland | keyword_page | qa | 3 | — | 3 | fit 3 | best | — |
+| 4 | 2026-10-23 | best dentist portland oregon | listed_page | offering | 2 | 320 | 1 | fit 1 + demand 2 + outsized -2 | best | — |
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|
-| best dentist portland oregon | listed_page | 2 | 320 | unready |
 | dentist portland tn | answer_page | 0 | 210 | unready |
 | dentist portland mi | keyword_page | 0 | 140 | unready |

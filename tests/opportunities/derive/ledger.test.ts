@@ -27,12 +27,12 @@ describe("supplyLedger", () => {
     expect(ledger.dry).toEqual(["problem", "category", "best_x", "ai_gap", "asked", "cited", "written", "offering", "earned"]);
   });
 
-  it("holds only open new-page rows the fit judgement did not keep below the top", () => {
+  it("holds only open new-page rows, whatever fit ranks them at", () => {
     const ledger = supplyLedger({
       stages: {},
       rows: [...open(1), ...open(1, { family: "improve" }), ...open(1, { status: "queued" }), ...open(1, { status: "dismissed" }), ...open(1, { businessFit: 1 })],
     });
-    expect(ledger.have).toBe(1);
+    expect(ledger.have).toBe(2);
   });
 
   it("a site holding a week and its spares is short of nothing, and its dry sources are still named", () => {

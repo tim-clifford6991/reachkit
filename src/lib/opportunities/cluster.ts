@@ -252,9 +252,9 @@ function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability |
 }
 
 /** One survivor per cluster over the site's open, queued and done non-Fix rows and this pass's candidates. The
- *  survivor absorbs every other member's search, unless it is a live page; a losing open row is dismissed and a
- *  losing candidate is not written, while a row with a page is never dismissed. An open survivor of a topic this pass
- *  covered, put no candidate in and did not derive is superseded and dismissed too. */
+ *  survivor absorbs every other member's search (a live page's best other member is kept as its update and absorbs
+ *  instead); a losing open row is dismissed and a losing candidate is not written, while a row with a page is never
+ *  dismissed. An open survivor of a topic this pass covered, put no candidate in and did not derive is superseded and dismissed too. */
 export function collapse(a: {
   existing: readonly Opportunity[];
   candidates: readonly Candidate[];
@@ -311,14 +311,17 @@ export function collapse(a: {
   const dismiss: string[] = [];
   const update: { id: string; clusterKey: string; absorbedQueries: string[] }[] = [];
   for (const members of groups) {
-    const [survivor, ...rest] = [...members].sort((x, y) => compareMembers(x, y, band));
-    if (survivor === undefined) continue;
-    // The topic takes the survivor's own key, so a held survivor keeps its key and the index never sees it move.
-    const key = keyOf.get(survivor) as string;
+    const [first, ...others] = [...members].sort((x, y) => compareMembers(x, y, band));
+    if (first === undefined) continue;
+    // The topic takes the first member's own key, so a held survivor keeps its key and the index never sees it move.
+    const key = keyOf.get(first) as string;
     const hadCandidate = members.some((member) => member.kind === "candidate");
-
-    const own = queryOf(survivor)?.trim().toLowerCase() ?? null;
-    const absorbed = new Set<string>(survivor.kind === "row" ? survivor.row.absorbedQueries : []);
+    // A live page keeps its searches and its best other member stays as its update, unless a page of it is being written.
+    const live = first.kind === "row" && first.row.status === "done";
+    const survivor = !live ? first : others.some((m) => m.kind === "row" && m.row.status === "queued") ? undefined : others.find((m) => !hasAPage(m));
+    const rest = members.filter((member) => member !== first && member !== survivor);
+    const own = survivor === undefined ? null : (queryOf(survivor)?.trim().toLowerCase() ?? null);
+    const absorbed = new Set<string>(survivor?.kind === "row" ? survivor.row.absorbedQueries : []);
     for (const member of rest) {
       if (hasAPage(member)) continue;
       if (member.kind === "row") dismiss.push(member.row.id);
@@ -328,11 +331,9 @@ export function collapse(a: {
     }
     const absorbedQueries = [...absorbed].sort();
 
+    if (survivor === undefined) continue;
     if (survivor.kind === "candidate") {
       insert.push({ ...survivor.candidate, clusterKey: key, absorbedQueries });
-    } else if (survivor.row.status === "done") {
-      // A live page keeps the searches it was published from: joining never touches it.
-      continue;
     } else if (superseded(survivor.row, key, hadCandidate)) {
       // The whole cluster goes: its losers are already dismissed above, and the searches they absorbed have nothing to hang on.
       dismiss.push(survivor.row.id);

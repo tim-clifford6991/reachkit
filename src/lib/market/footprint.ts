@@ -1,7 +1,8 @@
 // SPEC §7 *Readiness holds only for harm*: a site's market footprint, the gate that holds its new comparison and
 // listicle pages `out_of_reach`. Every stored row that places a page of the site is read; the gate opens on one at 20
 // or better whose search carries no own brand token and passes the test a search passes before it joins the twelve
-// (`selectTwelve`: `neverMeasured` against the market in force, then `passesRelevanceGuard`). Pure; nothing is bought.
+// (`selectTwelve`: `neverMeasured` against the market in force, then `passesRelevanceGuard`); a live page's own search
+// needs no test. Pure; nothing is bought.
 import { withoutPlace } from "@/lib/locale/place";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { measuredMarketOf, neverMeasured, searchKey } from "@/lib/market/questions/measured";
@@ -37,9 +38,11 @@ export function footprintRows(a: { report: StoredReport | null; market: MarketCo
     search,
     place: at,
     branded: profile !== null && classifyIntent(search, profile) === "own_brand",
+    // A live page of ours was written only once its search passed the fit gate, so its own search is the market's.
     onMarket:
       profile !== null &&
-      (terms.has(searchKey(search)) ||
+      (from === "reading" ||
+        terms.has(searchKey(search)) ||
         ((measured === undefined || neverMeasured(search, measured) === null) && passesRelevanceGuard(place === undefined ? search : withoutPlace(search, place), profile, marketWords))),
   });
   const own = (domain: string) => domain !== "" && isOwnDomain(domain, report.domain);

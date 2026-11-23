@@ -9,7 +9,7 @@ export const FROM = AT.toISOString().slice(0, 10);
 
 /** The week the golden plans print, from the same input. */
 export function chosen(site: PanelSite): Choice {
-  return choose({ rows: site.rows, fixRows: [], profile: site.profile, cited: [], topTens: new Map(), at: AT, from: FROM });
+  return choose({ rows: site.rows, fixRows: [], profile: site.profile, market: site.market, cited: [], topTens: new Map(), at: AT, from: FROM });
 }
 
 /** The site's rows with the week committed into them. */

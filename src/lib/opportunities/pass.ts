@@ -1,5 +1,6 @@
 // What a paid pass does with what it measured: one derivation for both tiers, under the pass's own cap.
 // The two winnability inputs are projected from the report here, so `derive/` never knows where a report comes from.
+import { SUPPLY_SHORT_BELOW } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { siteLocale } from "@/lib/locale/site";
 import { recordOpsEvent } from "@/lib/ops/events";
@@ -137,8 +138,8 @@ export async function deriveForPass(
       : { derived: derived.created.length, ...derived.supply };
   // Rows, not log lines: the runtime log drops a long request's tail, and the daily check tells a thin pass from a dry source.
   await recordOpsEvent("supply_pass", JSON.stringify({ tier: a.tier, added, ...derivation }), a.report.scanId, a.siteId);
-  if (derived !== null && derived.supply.short > 0) {
-    await recordOpsEvent("supply_short", derived.supply.dry.join(",") || "none", String(derived.supply.short), a.siteId);
+  if (derived !== null && derived.supply.have < SUPPLY_SHORT_BELOW) {
+    await recordOpsEvent("supply_short", derived.supply.dry.join(",") || "none", String(SUPPLY_SHORT_BELOW - derived.supply.have), a.siteId);
   }
   return { tier: a.tier, added };
 }

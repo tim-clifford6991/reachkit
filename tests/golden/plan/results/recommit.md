@@ -1,13 +1,13 @@
 | Site | Ready left out | Wednesday's page | Week from Wednesday |
 |---|---|---|---|
-| zunicafe.com | 0 | none | unchanged |
-| austinplumbery.com | 2 | austin plumbery vs beyond wow plumbing | austin plumbery vs beyond wow plumbing; reliant plumbing alternatives; clarke kent plumbing alternatives; beyond wow plumbing alternatives; austin plumbery vs abacus plumbing |
-| baeckerei-hinkel.de | 1 | wo finde ich brot ohne zusatzstoffe und konservierungsmittel | wo finde ich brot ohne zusatzstoffe und konservierungsmittel; hercules bäckerei alternative; bäckerei bulle alternative; bäckerei hinkel vs bäckerei terbuyken; bäckerei hinkel vs zeit für brot |
-| alexander.co.uk | 1 | financial accountant manchester | financial accountant manchester; harold sharp alternatives; a&c chartered accountants alternatives; alexander co vs jack ross; alexander co vs mitchell charlesworth |
-| tattly.com | 0 | none | unchanged |
+| zunicafe.com | 3 | best new restaurants in san francisco | best new restaurants in san francisco; sisterita alternatives; rooftop 25 alternatives; zuni café vs waterbar; zuni café vs rich table |
+| austinplumbery.com | 5 | austin plumbery vs beyond wow plumbing | austin plumbery vs beyond wow plumbing; reliant plumbing alternatives; clarke kent plumbing alternatives; beyond wow plumbing alternatives; austin plumbery vs abacus plumbing |
+| baeckerei-hinkel.de | 2 | bäckerei hinkel vs oehme brot & kuchen | bäckerei hinkel vs oehme brot & kuchen; zeit für brot alternative; hercules bäckerei alternative; bäckerei bulle alternative; bäckerei hinkel vs bäckerei terbuyken |
+| alexander.co.uk | 7 | alexander co vs mitchell charlesworth | alexander co vs mitchell charlesworth; property accountants near me; jack ross alternatives; mitchell charlesworth alternatives; chadwick & co alternatives |
+| tattly.com | 1 | temporary tattoos near me | temporary tattoos near me; easytatt alternatives; ink bond alternatives; tattooed now alternatives; temporary tattoos for adults |
 | savvycal.com | 0 | none | unchanged |
-| clearleft.com | 0 | none | unchanged |
-| wesbos.com | 1 | online web development course pricing | online web development course pricing; wes bos vs the odin project; wes bos vs scrimba; javascript tutorial pricing; front end development course pricing |
+| clearleft.com | 4 | strategic design consultancy | strategic design consultancy; best ux design agency; ideo alternatives; koos alternatives; work & co alternatives |
+| wesbos.com | 2 | online web development course pricing | online web development course pricing; wes bos vs the odin project; wes bos vs scrimba; javascript tutorial pricing; front end development course pricing |
 | pdxsmiledesign.com | 0 | none | unchanged |
-| fletcherelectric.co.uk | 0 | none | unchanged |
-| streaksapp.com | 0 | none | unchanged |
+| fletcherelectric.co.uk | 1 | eicr electrical leeds | eicr electrical leeds; eicr testing leeds; electrician leeds |
+| streaksapp.com | 1 | daily habit tracker app | daily habit tracker app; loop habit tracker alternatives; streaks vs atoms; streaks vs habitify; streaks vs loop habit tracker |
