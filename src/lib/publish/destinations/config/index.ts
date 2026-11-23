@@ -33,8 +33,8 @@ export async function withConfig<T, R>(
   if (row === undefined || row.config === null) throw new NoConfigError();
   const { value, resealed } = open(row.config);
   if (resealed !== null) {
-    // Only over the value just read, so a credential reconnected meanwhile is never overwritten; a failed write retries next use.
-    await publishDb().from<never>("destinations").update({ config: resealed }).eq("id", destinationId).eq("config", row.config);
+    // Only over the value just read (as JSON text: `config` is jsonb), so a credential reconnected meanwhile is never overwritten.
+    await publishDb().from<never>("destinations").update({ config: resealed }).eq("id", destinationId).eq("config", JSON.stringify(row.config));
   }
   return fn(value as T);
 }

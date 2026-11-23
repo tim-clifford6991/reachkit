@@ -171,7 +171,27 @@ even with `VERCEL_TEAM_ID` set. `IP_HASH_SALT` is a fresh random value per envir
    vendor's dashboard shows the send. Supabase: any signed-in page. DataForSEO and Anthropic: one
    free scan.
 6. **Revoke the old value at the vendor**, and only then. A wrong `SUPABASE_SERVICE_ROLE_KEY` takes
-   the whole product down, and changing `IP_HASH_SALT` resets every free-scan rate limit at once.
+   the whole product down. `IP_HASH_SALT` has its own steps, below.
+
+### Rotating the root secret
+
+`IP_HASH_SALT` is the root every server key is derived from (`src/lib/crypto/keys.ts`). It seals the
+WordPress credentials in `destinations.config` and signs every mailed link. `IP_HASH_SALT_PREVIOUS`
+only opens and verifies; nothing new is sealed or signed under it. The owner does every step.
+
+1. **Set `IP_HASH_SALT_PREVIOUS` to the current root, and `IP_HASH_SALT` to a fresh random value**,
+   on both Vercel targets, then redeploy. Stored credentials still open, and each one is re-sealed
+   the first time it publishes. Links in mail already sent still work. Free-scan rate limits start fresh.
+2. **Dry run the re-seal** from your shell, with that target's bindings (both roots) in a file:
+   `node --env-file=<file> scripts/reseal-destinations.mjs`. It prints counts and writes nothing:
+   `current` (already under the new root), `previous` (to re-seal), `unopenable` (under neither
+   root; it exits 2, so stop and look before you go on).
+3. **Re-seal:** the same command with `--write`. Each row is written only if it is unchanged since it
+   was read. Run the dry run again; `previous` must be 0.
+4. **Drop `IP_HASH_SALT_PREVIOUS` after the longest link lifetime**, then redeploy. Sign-in links last
+   hours and planned-page links end on their day, but unsubscribe and opt-out links never expire.
+   The law gives an unsubscribe link 30 days after the mail was sent, so wait 30 days. After a leak,
+   drop it as soon as step 3 reads 0; links mailed earlier then answer "invalid".
 
 ---
 
