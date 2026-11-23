@@ -167,6 +167,8 @@ export interface LanguagePack {
   studySearch(target: string): string;
   /** Standards bodies, regulators and platforms read as the authority, beside every government's host (SPEC §7). */
   officialHosts: RegExp;
+  /** How a page's visible line says when it was updated and when published, as regex alternations (SPEC §7). */
+  datedLines: { updated: string; published: string };
   /** How a page says it ran its own study: its sample, its respondents or its method. */
   studyMethod: RegExp;
   /** The search that finds a target's own guidance: the platform's or the

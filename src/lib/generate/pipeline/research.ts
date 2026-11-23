@@ -84,11 +84,12 @@ import { queryKey } from "@/lib/opportunities/cluster";
 import { askedOfReport } from "@/lib/opportunities/derive/topics";
 import { googleWrapper, isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { Locale } from "@/lib/locale/locales";
-import type { NewsRow } from "@/lib/vendors/dataforseo/types";
-import { inTurn, ownPagesFirst } from "./claims";
+import type { NewsRow, SerpOrganicRow } from "@/lib/vendors/dataforseo/types";
+import { inTurn, newestCredible, ownPagesFirst } from "./claims";
 import { byTier, cappedSites, compares, hostOf, mixOf, namedIn, primaryAddress, rivalsInScope, sameSite, tiered, type SourceMix, type SourceTier } from "./source-tier";
 import { readClaims } from "./claims-read";
-import { publishedOf, sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
+import { sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
+import { datedOf, datesOf, type ClaimDates, type PageDates } from "./dated";
 import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
 
 /** The `fetches.source` of every public page this step reads. */
@@ -96,8 +97,8 @@ export const RESEARCH_READ_SOURCE = "generate.research.read";
 
 export type MarketPageKind = "top_result" | "rival_pricing" | "rival_features" | "study" | "primary" | "recent";
 
-/** One claim read off a public page, word for word. */
-export interface MarketFact {
+/** One claim read off a public page, word for word, with its page's dates; a `recent` page's is the news search's where its markup states none. */
+export interface MarketFact extends ClaimDates {
   url: string;
   /** The page's own title, which is what the sources list names it by. */
   title: string;
@@ -112,10 +113,6 @@ export interface MarketFact {
   plan?: string | null;
   /** Issue 1485: on any other page, the rival the claim is about. */
   about?: string;
-  /** The day a `recent` page was published (D42, *current insights*): the
-   *  page's own markup where it states one, else the news search's date for
-   *  it (D48). Never guessed. */
-  publishedAt?: string;
   /** Who published a `recent` page, as the news search names it. */
   source?: string;
   /** A statistic cited to its original publisher: the page that repeated it, a supporting source only. */
@@ -184,7 +181,7 @@ export function storedAsk(report: Pick<StoredReport, "questions" | "serps">, sea
   return { ...NO_RESEARCH, asked: { peopleAlsoAsk: [...new Set(peopleAlsoAsk)], related: [] } };
 }
 
-export interface ReadPage {
+export interface ReadPage extends PageDates {
   url: string;
   title: string;
   text: string;
@@ -243,9 +240,8 @@ export function headingsOf(html: string): string[] {
   return headings;
 }
 
-/** One page off the network, or `null` where it did not answer with enough
- *  to read. */
-export async function fetchPage(url: string): Promise<{ page: ReadPage; html: string } | null> {
+/** One page off the network, dated from its own markup else the SERP's `serp` day, or `null` where it did not answer with enough to read. */
+export async function fetchPage(url: string, serp?: string): Promise<{ page: ReadPage; html: string } | null> {
   const body = await fetchBody(url);
   if (body === null) return null;
   const text = visibleText(body.html);
@@ -259,6 +255,7 @@ export async function fetchPage(url: string): Promise<{ page: ReadPage; html: st
       readAt: body.readAt.toISOString(),
       headings: headingsOf(body.html),
       sourced: sourcedBlocks(body.html, body.url),
+      ...datedOf(body.html, { url: body.url, readAt: body.readAt, ...(serp === undefined ? {} : { serp }) }),
     },
     html: body.html,
   };
@@ -266,13 +263,12 @@ export async function fetchPage(url: string): Promise<{ page: ReadPage; html: st
 
 /** A page read at 0¢ and ledgered under its address as research's reads are, with the day its markup says it was
  *  published; `null` where it does not read. */
-export async function readFresh(c: CostContext, url: string): Promise<(ReadPage & { publishedAt?: string }) | null> {
+export async function readFresh(c: CostContext, url: string): Promise<ReadPage | null> {
   const read = await fetchPage(url);
   if (read === null) return null;
   const { title, text, readAt, headings } = read.page;
-  const row = await c.recordFetch<ReadPage>({ source: RESEARCH_READ_SOURCE, cacheKey: url, freshnessDays: RESEARCH.freshnessDays, costCents: 0, run: async () => ({ url: read.page.url, title, text, readAt, ...(headings === undefined ? {} : { headings }) }) });
-  const publishedAt = publishedOf(read.html);
-  return "skipped" in row ? null : { ...row.payload, sourced: read.page.sourced ?? [], ...(publishedAt === null ? {} : { publishedAt }) };
+  const row = await c.recordFetch<ReadPage>({ source: RESEARCH_READ_SOURCE, cacheKey: url, freshnessDays: RESEARCH.freshnessDays, costCents: 0, run: async () => ({ url: read.page.url, title, text, readAt, ...(headings === undefined ? {} : { headings }), ...datesOf(read.page) }) });
+  return "skipped" in row ? null : { ...row.payload, sourced: read.page.sourced ?? [], ...datesOf(read.page) };
 }
 
 type RivalPageKind = "rival_pricing" | "rival_features";
@@ -484,8 +480,8 @@ async function recentPages(
     reads.forEach((read, index) => {
       if (read === null) return;
       const row = batch[index]!;
-      const publishedAt = publishedOf(read.html) ?? row.publishedAt;
-      if (inWindow(publishedAt)) pages.push({ ...read.page, kind: "recent", publishedAt, source: row.source });
+      const publishedAt = read.page.publishedAt ?? row.publishedAt;
+      if (inWindow(publishedAt)) pages.push({ ...read.page, kind: "recent", publishedAt, datedBy: read.page.publishedAt === undefined ? "serp" : read.page.datedBy!, source: row.source });
     });
   }
   const read = pages.slice(0, RESEARCH.recentJudged);
@@ -543,8 +539,9 @@ export function researchSerps(a: { siteId: string; locale: Locale; target: strin
   const base = { locale: a.locale, mode: "std", untilMs: Date.now() + waitMs, loadAsyncAiOverview: false, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.serp } as const;
   const language = languagePack(a.locale.language), market = (a.market ?? "").trim();
   const subject = market === "" || a.target.toLowerCase().includes(market.toLowerCase()) ? a.target : `${a.target} ${market}`;
-  const study = a.guidance === true ? language.guidanceSearch(subject) : language.studySearch(subject);
-  return [{ ...base, query: a.target }, ...(a.recent === undefined && a.study !== false ? [{ ...base, query: study }] : [])];
+  // The study search asks Google for the past year at the same price; the guidance and the target's own SERP are not filtered.
+  const study = a.guidance === true ? { query: language.guidanceSearch(subject) } : { query: language.studySearch(subject), searchParam: "&tbs=qdr:y" };
+  return [{ ...base, query: a.target }, ...(a.recent === undefined && a.study !== false ? [{ ...base, ...study }] : [])];
 }
 
 /** One SERP, read for its organic results, its "People also ask" and its
@@ -647,7 +644,7 @@ export async function researchMarket(
   const first = rivalsInScope(inForce, a).slice(0, bound);
   // The week's other pages, read at 0¢: a site cited on enough of them ranks last here (`a.page` ends in its date).
   const capped = a.page === undefined ? new Set<string>() : await cappedSites(a.siteId, own, /\d{4}-\d{2}-\d{2}$/.exec(a.page)?.[0] ?? a.today.toISOString().slice(0, 10));
-  const [topReads, firstReads] = await Promise.all([Promise.all(topTen.map(fetchPage)), Promise.all(first.map(readRival))]);
+  const [topReads, firstReads] = await Promise.all([Promise.all(topTen.map((url) => fetchPage(url))), Promise.all(first.map(readRival))]);
   const readable = topReads.filter((read) => read !== null);
   // The products named on the top results already read, up to `namedFrom` of them; the claim calls still read `topResults`.
   const named =
@@ -703,7 +700,7 @@ export async function researchMarket(
   const skipped = new Set<string>();
   const found: (ReadPage & Wanted)[] = recent === null ? [] : [...recent.pages];
   if (studyRead !== undefined && !c.capHit()) {
-    const studyUrls: string[] = [];
+    const studyRows: SerpOrganicRow[] = [];
     const serp = await serpOrganic(c, studyRead);
     if (serp.kind !== "unmeasured") {
       for (const row of serp.value.organic) {
@@ -711,13 +708,13 @@ export async function researchMarket(
         const host = hostOf(row.url), site = registrableDomain(row.url) ?? host;
         if (capped.has(site)) skipped.add(site);
         if (!notOurs(row.url) || googleWrapper(row.url) !== null || taken.has(row.url) || [...inForce, ...rivalDomains, ...capped].some((rival) => sameSite(host, rival))) continue;
-        studyUrls.push(row.url);
+        studyRows.push(row);
       }
     }
     // A primary source leads, in the search's own order otherwise.
     const primary = (url: string): boolean => a.guidance === true && primaryAddress(url, rivalDomains);
-    const ordered = [...studyUrls.filter(primary), ...studyUrls.filter((url) => !primary(url))];
-    const studyReads = await Promise.all(ordered.map(fetchPage));
+    const ordered = [...studyRows.filter((row) => primary(row.url)), ...studyRows.filter((row) => !primary(row.url))];
+    const studyReads = await Promise.all(ordered.map((row) => fetchPage(row.url, row.publishedAt)));
     found.push(
       ...studyReads
         .filter((read) => read !== null)
@@ -754,7 +751,7 @@ export async function researchMarket(
       freshnessDays: RESEARCH.freshnessDays,
       costCents: 0,
       // Issue 1521: the headings are recorded with the read.
-      run: async () => ({ url: page.url, title: page.title, text: page.text, readAt: page.readAt, ...(page.headings === undefined ? {} : { headings: page.headings }) }),
+      run: async () => ({ url: page.url, title: page.title, text: page.text, readAt: page.readAt, ...(page.headings === undefined ? {} : { headings: page.headings }), ...datesOf(page) }),
     });
     if ("skipped" in row) break;
     pages.push({ ...page, ...row.payload });
@@ -763,9 +760,9 @@ export async function researchMarket(
   // 4. The claims, a few pages a call, each kept only where its page says it.
   const facts = await readClaims(c, pages, { locale: a.locale, search: target, rivals: rivalDomains, today: a.today, siteId: a.siteId, page: a.page });
 
-  // Best tier first, one claim a page in turn inside each; a statistic is then cited to the original its page links, read at 0¢.
+  // Best tier first, newest credible first and one claim a page in turn inside each; a statistic is then cited to the original its page links, read at 0¢.
   const tiers = { rivals: inForce, products: [...inForce, ...named.map((product) => product.domain)], language: a.locale.language, pages, capped };
-  const dealt = byTier(tiered(ownPagesFirst(facts), tiers), (tier) => inTurn(tier, pages)).slice(0, RESEARCH.briefFacts);
+  const dealt = byTier(newestCredible(tiered(ownPagesFirst(facts), tiers), a.today), (tier) => inTurn(tier, pages)).slice(0, RESEARCH.briefFacts);
   const ordered = byTier(tiered(await toOriginals(dealt, pages, (url) => readFresh(c, url)), tiers));
   for (const fact of ordered) if (fact.capped === true) skipped.add(registrableDomain(fact.url) ?? hostOf(fact.url));
   const minimum = a.study === false ? 0 : compares({ target, options: a.options }) ? 1 : 2;

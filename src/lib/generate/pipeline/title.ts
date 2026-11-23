@@ -13,6 +13,7 @@ import { topicWords } from "../rules/gaps";
 import { namedRivals } from "../rules/rivals";
 import { numeralsOf } from "../rules/figures";
 import { addedNames, asksQuestion, closestTitle, countedIn, names, pickTitle, withoutSerials, type TitleRuleInputs } from "../rules/title";
+import { undatedTimely } from "./claims";
 import { ownCapitals, recased } from "./compose";
 import { packStatements, type ContextPack } from "./pack";
 import { comparisonTable } from "./table";
@@ -63,9 +64,9 @@ function rivals(pack: ContextPack): (claim: ContextPack["claims"][number]) => bo
 
 /** A title's figure describes the page, so the business's own words count only on the page that sells or refreshes them. */
 function evidenceOf(pack: ContextPack): string[] {
-  // A rival's plan or price line is the rival's, never this page's specific.
+  // A rival's plan or price line is the rival's, never this page's specific; nor is a figure nobody can date.
   const rival = rivals(pack);
-  const claims = pack.claims.filter((claim) => !rival(claim) && claim.secondHand !== true).map((claim) => claim.passage);
+  const claims = pack.claims.filter((claim) => !rival(claim) && claim.secondHand !== true && !undatedTimely(claim)).map((claim) => claim.passage);
   return pack.type === "offering" || pack.type === "update" ? [...pack.facts.map((fact) => fact.passage), ...claims, ...packStatements(pack)] : claims;
 }
 
