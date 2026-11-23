@@ -197,6 +197,6 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
     // Titles code checked against every rule below.
     titles: [...angle, ...(floor === null ? [] : [floor])],
     // Issue 2378: the title rule's lines, from the one list every prompt renders.
-    rules: briefLinesOf("title", { pack, template: TEMPLATES[pack.type], pageType: null, titleRule: rule }),
+    rules: briefLinesOf("title", { pack, pageType: null, titleRule: rule }),
   };
 }

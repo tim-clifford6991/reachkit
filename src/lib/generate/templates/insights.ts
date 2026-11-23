@@ -20,5 +20,6 @@ export const insights: Template = {
   blocks: { faq: { min: 3, max: 6 }, datedSources: true },
   length: { floor: 700, target: 950, ceiling: 1200 },
   research: true,
+  sources: 2,
   packMustHold: [{ need: "recent_results", min: 3, days: 30 }],
 };

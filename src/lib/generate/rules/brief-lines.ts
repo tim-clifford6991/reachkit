@@ -10,17 +10,15 @@ import { languagePack } from "@/lib/locale/language";
 import type { PageType } from "@/lib/opportunities/types";
 import { UNSUPPORTED_CLAIM } from "../claims/fit";
 import type { ContextPack } from "../pipeline/pack";
-import { builtFromOutside } from "../standard";
-import type { Template } from "../templates";
+import { sourcesNeed } from "../templates";
 import { REGISTER_FLOOR } from "./figures";
 import { rulesAsked } from "./index";
 import type { TitleRuleInputs } from "./title";
 import type { HardRule } from "./types";
 
-/** What a line is built from: the page's pack and template, and what the battery is handed beside them. */
+/** What a line is built from: the page's pack, and what the battery is handed beside it. */
 export interface BriefLineInputs {
   pack: ContextPack;
-  template: Pick<Template, "packMustHold">;
   pageType: PageType | null;
   /** The site's demo phrases (issue 1249), which `no_demo_text` reads. */
   demoPhrases?: readonly string[];
@@ -30,11 +28,6 @@ export interface BriefLineInputs {
 
 /** The most demo phrases a writer is shown: the rest are still checked. */
 const DEMO_PHRASES_TOLD = 25;
-
-/** What `cites_market` holds a page to: the most outside pages its template asks (`../pipeline/battery.ts`). */
-export function citesMinOf(template: Pick<Template, "packMustHold">): number {
-  return template.packMustHold.reduce((most, need) => (need.need === "outside_sources" ? Math.max(most, need.min) : most), 0);
-}
 
 const quoted = (phrases: readonly string[]): string => phrases.map((phrase) => `"${phrase}"`).join(", ");
 
@@ -104,8 +97,10 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
     `Say a promise or tagline of the business at most ${PAGE_BLOCKS.taglineRepeats} times on the whole page.`,
     "Write none of the habits listed in `avoid`, nor their like in the page's language.",
   ],
-  cites_market: (a) =>
-    `Link at least ${citesMinOf(a.template)} different pages that \`pack.claims\` were read from, each in the sentence that states what it says.`,
+  cites_market: (a) => {
+    const need = sourcesNeed(a.pack.type, a.pack.own);
+    return `Link at least ${need} different ${need === 1 ? "page" : "pages"} that \`pack.claims\` were read from, each in the sentence that states what it says.`;
+  },
   standalone_lead: (a) =>
     `Open each section's \`body\` with a sentence that answers its heading on its own, in the heading's words: never open on ${quoted(languagePack(a.pack.locale?.language ?? "en").backReferences)} or any other word that leans on an earlier sentence.`,
   // Issue 2375: the fit check's own definition, so the page is written to what it is checked against.
@@ -133,7 +128,7 @@ export function writerAsked(a: BriefLineInputs): HardRule[] {
       distinctHeadings: pack.type === "qa",
       titleRule: true,
       prose: true,
-      ...(builtFromOutside(pack.type, pack.own) ? { cites: true } : {}),
+      ...(sourcesNeed(pack.type, pack.own) > 0 ? { cites: true } : {}),
     },
     { fit: { state: "passed" }, fitAsked: pack.type === "listicle" }
   );

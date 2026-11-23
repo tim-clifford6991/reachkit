@@ -9,12 +9,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import { packStatements, type ContextPack } from "@/lib/generate/pipeline/pack";
-import { builtFromOutside } from "@/lib/generate/standard";
 import { fixNotes, repairable, repairMechanical } from "@/lib/generate/pipeline/repair";
 import { stops } from "@/lib/generate/record";
 import { runHardRules, type BatteryOutcome } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
-import { TEMPLATES } from "@/lib/generate/templates";
+import { sourcesNeed } from "@/lib/generate/templates";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import type { OpportunityType } from "@/lib/opportunities/types";
 import { fakeCost } from "../../generate/fixtures";
@@ -30,10 +29,6 @@ const ROW_TYPE: Partial<Record<ContentType, OpportunityType>> = {
   how_to: "keyword_page",
   documentation: "keyword_page",
 };
-
-/** The pipeline's own count: the most outside sources the template asks. */
-const citesMin = (type: ContentType): number =>
-  TEMPLATES[type].packMustHold.reduce((most, need) => (need.need === "outside_sources" ? Math.max(most, need.min) : most), 0);
 
 const detail = (outcome: BatteryOutcome, rule: string): string => {
   const failure = outcome.failed.find((f) => f.rule === rule);
@@ -77,7 +72,7 @@ async function stage4(domain: string): Promise<string> {
       factPages: pack.facts.map((fact) => fact.url),
       distinctHeadings: pack.type === "qa",
       // A pack written before outside sources were asked holds none to cite.
-      ...(builtFromOutside(pack.type) && pack.claims.length > 0 ? { cites: { claimUrls: pack.claims.map((claim) => claim.url), min: citesMin(pack.type) } } : {}),
+      ...(sourcesNeed(pack.type) > 0 && pack.claims.length > 0 ? { cites: { claimUrls: pack.claims.map((claim) => claim.url), min: sourcesNeed(pack.type) } } : {}),
       prose,
     });
 

@@ -7,9 +7,8 @@ import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { brandSentences, stillAsked, type FitVerdict } from "../claims/fit";
 import { lengthRangeFor, sectionWords, typeLength } from "../length";
-import { TEMPLATES } from "../templates";
+import { sourcesNeed, TEMPLATES } from "../templates";
 import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
-import { citesMinOf } from "../rules/brief-lines";
 import { namedRivals } from "../rules/rivals";
 import { renderOf } from "../rules/text";
 import type { ComparisonSet, Completeness, HardRule, SiteRuleInputs } from "../rules/types";
@@ -24,7 +23,7 @@ import type { SourcedFact } from "./grounding";
 import { ageDays } from "./claims";
 import { sourcingUrls } from "./original";
 import { packStatements, type ContextPack, type PackClaim } from "./pack";
-import { builtFromOutside, fittedTemplate } from "../standard";
+import { fittedTemplate } from "../standard";
 import { repairable, repairRecorded, withoutBusiness, type RepairRecord } from "./repair";
 import { completenessFor, stops } from "../record";
 import { reportFactsAllowed } from "./report-scope";
@@ -103,8 +102,8 @@ export function batteryBasis(a: {
           ],
         }),
   };
-  /** What `cites_market` holds the page to: the template's own count, as the writer is told it. */
-  const citesMin = citesMinOf(template);
+  /** What `cites_market` holds the page to, as the writer is told it. */
+  const citesMin = sourcesNeed(pack.type, pack.own);
   return { ...a, template, length, noRoomFor, short, room, pageType, table, searches, names, passages, withList, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
 }
 
@@ -167,7 +166,7 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
     distinctHeadings: pack.type === "qa",
     // Issue 1486: a how-to or a Q&A links the outside pages it is built
     // from.
-    ...(builtFromOutside(pack.type, pack.own) ? { cites: { claimUrls: sourcingUrls(pack.claims), min: b.citesMin } } : {}),
+    ...(b.citesMin > 0 ? { cites: { claimUrls: sourcingUrls(pack.claims), min: b.citesMin } } : {}),
     heading: page.heading,
     rivalsNamed: b.rivalsNamed,
     ...(b.demoPhrases === undefined ? {} : { demoPhrases: b.demoPhrases }),
