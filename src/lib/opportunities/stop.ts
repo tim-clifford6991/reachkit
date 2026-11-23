@@ -4,8 +4,8 @@
 // the page while it is still `open`, and that day then takes the week's next
 // spare (`pageForDay`). No draft moves, so ADR-080 is not reached. Once the
 // page is written, its own draft-bound link applies.
-import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
-import { env } from "@/lib/config/env";
+import { timingSafeEqual } from "node:crypto";
+import { macFor } from "@/lib/crypto/keys";
 import { dbAdmin } from "@/lib/db";
 import { opportunityStore } from "./store";
 import type { PlanReason } from "./types";
@@ -29,8 +29,7 @@ export type PlannedPreview =
   | { ok: false; reason: "written" | "expired" | "unknown" };
 
 function macOf(payload: string): Buffer {
-  const key = Buffer.from(hkdfSync("sha256", env.IP_HASH_SALT, "", HKDF_INFO, 32));
-  return createHmac("sha256", key).update(payload).digest();
+  return macFor(HKDF_INFO, payload);
 }
 
 export function plannedStopToken(a: { siteId: string; opportunityId: string; day: string }): string {

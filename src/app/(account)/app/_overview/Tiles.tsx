@@ -54,18 +54,6 @@ function Figure(p: { tile: Tile; className: string }): React.JSX.Element {
   );
 }
 
-/** The AI tile's hosted-site line: fetches, then visits only where there were any. */
-function openedLine(o: { fetches: number; visits: number }): string {
-  const opened =
-    o.fetches === 0
-      ? copy("overview.tile.ai.opened.none")
-      : o.fetches === 1
-        ? copy("overview.tile.ai.opened.one")
-        : copy("overview.tile.ai.opened", { f: formatCount(o.fetches) });
-  if (o.visits === 0) return opened;
-  return `${opened} · ${o.visits === 1 ? copy("overview.tile.ai.visits.one") : copy("overview.tile.ai.visits", { r: formatCount(o.visits) })}`;
-}
-
 /** On Google's line beneath the of-line; `null` on every other tile. */
 function shownLine(tile: Tile, d: TileDates): string | null {
   const s = tile.shown;
@@ -122,7 +110,6 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
                   <Figure tile={tile} className="text-3xl leading-snug font-semibold tabular-nums" />
                   <span className={`${INK} break-words`}>{ofLine(tile)}</span>
                   {shown === null ? null : <span className={`${INK} break-words`}>{shown}</span>}
-                  {tile.key === "ai" && p.model.aiOpened != null ? <span className={INK}>{openedLine(p.model.aiOpened)}</span> : null}
                   {change === null ? null : (
                     <span className={`text-sm ${tile.change?.kind === "up" ? "text-success" : "text-base-content/70"}`}>{change}</span>
                   )}
@@ -207,7 +194,7 @@ export function DetailTilesSkeleton(): React.JSX.Element {
 }
 
 /** The closed account of what each tile counts. */
-export function TilesHow(p: { hosted: boolean; noConsole: boolean }): React.JSX.Element {
+export function TilesHow(p: { noConsole: boolean }): React.JSX.Element {
   return (
     <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="overview-tiles-how">
       <summary className="collapse-title font-semibold">{copy("overview.tiles.how.title")}</summary>
@@ -216,7 +203,6 @@ export function TilesHow(p: { hosted: boolean; noConsole: boolean }): React.JSX.
         <p>{copy("overview.tiles.how.google")}</p>
         {p.noConsole ? <p>{copy("overview.tiles.how.google.no-console")}</p> : null}
         <p>{copy("overview.tiles.how.ai", { weeks: formatCount(AI_WINDOW_WEEKS) })}</p>
-        {p.hosted ? <p>{copy("overview.tiles.how.ai.opened")}</p> : null}
         <p>{copy("overview.tiles.how.rivals")}</p>
         <p>{copy("overview.tiles.how.change")}</p>
       </div>

@@ -1,8 +1,8 @@
 // BUILD §9 — "Pause all pages" from the Monday mail: a signed link that switches publishing off.
 // Signed over the site alone under its own HKDF label, so it is never a sign-in, an unsubscribe or a stop of one page.
 // It takes no transition; it records the switch through `setPublishing`, as Settings does. Applying it twice writes once.
-import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
-import { env } from "@/lib/config/env";
+import { timingSafeEqual } from "node:crypto";
+import { macFor } from "@/lib/crypto/keys";
 import { publishDb } from "../db";
 import { setPublishing } from "./index";
 
@@ -10,8 +10,7 @@ const HKDF_INFO = "reachkit/pause-link/v1";
 const SEPARATOR = ".";
 
 function macOf(siteId: string): Buffer {
-  const key = Buffer.from(hkdfSync("sha256", env.IP_HASH_SALT, "", HKDF_INFO, 32));
-  return createHmac("sha256", key).update(`pause:${siteId}`).digest();
+  return macFor(HKDF_INFO, `pause:${siteId}`);
 }
 
 export function pauseTokenFor(siteId: string): string {

@@ -15,6 +15,7 @@ import { completeTables } from "@/lib/generate/pipeline/sources";
 import { titleRuleFor } from "@/lib/generate/pipeline/title";
 import { writePage } from "@/lib/generate/pipeline/write";
 import { pickTitle } from "@/lib/generate/rules/title";
+import { pageTitle } from "@/lib/presentation/page-title";
 import { completenessFor } from "@/lib/generate/record";
 import { runHardRules } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
@@ -134,6 +135,8 @@ export const writeLeadPage: DraftWriter = async (a) => {
         pageType,
         length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
         free: true,
+        // Sonnet 5: Opus 5.5 was never measured on a 3 072-token free page, and two attempts at its price pass `FREE_C`.
+        tier: "sonnet",
       });
       if (written.kind === "unmeasured") return stepFailed(a.leadId, "write");
 
@@ -143,7 +146,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
         promises: [],
         queries: targetSearches(opportunity),
         names: [businessName ?? "", report.domain.split(".")[0] ?? "", ...rivals],
-        pickTitle: (proposed, on) => pickTitle(proposed, titleRuleFor(pack, on)).chosen,
+        pickTitle: (proposed, on) => pickTitle(proposed.map((title) => pageTitle(title, pack.locale?.language)), titleRuleFor(pack, on)).chosen,
       });
       const markdown = withClosing(completeTables(laid.body.bodyMarkdown), laid.closing, `https://${report.domain}/`);
 

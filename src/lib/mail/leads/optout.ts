@@ -2,25 +2,20 @@
 // It is ADR-042's second format, apart from the kind-scoped unsubscribe; HKDF labels separate the keys so neither token passes as the other.
 // No expiry, so a mail found a year later can still be switched off.
 // Applied on arrival, not by a button: a prefetch that over-stops follow-up costs nothing (`first-page` is unstoppable), a button can cost the only way out.
-// The key is derived by HKDF from an existing server-only secret with a unique label; a dedicated binding would be one line here.
-import { createHmac, hkdfSync, timingSafeEqual } from "node:crypto";
-import { env } from "@/lib/config/env";
+// The key is `keyFor` a label no other token uses.
+import { timingSafeEqual } from "node:crypto";
+import { macFor } from "@/lib/crypto/keys";
 import { normaliseAddress, suppressAddress } from "./suppress";
 
 const HKDF_INFO = "reachkit/opt-out-token/v1";
-const KEY_BYTES = 32;
 const SEPARATOR = ".";
-
-function signingKey(): Buffer {
-  return Buffer.from(hkdfSync("sha256", env.IP_HASH_SALT, "", HKDF_INFO, KEY_BYTES));
-}
 
 function base64url(value: Buffer | string): string {
   return Buffer.from(value).toString("base64url");
 }
 
 function macOf(payload: string): Buffer {
-  return createHmac("sha256", signingKey()).update(payload).digest();
+  return macFor(HKDF_INFO, payload);
 }
 
 /** Signed on the normalised address, so a mixed-case address is the same person. */

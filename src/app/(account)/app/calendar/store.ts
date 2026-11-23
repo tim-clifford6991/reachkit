@@ -44,6 +44,9 @@ import {
   type Choice,
 } from "@/lib/opportunities";
 import { fromStored, renderGenerated } from "@/lib/presentation/generated";
+import { pageTitle } from "@/lib/presentation/page-title";
+import { siteLocale } from "@/lib/locale/site";
+import type { Language } from "@/lib/locale/locales";
 import { writtenLine } from "../_shell/written";
 import { whySentenceOf } from "./card-lines";
 import { pageTargetOf } from "../_shell/page-target";
@@ -198,6 +201,8 @@ function pageOn(a: {
   standing: PageStanding | null;
   /** Whether the committed week's row for the page's date reads as a new page; `false` where none can be read. */
   plannedNew: boolean;
+  /** The site's language, which its titles are cased in. */
+  language: Language;
   /** When work on the page's day began. */
   startedAt: Date | null;
   now: Date;
@@ -205,7 +210,7 @@ function pageOn(a: {
   const at = measuredAtOf(a.choice, a.now);
   const search = a.choice.evidence.family === "fix" ? "" : a.choice.evidence.query;
   // Model-written, so it reaches the screen only with its label (ADR-012); a draft still being written keeps its search.
-  const stored = a.page.state === "generating" || search === "" ? "" : (a.page.title?.trim() ?? "");
+  const stored = a.page.state === "generating" || search === "" ? "" : pageTitle(a.page.title?.trim() ?? "", a.language);
   const title = fromStored("drafts.title", stored);
   const written =
     stored === "" ? null : renderGenerated(title, { state: "written", pageId: a.page.draftId, title, edited: a.page.edited });
@@ -455,7 +460,7 @@ export async function readCalendarFacts(a: {
   planEnd?: DayKey;
 }): Promise<CalendarFacts> {
   const today = dayKeyOf(a.now, a.site.timeZone);
-  const [depth, week, publishing, stop, changeHold] = await Promise.all([
+  const [depth, week, publishing, stop, changeHold, locale] = await Promise.all([
     // The week never waits on the ranking: no ready row left is the one zero it can prove cheaply, and anything else states no supply.
     opportunityStore()
       .countUnused(a.site.siteId)
@@ -477,6 +482,7 @@ export async function readCalendarFacts(a: {
     // which are read from their own rows. `generationHold` picks the one
     // reason; nothing here picks between two.
     marketHold(a.site.siteId, a.now).catch(() => null),
+    siteLocale(a.site.siteId),
   ]);
 
   // Issue 930: this week's place for every live page on this month, read
@@ -520,6 +526,7 @@ export async function readCalendarFacts(a: {
         publishAt: publishing.publishAt.get(page.draftId) ?? null,
         standing: page.liveUrl === null ? null : (standings.get(page.liveUrl) ?? null),
         plannedNew: planned === "write" || planned === "earn",
+        language: locale.language,
         startedAt: publishing.startedAt.get(page.scheduledFor as DayKey) ?? null,
         now: a.now,
       })

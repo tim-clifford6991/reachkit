@@ -10,6 +10,7 @@ import { PAGES_LANDING_PATH } from "@/lib/account/identity/addresses";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
 import { readPublishedPages } from "@/lib/measure/published-store";
+import { pageTitle } from "@/lib/presentation/page-title";
 import { resultsOf, type TilePass } from "@/lib/measure/results";
 import { readTileRows } from "@/lib/measure/results-store";
 import { committedWeek, opportunityById } from "@/lib/opportunities";
@@ -436,14 +437,14 @@ async function stampSent(scanId: string, at: Date): Promise<void> {
 async function oneNeedsYou(siteId: string, now: Date): Promise<WeeklyNeedsYou | undefined> {
   try {
     const { data, error } = await untyped()
-      .from<{ id: string; title: string | null; transitions: unknown; meta: unknown }>("drafts")
-      .select("id, title, transitions, meta")
+      .from<{ id: string; title: string | null; transitions: unknown; meta: unknown; sites?: { language: string | null } | null }>("drafts")
+      .select("id, title, transitions, meta, sites(language)")
       .eq("site_id", siteId)
       .eq("state", "needs_attention");
     if (error !== null) return undefined;
     const row = data?.find((each) => critical(needsYouOf({ state: "needs_attention", transitions: each.transitions, meta: each.meta }), now));
     if (row === undefined) return undefined;
-    const title = (row.title ?? "").trim();
+    const title = pageTitle((row.title ?? "").trim(), row.sites?.language);
     return {
       line: "mail.weekly.needsYou",
       // The title is model text, so it reaches the reader in a slot, never as our sentence; with none, the slot carries the app address.

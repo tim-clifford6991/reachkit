@@ -39,7 +39,7 @@ const SITE_ID = ACCOUNT.siteId;
 const NOW = new Date("2026-10-09T15:00:00.000Z");
 const CHECKED_AT = "2026-10-09T14:00:00.000Z";
 const SET_UP_AT = "2026-10-08T15:00:00.000Z";
-const TITLE = "Emergency plumber in Austin: what to do in the first hour";
+const TITLE = "Emergency Plumber in Austin: What to Do in the First Hour";
 
 /** A local plumber's guides and a SaaS help centre (Q2). */
 const PLUMBER = { label: "help", domain: "harborplumbing.example" };

@@ -215,7 +215,7 @@ export const PUBLISHER_PAGE = Object.freeze({
    *  and the `[[...slug]]` fixture `routes.ts` already enumerates this route
    *  with, so the sweep's URL and the published row name one page. */
   slug: "best-onboarding-tools",
-  title: "Best onboarding tools",
+  title: "Best Onboarding Tools",
   /** The eyebrow, off `sites.category`. */
   category: "employee onboarding software",
   publishedAt: "2026-09-04T09:00:00.000Z",

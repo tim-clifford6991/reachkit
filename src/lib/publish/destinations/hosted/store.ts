@@ -14,6 +14,7 @@ import { addressOf, slugOf as addressSlug, type AddressRow, type HostedAddress }
 import { ADDRESS_COLUMNS, toAddressRow, type AddressJoin } from "./answer";
 import type { HostedOwnPages } from "./own-page";
 import { storedSiteName } from "@/lib/site-profile/site-name";
+import { pageTitle } from "@/lib/presentation/page-title";
 import { datedAt, emptyToNull, readDescription, readHeading, readSectionHeading } from "./page-fields";
 import { mainSiteOf, type MainSite } from "@/lib/site-profile/main-site-row";
 
@@ -123,7 +124,7 @@ interface PublicationRow {
   live_url: string | null;
   published_at: string | null;
   mode: "approved" | "autopilot";
-  sites: { domain: string | null; category: string | null; timezone: string | null } | null;
+  sites: { domain: string | null; category: string | null; timezone: string | null; language?: string | null } | null;
   drafts: {
     title: string | null;
     attribution: string | null;
@@ -147,8 +148,8 @@ interface PublicationRow {
  *  body, the grounded fact or the whole meta, since every list read would carry each page's text. */
 const LIST_COLUMNS = (body: boolean): string =>
   "id, site_id, live_url, published_at, mode, " +
-  // The publisher's three and nothing else off `sites`: name, eyebrow, and the byline date's zone.
-  "sites!inner(domain, category, timezone), " +
+  // The publisher's three off `sites`: name, eyebrow, and the byline date's zone; and the language its titles are cased in.
+  "sites!inner(domain, category, timezone, language), " +
   "drafts!inner(title, attribution, opportunity_id, " +
   "heading:meta->>heading, description:meta->>description, dated_as:meta->>datedAs, content_type:meta->>contentType, " +
   (body ? "body_md, " : "") +
@@ -199,13 +200,15 @@ function toListing(row: PublicationRow, host: string): HostedListing | null {
   // The one composer, on the host that resolved: see `HostedListing.liveUrl`.
   const liveUrl = liveUrlOnHost({ host, slug });
   const meta = { heading: draft.heading, description: draft.description, datedAs: draft.dated_as };
+  const heading = readHeading(meta);
+  const language = row.sites?.language;
 
   return {
     publicationId: row.id,
     siteId: row.site_id,
     slug,
-    title: draft.title ?? "",
-    heading: readHeading(meta),
+    title: pageTitle(draft.title ?? "", language),
+    heading: heading === null ? null : pageTitle(heading, language),
     description: readDescription(meta),
     publisher: {
       name: domain,

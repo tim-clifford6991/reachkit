@@ -42,7 +42,8 @@ import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
 import type { SourcedFact } from "./grounding";
-import { byNewest } from "./claims";
+import { agesOf, newestCredible, type ClaimDates, type SourceAges } from "./claims";
+import { byTier, type SourceMix, type SourceTier } from "./source-tier";
 import { neverASource, staleRivalPrice } from "./original";
 import { ownDataFact, type OwnDataFact } from "./own-data";
 import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
@@ -58,7 +59,7 @@ export interface PackFact {
   report?: true;
 }
 
-export interface PackClaim {
+export interface PackClaim extends ClaimDates {
   passage: string;
   url: string;
   title: string;
@@ -71,13 +72,14 @@ export interface PackClaim {
   plan?: string | null;
   /** Issue 1485: the rival a claim read off someone else's page is about. */
   about?: string;
-  publishedAt?: string;
   /** Who published a `recent` page, as the news search names it (D48). */
   source?: string;
   /** The page that repeated a statistic cited here to its original: a supporting source only. */
   via?: string;
   /** A statistic whose original could not be read: never a title's figure, nor alone what makes its page a source. */
   secondHand?: true;
+  tier?: SourceTier;
+  capped?: true;
 }
 
 /** What the latest complete pass measured, as a research page states it. */
@@ -183,6 +185,8 @@ export interface ContextPack {
    *  and whether it was judged to be about the market. Only one that was has
    *  a claim in `claims`. */
   news?: JudgedResult[];
+  /** What the research cites, by tier and by age: stored with the pack at `meta.pack.mix` and `meta.pack.ages`. */
+  mix?: SourceMix; ages?: SourceAges;
   /** Every published and planned page of the site. */
   pages: SitePage[];
   /** The site's own pages this page links. */
@@ -661,20 +665,8 @@ export function buildPack(a: PackInputs): ContextPack {
   const products = a.research.products
     .map((product) => ({ ...product, pages: product.pages.filter((url) => current.some((fact) => fact.product === product.domain && fact.url === url)) }))
     .filter((product) => product.pages.length > 0);
-  const claims: PackClaim[] = byNewest(current).map((fact) => ({
-    passage: fact.passage,
-    url: fact.url,
-    title: fact.title,
-    readAt: fact.readAt.toISOString(),
-    kind: fact.kind,
-    ...(fact.product === undefined ? {} : { product: fact.product }),
-    ...(fact.plan === undefined ? {} : { plan: fact.plan }),
-    ...(fact.about === undefined ? {} : { about: fact.about }),
-    ...(fact.publishedAt === undefined ? {} : { publishedAt: fact.publishedAt }),
-    ...(fact.source === undefined ? {} : { source: fact.source }),
-    ...(fact.via === undefined ? {} : { via: fact.via }),
-    ...(fact.secondHand === undefined ? {} : { secondHand: fact.secondHand }),
-  }));
+  // Best tier first (SPEC §7 *The content standard*), newest credible first inside each.
+  const claims: PackClaim[] = byTier(newestCredible(current, a.now)).map(({ readAt, ...fact }) => ({ ...fact, readAt: readAt.toISOString() }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
   const fit = a.opportunity.evidence?.family === "write" || a.opportunity.evidence?.family === "earn" ? a.opportunity.evidence.fitFact : null;
   const business = { name: a.site.businessName, domain: a.site.domain, category: a.category, byline: a.byline, voice: a.voice, market: a.market ?? null, rivals: [...a.site.rivals] };
@@ -722,6 +714,7 @@ export function buildPack(a: PackInputs): ContextPack {
     products,
     ...(a.research.baseline === undefined || a.type !== "listicle" ? {} : { baseline: a.research.baseline }),
     ...(a.research.news === undefined ? {} : { news: a.research.news }),
+    ...(a.research.mix === undefined ? {} : { mix: a.research.mix }), ages: agesOf(claims, a.now),
     pages: a.sitePages.filter((page) => typeof page.url !== "string" || !neverASource(page.url)).slice(0, PACK.pages),
     links: a.links.filter((link) => !neverASource(link.url)).map((link) => ({ url: link.url, label: link.label, purpose: link.source === "site" ? link.purpose : null })),
     questions,

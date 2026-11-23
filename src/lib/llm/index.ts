@@ -332,7 +332,7 @@ async function callModel(
       model: binding.modelId,
       max_tokens: maxOutputTokens,
       ...(temperature === undefined || binding.fixedRequest ? {} : { temperature }),
-      ...(binding.fixedRequest ? { thinking: { type: "disabled" as const } } : {}),
+      ...(binding.thinking !== undefined ? { thinking: { type: binding.thinking } as unknown as Anthropic.ThinkingConfigParam } : binding.effort !== undefined ? { output_config: { effort: binding.effort } } : binding.fixedRequest ? { thinking: { type: "disabled" as const } } : {}),
       system: prompt.system,
       messages: [{ role: "user", content: prompt.user }],
       ...(tool === null

@@ -34,6 +34,7 @@ interface PassRow {
   ownRankedRows: PlaceReport["ownRankedRows"] | null;
   ownRanked: PlaceReport["ownRanked"] | null;
   prompts: PromptsSection | null;
+  aiAnswers: { rows?: readonly { question: { search: string }; cell: unknown }[] } | null;
 }
 
 interface PageRow {
@@ -69,7 +70,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
   const since = new Date(Date.parse(`${a.week}T12:00:00Z`) - (TILE_WEEKS + AI_WINDOW_WEEKS) * 7 * 86_400_000).toISOString().slice(0, 10);
   const [passes, pages, hosted] = await Promise.all([
     from<PassRow>("scans")
-      .select("week_start, created_at, health, questions:report->questions, serps:report->serps, pageQuestions:report->pageQuestions, ownRankedRows:report->ownRankedRows, ownRanked:report->ownRanked, prompts:report->prompts")
+      .select("week_start, created_at, health, questions:report->questions, serps:report->serps, pageQuestions:report->pageQuestions, ownRankedRows:report->ownRankedRows, ownRanked:report->ownRanked, prompts:report->prompts, aiAnswers:report->aiAnswers")
       .eq("site_id", a.siteId)
       .eq("tier", "weekly")
       .neq("status", "failed")
@@ -97,6 +98,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       healthy: failingChecks(parseHealth(row.health)).length === 0,
       firstPage: firstPageOf(row.questions, row.serps, a.domain),
       prompts: row.prompts,
+      overview: row.aiAnswers?.rows?.map((r) => ({ search: r.question.search, cell: r.cell })) ?? null,
       report: {
         questions: row.questions ?? NOT_READ,
         serps: (row.serps ?? []) as unknown as PlaceReport["serps"],

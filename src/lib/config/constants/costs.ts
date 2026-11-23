@@ -41,23 +41,30 @@ export const PRICE_BOOK = Object.freeze({
  *  the same ledger, for every paid call made against a scan row that carries
  *  a `site_id`; a free scan has no site and is bounded by `FREE_BOUNDS`.
  *  A drafted default the owner may correct, sized from two readings:
- *   - one deep pass (`DEEP_C` 150¢) plus a week of drafts (7 x `DRAFT_C` =
- *     315¢) is 465¢;
+ *   - one deep pass (`DEEP_C` 150¢) plus a day's draft (`DRAFT_C` 87¢) is
+ *     237¢;
  *   - the largest day SPEC §6 allows a site, 3 deep passes in 24 hours (450¢)
- *     and the day's one draft (45¢), is 495¢.
- *  500¢ covers both, and is half the product's smallest day (1000¢), so one
- *  runaway site never takes the whole of it.
+ *     and the day's one draft (87¢), is 537¢.
+ *  550¢ covers both, and is about half the product's smallest day (1000¢), so
+ *  one runaway site never takes the whole of it.
  *
  *  The UTC day and not the site's, because the two figures are read off one
  *  ledger in one call, and a site-local day would make "today" mean two
  *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
-  FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40, DRAFT_C: 45,
-  DAILY_SITE_C: 500,
+  FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40,
+  /** A day's pages on Opus 5.5: its research on Sonnet 5.5 (14¢ at most measured), a write cut off at 8 192 tokens
+   *  (21¢), the retry (22¢) and the fix (23¢) reserve 80¢ at most, so a write is never refused its fix; a measured
+   *  page costs 18¢ (p50) to 31¢ (max) before its research. */
+  DRAFT_C: 87,
+  DAILY_SITE_C: 550,
   /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
   TOPUP_C: 7,
   /** SPEC §6 *Weekly cap*: the Monday commit's target SERPs, under their own 2¢ a site a week, outside `WEEKLY_C`. */
   WEEK_RESEARCH_C: 2,
+  /** SPEC §6 *Market changes*: the weekly pass's news searches (0.6¢), their market judgement and one Sonnet 5.5 claims
+   *  call (about 8¢ reserved at most), under their own 10¢ a site a week, outside `WEEKLY_C`. */
+  WEEK_NEWS_C: 10,
 } as const);
 
 /** The product-wide ceiling for one UTC day, in cents: `baseC` plus
@@ -122,15 +129,17 @@ const HAIKU_INFERENCE_PRICE = Object.freeze({ inCentsPerM: 100, outCentsPerM: 50
 export const INFERENCE_PRICE_BOOK = Object.freeze({
   nano: HAIKU_INFERENCE_PRICE,
   haiku: HAIKU_INFERENCE_PRICE,
-  /** `claude-sonnet-4-6`'s list price per million tokens, in cents. Its one
-   *  call is the pass's business-fit judgement (SPEC §6): about 5¢ a site,
-   *  once a pass. */
-  sonnet: Object.freeze({ inCentsPerM: 300, outCentsPerM: 1500 } as const),
-  /** `claude-sonnet-5`'s list price per million tokens, in cents: the tier a
-   *  customer's page and its critic are written on (SPEC §7, *Length and the
-   *  writer*). 2 US dollars in and 10 out per million tokens, the standard
-   *  price on https://platform.claude.com/docs/en/about-claude/pricing. */
-  writer: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
+  /** `claude-sonnet-5`'s list price per million tokens, in cents: the pass's
+   *  market, rival and business-fit judgements (SPEC §6). */
+  sonnet: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
+  /** `claude-opus-5-5`'s list price per million tokens, in cents: the tier a
+   *  customer's page and its fix are written on (SPEC §7, *Five stages*).
+   *  4 US dollars in and 20 out per million tokens, the standard price on
+   *  https://platform.claude.com/docs/en/about-claude/pricing. */
+  writer: Object.freeze({ inCentsPerM: 400, outCentsPerM: 2000 } as const),
+  /** `claude-sonnet-5-5`'s list price per million tokens, in cents: the research step's claims reading. 2 US dollars in
+   *  and 10 out, the standard price on https://platform.claude.com/docs/en/about-claude/pricing. */
+  research: Object.freeze({ inCentsPerM: 200, outCentsPerM: 1000 } as const),
 } as const);
 
 /** The wall clock one `llm()` call may hold, per tier, in milliseconds: the
@@ -154,10 +163,12 @@ export const INFERENCE_TIMEOUT_MS = Object.freeze({
    *  the free path. */
   sonnet: 60_000,
   /** One call that writes a whole page, or fixes one (SPEC §7, D41): up to
-   *  8 192 output tokens on Sonnet 5. The draft job's invocation is bounded
-   *  by `TIMING.jobsCeilingS`; `PIPELINE.fixBeforeMs` keeps the fix call
-   *  inside it. */
+   *  8 192 output tokens on Opus 5.5, whose writes took 61 s at p95 and its
+   *  fixes 33 s. The draft job's invocation is bounded by
+   *  `TIMING.jobsCeilingS`; `PIPELINE.fixBeforeMs` keeps the fix call inside it. */
   writer: 120_000,
+  /** The claims reading of up to seven pages: Sonnet 5.5 took 14.2 s at p95 and 14.7 s at most on the cited pages. */
+  research: 20_000,
 } as const);
 
 /** The vendor SDK's own retry layer, off. `@anthropic-ai/sdk` defaults
@@ -259,16 +270,10 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
 } as const);
 
 /** A call site's sampling temperature, where it has one pinned. Absent, the
- *  vendor's default (1.0) stands. The market a site is measured in must not
- *  change because one call drew a different sample: a market is replaced
- *  only on a conclusion seen twice, which a sampled answer would rarely give. */
+ *  vendor's default (1.0) stands. A `FIXED_REQUEST` tier's model refuses a
+ *  temperature, so the sonnet tier's sites carry none. */
 export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, number>>> =
   Object.freeze({
-    "market-inference": 0,
-    "rival-inference": 0,
-    "market-terms": 0,
-    "market-searches": 0,
-    "topic-fit": 0,
     "topic-buyer-searches": 0,
     "topic-typed": 0,
     // The same page read twice says the same thing about the business.
@@ -276,8 +281,7 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
   });
 
 /** A call site asked fewer times than the seam's two, where a retry buys
- *  nothing: a temperature-0 answer asked again is the same answer; what it
- *  missed is asked again next pass. */
+ *  nothing: what it missed is asked again next pass. */
 export const INFERENCE_ATTEMPTS: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, 1>>> = Object.freeze({
   "topic-fit": 1,
   "rival-inference": 1,

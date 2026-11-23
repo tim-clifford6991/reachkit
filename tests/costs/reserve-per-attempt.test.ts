@@ -17,15 +17,18 @@ vi.mock("@anthropic-ai/sdk", () => ({ default: class { messages = { create: crea
 const { withCostContext } = await import("../../src/lib/costs/index");
 const { llm } = await import("../../src/lib/llm/index");
 const { tryFix } = await import("../../src/lib/generate/pipeline/fix-call");
+const { CAPS } = await import("../../src/lib/config/constants");
 
-const DRAFT_C = 45;
+const DRAFT_C = CAPS.DRAFT_C;
 const SCHEMA = z.object({ page: z.string() });
 /** A fix call's input the size of 11-04's, about 12,000 tokens. */
 const INPUT = { page: "x".repeat(48_000) };
 const INPUT_TOKENS = Math.ceil(JSON.stringify(INPUT).length / 4);
 const FIX_OUT = 8192;
-/** One attempt at the writer's list price, 200¢ in and 1000¢ out per million, recomputed here. */
-const ONE_ATTEMPT = (INPUT_TOKENS / 1e6) * 200 + (FIX_OUT / 1e6) * 1000;
+/** One attempt at the writer's list price, Opus 5.5's 400¢ in and 2000¢ out per million, recomputed here. */
+const ONE_ATTEMPT = (INPUT_TOKENS / 1e6) * 400 + (FIX_OUT / 1e6) * 2000;
+/** The most a day's research has cost before its write. */
+const RESEARCH_C = 14;
 
 const rows = () => writeFetchRowMock.mock.calls.map(([row]) => row as { source: string; reservedCents: number; costCents: number });
 const fix = (cost: Parameters<typeof llm>[0]) => llm(cost, { site: "generate.fix", tier: "writer", input: INPUT, schema: SCHEMA });
@@ -47,16 +50,17 @@ afterEach(() => {
 });
 
 describe("a model call reserves one attempt at a time", () => {
-  it("a day with 21.1¢ left is admitted the fix whose one attempt fits, though two would not", async () => {
-    expect(2 * ONE_ATTEMPT).toBeGreaterThan(21.1);
+  it("a day that paid its research, a write cut off at its ceiling and the retry is still admitted the fix, though not two", async () => {
+    const prior = RESEARCH_C + 2 * ONE_ATTEMPT;
+    expect(2 * ONE_ATTEMPT).toBeGreaterThan(DRAFT_C - prior);
     createMock.mockResolvedValueOnce(toolUseMessage({ page: "fixed" }, INPUT_TOKENS, 2700, "generate_fix"));
 
-    const result = await draftDay(DRAFT_C - 21.1, fix);
+    const result = await draftDay(prior, fix);
 
     expect(result).toMatchObject({ kind: "measured", value: { page: "fixed" } });
     const [row] = rows();
     expect(row?.reservedCents).toBeCloseTo(ONE_ATTEMPT, 6);
-    expect(row?.costCents).toBeCloseTo((INPUT_TOKENS / 1e6) * 200 + (2700 / 1e6) * 1000, 6);
+    expect(row?.costCents).toBeCloseTo((INPUT_TOKENS / 1e6) * 400 + (2700 / 1e6) * 2000, 6);
   });
 
   it("a retry that fits is reserved when it is due, and the one row carries both attempts", async () => {
@@ -84,6 +88,17 @@ describe("a model call reserves one attempt at a time", () => {
     expect(ledgered).toBeCloseTo(spent, 6);
     expect(ledgered).toBeLessThanOrEqual(DRAFT_C);
     expect(prior + rows().reduce((sum, row) => sum + row.reservedCents, 0)).toBeLessThanOrEqual(DRAFT_C);
+  });
+
+  it("market inference is sent the sonnet tier's fixed request and ledgered at Sonnet 5's price inside WEEKLY_C", async () => {
+    createMock.mockResolvedValueOnce(toolUseMessage({ page: "market" }, INPUT_TOKENS, 600, "market-inference"));
+    await withCostContext({ scanId: "scan-1", cap: "WEEKLY", policyVersion: 1, rollUp: "none", priorCents: 0 }, (cost) =>
+      llm(cost, { site: "market-inference", tier: "sonnet", input: INPUT, schema: SCHEMA }));
+
+    expect(createMock.mock.calls[0]?.[0]).toMatchObject({ model: "claude-sonnet-5", thinking: { type: "disabled" } });
+    expect(createMock.mock.calls[0]?.[0]).not.toHaveProperty("temperature");
+    expect(rows()[0]?.costCents).toBeCloseTo((INPUT_TOKENS / 1e6) * 200 + (600 / 1e6) * 1000, 6);
+    expect(rows()[0]?.reservedCents).toBeLessThan(40);
   });
 
   it("a retry that does not fit is refused, its first attempt is ledgered, and the fix records the budget as its stop", async () => {

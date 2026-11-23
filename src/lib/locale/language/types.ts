@@ -163,8 +163,14 @@ export interface LanguagePack {
   forBuyerSearch(name: string, buyer: string): string;
   /** The search for the job a product is hired for. */
   jobSearch(job: string): string;
-  /** The search that finds studies about a target. */
+  /** The search that finds original research about a target: a study or survey that states its own findings. */
   studySearch(target: string): string;
+  /** Standards bodies, regulators and platforms read as the authority, beside every government's host (SPEC §7). */
+  officialHosts: RegExp;
+  /** How a page's visible line says when it was updated and when published, as regex alternations (SPEC §7). */
+  datedLines: { updated: string; published: string };
+  /** How a page says it ran its own study: its sample, its respondents or its method. */
+  studyMethod: RegExp;
   /** The search that finds a target's own guidance: the platform's or the
    *  authority's documentation of the task (issue 1486). */
   guidanceSearch(target: string): string;

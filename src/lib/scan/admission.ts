@@ -2,9 +2,9 @@
 // Order: removed → cooldown → switched off / daily ceiling → in-flight → hourly → network's day → domain's day. The last two live here, not in the route, because `POST /api/scan` calls `claimFreeScanSlot` directly.
 // PostgREST cannot hold a serialisable transaction, so two concurrent claims are settled by the partial unique index of one `running` scan per network; the loser is an `in_flight` refusal.
 // The removal table and `scans.network_hash`/`from_incomplete_rescan` are missing from the generated `Database` type, so those calls go through `untyped` below.
-import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import { env } from "@/lib/config/env";
+import { rootMac } from "@/lib/crypto/keys";
 import {
   DAILY_WINDOW_H,
   FAILURE_COOLDOWN_H,
@@ -42,7 +42,7 @@ export function clientAddressOf(headers: Pick<Headers, "get">): string | null {
   return platform ?? (process.env.VERCEL === "1" ? null : firstEntry(headers.get("x-forwarded-for")));
 }
 
-/** Truncates IPv6 to its /64 and HMACs with `IP_HASH_SALT`; a missing or unparseable address yields one shared key, so a malformed header is still counted. Never throws. */
+/** Truncates IPv6 to its /64 and HMACs with the root secret; a missing or unparseable address yields one shared key, so a malformed header is still counted. Never throws. */
 export function networkKeyOf(headers: Pick<Headers, "get">): NetworkKey {
   try {
     const entry = clientAddressOf(headers);
@@ -92,7 +92,7 @@ function expandIPv6Groups(address: string): string[] | null {
 }
 
 function hashSeed(seed: string): NetworkKey {
-  return createHmac("sha256", env.IP_HASH_SALT).update(seed).digest("hex") as NetworkKey;
+  return rootMac(seed).toString("hex") as NetworkKey;
 }
 
 // ── Admission ────────────────────────────────────────────────────────────

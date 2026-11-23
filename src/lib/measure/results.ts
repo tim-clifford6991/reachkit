@@ -28,6 +28,8 @@ export interface TilePass {
   firstPage: ReadonlyMap<string, boolean | null> | null;
   /** Its tracked buyer prompts; absent or `null` where it asked none. */
   prompts?: PromptsSection | null;
+  /** The twelve's AI Overview cells, the only panel items a pass reads one for; absent or `null` where it read none. */
+  overview?: readonly { search: string; cell: unknown }[] | null;
 }
 
 /** One publication ever published. */
@@ -120,8 +122,6 @@ export function marketOf(model: TilesModel | null): { top10: number; of: number 
 export interface TilesModel {
   tiles: readonly Tile[];
   bars: RivalBars | null;
-  /** On a hosted site: AI engines' fetches of its pages and visits from AI over the days kept; absent off one. */
-  aiOpened?: { fetches: number; visits: number } | null;
 }
 
 /** What Competitors reads from the Competitors screen's own selector. */
@@ -184,12 +184,12 @@ export function namesSite(cell: unknown, domain: string): boolean {
   return c?.kind === "answered" && (c.named === true || classifyReferences(c.citedDomains ?? [], domain).mentioned);
 }
 
-/** The AI tile's one figure: every answered, unbranded AI answer the window's healthy passes read, and those that mentioned or linked the site. */
+/** The AI tile's one figure: the window's answered, unbranded panel answers on AI Overview, AI Mode and ChatGPT, and those that mentioned or
+ *  linked the site; `named` is the sites each of those answers named or cited, which the competitors' counts read over the same N. */
 export interface AiAnswers {
   k: number;
   n: number;
-  fromPages: number;
-  fromPrompts: number;
+  named: readonly (readonly string[])[];
 }
 
 /** A healthy pass in the AI window ending at `week`: the only weeks that count toward "asked". */
@@ -214,8 +214,9 @@ export function aiWindowOf(passes: readonly TilePass[], pages: readonly TilePage
   return { asked, linked, mentioned: new Set([...named].filter((address) => !linked.has(address))) };
 }
 
-/** The window ending at `week`'s answers, over the weeks that asked its newest set, and the questions they answered; with `only`, those questions alone.
- *  `answers` is `null` where no healthy pass in it read one. A question that names the site proves nothing, so it is left out. */
+/** The window ending at `week`'s panel answers, over the weeks that asked its newest set, and the questions they answered; with `only`, those
+ *  questions alone. `answers` is `null` where no healthy pass in it read one. A question that names the site proves nothing, so it is left out;
+ *  a page's own question is that page's evidence, never the panel's. */
 function answersIn(passes: readonly TilePass[], week: string, domain: string, only?: ReadonlySet<string>): { answers: AiAnswers | null; asked: Set<string> } {
   const asked = new Set<string>();
   const counts = (question: string): boolean => {
@@ -224,30 +225,31 @@ function answersIn(passes: readonly TilePass[], week: string, domain: string, on
     return true;
   };
   let k = 0;
-  let fromPages = 0;
-  let fromPrompts = 0;
+  const named: (readonly string[])[] = [];
   const window = passes.filter((pass) => inAiWindow(pass, week)).sort((x, y) => x.weekStart.localeCompare(y.weekStart));
   for (const pass of newestSet(window, (p) => p.prompts)) {
     const prompts = pass.prompts ?? null;
     const kinds = new Map((prompts?.asked ?? []).map((prompt) => [prompt.id, prompt.kind]));
     for (const answer of prompts?.answers ?? []) {
       const kind = kinds.get(answer.promptId);
-      if (kind === undefined || kind === "branded" || !counts(`prompt:${answer.promptId}`)) continue;
-      fromPrompts += 1;
+      // Only a panel item counts: a template week's prompts, branded ones included, are no panel answer.
+      if (kind !== "search" || !counts(`prompt:${answer.promptId}`)) continue;
+      named.push(answer.rivals);
       if (namesOrLinks({ namesCustomer: answer.linked, ...(answer.named ? { named: true as const } : {}) })) k += 1;
     }
-    for (const row of pass.report.pageQuestions?.rows ?? []) {
-      if (textNamesSite(row.question.search, prompts?.siteName ?? null, domain)) continue;
-      // A row stored before per-engine cells carries the AI Overview's cell alone; after, `engines` holds it too.
-      for (const cell of row.engines.length === 0 ? [row.cell] : row.engines.map((e) => e.cell)) {
-        if (cell.kind !== "answered" || !counts(`page:${row.publicationId}:${row.question.search}`)) continue;
-        fromPages += 1;
-        if (namesOrLinks(cell as unknown as Parameters<typeof namesOrLinks>[0])) k += 1;
-      }
+    for (const { search, cell } of pass.overview ?? []) {
+      const c = cell as { kind?: string; citedDomains?: readonly string[] };
+      if (c.kind !== "answered" || textNamesSite(search, prompts?.siteName ?? null, domain) || !counts(`overview:${search}`)) continue;
+      named.push(c.citedDomains ?? []);
+      if (namesOrLinks(cell as Parameters<typeof namesOrLinks>[0])) k += 1;
     }
   }
-  const n = fromPages + fromPrompts;
-  return { answers: n === 0 ? null : { k, n, fromPages, fromPrompts }, asked };
+  return { answers: named.length === 0 ? null : { k, n: named.length, named }, asked };
+}
+
+/** How many of the panel's answers named or cited each domain: the competitors' AI counts, on the tile's own N. */
+export function namedCount(answers: AiAnswers, domain: string): number {
+  return answers.named.filter((hosts) => classifyReferences(hosts, domain).cited).length;
 }
 
 export const aiAnswersOf = (passes: readonly TilePass[], week: string, domain: string): AiAnswers | null => answersIn(passes, week, domain).answers;

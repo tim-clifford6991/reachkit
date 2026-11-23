@@ -13,10 +13,12 @@ import { topicWords } from "../rules/gaps";
 import { namedRivals } from "../rules/rivals";
 import { numeralsOf } from "../rules/figures";
 import { addedNames, asksQuestion, closestTitle, countedIn, names, pickTitle, withoutSerials, type TitleRuleInputs } from "../rules/title";
+import { undatedTimely } from "./claims";
 import { ownCapitals, recased } from "./compose";
 import { packStatements, type ContextPack } from "./pack";
 import { comparisonTable } from "./table";
 import { TEMPLATES } from "../templates";
+import { pageTitle } from "@/lib/presentation/page-title";
 
 /** The market as the pack carries it (`sites.market`), read defensively:
  *  `searchTerm` is D49's, on a market concluded since it was built, and
@@ -62,9 +64,9 @@ function rivals(pack: ContextPack): (claim: ContextPack["claims"][number]) => bo
 
 /** A title's figure describes the page, so the business's own words count only on the page that sells or refreshes them. */
 function evidenceOf(pack: ContextPack): string[] {
-  // A rival's plan or price line is the rival's, never this page's specific.
+  // A rival's plan or price line is the rival's, never this page's specific; nor is a figure nobody can date.
   const rival = rivals(pack);
-  const claims = pack.claims.filter((claim) => !rival(claim) && claim.secondHand !== true).map((claim) => claim.passage);
+  const claims = pack.claims.filter((claim) => !rival(claim) && claim.secondHand !== true && !undatedTimely(claim)).map((claim) => claim.passage);
   return pack.type === "offering" || pack.type === "update" ? [...pack.facts.map((fact) => fact.passage), ...claims, ...packStatements(pack)] : claims;
 }
 
@@ -137,6 +139,13 @@ export function floorTitle(pack: ContextPack): string | null {
   const dated = (TITLE.yearTypes as readonly string[]).includes(pack.type);
   const titles = rule.terms.map((term) => (dated ? `${casedAsPack(term, pack, rule)} (${rule.year})` : casedAsPack(term, pack, rule)));
   return titles.find((title) => [...title].length >= TITLE.chars.min && [...title].length <= TITLE.chars.max && closestTitle(title, rule.titles) === null) ?? null;
+}
+
+/** The pick, on the writer's titles and the floor as the reader sees them: cased first, so the rules judge that text and the row stores it. */
+export function pickCased(pack: ContextPack, proposed: readonly string[], page: TitledPage): ReturnType<typeof pickTitle> {
+  const cased = (title: string): string => pageTitle(title, pack.locale?.language);
+  const floor = floorTitle(pack);
+  return pickTitle(proposed.map(cased), titleRuleFor(pack, page), floor === null ? null : cased(floor));
 }
 
 /** The whole passages a title's clause may be built on, word for word, each stating a figure, a year or a serial aside:

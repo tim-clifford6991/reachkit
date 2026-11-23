@@ -35,17 +35,18 @@ export const CLAIMS_SCHEMA = z.strictObject({
 export async function readClaims(
   c: CostContext,
   pages: readonly (ReadPage & Wanted)[],
-  a: { locale: Locale; search: string; rivals: readonly string[]; today: Date; siteId?: string; page?: string }
+  a: { locale: Locale; search: string; rivals: readonly string[]; today: Date; siteId?: string; page?: string; calls?: number }
 ): Promise<MarketFact[]> {
   const facts: MarketFact[] = [];
-  const read = pages.slice(0, RESEARCH.pagesPerCall * RESEARCH.calls);
+  const calls = a.calls ?? RESEARCH.calls;
+  const read = pages.slice(0, RESEARCH.pagesPerCall * calls);
   // Dealt in turn, so the first pages read, the top results, never all ride the one call that can time out.
-  const batches = Array.from({ length: Math.min(RESEARCH.calls, read.length) }, (_, call) => read.filter((_, at) => at % RESEARCH.calls === call));
+  const batches = Array.from({ length: Math.min(calls, read.length) }, (_, call) => read.filter((_, at) => at % calls === call));
   const claimsOf = async (batch: readonly (ReadPage & Wanted)[]) => {
     if (c.capHit()) return { lost: batch, because: "cap" };
     const answer = await llm(c, {
       site: "generate.research",
-      tier: "haiku",
+      tier: "research",
       locale: a.locale,
       schema: CLAIMS_SCHEMA,
       instructions: ["task", "locale"],

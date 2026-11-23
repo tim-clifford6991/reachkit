@@ -6,13 +6,14 @@
 // source. Where the link cannot be read or does not state them, the claim stays on the repeating page, marked
 // `secondHand`: never a title's figure, and never by itself what makes its page a cited source. A claim that is not
 // a statistic, and one whose page links no source beside it, are cited as before. No model call: 0¢.
-import { parse, type HTMLElement } from "node-html-parser";
+import { parse } from "node-html-parser";
 import { RIVAL_PRICE_MAX_AGE_D } from "@/lib/config/constants";
 import { isPlatformDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { visibleText } from "@/lib/measure/parse";
 import { isAccountPage } from "@/lib/site-profile/knowledge/priority";
 import { derivePurpose } from "@/lib/site-profile/purpose";
-import { squash, statisticYear } from "./claims";
+import { aged, squash, statisticYear } from "./claims";
+import { datesOf } from "./dated";
 import type { PackClaim } from "./pack";
 import type { MarketFact, ReadPage } from "./research";
 
@@ -22,28 +23,8 @@ export interface SourcedBlock {
   hrefs: string[];
 }
 
-/** A page read at 0¢, cache first, with the day its markup says it was published; `null` where it does not read. */
-export type ReadOriginal = (url: string) => Promise<(ReadPage & { publishedAt?: string }) | null>;
-
-const PUBLISHED_NAMES: ReadonlySet<string> = new Set(["article:published_time", "datepublished", "date", "pubdate", "publish-date", "og:published_time"]);
-
-/** The day a page says it was published, as its own markup states it — a meta tag, its structured data or a
- *  `<time>` — or `null` where it states none. Never read off the prose and never guessed. */
-export function publishedOf(html: string): string | null {
-  const root = parse(html);
-  const named = (meta: HTMLElement) => meta.getAttribute("property") ?? meta.getAttribute("name") ?? meta.getAttribute("itemprop") ?? "";
-  const stated = [
-    ...root.querySelectorAll("meta[content]").filter((meta) => PUBLISHED_NAMES.has(named(meta).toLowerCase())).map((meta) => meta.getAttribute("content")),
-    /"datePublished"\s*:\s*"([^"]+)"/i.exec(html)?.[1],
-    root.querySelector("time[datetime]")?.getAttribute("datetime"),
-  ];
-  for (const found of stated) {
-    if (found === undefined || found === "") continue;
-    const at = new Date(found);
-    if (!Number.isNaN(at.getTime())) return at.toISOString().slice(0, 10);
-  }
-  return null;
-}
+/** A page read at 0¢, cache first, with its own dates; `null` where it does not read. */
+export type ReadOriginal = (url: string) => Promise<ReadPage | null>;
 
 const BLOCKS = "p, li, blockquote, td, figcaption";
 const MOST_BLOCKS = 60;
@@ -114,7 +95,7 @@ export async function toOriginals(
       // The original's own date ranks it, never the repeating page's.
       cited = { url: page.url, title: page.title, readAt: new Date(page.readAt), passage: sentence, kind: fact.kind, via: fact.url };
       if (fact.about !== undefined) cited.about = fact.about;
-      if (page.publishedAt !== undefined) cited.publishedAt = page.publishedAt;
+      Object.assign(cited, aged({ ...datesOf(page), passage: sentence, ...(fact.timeliness === undefined ? {} : { timeliness: fact.timeliness }) }));
       break;
     }
     if (cited !== null && !out.some((held) => held.passage === cited.passage)) out.push(cited);
