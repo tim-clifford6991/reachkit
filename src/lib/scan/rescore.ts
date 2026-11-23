@@ -443,7 +443,7 @@ function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "a
       const rivals = scan.market?.rivals ?? answer.rivals.map((domain) => ({ name: brandOf(domain), domain }));
       next.states = next.named ? statementsOf({ text, siteName: section.siteName, ownDomain: r.domain, rivals, language }) : [];
     }
-    const [was, now] = [answer, next].map((x) => ({ ...x, cited: x.cited ?? [], states: x.states ?? [], possiblyOther: x.possiblyOther ?? false })) as [Record<string, unknown>, Record<string, unknown>];
+    const fill = (x: PromptAnswer): Record<string, unknown> => ({ ...x, cited: x.cited ?? [], states: x.states ?? [], possiblyOther: x.possiblyOther ?? false }), was = fill(answer), now = fill(next);
     const moved = Object.keys(now).filter((key) => !same(was[key], now[key]));
     // A mark that no longer holds cannot be written at its own path, so the whole answer is.
     if (moved.includes("possiblyOther") && next.possiblyOther !== true) changes.push({ path: ["prompts", "answers", i], value: JSON.parse(JSON.stringify(next)) as PromptAnswer });
