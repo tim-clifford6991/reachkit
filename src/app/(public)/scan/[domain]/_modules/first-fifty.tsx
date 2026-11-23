@@ -22,3 +22,9 @@ export function FirstFifty(p: { read: boolean; offer: Offer; block: React.ReactN
     </>
   );
 }
+
+/** The price lock, only while a read says spots are open: an unread count promises nothing. */
+export function OpenLock(p: { read: boolean; offer: Offer; line: string; className: string }): React.JSX.Element | null {
+  const offer = useSpots(p.read) ?? p.offer;
+  return offer.open && offer.state !== "unknown" ? <p className={p.className}>{p.line}</p> : null;
+}

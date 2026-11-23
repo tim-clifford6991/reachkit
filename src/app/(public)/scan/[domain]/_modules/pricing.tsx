@@ -36,6 +36,7 @@ import { Suspense } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { OFFER_ENDS_ON, OFFER_SPOTS, SETUP_MINUTES, VETO, WEEK_PLAN } from "@/lib/config/constants";
 import type { SpotsLeft } from "@/lib/account/offer/spots";
+import type { Offer as Read } from "@/lib/account/offer/open";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { HOW_FACTS } from "@/app/(public)/_how/facts";
 import { BrandMark } from "@/app/_brand/Brand";
@@ -44,7 +45,7 @@ import { offerOf } from "../../../_chrome/offer-sentence";
 import { Num } from "../_address/measured";
 import { WhenRefused } from "../../../pricing/refused";
 import type { CheckoutRefusal } from "../../../pricing/state";
-import { FirstFifty } from "./first-fifty";
+import { FirstFifty, OpenLock } from "./first-fifty";
 import { BarStart, OfferBar } from "./offer-bar";
 
 /** The static pricing page's `refused`: the marker is read in the browser. */
@@ -100,6 +101,8 @@ function PriceBox(p: {
   cancel: string;
   refused?: Refused;
   terms?: React.ReactNode;
+  /** The first-50 read, where this card draws one: it decides the lock line under the price. */
+  spots?: { read: boolean; offer: Read };
   offer: React.ReactNode;
   free?: React.ReactNode;
 }): React.JSX.Element {
@@ -117,6 +120,9 @@ function PriceBox(p: {
         </span>
         <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
       </div>
+      {p.spots === undefined ? null : (
+        <OpenLock {...p.spots} line={copy("offer.card.lock", { price: copy("price.amount") })} className={`-mt-2 text-sm ${p.left === true ? "" : "text-center"}`} />
+      )}
       {p.terms ?? null}
       {p.offer}
       {/* Issue #624: the vendor refused to open checkout. One written line
@@ -226,6 +232,7 @@ export function PricingCard(
   );
   const control = p.startAction ? <form action={p.startAction}>{start}</form> : start;
   const offer = <Offer spots={p.spots} built={p.built === true} />;
+  const spots = p.spots === undefined ? undefined : { read: p.built === true, offer: offerOf(p.spots, p.built === true) };
   // Below `md` the same action, in a second form, stays in reach once the card's Start scrolls away.
   const bar = p.startAction ? <PhoneOfferBar startAction={p.startAction} spots={p.spots ?? null} built={p.built === true} refused={p.refused} /> : null;
 
@@ -240,7 +247,7 @@ export function PricingCard(
             <p className="text-base-content/70 text-sm">{copy("how.steps.part")}</p>
           </div>
           <div className={`bg-base-100 rounded-box shrink-0 p-6 lg:w-96 ${FLOAT}`}>
-            <PriceBox start={control} close cancel={cancel} refused={p.refused} offer={offer} free={p.free} />
+            <PriceBox start={control} close cancel={cancel} refused={p.refused} spots={spots} offer={offer} free={p.free} />
           </div>
         </div>
         {bar}
@@ -268,6 +275,7 @@ export function PricingCard(
           cancel={cancel}
           refused={p.refused}
           terms={<Terms specs={specs} />}
+          spots={spots}
           offer={offer}
           free={p.free}
         />
