@@ -29,23 +29,30 @@
 import { now as clock } from "@/lib/config/now";
 import type { AppAccount } from "../_session/account";
 import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
-import { recordSettingsReadFailed } from "@/lib/ops/events";
+import { readAnswered, readDeadlineMs, recordSettingsReadFailed } from "@/lib/ops/events";
 import type { AccountFacts, BillingFacts, SettingsFacts, SettingsRead } from "./model";
 import { paymentFailedOf } from "./billing";
 
 /** How long any one read may take before it is abandoned — for the two
  *  facts that degrade, into their stated arm; for the rest, into the
  *  error line of each panel that states it. `src/middleware.ts` bounds its one request-path
- *  read the same way and for the same reason. */
+ *  read the same way and for the same reason, and its hosted edge allows a cold connection more. */
 const READ_DEADLINE_MS = 800;
 
-function withDeadline<T>(work: Promise<T>, name: string): Promise<T> {
-  return Promise.race([
-    work,
-    new Promise<T>((_resolve, reject) =>
-      setTimeout(() => reject(new Error(`settings read timed out: ${name}`)), READ_DEADLINE_MS)
-    ),
-  ]);
+async function withDeadline<T>(work: Promise<T>, name: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const value = await Promise.race([
+      work,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error(`settings read timed out: ${name}`)), readDeadlineMs(READ_DEADLINE_MS));
+      }),
+    ]);
+    readAnswered();
+    return value;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
