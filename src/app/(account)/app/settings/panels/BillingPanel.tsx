@@ -38,9 +38,12 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
     action.pending === key ? <span className="loading loading-spinner loading-xs" aria-hidden /> : null;
 
   const spot = (
-    <span className="badge badge-ghost badge-sm h-auto min-h-5 wrap-anywhere" data-testid="billing-spot">
-      {copy("offer.billing.spot", { of: String(OFFER_SPOTS) })}
-    </span>
+    <>
+      <span className="badge badge-ghost badge-sm h-auto min-h-5 wrap-anywhere" data-testid="billing-spot">
+        {copy("offer.billing.spot", { of: String(OFFER_SPOTS) })}
+      </span>
+      <span className="text-sm wrap-anywhere">{copy("offer.billing.lock", { price: copy("price.amount") })}</span>
+    </>
   );
   // The card's one solid primary, unless a failed payment's Pay holds it.
   const manage = (

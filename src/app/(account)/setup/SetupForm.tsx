@@ -409,7 +409,7 @@ export function SetupForm(p: { model: SetupScreenModel & { spotHolder?: boolean;
         {step === "site" ? (
           // Every buyer is offered the call; only a spot holder is told they hold one. One sentence, so it flows inline.
           <p className="min-w-0 text-(length:--t-sm) text-base-content/80 wrap-anywhere" data-testid="setup-offer">
-            {`${[p.model.spotHolder === true ? copy("offer.setup.holder", { of: String(OFFER_SPOTS) }) : null, copy("offer.setup.help")].filter((part) => part !== null).join(" ")} `}
+            {`${[p.model.spotHolder === true ? copy("offer.setup.lock", { of: String(OFFER_SPOTS), price: copy("price.amount") }) : null, copy("offer.setup.help")].filter((part) => part !== null).join(" ")} `}
             {OFFER_BOOKING_URL === "" ? (
               <a className="link link-primary" href={`mailto:${copy("chrome.footer.contact.address")}`}>
                 {copy("offer.founder")}
