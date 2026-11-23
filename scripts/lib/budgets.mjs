@@ -113,7 +113,7 @@ export function blockRuleFindings({ budget, base, head, named }) {
 export function plainWordsFindings({ base, head }) {
   return Object.entries(head)
     .filter(([name, n]) => name in base && n > base[name])
-    .map(([name, n]) => `plain words: ${name} rises from ${base[name]} to ${n} findings; the count only goes down (docs/SPEC.md §0 Plain words)`);
+    .map(([name, n]) => `plain words: ${name} rises from ${base[name]} to ${n} findings; the count only goes down (docs/DESIGN.md › Screen rules, Plain words)`);
 }
 
 // Patterns the codebase is shedding: the count of src files holding each may fall and never rise.
