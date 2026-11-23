@@ -412,7 +412,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.pane.stopped.next": "Nothing goes live on {weekday}. Monday’s check picks the next 7.",
   "calendar.pane.writing": "Being written now, started {time}. It shows here to read when it’s done.",
   "calendar.pane.body.label": "{title}, the page",
-  "calendar.card.check": "Weekly check: we see where you stand on Google and in AI answers, then pick the next {n} pages.",
+  "calendar.card.check": "Weekly check: we see where you stand on Google and in AI answers. Then we pick the next {n} pages.",
   "calendar.card.after-check": "The weekly check on {day} may change this page.",
   "calendar.week.next": "Next Week",
   "calendar.chosen.title": "How this week’s pages were chosen",
