@@ -150,6 +150,8 @@ export interface LanguagePack {
     serial: string;
     /** Phrases a title never uses, lower case. */
     banned: readonly string[];
+    /** Words that present news as news, lower case: a page on a dated event never titles itself with one. */
+    news: readonly string[];
     /** Filler verbs and stock phrases a title never uses, each an
      *  alternation matched on whole words (issue 1389). */
     tropes: readonly string[];

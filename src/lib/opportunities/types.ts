@@ -5,6 +5,7 @@ import type { KnownSource } from "@/lib/known-content/types";
 import type { SiteCheck } from "@/lib/site-issues/types";
 import type { FitFact } from "@/lib/site-profile/knowledge/read";
 import type { TopicAngle } from "@/lib/market/questions/angle";
+import type { HotClaim, HotReason } from "@/lib/hot/detect";
 import type { SearchTrend } from "@/lib/vendors/dataforseo/types";
 
 /** §7's table, read down the `Type` column, plus SPEC §0's Earn family: a source names a rival and not the customer,
@@ -161,14 +162,6 @@ export const BARRIERS: readonly Barrier[] = Object.freeze([
   "blocked_ai_agent",
 ]);
 
-/** §7: "Every opportunity: trigger · evidence (query, volume, rival, URL,
- *  position) · target · demand · effort · acceptance test." This is the
- *  evidence half, discriminated by family so the shape a consumer must
- *  handle follows from the row it read.
- *
- *  Every value in here is **copied at creation**, never a reference read
- *  back later: the day panel's explanation must still read correctly after
- *  the next weekly scan has moved the numbers. */
 /** SPEC §6.2's three answer columns, by the handles `matrix.ts` names them with. Spelled out rather than imported so
  *  this leaf, which every screen reads, keeps no edge into the market leaf (issue 867). `BATTERY_ENGINES` is the
  *  list; a fourth engine would have to be added in both, which §6.2 and §6.4's never-pull list already gate. */
@@ -185,18 +178,8 @@ export interface TargetEngine {
   standing: EngineStanding;
 }
 
-/**
- * What this page is optimising for, beyond its search and volume (issue
- * 867): the vendor's keyword difficulty for the search, the difficulty
- * ceiling this site was judged against when the target was chosen (SPEC §6,
- * issue 858), and where each answer engine stood.
- *
- * Copied at creation like every other member of `Evidence`, so the draft
- * screen and the day panel still read correctly after the next Monday has
- * moved the numbers. Absent on a row derived before issue 867: `difficulty`
- * then has no value to render, and the screens show its unmeasured arm
- * rather than a zero.
- */
+/** What this page is optimising for beyond its search and volume, copied at creation so the screens still read right
+ *  after the next Monday: the search's difficulty, the ceiling the site was judged against, and each engine's standing. */
 export interface TargetFacts {
   /** The search's own difficulty, 0–100. `unmeasured` where the vendor gave
    *  none — the honest arm, never a 0, which reads as "nothing to beat". */
@@ -216,6 +199,7 @@ export type WriteRival = { domain: string; url: Measured<string>; position: Meas
 /** What a draft's research read: the top-result addresses it quoted, the rivals in force whose pages it read, and its searches. */
 export type StoppedInputs = { topResults: string[]; rivals: string[]; searches: string[] };
 
+/** §7's evidence, by family; every value is copied at creation, so an explanation still reads right after the next pass. */
 export type Evidence =
   | {
       family: "write";
@@ -243,6 +227,7 @@ export type Evidence =
       fitFact?: FitFact | null;
       /** The angle the topic keeps (`market/questions/angle.ts`); `null` where none passed, absent where judged before. */
       angle?: TopicAngle | null;
+      hot?: { claims: HotClaim[] }; // The dated reports of the event a hot page answers, which its pack cites.
     }
   | {
       family: "improve";
@@ -431,6 +416,10 @@ export interface PlanReason {
   rule: PlaceRule | null;
   /** What the commit read of its research: `queued` where none is cached, `short` under its type's pass mark, by part. */
   research?: { state: "met" | "at_margin" | "queued" | "short"; R: number | null; Q: number | null; F: number | null; estWords: number | null; urls: string[]; short?: string[] };
+  /** The dated event a page was placed for (SPEC §7 *A page for what is new in the market*), a page's first day before one moved it, and the pages it moved out of the week. */
+  hot?: HotReason;
+  moved?: { from: string; search: string };
+  movedOut?: { search: string; day: string }[];
 }
 
 export interface Ranked {

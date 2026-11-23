@@ -351,7 +351,7 @@ async function theWeek(siteId: string, weekStart: string, at: Date): Promise<Mea
       targetQuery: opportunity.targetQuery,
       day: entry.day,
       update: opportunity.evidence.family === "improve" || opportunity.evidence.family === "fix",
-      ...(why === undefined ? {} : { why: copy(why.sentence) }),
+      ...(why === undefined ? {} : { why: copy(why.sentence, why.values) }),
       // A written page is stopped where it is read; a planned one by its own signed link.
       stopHref: draftHref ?? stopHrefOf(siteId, opportunity.id, entry.day),
       editHref: draftHref ?? appHref("/app/calendar"),

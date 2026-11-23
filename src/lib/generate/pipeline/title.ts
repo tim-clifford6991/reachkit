@@ -117,6 +117,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
     ...(pack.target.promise === undefined ? {} : { promise: pack.target.promise }),
     description: page.description,
     ...(pack.locale === undefined ? {} : { language }),
+    ...(pack.hot === true ? { hot: true as const } : {}),
     ...(options === undefined ? { counts: sectionCounts.filter((count) => count > 1) } : { options }),
     ...(compares && business.length > 0 ? { business } : {}),
     owners: { rivals: rivalOwners, business: { names: business, holds: [...pack.facts.map((fact) => fact.passage), ...packStatements(pack), ownPassages(pack.business.domain)].join("\n") }, page: pageCounts },

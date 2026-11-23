@@ -625,7 +625,7 @@ describe("the board's sections on the open arm, in its order and words", () => {
 
 const PLANNED: PlannedPreview = {
   ok: true,
-  planned: { query: LIVE_PREVIEW.query, volume: LIVE_PREVIEW.volume, domain: "example.com", day: "2026-09-16", reason: null },
+  planned: { query: LIVE_PREVIEW.query, volume: LIVE_PREVIEW.volume, domain: "example.com", day: "2026-09-16", waitsFor: null, movedFrom: null, reason: null },
 };
 
 /** Each state the board draws, reached as a reader reaches it. */

@@ -47,6 +47,7 @@ import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/pub
 import type { PreviewResult, VetoPreview } from "@/lib/publish/publishable";
 import type { PlanReason } from "@/lib/opportunities/types";
 import { whyLineOf } from "@/app/(account)/app/calendar/card-lines";
+import { writtenDay } from "@/lib/opportunities/why";
 import { formatTime } from "@/app/(account)/app/_shell/format";
 import { isPlannedStopToken, previewPlannedStop, stopPlannedPage, type PlannedPreview } from "@/lib/opportunities/stop";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
@@ -133,14 +134,16 @@ async function preview(token: string): Promise<Read> {
 /** A planned page has no title or opening yet: its day names it. */
 function asRead(read: PlannedPreview): Read {
   if (read.ok) {
-    const { day, ...rest } = read.planned;
+    const { day, waitsFor, movedFrom, ...rest } = read.planned;
+    // `Wed 21 Oct`, as the failed state writes its day; a stored date carries no zone.
+    const written = (on: string) => writeDay({ at: new Date(`${on}T00:00:00Z`), timeZone: "UTC" });
     return {
       ok: true,
       preview: {
         ...rest,
-        // `Wed 21 Oct`, as the failed state writes its day; a stored date carries no zone.
-        title: copy("publish.veto.planned.title", { day: writeDay({ at: new Date(`${day}T00:00:00Z`), timeZone: "UTC" }) }),
-        excerpt: null,
+        title: day === null ? copy("publish.veto.planned.waiting", { date: writtenDay(waitsFor ?? "", true) }) : copy("publish.veto.planned.title", { day: written(day) }),
+        // A planned page has no opening: where a hot page moved it, the line says from when.
+        excerpt: movedFrom === null ? null : copy("publish.veto.planned.moved", { day: written(movedFrom) }),
         publishes: null,
         unconnected: false,
         mailedAt: null,
@@ -424,6 +427,7 @@ function Ask(p: { token: string; it: Omit<VetoPreview, "draftId">; failed?: bool
         </Head>
       )}
       {p.it.title === null ? null : <h1>{p.it.title}</h1>}
+      {p.planned === true && p.it.excerpt !== null ? <p className="text-base-content/70 text-sm">{p.it.excerpt}</p> : null}
       {why === null ? null : (
         <p className="rounded-box bg-base-200 flex items-start gap-3 px-4 py-3 text-sm" data-testid="veto-why">
           <Info size={20} strokeWidth={1.75} className="text-primary flex-none" aria-hidden />

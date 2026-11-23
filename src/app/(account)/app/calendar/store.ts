@@ -48,7 +48,7 @@ import { pageTitle } from "@/lib/presentation/page-title";
 import { siteLocale } from "@/lib/locale/site";
 import type { Language } from "@/lib/locale/locales";
 import { writtenLine } from "../_shell/written";
-import { whySentenceOf } from "./card-lines";
+import { whyLineOf, whySentenceOf } from "./card-lines";
 import { pageTargetOf } from "../_shell/page-target";
 import { dayKeyOf, daysOfMonth, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 import {
@@ -68,6 +68,7 @@ import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
 import type { BestRival } from "./target";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
+import type { PlanReason } from "@/lib/opportunities/types";
 
 /** The site one calendar belongs to. Which site that is, is
  *  `currentSession()`'s (issue #35) — `provider.ts` names the gap. */
@@ -238,6 +239,7 @@ function pageOn(a: {
     update: isUpdate(a.choice),
     ...replacesOf(a.choice),
     whyLine: whySentenceOf(a.choice.planReason),
+    ...hotOf(a.choice.planReason),
     startedAt: a.startedAt,
     stoppedByYou: a.page.stoppedByCustomer,
   };
@@ -276,7 +278,13 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     update: isUpdate(choice),
     ...replacesOf(choice),
     whyLine: whySentenceOf(choice.planReason),
+    ...hotOf(choice.planReason),
   };
+}
+
+/** What a hot page, and a page one moved, carry to the card and the pane, as their reasons stored it. */
+function hotOf(reason: PlanReason | null | undefined): Pick<DraftOnDay, "hotLine" | "moved" | "movedOut"> {
+  return { ...(reason?.hot === undefined ? {} : { hotLine: whyLineOf(reason) }), ...(reason?.moved === undefined ? {} : { moved: reason.moved }), ...(reason?.movedOut === undefined ? {} : { movedOut: reason.movedOut }) };
 }
 
 // ── The month ───────────────────────────────────────────────────────────

@@ -111,8 +111,13 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.day.set-aside": "Set aside",
   "calendar.day.became-update": "Now an update",
   "calendar.day.became-update.line": "This day now improves a live page instead of a new one. Nothing is needed from you.",
+  // A planned page a page on something new in the market moved: always its first planned day.
+  "calendar.day.moved": "Moved from {day}",
+  "calendar.day.moved.line": "This page moved from {from} to {to} to make room for “{search}”. Nothing is needed from you.",
+  "calendar.pane.moved-out": "“{search}” was planned for {day}. It now waits for the next Monday check, on {date}.",
   "calendar.week.stop": "Stop This Page",
-  // Why the week holds a page: its most specific reason, one line.
+  // Why the week holds a page: its most specific reason, one line. A dated event in the news comes first.
+  "calendar.week.why.news": "In the news {day}: {event}",
   "calendar.week.why.near-page-one": "Close to Google’s first page",
   "calendar.week.why.not-moving": "No movement in 8 weeks",
   "calendar.week.why.ai-gap": "AI answers link a competitor",
@@ -363,6 +368,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.week.today": "Goes live today, {time}",
   "calendar.chip.new": "New",
   // Why the week holds a page, as a sentence from its most specific stored part.
+  "calendar.reason.news": "{event}: reported on {date} by {a} and {b}. This page says what it means for your buyers.",
   "calendar.reason.near-page-one": "Your page is close to Google’s first page for this search. This update adds what the pages above cover.",
   "calendar.reason.not-moving": "Your page has not moved in 8 weeks. This rewrite matches what Google now shows for it.",
   "calendar.reason.ai-gap": "AI answers link to a competitor’s page for this question. Yours can answer it from your own work.",
@@ -407,6 +413,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.next": "{date}: we check again and pick the next {n}.",
   "calendar.chosen.title": "How this week’s pages were chosen",
   "calendar.chosen.body": "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
+  "calendar.chosen.added": "When news fits what you sell, we add a page the next day we write. The page planned there moves to the next free day.",
   "calendar.chosen.stored": "Each reason is the one saved when the page was chosen.",
   "calendar.pane.body.unread": "We couldn’t load the page here. Read the Full Page to see it.",
   "calendar.sources.summary": "In its paragraphs: {n} sentences. {a} from your site · {b} from {m} public pages · {c} with no source linked",
