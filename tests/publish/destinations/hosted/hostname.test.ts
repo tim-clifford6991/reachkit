@@ -227,9 +227,9 @@ describe("the job that refreshes hosted health, run twice", () => {
     seedDestination({ last_checked_at: AGES_AGO, health_changed_at: AGES_AGO });
     db.seed("sites", [{ id: "site-1", domain: "example.com" }]);
     const { checkHealth } = await import("@/lib/publish/destinations/health/check");
-    const { hostedDestinationsDueHealth } = await import("@/lib/publish/destinations/health/due");
+    const { destinationsDueHealth } = await import("@/lib/publish/destinations/health/due");
     await checkHealth("dest-1");
     await expect(checkHealth("dest-1")).resolves.toMatchObject({ health: "expired", reason: "dns_elsewhere" });
-    await expect(hostedDestinationsDueHealth(new Date(Date.now() + 3_600_000))).resolves.toEqual(["dest-1"]);
+    await expect(destinationsDueHealth(new Date(Date.now() + 3_600_000))).resolves.toEqual(["dest-1"]);
   });
 });

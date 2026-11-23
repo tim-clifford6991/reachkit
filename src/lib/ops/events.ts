@@ -1,6 +1,7 @@
 // Ops events kept as rows: the runtime log holds them for under an hour, so the daily check counts these.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { after } from "next/server";
+import { cache } from "react";
 
 /** A write past this is abandoned, so a slow database never holds the response open longer. */
 const WRITE_DEADLINE_MS = 1_500;
@@ -15,9 +16,22 @@ interface InsertOnly {
   from(table: string): { insert(row: object): PromiseLike<{ error: { message: string } | null }> };
 }
 
-/** Starts the write and returns at once; the promise never rejects, and a failed write is only logged. */
+/** The reads one request saw fail; `cache` scopes it to the request, and outside one each call stands alone. */
+const failedThisRequest = cache((): { reads: string[] } => ({ reads: [] }));
+
+/** One row per request, naming every read that failed in it, written once the response is sent; outside a request
+ *  scope it is written at once. Never rejects, and a failed write is only logged. */
 export function recordSettingsReadFailed(read: string, error: unknown, siteId: string | null = null): Promise<void> {
-  return recordOpsEvent("settings_read_failed", read, failureCode(error), siteId);
+  const failed = failedThisRequest();
+  failed.reads.push(read);
+  if (failed.reads.length > 1) return Promise.resolve();
+  const write = () => recordOpsEvent("settings_read_failed", failed.reads.join(","), failureCode(error), siteId);
+  try {
+    after(write);
+    return Promise.resolve();
+  } catch {
+    return write();
+  }
 }
 
 /** One `ops_events` row, written the same way: started at once, never rejecting, a failure only logged. */

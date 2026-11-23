@@ -1,55 +1,19 @@
-// BUILD §9 — the freshness promise, kept on the read path: the date a customer reads about a destination is never more
-// than `DESTINATION_HEALTH_MAX_AGE_H` old, whether or not a publish was attempted. `listDestinations` re-checks a stale row in line.
-// Not on publish, since a broken destination stops publishing and so would never refresh; not in a job, since §11's
-// kill switch must not take the truth of a date with it. A read can call the network, so it is debounced.
-import { DESTINATION_HEALTH_DEBOUNCE_S, DESTINATION_HEALTH_MAX_AGE_H } from "@/lib/config/constants";
+// BUILD §9 — a destination's health as a surface reads it: the stored row, never re-checked on a request, since a check
+// reaches a vendor (the customer's own site, the domain list, public DNS). `due.ts` keeps the date inside
+// `DESTINATION_HEALTH_MAX_AGE_H` from the maintenance tick, which `account/maintenance` hands to `checkHealth`.
 import type { DestinationView } from "../../types";
 import { heldPages } from "../../switch";
 import { destinationView } from "../view";
-import { readDestination, type DestinationRecord } from "../store";
-import { checkHealth } from "./check";
+import type { DestinationRecord } from "../store";
 
 export { checkHealth } from "./check";
 export type { HealthCheck } from "./check";
 export { breakageMailDue, sendBreakageMail } from "./breakage-mail";
-export { hostedDestinationsDueHealth } from "./due";
+export { destinationsDueHealth } from "./due";
 export type { BreakageMail } from "./breakage-mail";
 
-const HOUR_MS = 3_600_000;
-const SECOND_MS = 1_000;
-
-/** When this process last checked each destination: a burst collapser only, as the promise is made on `last_checked_at`. */
-const lastCheckedHere = new Map<string, number>();
-
-/** Vitest keeps one module instance per file, so a debounce would make the next test's first read a no-op. */
-export function __resetHealthDebounceForTesting(): void {
-  lastCheckedHere.clear();
-}
-
-function isStale(row: DestinationRecord, now: Date): boolean {
-  const checkedAt = Date.parse(row.last_checked_at);
-  if (Number.isNaN(checkedAt)) return true;
-  return now.getTime() - checkedAt >= DESTINATION_HEALTH_MAX_AGE_H * HOUR_MS;
-}
-
-function debounced(destinationId: string, now: Date): boolean {
-  const last = lastCheckedHere.get(destinationId);
-  return last !== undefined && now.getTime() - last < DESTINATION_HEALTH_DEBOUNCE_S * SECOND_MS;
-}
-
-/** The destination as a surface sees it, no older than the freshness window; `null` where it is not there, so the
- *  caller renders nothing rather than a blank destination. */
-export async function ensureFreshHealth(destinationId: string): Promise<DestinationView | null> {
-  const now = new Date();
-  let row = await readDestination(destinationId);
-  if (row === null) return null;
-
-  if (isStale(row, now) && !debounced(destinationId, now)) {
-    lastCheckedHere.set(destinationId, now.getTime());
-    await checkHealth(destinationId);
-    row = (await readDestination(destinationId)) ?? row;
-  }
-
+/** The destination as a surface sees it, from its stored check. */
+export async function storedHealthView(row: DestinationRecord): Promise<DestinationView> {
   const held = await heldPages(row.site_id);
   return destinationView({
     id: row.id,
@@ -58,7 +22,7 @@ export async function ensureFreshHealth(destinationId: string): Promise<Destinat
     reason: row.health_reason,
     lastCheckedAt: new Date(row.last_checked_at),
     heldPages: held.count,
-    // SPEC §5: the host and its state from the one row just refreshed, never two readings.
+    // SPEC §5: the host and its state from the same row, never two readings.
     hostname: row.hostname,
     hostnameState: row.hostname_state,
   });

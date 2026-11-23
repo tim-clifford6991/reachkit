@@ -11,11 +11,11 @@
 // (DECISIONS 2026-09-06, and #192's rule): `example.com` is IANA-reserved,
 // so no customer can hold the name that reaches it.
 //
-// **Two facts degrade; the other eight leave their panel unread, and that asymmetry is the
+// **Billing degrades; the other reads leave their panel unread, and that asymmetry is the
 // point.** A fixture value is a *claim* — a mode the customer never chose,
 // a date nobody measured — and a customer acting on one is worse off than a
-// customer told the product could not read it. Billing and destinations
-// have a stated degraded arm because REQ-097 c5 and c6 design one for them.
+// customer told the product could not read it. Billing has a stated
+// degraded arm because REQ-097 c5 and c6 design one for it.
 // The rest have none: there is no honest way to draw a veto window or a
 // do-not-claim list that was not read, and a default in its place is the
 // same defect as the fixture with a different provenance. Those reads are
@@ -26,7 +26,6 @@
 // #186): this screen is dynamic, so an unsettled read would hang it, and
 // ten sequential reads would be ten round trips deep on a database that is
 // slow.
-import type { DestinationView } from "@/lib/publish/types";
 import { now as clock } from "@/lib/config/now";
 import type { AppAccount } from "../_session/account";
 import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
@@ -119,24 +118,6 @@ export async function readBilling(userId: string): Promise<BillingFacts> {
   };
 }
 
-export interface DestinationsFacts {
-  list: readonly DestinationView[];
-  /** False where the registry could not be read. An empty list and an
-   *  unreadable one are different facts: "you have no destination" is a
-   *  state the customer can act on, and "we could not read it" is not. */
-  readable: boolean;
-}
-
-async function readDestinations(siteId: string): Promise<DestinationsFacts> {
-  const list = await read(
-    "destinations",
-    () => import("@/lib/publish/destinations"),
-    ({ listDestinations }) => listDestinations(siteId),
-    siteId
-  );
-  return list.ok ? { list: list.value, readable: true } : { list: [], readable: false };
-}
-
 /**
  * §4.7's account card: the name, the address, a change awaiting
  * confirmation, and the note keys.
@@ -204,7 +185,7 @@ export async function readLiveSettingsFacts(
       settle("notify", bounded("notify", () => import("@/lib/mail/notifications"), (m) => m.readNotifyPrefs(userId), siteId)),
       settle("pages", bounded("pages", () => import("./pages"), (m) => m.livePageCount(siteId), siteId)),
       readBilling(userId),
-      readDestinations(siteId),
+      settle("destinations", bounded("destinations", () => import("@/lib/publish/destinations"), (m) => m.listDestinations(siteId), siteId)),
       settle("card", readAccountFacts(userId)),
     ]);
 
@@ -278,8 +259,7 @@ export async function readLiveSettingsFacts(
     writingVoice: await bounded("writingVoice", () => import("@/lib/generate/store"), async (m) => m.generateStore().writingVoice(siteId), siteId).catch(() => null),
     doNotClaim: site?.doNotClaim ?? [],
 
-    destinations: destinations.list,
-    destinationsReadable: destinations.readable,
+    destinations: destinations ?? [],
     // The record's value, this site's own, as setup reads it. Imported at the call, like every read here.
     cnameTarget: await (await import("@/lib/publish/destinations/hosted/hostname")).siteEdgeOf(siteId),
 

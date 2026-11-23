@@ -8,13 +8,13 @@ import { isPublishingOn, heldPages } from "../switch";
 import { publishDb } from "../db";
 import { destroyConfig, storeConfig } from "./config";
 import { checkHealth } from "./health/check";
-import { ensureFreshHealth } from "./health";
+import { storedHealthView } from "./health";
 import { liveDestinations, readDestination } from "./store";
 
 export { adapterFor } from "./registry";
 export { destinationView } from "./view";
 export type { DestinationFacts } from "./view";
-export { checkHealth, ensureFreshHealth, breakageMailDue, sendBreakageMail } from "./health";
+export { checkHealth, breakageMailDue, sendBreakageMail } from "./health";
 export { withConfig } from "./config";
 export type { DestinationRecord } from "./store";
 
@@ -107,12 +107,9 @@ export async function destinationStanding(
   return { kind: row.kind, healthy: row.health === "ok", neverConnected: row.health_reason === "never_connected" };
 }
 
-/** Every live destination as a surface sees it, re-checked on the read path for §9's "never more than 24 hours old"; at
- *  most one per site, so no fan-out. */
+/** Every live destination as a surface sees it, from its stored check: a screen never waits on a vendor. */
 export async function listDestinations(siteId: string): Promise<DestinationView[]> {
-  const rows = await liveDestinations(siteId);
-  const views = await Promise.all(rows.map((row) => ensureFreshHealth(row.id)));
-  return views.filter((view): view is DestinationView => view !== null);
+  return Promise.all((await liveDestinations(siteId)).map(storedHealthView));
 }
 
 export type ConnectResult =

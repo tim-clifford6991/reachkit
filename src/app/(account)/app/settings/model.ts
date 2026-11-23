@@ -281,10 +281,6 @@ export interface SettingsFacts {
   doNotClaim: readonly string[];
   /** `destinations` (§10), health included — read as a state (#48). */
   destinations: readonly DestinationView[];
-  /** False where the registry could not be read (#228). An empty list and
-   *  an unreadable one are different facts, and only the first is one the
-   *  customer can act on. */
-  destinationsReadable: boolean;
   /** The value of the record a hosted destination is waiting on: this site's own (`siteEdgeOf`), the one setup showed. */
   cnameTarget: string;
   /** `users` (§10), plus the notify preferences the toggles read. A kind
@@ -315,7 +311,7 @@ export interface SettingsFacts {
 }
 
 /** The reads with no honest degraded arm, named so a panel can say which ones it states. */
-export type SettingsRead = "answers" | "measured" | "publishing" | "publishingOn" | "site" | "notify" | "pages" | "card";
+export type SettingsRead = "answers" | "measured" | "publishing" | "publishingOn" | "site" | "notify" | "pages" | "card" | "destinations";
 
 /** The model when every read a panel states landed, else `null` and the panel draws its error line. */
 export function readsLanded(settings: SettingsModel | null, ...reads: readonly SettingsRead[]): SettingsModel | null {

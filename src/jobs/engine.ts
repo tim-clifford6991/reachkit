@@ -1004,16 +1004,15 @@ export async function noticeBrokenDestination(a: {
   return { done: true };
 }
 
-// ── Hosted health — issue #791.
+// ── Destination health.
 //
-// `account/maintenance` refreshes the health of a hosted destination whose
-// last check is older than its window, so a founder whose record has come
-// good gets `ok` — and their pages — without opening Settings. The windows
-// are `health/due.ts`'s and the check is `checkHealth`'s; this wrapper holds
+// `account/maintenance` refreshes the health of a destination whose last
+// check is older than its window, so no screen has to: the windows are
+// `health/due.ts`'s and the check is `checkHealth`'s; this wrapper holds
 // neither.
 
-export async function hostedDestinationsDueHealth(): Promise<readonly string[]> {
-  const { hostedDestinationsDueHealth: due } = await import("@/lib/publish/destinations/health");
+export async function destinationsDueHealth(): Promise<readonly string[]> {
+  const { destinationsDueHealth: due } = await import("@/lib/publish/destinations/health");
   return due(new Date());
 }
 
