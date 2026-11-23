@@ -142,6 +142,7 @@ export async function runDeepPass(a: {
     // so Plan has a week before the first evening either way. Never holds the release.
     try {
       await planFirstWeek(a.siteId, new Date(), new Map(checks));
+      await (await import("../weekly/titles")).titleWeek(a.siteId, result.scanId);
       await (await import("../weekly/commit")).recordFirstWeek({ siteId: a.siteId, now: new Date(), rows, checks });
     } catch (error) {
       console.warn(JSON.stringify({ event: "first_week_not_planned", siteId: a.siteId, detail: String(error) }));

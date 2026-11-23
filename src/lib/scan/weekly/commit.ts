@@ -9,6 +9,7 @@ import { opportunityStore, type OpportunityRow } from "@/lib/opportunities/store
 import type { PlanReason } from "@/lib/opportunities/types";
 import { claimOpsEvent, opsEventRead, replaceOpsEvent } from "@/lib/ops/events";
 import type { TopUpRecord } from "@/lib/opportunities/derive/top-up";
+import { titleWeek } from "./titles";
 
 const weekRows = (rows: readonly OpportunityRow[]): WeekRow[] => rows.map((row) => ({ id: row.id, target_query: row.target_query }));
 
@@ -42,6 +43,7 @@ export async function postFirstWeek(a: { siteId: string; scanId: string; now: Da
 export async function commitWeek(a: { siteId: string; scanId?: string; weekStart: string; now: Date; rows: readonly WeekRow[]; checks: Checks; again?: boolean }): Promise<void> {
   // The pass plans a full week from its first unwritten date, and records the span it planned.
   const week = await planWeek(a.siteId, { now: a.now, record: true, days: WEEK_PLAN.days, research: new Map(a.checks) });
+  await titleWeek(a.siteId, a.scanId);
   await recordWeek(a, week, week.rested, { from: week.from, days: week.days });
 }
 

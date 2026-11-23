@@ -116,6 +116,8 @@ async function draftSite(input: JobInput): Promise<Outcome> {
     );
     // Last, so a page the recheck rescued or the review let through is seen and nothing it covered is mailed.
     if (site !== null) await step("alert", () => alertSiteDay({ site, hour }));
+    // A planned page whose title the commit's call missed is asked again, once a day.
+    await step("titles", async () => (await import("@/lib/scan/weekly/titles")).titleWeek(siteId));
     return "degraded" in result ? { outcome: "degraded", subjectId: siteId, step: result.degraded } : { outcome: "ran", subjectId: siteId };
   } catch (error) {
     const reason = error instanceof Error ? error.name : "unknown";

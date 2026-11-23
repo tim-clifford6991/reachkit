@@ -212,6 +212,9 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  it, and ~60 an angle, two on each 3 (at most `TOPIC_FIT.topShare`), so
    *  about 4,300 at 80. Bounded by `TYPING_RESERVE_C`. */
   "topic-fit": 4608,
+  /** `{ titles: { i, angles }[] }` over a committed week's untitled new pages, at most `PLAN_DEPTH` (10): ~60 an
+   *  angle, two each, ~1,300 at 10. About 3¢ reserved at the Sonnet price, under `CAPS.WEEKLY_C`. */
+  "topic-title": 2048,
   /** `{ problems: string[], solutions: string[] }`, at most
    *  `BUYER_SEARCHES.max` searches of under ten words: ~15 each. */
   "topic-buyer-searches": 700,
@@ -287,6 +290,8 @@ export const INFERENCE_TEMPERATURE: Readonly<Partial<Record<keyof typeof INFEREN
  *  nothing: what it missed is asked again next pass. */
 export const INFERENCE_ATTEMPTS: Readonly<Partial<Record<keyof typeof INFERENCE_MAX_OUTPUT_TOKENS, 1>>> = Object.freeze({
   "topic-fit": 1,
+  // Missed titles are asked again at the site's next daily run.
+  "topic-title": 1,
   "rival-inference": 1,
 });
 

@@ -7,6 +7,12 @@ import { contentTokens } from "@/lib/market/questions/select";
 export const ANGLE_PATTERNS = ["P1", "P2", "P3", "P4", "P5"] as const;
 export type AnglePattern = (typeof ANGLE_PATTERNS)[number];
 
+/** How an angle is asked, word for word, by the fit call and by the commit's title call. */
+export const ANGLE_ASK = {
+  pages: "two different pages that would answer it for this buyer. Each joins the search to a passage in `product.knowledge` (`fact`) and uses one `pattern`: P1 a problem and how this business's method fixes it; P2 the question answered from the business's own facts; P3 a comparison where the business is a real option; P4 how to do the job with a new thing the search or `ranks` names; P5 the search for a place or segment the business serves.",
+  title: "Each angle's `title` is at most 65 characters in Title Case, starts with the search's own words or its main noun phrase, and states what the reader gets, which none of the search's `ranks` already promises. `promise` says that in at most eight words. A title names a product, model, version, number, price or date only when it is written in the search, `product.knowledge` or `ranks`. A bare search with a number or a price appended is not an angle, and a price leads only a pricing or comparison search. A comparison title never says what a named competitor does, lacks or who uses it; it names the decision the page helps the reader make.",
+} as const;
+
 /** What the model proposes: a pattern, a title, what the reader gets, and the knowledge passage it joins the search to. */
 export interface ProposedAngle {
   pattern: AnglePattern;
