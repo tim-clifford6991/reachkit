@@ -37,19 +37,18 @@ export const KNOWLEDGE_CALL_SITE = "site-knowledge" as const;
 const REPEATED_ON_PAGES = 3;
 const REPEATED_ON_SHARE = 0.5;
 
-const items = z.array(z.string()).max(KNOWLEDGE_BASE.PAGE_ITEMS);
+/** A list longer than its cap keeps its first entries, so a long page is read, not refused. */
+const upTo = <T extends z.ZodType>(item: T, max: number = KNOWLEDGE_BASE.PAGE_ITEMS) =>
+  z.preprocess((list) => (Array.isArray(list) ? list.slice(0, max) : list), z.array(item).max(max));
+const items = upTo(z.string());
 /** A page's own FAQ may hold more than a model is asked for. */
-const questions = z.array(z.string()).max(KNOWLEDGE_BASE.PAGE_QUESTIONS);
+const questions = upTo(z.string(), KNOWLEDGE_BASE.PAGE_QUESTIONS);
 
 export const PAGE_READING_SCHEMA = z.strictObject({
-  offerings: z
-    .array(z.strictObject({ name: z.string(), features: items, prices: items, uses: items }))
-    .max(KNOWLEDGE_BASE.PAGE_ITEMS),
+  offerings: upTo(z.strictObject({ name: z.string(), features: items, prices: items, uses: items })),
   audience: items,
   problems: items,
-  differentiators: z
-    .array(z.strictObject({ rival: z.string().nullable(), text: z.string() }))
-    .max(KNOWLEDGE_BASE.PAGE_ITEMS),
+  differentiators: upTo(z.strictObject({ rival: z.string().nullable(), text: z.string() })),
   proof: items,
   questions,
   integrations: items,
