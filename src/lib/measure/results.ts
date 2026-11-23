@@ -8,8 +8,9 @@ import { contentOf, standingAt, type ContentModel, type PublishedPage, type Publ
 import { classifyReferences, namesOrLinks, namesSite as textNamesSite } from "@/lib/measure/drivers";
 import { newestSet } from "@/lib/market/prompts/rate";
 import type { PromptsSection } from "@/lib/scan/report";
+import type { Visits } from "@/lib/publish/reads/visits";
 
-export const TILE_KEYS = ["pages", "google", "ai", "rivals"] as const;
+export const TILE_KEYS = ["pages", "google", "ai", "visits"] as const;
 export type TileKey = (typeof TILE_KEYS)[number];
 
 /** The weeks a tile's line draws. */
@@ -81,7 +82,6 @@ export type TileChange =
   | { kind: "first"; at: Date }
   | { kind: "unread" }
   | { kind: "due" }
-  | { kind: "start"; at: Date }
   | { kind: "coming"; n: number }
   | { kind: "golive" };
 
@@ -89,19 +89,24 @@ export interface Tile {
   key: TileKey;
   /** `null` is not counted yet, drawn as a dash. */
   n: number | null;
-  /** The "of" line: a count (with the pages not checked yet, on Google), not counted yet, or no live page yet. */
-  of: { kind: "count"; m: number; u?: number } | { kind: "due" } | { kind: "none" };
+  /** The "of" line: a count (with the pages not checked yet, on Google), not counted yet, or no live page yet; on Visits, its
+   *  window (from `since` while shorter than 28 days), unread, or not seen on WordPress. */
+  of:
+    | { kind: "count"; m: number; u?: number }
+    | { kind: "due" }
+    | { kind: "none" }
+    | { kind: "window"; since: Date | null }
+    | { kind: "unread" }
+    | { kind: "wordpress" };
   /** On Google's line beneath the of-line. */
   shown?: GoogleShown;
+  /** Visits' clicks through beneath its figure; `null` while clicks are off. */
+  clicks?: number | null;
+  /** The AI tile's live pages an AI app read in 28 days; absent where the visits were not read. */
+  read?: number;
   change: TileChange | null;
-  /** Oldest first; `null` is a week with no healthy pass. Absent on Competitors. */
+  /** Oldest first; `null` is a week with no healthy pass, or on Visits a week with no row. */
   series: readonly (number | null)[] | null;
-}
-
-export interface RivalBars {
-  you: number;
-  rivals: readonly { name: string; value: number }[];
-  of: number;
 }
 
 /** The addresses Linked by AI counts over its weeks: `aiPagesFor` turns them into the rows every AI count is taken from. */
@@ -113,23 +118,8 @@ export interface AiWindow {
   mentioned: readonly string[];
 }
 
-/** `/app/search`'s *Your Market* card: the Against Competitors count itself, so the card and the strip above it say one number. */
-export function marketOf(model: TilesModel | null): { top10: number; of: number } | null {
-  const tile = model?.tiles.find((t) => t.key === "rivals");
-  return tile?.n == null || tile.of.kind !== "count" ? null : { top10: tile.n, of: tile.of.m };
-}
-
 export interface TilesModel {
   tiles: readonly Tile[];
-  bars: RivalBars | null;
-}
-
-/** What Competitors reads from the Competitors screen's own selector. */
-export interface RivalsFirstPage {
-  you: number;
-  of: number;
-  rivals: readonly { domain: string; count: number }[];
-  measuredAt: Date | null;
 }
 
 const isLive = (page: TilePage, t: number): boolean =>
@@ -265,25 +255,11 @@ function aiChange(passes: readonly TilePass[], domain: string): TileChange {
   return diff(answersIn(passes, latest.weekStart, domain, both).answers!.k, answersIn(passes, prior.weekStart, domain, both).answers!.k);
 }
 
-/** Against the healthy pass before, only on the searches both read; `moved` counts the searches this pass asked that the one before did not. */
-function rivalsChange(passes: readonly TilePass[]): TileChange | null {
-  const latest = passes.at(-1)!;
-  const now = latest.firstPage;
-  if (!latest.healthy || now === null) return { kind: "unread" };
-  const prior = passes.slice(0, -1).filter((pass) => pass.healthy && pass.firstPage !== null).at(-1)?.firstPage;
-  const both = prior == null ? [] : [...now].filter(([search, on]) => on !== null && prior.get(search) != null);
-  if (prior == null) return { kind: "first", at: new Date(latest.at) };
-  // No search in common: there is no change to state, and it is not a first count.
-  if (both.length === 0) return null;
-  const change = diff(both.filter(([, on]) => on === true).length, both.filter(([search]) => prior.get(search) === true).length);
-  const moved = [...now.keys()].filter((search) => !prior.has(search)).length;
-  return moved === 0 ? change : { ...change, moved };
-}
-
 export function tilesOf(a: {
   passes: readonly TilePass[];
   pages: readonly TilePage[];
-  rivals: RivalsFirstPage | null;
+  /** The site's visits; `null` where unread, `"wordpress"` where no page is hosted, absent where not read at all. */
+  visits?: Visits | "wordpress" | null;
   lists: TileLists;
   now: Date;
   /** This site-local week's Monday. */
@@ -356,32 +332,33 @@ export function tilesOf(a: {
             series: seriesOf(current, a.week, aiValue),
           };
 
-  // Against Competitors: the Competitors screen's own count; the change is on the searches both passes read.
-  const r = a.rivals;
-  const rivals: Tile =
-    r === null || r.of === 0
-      ? due("rivals")
-      : {
-          key: "rivals",
-          n: r.you,
-          of: { kind: "count", m: r.of },
-          change:
-            latest === undefined
-              ? r.measuredAt === null ? null : { kind: "start", at: r.measuredAt }
-              : rivalsChange(passes),
-          series: null,
-        };
+  // Visits: the 28 days' count, and its line from the weekly rows; against the four closed weeks before the latest, once all were counted.
+  const v = a.visits;
+  const visits: Tile =
+    live === 0
+      ? none("visits")
+      : v === "wordpress"
+        ? { key: "visits", n: null, of: { kind: "wordpress" }, change: null, series: null }
+        : v == null
+          ? { key: "visits", n: null, of: { kind: "unread" }, change: null, series: null }
+          : {
+              key: "visits",
+              n: v.n,
+              of: { kind: "window", since: v.since === null ? null : new Date(`${v.since}T12:00:00Z`) },
+              clicks: v.clicks,
+              change: visitsChange(v),
+              series: v.weeks.filter((n) => n !== null).length < 2 ? null : v.weeks,
+            };
+  const read = live === 0 || v == null || v === "wordpress" ? undefined : v.aiRead.filter((id) => standing(a.pages, t).some((page) => page.id === id)).length;
 
-  const bars =
-    r === null || r.of === 0
-      ? null
-      : {
-          you: r.you,
-          of: r.of,
-          rivals: [...r.rivals].sort((x, y) => y.count - x.count).slice(0, 2).map((row) => ({ name: row.domain, value: row.count })),
-        };
+  return { tiles: [pages, google, read === undefined ? ai : { ...ai, read }, visits] };
+}
 
-  return { tiles: [pages, google, ai, rivals], bars };
+/** Against the four closed weeks before the latest, once each was counted; a first count while the window is still filling, else no line. */
+function visitsChange(v: Visits): TileChange | null {
+  const prior = v.weeks.slice(-5, -1);
+  if (prior.every((n) => n !== null)) return diff(v.n, prior.reduce<number>((sum, n) => sum + n!, 0));
+  return v.since === null || prior.some((n) => n !== null) ? null : { kind: "first", at: new Date(`${v.since}T12:00:00Z`) };
 }
 
 /** The first Monday check on or after the property is old enough to be asked for impressions; `null` before the sitemap went in. */
@@ -420,7 +397,7 @@ export function resultsOf(a: {
   published: PublishedRead;
   passes: readonly TilePass[];
   rows: readonly TilePage[];
-  rivals: RivalsFirstPage | null;
+  visits?: Visits | "wordpress" | null;
   gsc: GoogleConsole | null;
   week: string;
   domain: string;

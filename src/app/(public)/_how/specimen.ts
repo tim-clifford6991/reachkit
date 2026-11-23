@@ -234,7 +234,7 @@ export const EXAMPLE_TILES = Object.freeze({
   pages: { n: TIDYSLOT.mail.live, of: TIDYSLOT.mail.live, up: 1 },
   google: { n: 9, of: TIDYSLOT.mail.live, up: 2 },
   ai: { n: 34, of: 200, up: 5 },
-  rivals: { n: 4, of: 10, up: 0 },
+  visits: { n: 38, up: 4, clicks: 6 },
 });
 
 /** The hour a page goes live, as the landing's week shows it. */

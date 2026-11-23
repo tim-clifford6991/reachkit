@@ -5,7 +5,8 @@ import type { ContentModel, PublishedRead } from "@/lib/measure/published";
 import type { AnswerQuestion } from "./answers-model";
 import { aiPagesFor, type AiPages } from "./ai-pages";
 import { googlePagesOf, type GooglePages } from "./google-pages";
-import { AI_WINDOW_WEEKS, aiAnswersOf, aiWindowOf, resultsOf, serpReadOf, type AiAnswers, type GoogleConsole, type RivalsFirstPage, type TilePage, type TilePass, type TilesModel } from "@/lib/measure/results";
+import type { Visits } from "@/lib/publish/reads/visits";
+import { AI_WINDOW_WEEKS, aiAnswersOf, aiWindowOf, resultsOf, serpReadOf, type AiAnswers, type GoogleConsole, type TilePage, type TilePass, type TilesModel } from "@/lib/measure/results";
 
 /** The tiles, and the models of the lists they open: Pages Live's (This Week's *Live pages*), On Google's and the AI tile's. */
 export interface TilesView extends TilesModel {
@@ -22,7 +23,7 @@ export function buildTiles(a: {
   published: PublishedRead;
   passes: readonly TilePass[];
   rows: readonly TilePage[];
-  rivals: RivalsFirstPage | null;
+  visits: Visits | "wordpress" | null;
   /** The latest asking of each page's question, for the AI list's per-engine marks. */
   pageQuestions: readonly AnswerQuestion[];
   /** The site's domain, which a stored answer's mention is read against. */

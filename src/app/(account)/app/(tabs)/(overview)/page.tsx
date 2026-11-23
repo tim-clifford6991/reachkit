@@ -175,7 +175,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       {tiles === null ? null : (
         <>
           <Tiles model={tiles} dates={{ due: shell.nextDueOn, goLive: shell.publishing.next, timeZone: shell.timeZone }} />
-          <TilesHow noConsole={tiles.google.shown.kind === "no-console"} />
+          <TilesHow noConsole={tiles.google.shown.kind === "no-console"} read={tiles.tiles.some((tile) => tile.read !== undefined)} />
         </>
       )}
 
