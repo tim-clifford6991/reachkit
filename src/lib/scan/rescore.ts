@@ -195,8 +195,7 @@ function cardsAfter(
     rivalSizes: r.rivalSizes,
     ownDomain: r.domain,
     reach: reachOfReport(r),
-    siteName: scan.siteName,
-    town: r.locale?.place?.name,
+    siteName: scan.siteName, town: r.locale?.place?.name,
     coverage: r.aiAnswers?.coverage ?? "async_included",
   });
   const cells = cards.card.rows.map((row) => row.cell);
@@ -290,8 +289,7 @@ function engineCellAfter(
   const { mentioned } = classifyReferences(cell.citedDomains, ownDomain, {
     urls: stored.citedUrls ?? [],
     text: stored.text,
-    siteName: scan.siteName,
-    town,
+    siteName: scan.siteName, town,
   });
   const rest: AnswerCell = { ...cell };
   delete rest.named;
@@ -445,8 +443,11 @@ function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "a
       const rivals = scan.market?.rivals ?? answer.rivals.map((domain) => ({ name: brandOf(domain), domain }));
       next.states = next.named ? statementsOf({ text, siteName: section.siteName, ownDomain: r.domain, rivals, language }) : [];
     }
-    const filled = (x: PromptAnswer) => ({ ...x, cited: x.cited ?? [], states: x.states ?? [], possiblyOther: x.possiblyOther ?? false });
-    if (!same(filled(answer), filled(next))) changes.push({ path: ["prompts", "answers", i], value: JSON.parse(JSON.stringify(next)) as PromptAnswer });
+    const [was, now] = [answer, next].map((x) => ({ ...x, cited: x.cited ?? [], states: x.states ?? [], possiblyOther: x.possiblyOther ?? false })) as [Record<string, unknown>, Record<string, unknown>];
+    const moved = Object.keys(now).filter((key) => !same(was[key], now[key]));
+    // A mark that no longer holds cannot be written at its own path, so the whole answer is.
+    if (moved.includes("possiblyOther") && next.possiblyOther !== true) changes.push({ path: ["prompts", "answers", i], value: JSON.parse(JSON.stringify(next)) as PromptAnswer });
+    else for (const key of moved) changes.push({ path: ["prompts", "answers", i, key], value: now[key] });
   });
   return changes;
 }
