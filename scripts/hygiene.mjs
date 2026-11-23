@@ -9,7 +9,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { blockRuleFindings, blockRules, budgetFindings, specRowFindings, testFileFindings, GENERATED_DB_TYPES, isMeasured, lineCount, lineFindings, plainWordsFindings, RATCHETS, ratchetFindings } from "./lib/budgets.mjs";
+import { blockRuleFindings, blockRules, budgetFindings, specRowFindings, testFileFindings, GENERATED_DB_TYPES, isMeasured, lineCount, lineFindings, plainWordsFindings, listFindings, RATCHETS, ratchetFindings } from "./lib/budgets.mjs";
 import { duplicateKeys, ENTRY_RE, keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 import { fetchesPayloadFilters } from "./lib/fetches-payload-filter.mjs";
@@ -324,7 +324,7 @@ function checkBudgets(texts) {
     .map(([added, deleted, rel]) => ({ rel, added: Number(added), deleted: Number(deleted) }));
   const lines = new Map(texts.filter((t) => isMeasured(t.rel)).map((t) => [t.rel, lineCount(t.text)]));
   for (const { rel } of changes) if (!lines.has(rel)) lines.set(rel, lineCount(readRel(rel) ?? ""));
-  for (const finding of lineFindings({ budget: budgets?.lines, changes, lines })) add("repo", finding);
+  for (const finding of [...lineFindings({ budget: budgets?.lines, changes, lines }), ...listFindings({ budget: budgets?.lists, read: readRel })]) add("repo", finding);
   checkPlainWords(diff);
   checkEmptyCopy();
 }
