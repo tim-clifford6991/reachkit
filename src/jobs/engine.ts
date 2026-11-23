@@ -177,7 +177,7 @@ export async function startWeeklyScan(
       });
       if (left === 0) break;
     }
-    await step(`market-changes-${a.siteId}`, async () => (await import("@/lib/scan/weekly/market-changes")).recordMarketChanges({ scanId, siteId: a.siteId, weekStart: a.weekStart, now: a.now }));
+    await step(`market-changes-${a.siteId}`, async () => (await import("@/lib/scan/weekly/market-changes")).recordMarketChanges({ scanId, siteId: a.siteId, weekStart: a.weekStart, now: a.now, ...(a.rerun === undefined ? {} : { again: true as const }) }));
   }
 
   // Issue 1553: Search Console and the stored rows, per page, before

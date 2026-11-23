@@ -1,5 +1,5 @@
-// SPEC §7 (issue 1262): the call that holds news results to the site's market, for the weekly pass's market changes, and
-// names what each reports. The same site, tier and wording as *current insights*' own judgement.
+// SPEC §7 (issue 1262): the call that holds news results to events in the site's market, for the weekly pass's market
+// changes, and names what each reports. An explainer is not news of a change, so it never reaches the claims call.
 import { z } from "zod";
 import { RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -8,15 +8,15 @@ import type { Locale } from "@/lib/locale/locales";
 import type { WritingMarket } from "@/lib/generate/voice/market";
 
 const NEWS_FIT_SCHEMA = z.strictObject({
-  results: z.array(z.strictObject({ result: z.number().int(), about: z.boolean(), names: z.string().nullable() })),
+  results: z.array(z.strictObject({ result: z.number().int(), about: z.boolean(), event: z.boolean(), names: z.string().nullable() })),
 });
 
-/** Each index of `results` judged about the market, with the new product, model, version, rule or price it names;
+/** Each index of `results` judged an event in the market, with the new product, model, version, rule or price it names;
  *  `null` where the call could not be made or did not answer. */
 export async function newsFit(
   c: CostContext,
   a: { locale: Locale; market: Pick<WritingMarket, "category" | "synonyms" | "market">; fallback: string; results: readonly { title: string; source: string; text: string }[] }
-): Promise<Map<number, string | null> | null> {
+): Promise<Map<number, string> | null> {
   const job = a.market.market?.job ?? null;
   const answer = await llm(c, {
     site: "generate.news_fit",
@@ -25,14 +25,16 @@ export async function newsFit(
     schema: NEWS_FIT_SCHEMA, instructions: ["task", "locale"],
     input: {
       task:
-        "Each of `results` is a news story a search returned for `market.category`. Say for each whether it " +
+        "Each of `results` is a news story a search returned for `market.category` or for something that moves it. Say for each whether it " +
         "is about that market: the one named `market.category`, also called `market.synonyms`" +
         (job === null ? "" : ", where a product is hired for `market.job`") +
-        ". A story is about the market when it reports something in it — a change, a product, a finding, a " +
-        "figure — that someone buying or selling in this market would read as news of their own market. A " +
+        ". A story is about the market when it reports something that changes what someone buying or selling in " +
+        "this market does, and they would read it as news of their own market. A " +
         "story that only shares words with the category, or is about one of `market.notOurMarket` or another " +
         "neighbouring market, is not. Answer for every result by its number; where you cannot tell, answer false. " +
-        "Give each result's `names`: the new product, model, version, rule or price it reports, as the story names it, or null.",
+        "Say for each whether it is an `event`: it reports something that happened on a stated day — a launch, an update, a rule, " +
+        "a price change, a study, a ruling. An explainer, a guide, an opinion, a list or a press release about a vendor's own " +
+        "service is not an event. Give each result's `names`: the new product, model, version, rule or price it reports, as the story names it, or null.",
       market: {
         category: a.market.category.trim() === "" ? a.fallback : a.market.category,
         synonyms: a.market.synonyms,
@@ -48,5 +50,5 @@ export async function newsFit(
     },
   });
   if (answer.kind === "unmeasured") return null;
-  return new Map(answer.value.results.filter((row) => row.about).map((row) => [row.result - 1, row.names]));
+  return new Map(answer.value.results.flatMap((row) => (row.about && row.event && row.names !== null && row.names.trim() !== "" ? [[row.result - 1, row.names.trim()] as const] : [])));
 }

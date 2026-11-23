@@ -121,6 +121,7 @@ function conclusionOf(value: unknown): MarketConclusion | null {
     synonyms: strings(value.synonyms),
     differentiators: strings(value.differentiators),
     notOurMarket: strings(value.notOurMarket),
+    ...(Array.isArray(value.watch) ? { watch: strings(value.watch) } : {}),
     categoryReason: str(value.categoryReason) ?? "",
     rivals: rivalsOf(value.rivals),
     // D49: only where a pass has read them, so "never read" stays distinct
