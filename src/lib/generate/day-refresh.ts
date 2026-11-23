@@ -28,6 +28,7 @@ import type { Completeness } from "./rules/types";
 import { mendedInCode, repairStructure } from "./rules/structure";
 import type { PartMark } from "./standard";
 import { DraftDateTaken, PageStopped, generateStore, type DraftRow, type SiteFacts } from "./store";
+import { inTest } from "./test-draft";
 
 export interface MendInput {
   siteId: string;
@@ -187,7 +188,7 @@ export async function dayTopic(day: { siteId: string; site: SiteFacts; report: S
     const topic = await pageForDay(day.siteId, date, now);
     const rivals = topic === null || tries >= DAY_TOPICS_MAX ? [] : versusRivals(day.site, day.report, topic);
     if (topic === null || !(await Promise.all(rivals.map((domain) => fetchBody(`https://${domain}/`)))).includes(null)) return topic;
-    await restTopic(topic.id, now, { zone: day.site.timeZone });
+    if (!inTest()) await restTopic(topic.id, now, { zone: day.site.timeZone });
   }
 }
 

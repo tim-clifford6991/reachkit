@@ -737,6 +737,11 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(citations?.sentences.length).toBeGreaterThan(0);
       expect(await generateDayPage({ siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) })).toEqual({ ok: false, because: "already_drafted" });
       expect([db.rows("drafts").length, (generateStore.rows.get(draftId)?.meta as { citations?: unknown }).citations]).toEqual([1, citations]);
+      // The owner's test write for a site off the test list is refused before any step that spends, and writes no page.
+      const steps: string[] = [];
+      const { writeTestDraft } = await import("../../src/lib/generate/test-draft");
+      expect(await writeTestDraft({ siteId: SITE_ID, publishDate: "2000-01-03", key: "draft:test:1", now: EVENING, step: (name, body) => (steps.push(name), body()) })).toEqual({ outcome: "not_a_test_site", draftId: null });
+      expect([steps, ledger().length, generateStore.rows.size]).toEqual([["record"], rows.length, 1]);
     },
     JOURNEY_TIMEOUT_MS
   );

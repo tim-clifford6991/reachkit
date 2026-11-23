@@ -23,6 +23,7 @@ import type { ClusterPage } from "./links/select";
 import { waitingForRun } from "./interrupted";
 import { withheldReportPassages } from "./pipeline/report-scope";
 import { withCitations } from "./citations";
+import { inTest } from "./test-draft";
 
 /** The `drafts` row, as §10 and this issue's two migrations leave it. */
 export interface DraftRow {
@@ -83,11 +84,7 @@ export interface DraftPatch {
   hard_rule_attempts?: number;
   claim_check?: unknown;
   cost_cents?: number;
-  /** The publishing engine's own column (`_drafts_publishing`), and the
-   *  guard on its `generating → in_review` edge. It is written **here**
-   *  because §8 owns the battery: "a failing draft is never queued" is a
-   *  fact about what the rules decided, and the engine that decided them
-   *  is the only one that may assert it. */
+  /** The guard on `generating → in_review`, written here because only the engine that ran §8's battery may assert it. */
   hard_rules_passed?: boolean;
   /** SPEC §7 (D26, issue 1179): only ever set to `null`, and only on a row the generator stopped — the stopped
    *  draft keeps its row and gives up its date, so the same run can write the next topic for it. */
@@ -225,16 +222,8 @@ interface QueryResult<T> {
 /** Postgres's unique violation, as PostgREST hands it back. */
 const UNIQUE_VIOLATION = "23505";
 
-/**
- * The date already holds its draft, said by the database rather than by the
- * read `generateDayPage()` makes first (issue 886).
- *
- * `drafts_one_per_site_per_date` is SPEC §7's "a date holds at most one
- * asset" as an index, and it is what decides two evening ticks that both
- * read no row and both went on to write one. The loser's insert raises
- * this, and the engine answers `already_drafted` — the same outcome the
- * read gives the delivery that arrives after the first run has finished.
- */
+/** The date already holds its draft, said by `drafts_one_per_site_per_date` (SPEC §7's one asset a date) when two ticks
+ *  both read no row and both wrote one: the loser's insert raises this, and the engine answers `already_drafted`. */
 export class DraftDateTaken extends Error {
   constructor(
     readonly siteId: string,
@@ -358,17 +347,14 @@ export function supabaseGenerateStore(): GenerateStore {
     async insertDraft(row) {
       // Claimed as it is saved: a stop that came first drops the draft, and one that comes later is refused.
       const { claimForDraft, giveBackClaim } = await import("@/lib/opportunities");
-      const claim = await claimForDraft(row.opportunity_id);
+      const claim = inTest() ? { save: true, claimed: false } : await claimForDraft(row.opportunity_id);
       if (!claim.save) throw new PageStopped(row.opportunity_id);
       try {
         const result = await untyped()
           .from<{ id: string }>("drafts")
           .insert(row)
           .select("id");
-        // The one unique rule an insert of a day's page can break is
-        // `drafts_one_per_site_per_date` (issue 886) — the primary key is a
-        // generated uuid. It is raised as itself so the caller can answer
-        // `already_drafted` instead of failing the tick.
+        // Only `drafts_one_per_site_per_date` can refuse it (issue 886), raised as itself so the caller answers `already_drafted`.
         if (result.error?.code === UNIQUE_VIOLATION) {
           throw new DraftDateTaken(row.site_id, row.scheduled_for);
         }
@@ -623,7 +609,13 @@ export function setGenerateStore(store: GenerateStore | null): void {
 /** Every write of a body records, in the same write, which source each sentence cites. */
 export function generateStore(): GenerateStore {
   const store = override ?? supabaseGenerateStore();
-  return Object.assign(Object.create(store) as GenerateStore, { insertDraft: (row: DraftInsert) => store.insertDraft(withCitations(row)), patchDraft: (id: string, patch: DraftPatch) => store.patchDraft(id, withCitations(patch)) });
+  // A test draft is undated and marked on every write, so the date it names stays the scheduled write's.
+  const marked = <R extends { meta?: unknown }>(row: R): R => (inTest() && row.meta !== undefined ? { ...row, meta: { ...(row.meta as object | null), test: true } } : row);
+  return Object.assign(Object.create(store) as GenerateStore, {
+    insertDraft: (row: DraftInsert) => store.insertDraft(withCitations(inTest() ? marked({ ...row, scheduled_for: null, meta: row.meta ?? {} }) : row)),
+    patchDraft: (id: string, patch: DraftPatch) => store.patchDraft(id, withCitations(marked(patch))),
+    draftOnDate: (siteId: string, date: string) => (inTest() ? Promise.resolve(false) : store.draftOnDate(siteId, date)),
+  });
 }
 
 export { HANDED_OVER, SHORT_OF_HAND_OFF };

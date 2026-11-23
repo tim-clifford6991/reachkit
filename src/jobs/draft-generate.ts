@@ -91,6 +91,13 @@ export function dayEvent(site: Site, day: { publishDate: string; hour: Date; aga
 async function draftSite(input: JobInput): Promise<Outcome> {
   const { siteId, publishDate, hour, site, again } = siteDay(input.data);
   const step = input.step ?? ((_name, body) => body());
+  // The owner's test write for a listed site (temporary): one run per key, and nothing the date's own run reads.
+  if (input.data.test === true) {
+    if (typeof input.data.key !== "string") throw new TypeError("draft/generate: a test write needs its own key");
+    const { writeTestDraft } = await import("@/lib/generate/test-draft");
+    const { outcome } = await writeTestDraft({ siteId, publishDate, key: input.data.key, now: hour, step });
+    return outcome === "in_review" ? { outcome: "ran", subjectId: siteId } : { outcome: "degraded", subjectId: siteId, step: `test:${outcome}` };
+  }
   // Decided again, the day keeps the moment it was, so the same weekly commit never asks for it a third time, and its
   // spend counts from it: held in a step, since every step and retry is an invocation with a `now` of its own.
   const at = again ? new Date(await step("since", async () => input.now.toISOString())) : hour;
