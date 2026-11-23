@@ -13,7 +13,7 @@ import { siteWritingMarket, type WritingMarket } from "@/lib/generate/voice/mark
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
 import { readSiteMarket } from "@/lib/market/infer/stored";
-import { registrableDomain } from "@/lib/market/rivals/domains";
+import { googleWrapper, registrableDomain } from "@/lib/market/rivals/domains";
 import { topicWords } from "@/lib/opportunities/intent";
 import { serpNews } from "@/lib/vendors/dataforseo";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
@@ -68,11 +68,12 @@ export async function buyMarketChanges(
   const since = new Date(a.today.getTime() - MARKET_CHANGES.days * 86_400_000).toISOString().slice(0, 10);
   const inWindow = (day: string): boolean => day >= since && day <= today;
   const rows: NewsRow[] = [];
-  for (const query of a.terms.slice(0, RESEARCH.newsSearches)) {
-    if (c.capHit()) break;
-    const news = await serpNews(c, { query, locale: a.locale, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.news });
+  // At once, since each waits on the vendor following Google's links; a link it could not follow names no publisher and is skipped alone.
+  const reads = c.capHit() ? [] : await Promise.all(a.terms.slice(0, RESEARCH.newsSearches).map((query) =>
+    serpNews(c, { query, locale: a.locale, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.news, resolveRedirects: true })));
+  for (const news of reads) {
     if (news.kind === "unmeasured") continue;
-    for (const row of news.value) if (inWindow(row.publishedAt) && !a.notOurs.has(publisherOf(row)) && !rows.some((held) => held.url === row.url)) rows.push(row);
+    for (const row of news.value) if (googleWrapper(row.url) === null && inWindow(row.publishedAt) && !a.notOurs.has(publisherOf(row)) && !rows.some((held) => held.url === row.url)) rows.push(row);
   }
 
   // Each story's reports read and dated by their own page where it states one; a syndicated copy is the report it copies.

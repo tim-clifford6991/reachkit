@@ -62,4 +62,12 @@ describe("the news search returns dated results, in order, with who published th
     expect(none).toMatchObject({ kind: "zero", value: [] });
     expect(news.parseNews("not a result")).toBeUndefined();
   });
+
+  it("a read that asks for Google's goto links resolved says so to the vendor, and is cached apart from one that did not", async () => {
+    const stub = stubVendorFetch(() => envelope(RESULT));
+    const fake = fakeCostContext("DRAFT");
+    await news.serpNews(fake.ctx, { locale: { country: "US", language: "en" }, query: "q", scope: { site: "site-1" }, freshnessDays: 1, resolveRedirects: true });
+    expect(stub.tasks[0]).toMatchObject({ keyword: "q", resolve_goto_urls: true });
+    expect(fake.calls[0]?.cacheKey).toMatch(/\|goto$/);
+  });
 });
