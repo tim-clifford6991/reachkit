@@ -22,6 +22,7 @@ import { footprintOpen } from "@/lib/market/footprint";
 import { pageTypeOf } from "../page-type";
 import type { Opportunity, PlaceRule, PlanReason, Ranked } from "../types";
 import { fitOf, POINTS, pointsOf, volumeOrder, type Seen } from "./points";
+import { addTimely, timelyReason } from "@/lib/hot/timely";
 
 /** A site ranking fewer than `rankedBelow` searches is new, and its own offering or asked questions earn `points` (R31). */
 export const NEW_SITE = Object.freeze({ rankedBelow: 30, points: 1 });
@@ -50,7 +51,7 @@ export interface Rotation {
 
 /** Every row by fit, then `ai_gap`, then points, highest first. Pure. */
 export function orderRanked(scored: readonly Scored[]): Ranked[] {
-  return [...scored].sort(byRank).map((entry) => ({ opportunityId: entry.opportunity.id, reason: { points: entry.points, parts: entry.parts, rule: actionOf(entry) ?? "best" } }));
+  return [...scored].sort(byRank).map((entry) => ({ opportunityId: entry.opportunity.id, reason: { points: entry.points, parts: entry.parts, rule: actionOf(entry) ?? "best", ...timelyReason(entry) } }));
 }
 
 /** A Write or Earn row: a new page of the site's. */
@@ -215,7 +216,7 @@ function named(row: { id: string }, only: ReadonlySet<string> | undefined): bool
 /** The eligible rows scored, the ready fixes, what the order reads besides
  *  the points, and each row left out with its reason. Pure. */
 export function rankingOf(
-  load: RankLoad,
+  load: RankLoad & { at?: Date },
   only?: ReadonlySet<string>
 ): {
   scored: Scored[];
@@ -248,6 +249,7 @@ export function rankingOf(
       entry.points += NEW_SITE.points;
     }
   }
+  addTimely(scored, load.at);
   // A new list or comparison while the site ranks for nothing on its market ranks lower, never waits.
   if (load.footprint === false) {
     for (const entry of scored.filter((each) => waitsForFootprint(each.opportunity))) {

@@ -1,5 +1,5 @@
-// SPEC §7 *A page for what is new in the market*: the dated events a day's write may answer, read at 0¢ from the market
-// changes the weekly passes stored. Pure but for `readHotEvents`.
+// SPEC §7 *A page for what is new in the market*: the dated events a week ranks and a page cites, read at 0¢ from the market
+// changes the weekly passes stored. Pure but for `storedChanges`.
 import { createHash } from "node:crypto";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import type { MarketChange } from "@/lib/scan/weekly/market-changes";
@@ -58,12 +58,14 @@ export function hotEvents(changes: readonly Partial<MarketChange>[], day: string
   return [...events.values()].sort((x, y) => y.date.localeCompare(x.date));
 }
 
-/** The site's events for a page dated `day`, from the stored weeks that could hold a report inside its window. */
-export async function readHotEvents(siteId: string, day: string): Promise<HotEvent[]> {
+/** The site's stored market changes that could hold a report inside `day`'s window. */
+export async function storedChanges(siteId: string, day: string): Promise<Partial<MarketChange>[]> {
   const from = new Date(Date.parse(`${day}T00:00:00Z`) - (HOT.days + 7) * DAY_MS).toISOString().slice(0, 10);
-  const weeks = await readMarketChanges({ siteIds: [siteId], from });
-  return hotEvents(weeks.flatMap((week) => week.changes as Partial<MarketChange>[]), day);
+  return (await readMarketChanges({ siteIds: [siteId], from })).flatMap((week) => week.changes as Partial<MarketChange>[]);
 }
 
-/** What a placed hot page's reason stores: its event's measured slots, and the date it was detected on. */
+/** The site's events for a page dated `day`. */
+export const readHotEvents = async (siteId: string, day: string): Promise<HotEvent[]> => hotEvents(await storedChanges(siteId, day), day);
+
+/** What a timely page's reason stores: its event's measured slots, and the Monday it was offered on. */
 export type HotReason = Pick<HotEvent, "signal" | "event" | "date" | "a" | "b" | "key"> & { detectedOn: string };

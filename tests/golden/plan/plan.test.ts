@@ -6,7 +6,7 @@ import "../../opportunities/env";
 import { readdirSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import { PLAN_DEPTH, WEEK_PLAN } from "@/lib/config/constants";
-import { measured } from "@/lib/measure/measured";
+import { measured, unmeasured } from "@/lib/measure/measured";
 import { choose, type Choice } from "@/lib/opportunities/choose";
 import { collapse } from "@/lib/opportunities/cluster";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
@@ -255,5 +255,20 @@ describe("a week whose rows all go unready mid-week is committed again from the 
     await short(second.state, second.days[1]!);
     const places = second.state.rows.flatMap((row) => (row.plan_place == null ? [] : [row.plan_place]));
     expect(new Set(places).size).toBe(places.length);
+  });
+});
+
+describe("two stored market changes join the ranked week and take its earliest dates, freshest first", () => {
+  it.each(Object.entries(KINDS))("%s (%s)", async (_kind, domain) => {
+    const site = panelSite(domain), base = site.rows.find((row) => row.ready && row.family === "write")!;
+    const hot = (id: string, search: string, age: number): OpportunityRow => {
+      const reason = { signal: "news" as const, event: search, date: new Date(AT.getTime() - age * 86_400_000).toISOString().slice(0, 10), a: "a.example", b: "b.example", key: `news:${id}`, detectedOn: FROM };
+      // As the Monday offer stores it (`src/lib/hot/offer.ts`).
+      return { ...base, id, type: "keyword_page", target_query: search, target_ref: id, title: search, business_fit: 3, fit_band: "reach", volume: null, evidence: { family: "write", query: search, volume: unmeasured<number>("not_attempted", AT), rival: null, hot: { claims: [], reason, changes: true } } };
+    };
+    const timely = { ...site, rows: [...site.rows, hot("timely-older", "zephyr rule change explained for buyers", 10), hot("timely-fresh", "what the quasar 5.2 launch means for buyers", 3)] };
+    const choice = chosen(timely);
+    await expect(render(timely, choice)).toMatchFileSnapshot(`./results/timely/${domain}.md`);
+    expect(choice.committed.slice(0, 2).map((entry) => [entry.opportunityId, entry.reason.hot?.key])).toEqual([["timely-fresh", "news:timely-fresh"], ["timely-older", "news:timely-older"]]);
   });
 });

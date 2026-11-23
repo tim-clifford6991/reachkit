@@ -22,8 +22,9 @@ async function topUpOf(siteId: string, scanId: string | undefined): Promise<{ of
   return { offered: sources.reduce((n, s) => n + s.offered, 0), bought: record.sources[2].offered, kept: sources.reduce((n, s) => n + s.added, 0) };
 }
 
-/** The week's verdicts and its refreshes, then the `WEEK_RESEARCH.rowsMax` best-ranked writable rows the commit checks. */
-export async function judgeWeekRows(a: { siteId: string; weekStart: string; now: Date }): Promise<WeekRow[]> {
+/** The week's events as topics, its verdicts and its refreshes, then the `WEEK_RESEARCH.rowsMax` best-ranked writable rows the commit checks. */
+export async function judgeWeekRows(a: { siteId: string; scanId?: string; weekStart: string; now: Date }): Promise<WeekRow[]> {
+  if (a.scanId !== undefined) await (await import("@/lib/hot/offer")).offerHotTopics({ siteId: a.siteId, scanId: a.scanId, now: a.now });
   await judgeWeek({ siteId: a.siteId, week: a.weekStart });
   // The live pages due a refresh are planned before readiness is recorded on them.
   await planRefreshes({ siteId: a.siteId, at: a.now });

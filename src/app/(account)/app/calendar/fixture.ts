@@ -203,12 +203,12 @@ const TITLES: Readonly<Record<DayKey, string>> = {
 /** The type each new page is written as, in turn, so the chip says each. */
 const TYPES: readonly ContentType[] = ["listicle", "how_to", "qa", "documentation", "research", "offering", "insights"];
 
-// A page placed for something new in the market, written and planned, a page it moved, and one it moved out of the week.
-const NEWS = { points: 0, parts: [{ part: "rising" as const, n: 2 }], rule: null, hot: { signal: "news" as const, event: "Acme CRM 5.2 adds shared inbox rules and team routing to CRM", date: "2026-09-11", a: "TechCrunch", b: "The Verge", key: "news:fixture", detectedOn: "2026-09-15" } };
+// A timely page, written and planned; a page an earlier daily placement moved, and one it moved out of the week.
+const NEWS = { points: 7, parts: [{ part: "fit" as const, n: 3 }, { part: "timely" as const, n: 4 }], rule: null, hot: { signal: "news" as const, event: "Acme CRM 5.2 adds shared inbox rules and team routing to CRM", date: "2026-09-11", a: "TechCrunch", b: "The Verge", key: "news:fixture", detectedOn: "2026-09-15" } };
 const HOT: Readonly<Record<DayKey, Partial<DraftOnDay>>> = {
   "2026-09-15": { hotLine: whyLineOf(NEWS), whyLine: whySentenceOf(NEWS), movedOut: [{ search: "crm migration checklist", day: "2026-09-17" }] },
   "2026-09-18": { moved: { from: "2026-09-15", search: "acme crm 5.2 shared inbox rules" } },
-  "2026-09-20": { hotLine: whyLineOf(NEWS), whyLine: whySentenceOf(NEWS) },
+  "2026-09-20": { hotLine: whyLineOf(NEWS), whyLine: whySentenceOf(NEWS), update: false, type: "insights", proposed: { title: "Acme CRM 5.2 Shared Inbox Rules: What Changes for a Small Sales Team", label: generatedLabel({ pageTitle: "acme crm 5.2 shared inbox rules", written: false }).label } },
 };
 
 const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state], index) => {

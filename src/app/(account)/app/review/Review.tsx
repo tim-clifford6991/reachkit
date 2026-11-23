@@ -63,6 +63,7 @@ const PART: Record<PointPart, CopyKey> = {
   no_demand: "review.part.no_demand",
   no_footprint: "review.part.no_footprint",
   rising: "review.part.rising",
+  timely: "review.part.timely",
 };
 
 // A stored day is a calendar date, so it is read in UTC to keep its own weekday.

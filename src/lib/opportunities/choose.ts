@@ -8,6 +8,7 @@ import { canonicalUrl } from "@/lib/measure/page-reading";
 import { oneQuestion, queryKey, shareATopTen } from "./cluster";
 import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
 import { placeFixPages, rankingOf, type RankLoad, type Rejection } from "./rank/open";
+import { timelyFirst } from "@/lib/hot/timely";
 import type { OwnLivePage } from "./refresh";
 import { readOpportunity, type PlanEntry } from "./store";
 import { PLAN_WRITE_AS, type Opportunity, type Ranked } from "./types";
@@ -39,7 +40,7 @@ export function choose(input: ChooseInput): Choice {
   const first = Math.floor(Date.parse(`${input.from}T00:00:00Z`) / DAY_MS);
   const days = input.days ?? WEEK_PLAN.days, dates = Array.from({ length: days }, (_, place) => new Date((first + place) * DAY_MS).toISOString().slice(0, 10));
   const kept = (entry: Joined) => dates.includes(input.keep?.get(entry.opportunityId) ?? "") && entry.reason.research?.state !== "short", pinned = new Map(ranked.filter(kept).map((entry) => [input.keep!.get(entry.opportunityId)!, entry]));
-  const rest = ranked.filter((entry) => !kept(entry)), week = [...dates.map((date) => pinned.get(date) ?? rest.shift()), ...rest.splice(0, WEEK_PLAN.spares)];
+  const rest = ranked.filter((entry) => !kept(entry)), dated = timelyFirst(rest.splice(0, dates.length - pinned.size)), week = [...dates.map((date) => pinned.get(date) ?? dated.shift()), ...rest.splice(0, WEEK_PLAN.spares)];
   return {
     committed: week.flatMap((entry, place) => (entry === undefined ? [] : [{ opportunityId: entry.opportunityId, place, plannedFor: dates[place] ?? null, writeAs: entry.writeAs ?? null, reason: entry.reason, ...(entry.set === undefined ? {} : { set: entry.set }) }])),
     rejected: [...rejected, ...rest.map((entry) => ({ opportunityId: entry.opportunityId, ...(entry.reason.research?.state === "short" ? { reason: "short" as const, short: entry.reason.research.short ?? [] } : { reason: "after_the_week" as const }) }))],

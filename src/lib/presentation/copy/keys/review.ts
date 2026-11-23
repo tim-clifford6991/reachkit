@@ -63,6 +63,7 @@ export const REVIEW_COPY = Object.freeze({
   "review.part.no_demand": "nobody searches",
   "review.part.no_footprint": "no search footprint yet",
   "review.part.rising": "rising",
+  "review.part.timely": "in the news",
   "review.rejected.title": "Not chosen ({count}), and why",
   "review.pages.empty": "No live pages yet.",
   "review.label.working": "Working",

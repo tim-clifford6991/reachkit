@@ -231,7 +231,7 @@ export type Evidence =
       fitFact?: FitFact | null;
       /** The angle the topic keeps (`market/questions/angle.ts`); `null` where none passed, absent where judged before. */
       angle?: TopicAngle | null;
-      hot?: { claims: HotClaim[] }; // The dated reports of the event a hot page answers, which its pack cites.
+      hot?: { claims: HotClaim[]; reason?: HotReason; changes?: boolean }; // A timely page's event: the reports its pack cites, its reason, whether it changes what a buyer does.
     }
   | {
       family: "improve";
@@ -410,10 +410,9 @@ export type PlaceRule =
   | "linked by AI: one more in its cluster";
 
 /** One part of a row's points, as the plan stores it. */
-export type PointPart = "fit" | "demand" | "ai_gap" | "rising" | "near_page_one" | "linked_by_ai" | "not_moving" | "shown_no_visits" | "new_site" | "outsized" | "no_demand" | "no_footprint";
+export type PointPart = "fit" | "demand" | "ai_gap" | "rising" | "timely" | "near_page_one" | "linked_by_ai" | "not_moving" | "shown_no_visits" | "new_site" | "outsized" | "no_demand" | "no_footprint";
 
-/** `opportunities.plan_reason`: the points a committed row ranked by, the
- *  parts they sum from, and the rule that placed it. */
+/** `opportunities.plan_reason`: the points a committed row ranked by, the parts they sum from, and the rule that placed it. */
 export interface PlanReason {
   points: number;
   /** `shown` is the Google impressions a `shown_no_visits` part's sentence states. */
@@ -421,7 +420,7 @@ export interface PlanReason {
   rule: PlaceRule | null;
   /** What the commit read of its research: `queued` where none is cached, `short` under its type's pass mark, by part. */
   research?: { state: "met" | "at_margin" | "queued" | "short"; R: number | null; Q: number | null; F: number | null; estWords: number | null; urls: string[]; short?: string[] };
-  /** The dated event a page was placed for (SPEC §7 *A page for what is new in the market*), a page's first day before one moved it, and the pages it moved out of the week. */
+  /** The dated event a timely page ranked for (SPEC §7 *A page for what is new in the market*); from an earlier daily placement, a page's first day before one moved it, and the pages it moved out of the week. */
   hot?: HotReason;
   moved?: { from: string; search: string };
   movedOut?: { search: string; day: string }[];
