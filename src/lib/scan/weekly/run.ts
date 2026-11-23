@@ -4,7 +4,7 @@
 // `(site_id, week_start) where tier = 'weekly'` rejects a second, so two ticks resolve to one measurement and one `already_measured`.
 // A pass with no report, or refused for credit, releases its claim: the row is kept `failed` (the ledger references it) and the next hourly tick
 // retakes it inside the same week, spending only what is left of its `WEEKLY` cap. A partial report is a measured week, never retried,
-// except one whose market a call never answered: with no market there are no searches, rankings or panel, so it is released as a failure is.
+// except one whose market a call never answered: with no market there are no searches, rankings or panel, so it is released once, and its retake stands.
 // What the week found becomes supply inside this pass's cost context and cap, through `runScan`'s hook after the store; access is passed on, not re-asked.
 // The kill switch (`scan+generate+publish`) is asked here before any spend, since this starts a scan outside the `scan/run` job's door;
 // the week then reads `not_measured` with its next due date.
@@ -87,8 +87,8 @@ export async function runWeekly(a: {
       concludesMarket: true,
       failsWhenFundsRefused: true,
       afterReport: async ({ report, cost }) => {
-        // A market the cap refused reads not_attempted and stands, since the retake would meet the same cap; nothing more is spent on a released week.
-        marketUnanswered = report.market.kind === "unmeasured" && report.market.reason === "undeterminable";
+        // Released only on a first claim, since an outage answers at 0¢ and would retake the week every hour; nothing more is spent on a released week.
+        marketUnanswered = claim.retaken !== true && report.market.kind === "unmeasured" && report.market.reason === "undeterminable";
         if (marketUnanswered) return;
         try {
           try {
