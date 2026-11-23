@@ -79,7 +79,11 @@ export function visitsOf(a: { reads: readonly ReadRow[]; weeks: readonly { week_
 /** The site's visits; `firstLive` is its first page's go-live. `null` where the rows could not be read, never zeros. */
 export async function readVisits(a: { siteId: string; now: Date; firstLive: Date | null }): Promise<Visits | null> {
   const db = publishDb();
-  const from = windowStartDay(a.now, VISITS_WINDOW_D);
+  const live = a.firstLive === null ? VISITS_COUNTED_FROM : a.firstLive.toISOString().slice(0, 10);
+  const start = live > VISITS_COUNTED_FROM ? live : VISITS_COUNTED_FROM;
+  const window = windowStartDay(a.now, VISITS_WINDOW_D);
+  // Rows before the counting start were stored under older rules, so the window never reaches past it.
+  const from = start > window ? start : window;
   const [reads, weeks] = await Promise.all([
     db.from<ReadRow>("publication_reads").select("publication_id, engine, kind, hits").eq("site_id", a.siteId).gte("day", from),
     db
@@ -89,6 +93,5 @@ export async function readVisits(a: { siteId: string; now: Date; firstLive: Date
       .gte("week_start", windowStartDay(a.now, (VISIT_WEEKS + 1) * 7)),
   ]);
   if (reads.error !== null || weeks.error !== null) return null;
-  const live = a.firstLive === null ? VISITS_COUNTED_FROM : a.firstLive.toISOString().slice(0, 10);
-  return visitsOf({ reads: reads.data ?? [], weeks: weeks.data ?? [], now: a.now, start: live > VISITS_COUNTED_FROM ? live : VISITS_COUNTED_FROM });
+  return visitsOf({ reads: reads.data ?? [], weeks: weeks.data ?? [], now: a.now, start });
 }
