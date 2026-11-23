@@ -21,6 +21,7 @@ const ACTION = "mail.published.action" satisfies CopyKey;
 const REASON = "mail.reason.published" satisfies CopyKey;
 const CHECKS_LABEL = "mail.published.checks_label" satisfies CopyKey;
 const CHECKS_EMPTY = "mail.published.checks_empty" satisfies CopyKey;
+const COUNTING = "mail.published.counting" satisfies CopyKey;
 
 /** One subject per check: a `Record` over `CheckId`, so a fifth check needs its own name. */
 const CHECK_NAME: Readonly<Record<CheckId, CopyKey>> = Object.freeze({
@@ -82,6 +83,8 @@ export interface PublishedMail {
 export function buildPublished(a: {
   telling: PublishedTelling;
   timeZone: string;
+  /** The page is on a connected hosted address, where its visits are counted. */
+  counting?: boolean;
 }): PublishedMail {
   const { telling } = a;
   const checkedAt = formatCheckedAt(telling.result.checkedAt, a.timeZone);
@@ -103,6 +106,7 @@ export function buildPublished(a: {
       items: measured(verdictRows(telling.result.checks), telling.result.checkedAt),
       emptyLine: CHECKS_EMPTY,
     });
+    if (a.counting === true) blocks.push({ block: "paragraph", text: COUNTING });
   }
 
   if (telling.siteCondition !== null) {
