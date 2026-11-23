@@ -372,7 +372,7 @@ export async function deriveOpportunities(
     }
     if (judged === undefined ? topic.asked !== undefined : judged.fit < (topic.asked === undefined ? TOPIC_FIT.gate : TOPIC_FIT.writeAt)) continue;
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
-    if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, title: judged.title }, judged));
+    if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged));
   }
 
   const labelled: Candidate[] = [];

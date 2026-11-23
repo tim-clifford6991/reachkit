@@ -139,14 +139,13 @@ describe("the counts add up, and every rejection lands in exactly one counter", 
     expect(state.rows).toHaveLength(1);
   });
 
-  it("a target whose page is published is never proposed as a second page (#1181)", async () => {
+  it("a target whose page is published is kept once, under the page's topic, as its update", async () => {
     const { ctx } = fakeCost();
     const first = await deriveOpportunities(ctx, input());
     setStatus(state, first.created[0]!.id, "done", new Date("2026-09-07T09:00:00.000Z"));
 
     const second = await deriveOpportunities(ctx, input());
-    expect(second.created).toEqual([]);
-    expect(second.rejected.duplicate_open).toBe(1);
+    expect(second.created.map((row) => row.clusterKey)).toEqual([first.created[0]!.clusterKey]);
   });
 });
 
@@ -331,7 +330,7 @@ describe("the pass says how much new-page supply each source gave, at no added c
     expect(supply.dry).toContain("cited");
   });
 
-  it("a short site's further line is judged by the same calls, fit 3 decides, and the ledger names it", async () => {
+  it("a short site's further line is judged by the same calls, fit ranks it, and the ledger names it", async () => {
     const judged: Record<string, string[]> = {};
     createMock.mockImplementation(async (request: { messages: { content: string }[]; tools?: { name: string }[] }) => {
       const site = request.tools?.[0]?.name ?? "";
@@ -354,7 +353,7 @@ describe("the pass says how much new-page supply each source gave, at no added c
     for (const site of [TYPED_CALL_SITE, FIT_CALL_SITE]) expect(judged[site]).toEqual(expect.arrayContaining(["product analytics for saas product teams", "product analytics pricing"]));
     const row = state.rows.find((one) => one.target_query === "product analytics for saas product teams");
     expect([row?.source, row?.business_fit, (row?.evidence as { composed?: true }).composed]).toEqual(["product", 3, true]);
-    expect(state.rows.some((one) => one.target_query === "product analytics pricing")).toBe(false);
-    expect(supply.sources.offering).toEqual({ offered: 2, searched: 2, fit: 1, candidates: 1, added: 1 });
+    expect(state.rows.find((one) => one.target_query === "product analytics pricing")?.business_fit).toBe(2);
+    expect(supply.sources.offering).toEqual({ offered: 2, searched: 2, fit: 1, candidates: 2, added: 2 });
   });
 });
