@@ -70,7 +70,7 @@ export async function sendPublishedMail(publicationId: string): Promise<Publishe
   const to = users?.[0]?.email;
   if (to === undefined) return { sent: false, reason: "no-account" };
 
-  const mail = buildPublished({ telling, timeZone: site.timezone ?? FALLBACK_ZONE });
+  const mail = buildPublished({ telling, timeZone: site.timezone ?? FALLBACK_ZONE, counting: await countsVisits(telling.siteId) });
   const result = await sendEmail({
     kind: "published",
     to,
@@ -98,4 +98,11 @@ async function isFirstLivePage(publicationId: string, siteId: string): Promise<b
   if (error !== null) throw new Error(`sendPublishedMail(${publicationId}): ${error.message}`);
   const first = data?.[0];
   return first === undefined || first.id === publicationId;
+}
+
+/** Visits are counted only on a connected hosted address: never on WordPress, never while the address waits; unread, no line. */
+async function countsVisits(siteId: string): Promise<boolean> {
+  const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
+  const host = await hostedHostFor(siteId).catch(() => null);
+  return host !== null && host.state === "live" && host.hostname !== "";
 }

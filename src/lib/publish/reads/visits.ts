@@ -102,3 +102,23 @@ export async function readVisits(a: { siteId: string; now: Date; firstLive: Date
   if (reads.error !== null || weeks.error !== null) return null;
   return visitsOf({ reads: reads.data ?? [], weeks: weeks.data ?? [], now: a.now, start });
 }
+
+/** Whether the site's first headline visit, and its first click through, ever counted fell on a day in `[from, to)`:
+ *  the day rows hold 28 days and the week rows 57 weeks, so the earliest of both is the first. `null` where unread. */
+export async function firstsIn(a: { siteId: string; from: string; to: string }): Promise<{ visit: boolean; click: boolean } | null> {
+  const db = publishDb();
+  const [reads, weeks] = await Promise.all([
+    db.from<ReadRow & { day: string }>("publication_reads").select("day, engine, kind, hits").eq("site_id", a.siteId).gte("day", VISITS_COUNTED_FROM).lt("day", a.to),
+    db.from<{ week_start: string; counts: Record<string, number> }>("publication_weeks").select("week_start, counts").eq("site_id", a.siteId).gte("week_start", VISITS_COUNTED_FROM).lt("week_start", a.to),
+  ]);
+  if (reads.error !== null || weeks.error !== null) return null;
+  const counts = (kind: string, engine: string): boolean => (kind === "referral" ? isVisit(engine) : kind === "outbound");
+  const firstIn = (kind: string): boolean => {
+    const days = [
+      ...(reads.data ?? []).filter((row) => row.kind === kind && row.hits > 0 && counts(kind, row.engine)).map((row) => row.day),
+      ...(weeks.data ?? []).filter((row) => Object.entries(row.counts).some(([key, n]) => n > 0 && key.startsWith(`${kind}:`) && counts(kind, key.slice(kind.length + 1)))).map((row) => row.week_start),
+    ].sort();
+    return days[0] !== undefined && days[0] >= a.from;
+  };
+  return { visit: firstIn("referral"), click: ONWARD_CLICKS_COUNTED && firstIn("outbound") };
+}

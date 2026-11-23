@@ -94,7 +94,7 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
               const value = item.before === null ? item.value : `${item.before} ${item.value}`;
               const figure = item.value === null ? null : item.change === null ? value : `${value} (${item.change})`;
               // An unmeasured number is its written line, where its figure would stand.
-              return `${item.label}: ${[figure, item.line, item.detail].filter((part) => part !== null).join(" · ")}`;
+              return `${item.label}: ${[figure, item.line, ...item.detail].filter((part) => part !== null).join(" · ")}`;
             })
             .join("\n")
         );

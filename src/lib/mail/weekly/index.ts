@@ -21,6 +21,7 @@ import { vetoLinkPath } from "@/lib/publish/publishable";
 import { scheduledPagesFor } from "@/lib/publish/record";
 import { becameUpdate, critical, needsYouOf, setAsideOf } from "@/lib/publish/record/needs-you";
 import { fromMail } from "@/lib/publish/reads/count";
+import { firstsIn, readVisits } from "@/lib/publish/reads/visits";
 import { heldPages } from "@/lib/publish/switch";
 import { pauseTokenFor } from "@/lib/publish/switch/pause-link";
 import { readPublishingSettings } from "@/lib/publish/settings/settings";
@@ -211,13 +212,14 @@ async function measuredWeek(a: {
   const { siteId, weekStart, zone, now } = a;
   // Overview's own reads over the same rows, read at the send; a failed read draws no results, never zeros.
   const week = weekStartFor({ at: now, zone });
-  const [rows, published, pages, setAside, market, next] = await Promise.all([
+  const [rows, published, pages, setAside, market, next, firsts] = await Promise.all([
     readTileRows({ siteId, domain: a.domain, week }).catch(() => null),
     readPublishedPages(siteId, now).catch(() => null),
     pagesLiveLastWeek(siteId, weekStart, zone).catch(() => []),
     setAsideLastWeek(siteId, weekStart).catch(() => undefined),
     marketChangesSince(siteId, weekStart),
     theWeek(siteId, weekStart, now),
+    firstsIn({ siteId, from: plusDays(weekStart, -7), to: weekStart }).catch(() => null),
   ]);
   const pass = rows?.passes.find((each) => each.weekStart === weekStart);
   const asked = pass === undefined ? null : askedOf(pass);
@@ -230,16 +232,22 @@ async function measuredWeek(a: {
   };
   const firstDay = next.kind === "unmeasured" ? undefined : next.value[0]?.day;
   if (rows === null || published === null) return { did, next };
-  const results = resultsOf({ published: { pages: published, now }, passes: rows.passes, rows: rows.pages, gsc: rows.gsc, week, domain: a.domain, coming: 0, goLive: firstDay !== undefined });
+  // Visits as the tile reads them: no hosted page is WordPress, and an unread hosted read is its unread line, never 0.
+  const firstLive = published.length === 0 ? null : new Date(Math.min(...published.map((page) => page.publishedAt.getTime())));
+  const visits = rows.hosted ? await readVisits({ siteId, now, firstLive }).catch(() => null) : "wordpress";
+  const results = resultsOf({ published: { pages: published, now }, passes: rows.passes, rows: rows.pages, visits, gsc: rows.gsc, week, domain: a.domain, coming: 0, goLive: firstDay !== undefined });
   if (results === null) return { did, next };
   // Told once: readings are written by the weekly pass, so the site's first page-1 date falls inside this week's pass only once.
   const reached = published.flatMap((page) => (page.reading?.reached.firstPage === undefined ? [] : [Date.parse(page.reading.reached.firstPage)]));
   const first = reached.length === 0 ? null : Math.min(...reached);
   const firstPage = pass !== undefined && first !== null && first > Date.parse(pass.at) && first <= now.getTime();
+  // A first click is told only where this mail's Visits row draws a clicks line, so the subject never outruns the figures.
+  const tile = results.model.tiles.find((each) => each.key === "visits");
+  const firstClick = firsts?.click === true && (tile?.n ?? 0) > 0 && (tile?.clicks ?? 0) > 0;
   return {
     did,
     next,
-    results: { tiles: results.model.tiles, at: now, due: plusDays(weekStart, 7), goLive: firstDay ?? null, zone, firstPage },
+    results: { tiles: results.model.tiles, at: now, due: plusDays(weekStart, 7), goLive: firstDay ?? null, zone, firstPage, firstVisit: firsts?.visit === true, firstClick },
   };
 }
 

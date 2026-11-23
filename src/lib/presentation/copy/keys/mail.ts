@@ -2,28 +2,14 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const MAIL_COPY = Object.freeze({
-  // 2026-09-08, UI-SPEC S7 (ruling 11a). The approved set draws this page
-  // as one card — a mail chip over "Unsubscribed", the address the link
-  // belonged to inside the line, and a quiet way back — and 11a makes its
-  // unbracketed strings approved copy as written. So this line is the
-  // set's, not the 2026-09-04 ruling's: that ruling wrote a sentence for a
-  // page nobody had drawn yet, and the drawing is the later word on the
-  // same line. It carries the `{address}` slot because the set writes the
-  // address inside the sentence, in mono, and a sentence with a value in
-  // it has a slot rather than two half-sentences.
+  // The opt-out card's line, with the address in a slot rather than two half-sentences.
   "optout.confirmed": "No more follow-up mail will go to {address}, about any site.",
   "optout.invalid": "That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.",
 
   // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
   // the mail chip and it states what happened: "Unsubscribed".
   "optout.head": "Unsubscribed",
-  /** The same head on the two arms where nothing was opted out — an
-   *  invalid link, or a store this product could not reach.
-   *
-   *  **It has to be its own key.** The set draws only the confirmation,
-   *  so 11a writes no eyebrow for the other two arms, and "Unsubscribed" over
-   *  "that link isn’t valid any more" would be the page contradicting
-   *  itself in its own head. */
+  // Its own key: where nothing was opted out, "Unsubscribed" would contradict the line beneath.
   "optout.head.unresolved": "Not Unsubscribed Yet",
 
   // The OptOut board (canvas V22): what an opt-out changes, which follow-ups
@@ -208,6 +194,10 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.pages.one.subject": "Your new page went live",
   "mail.weekly.first-page.subject": "Your page reached Google's first page",
   "mail.weekly.first-page.preheader": "What we did, how your pages are doing, and this week's pages.",
+  "mail.weekly.first-visit.subject": "Your pages got their first visit",
+  "mail.weekly.first-visit.preheader": "Your pages had their first visit. Here is your week.",
+  "mail.weekly.first-click.subject": "First click through to your business",
+  "mail.weekly.first-click.preheader": "A visit went on to your business. Here is your week.",
   "mail.weekly.week.subject": "Week {week} for {business}",
   "mail.weekly.preheader": "What we did, how your pages are doing, and this week's pages.",
   "mail.weekly.preheader.blocked": "One thing needs you before your pages can go live.",
@@ -217,7 +207,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.did": "What We Did",
   "mail.weekly.did.item.new": "New page · {search}",
   "mail.weekly.did.item.update": "Update · {search}",
-  "mail.weekly.did.checked": "We checked {searches} Google searches and asked AI {questions} questions about your business.",
+  "mail.weekly.did.checked": "We checked {searches} Google searches and asked AI {questions} questions your buyers search.",
   // The week's stored days pick the arm: no gap is replaced, or updated where updates filled every one.
   "mail.weekly.setAside.one": "One page didn’t pass our checks. We set it aside and wrote the next one.",
   "mail.weekly.setAside.many": "{n} pages didn’t pass our checks. We set them aside and wrote the next ones.",
@@ -407,6 +397,7 @@ export const MAIL_COPY = Object.freeze({
   // check ReachKit could not observe is not a check this page failed, and
   // saying so would blame the customer's page for a condition of the site
   // it sits in (criterion 6).
+  "mail.published.counting": "We count its visits from today. Your Monday email shows them.",
   "mail.published.checks_label": "What we checked",
   "mail.published.checks_empty": "No results were saved for these checks.",
   "mail.published.check.reachable": "Opens for anyone",

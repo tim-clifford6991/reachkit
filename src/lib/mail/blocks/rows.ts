@@ -54,7 +54,7 @@ export interface StatRowText {
   readonly before: string | null;
   readonly change: string | null;
   readonly line: string | null;
-  readonly detail: string | null;
+  readonly detail: readonly string[];
   /** The measured value over its `of`, clamped to 0–1; `null` with no whole to draw it against. */
   readonly share: number | null;
 }
@@ -63,7 +63,7 @@ export interface StatRowText {
 export function statRowsOf(block: Extract<MailBlock, { block: "stats" }>): readonly StatRowText[] {
   return keptStatRows(block).map((item) => {
     const label = copy(item.label, item.labelVars);
-    const detail = item.detail === undefined ? null : copy(item.detail.text, item.detail.vars);
+    const detail = (item.detail ?? []).map((line) => copy(line.text, line.vars));
     if (item.value.kind === "unmeasured") {
       return {
         label,

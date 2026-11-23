@@ -39,19 +39,27 @@ const NEXT_EDIT = "mail.weekly.next.edit" satisfies CopyKey;
 const NEXT_ALL = "mail.weekly.next.all" satisfies CopyKey;
 const NEXT_FEW = { one: "mail.weekly.next.few.one", many: "mail.weekly.next.few" } as const satisfies Record<string, CopyKey>;
 const PACE = "mail.weekly.pace" satisfies CopyKey;
+/** Visits' clicks line, in the tile's own words. */
+const CLICKS = { none: "overview.tile.visits.clicks.none", one: "overview.tile.visits.clicks.one", many: "overview.tile.visits.clicks" } as const satisfies Record<string, CopyKey>;
 
 /** The subject is the first of these that applies (owner E). */
 const SUBJECT = {
   blocked: "mail.weekly.blocked.subject",
   firstPage: "mail.weekly.first-page.subject",
+  firstVisit: "mail.weekly.first-visit.subject",
+  firstClick: "mail.weekly.first-click.subject",
   pages: { one: "mail.weekly.pages.one.subject", many: "mail.weekly.pages.subject" },
   week: "mail.weekly.week.subject",
 } as const;
 const PREHEADER = {
   blocked: "mail.weekly.preheader.blocked",
   firstPage: "mail.weekly.first-page.preheader",
+  firstVisit: "mail.weekly.first-visit.preheader",
+  firstClick: "mail.weekly.first-click.preheader",
   week: "mail.weekly.preheader",
 } as const satisfies Record<string, CopyKey>;
+/** The first-ever events, in the order a subject takes them. */
+const FIRSTS = ["firstPage", "firstVisit", "firstClick"] as const;
 
 /** A page's day line, by whether it updates a page and whether it goes live today. */
 const DAY_LINE = {
@@ -121,7 +129,7 @@ export interface WeeklyDid {
   readonly checked?: { readonly searches: number; readonly questions: number };
 }
 
-/** Overview's Pages Live, Pages on Google and AI tiles at send time, and the days their lines name. */
+/** Overview's four tiles at send time, and the days their lines name. */
 export interface WeeklyResults {
   readonly tiles: readonly Tile[];
   /** When the rows were read: the send. */
@@ -133,6 +141,10 @@ export interface WeeklyResults {
   readonly zone: string;
   /** This week's pass read the site's first page on Google's first page, ever. */
   readonly firstPage: boolean;
+  /** Last week counted the site's first visit from Google, an AI app or another site, ever. */
+  readonly firstVisit?: boolean;
+  /** Last week counted the site's first click through to the business, ever; never while clicks are off. */
+  readonly firstClick?: boolean;
 }
 
 export function buildWeekly(a: {
@@ -153,11 +165,12 @@ export function buildWeekly(a: {
 }): WeeklyMail {
   const g = a.greeting;
   const blocked = a.needsYou !== undefined || a.connect !== undefined;
-  const subject = subjectOf(blocked, a.results?.firstPage === true, a.did, g);
+  const first = FIRSTS.find((event) => a.results?.[event] === true);
+  const subject = subjectOf(blocked, first, a.did, g);
   const measuredWeek = a.did !== undefined;
   return {
     ...subject,
-    preheader: blocked ? PREHEADER.blocked : subject.subject === SUBJECT.firstPage ? PREHEADER.firstPage : PREHEADER.week,
+    preheader: blocked ? PREHEADER.blocked : first !== undefined ? PREHEADER[first] : PREHEADER.week,
     reason: REASON,
     blocks: [
       g.name === null || g.name.trim() === ""
@@ -191,9 +204,9 @@ export function buildWeekly(a: {
 }
 
 /** Blocked, then a first-ever event, then pages that went live last week, else the week. */
-function subjectOf(blocked: boolean, firstPage: boolean, did: WeeklyDid | undefined, g: { week: number; business: string }): { subject: CopyKey; subjectVars?: CopyVars } {
+function subjectOf(blocked: boolean, first: (typeof FIRSTS)[number] | undefined, did: WeeklyDid | undefined, g: { week: number; business: string }): { subject: CopyKey; subjectVars?: CopyVars } {
   if (blocked) return { subject: SUBJECT.blocked };
-  if (firstPage) return { subject: SUBJECT.firstPage };
+  if (first !== undefined) return { subject: SUBJECT[first] };
   const live = did?.pages.filter((page) => !page.update).length ?? 0;
   if (live > 0) return live === 1 ? { subject: SUBJECT.pages.one } : { subject: SUBJECT.pages.many, subjectVars: { n: String(live) } };
   return { subject: SUBJECT.week, subjectVars: { week: String(g.week), business: g.business } };
@@ -226,7 +239,7 @@ function didBlocks(did: WeeklyDid, calendar: WeeklyCalendar | undefined): readon
   ];
 }
 
-/** Pages Live, Pages on Google and AI Answers Mentioning You, each with its tile's figure, of line and change line. */
+/** Overview's four tiles, each with its figure, of line and change line, and Visits' clicks through beneath. */
 function resultBlocks(r: WeeklyResults): readonly MailBlock[] {
   // A change's date is an instant, read in the site's zone; the due and go-live days are already its days, held at noon UTC.
   const f: TileFormat = { count: String, date: (at) => formatMailDayMonth(localDay(at, r.zone)), day: (at) => formatMailDayMonth(at.toISOString().slice(0, 10)) };
@@ -234,13 +247,21 @@ function resultBlocks(r: WeeklyResults): readonly MailBlock[] {
   const row = (tile: Tile): StatRow => {
     const of = ofWords(tile, f);
     const change = tile.change === null ? null : changeWords(tile.key, tile.change, dates, f);
-    const detail = change === null ? {} : { detail: change };
+    const lines = [change, clicksWords(tile)].filter((line) => line !== null);
+    const detail = lines.length === 0 ? {} : { detail: lines };
     // Not counted yet is the tile's dash: its of line stands where the figure would.
     if (tile.n === null) return { label: TILE_NAME[tile.key], value: unmeasured("not_attempted", r.at), format: "integer", unmeasuredLine: of.text, ...(of.vars === undefined ? {} : { unmeasuredVars: of.vars }), ...detail };
     return { label: TILE_NAME[tile.key], value: measured(tile.n, r.at), format: "integer", note: of, ...detail };
   };
-  const items = r.tiles.filter((tile) => tile.key !== "visits").map(row);
+  const items = r.tiles.map(row);
   return items.length === 0 ? [] : [{ block: "heading", level: 2, text: RESULTS }, { block: "stats", shape: "tiles", items }];
+}
+
+/** Visits' clicks through, as Overview's tile says them: none while clicks are off or no visit was counted. */
+function clicksWords(tile: Tile): { text: CopyKey; vars?: CopyVars } | null {
+  const c = tile.clicks;
+  if (c == null || !tile.n) return null;
+  return c === 0 ? { text: CLICKS.none } : c === 1 ? { text: CLICKS.one } : { text: CLICKS.many, vars: { c: String(c) } };
 }
 
 /** "This week's pages": title, the first pages with why and two links, a link to Plan, and a short week said as such. */
