@@ -24,8 +24,10 @@ export const readTiles = cache(async function readTiles(coming: number, goLive: 
       fixture
         ? { passes: fixturePasses(published.pages, week, answers?.pageQuestions ?? []), pages: published.pages.map(tilePageOf), gsc: null, hosted: true }
         : import("@/lib/measure/results-store").then((m) => m.readTileRows({ siteId: account.siteId, domain: account.domain, week })),
-      fixture ? FIXTURE_VISITS : import("@/lib/publish/reads/visits").then((m) => m.readVisits({ siteId: account.siteId, now: published.now, firstLive })).catch(() => null),
+      fixture ? FIXTURE_VISITS : import("@/lib/publish/reads/visits").then((m) => m.readVisits({ siteId: account.siteId, now: published.now, firstLive })),
     ]);
+    // The AI tile's read line stands on these rows: unreadable on a hosted site is the error screen, never no line or 0.
+    if (stored.hosted && visits === null) return null;
     const view = buildTiles({
       published,
       passes: stored.passes,

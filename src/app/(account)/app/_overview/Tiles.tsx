@@ -69,7 +69,7 @@ function shownLine(tile: Tile, d: TileDates): string | null {
 
 /** Visits' clicks through, and the AI tile's pages read: the line beneath the of-line. */
 function underLine(tile: Tile): string | null {
-  if (tile.read !== undefined) return tile.read === 0 ? copy("overview.tile.ai.read.none") : copy("overview.tile.ai.read", { x: formatCount(tile.read) });
+  if (tile.read !== undefined) return tile.read === 0 ? copy("overview.tile.ai.read.none") : tile.read === 1 ? copy("overview.tile.ai.read.one") : copy("overview.tile.ai.read", { x: formatCount(tile.read) });
   const c = tile.clicks;
   if (c == null || !tile.n) return null;
   return c === 0 ? copy("overview.tile.visits.clicks.none") : c === 1 ? copy("overview.tile.visits.clicks.one") : copy("overview.tile.visits.clicks", { c: formatCount(c) });
@@ -211,6 +211,7 @@ export function TilesHow(p: { noConsole: boolean; read: boolean }): React.JSX.El
         <p>{copy("overview.tiles.how.ai", { weeks: formatCount(AI_WINDOW_WEEKS) })}</p>
         {p.read ? <p>{copy("overview.tiles.how.ai.read")}</p> : null}
         <p>{copy("overview.tiles.how.visits")}</p>
+        <p>{copy("overview.tiles.how.visits.floor")}</p>
         <p>{copy("overview.tiles.how.change")}</p>
       </div>
     </details>
