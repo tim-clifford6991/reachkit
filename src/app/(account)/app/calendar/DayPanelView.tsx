@@ -200,6 +200,7 @@ export function DayPanelView(p: {
           {pane.title}
         </h2>
         {pane.why === null ? null : <p className="text-sm">{pane.why}</p>}
+        {pane.moved === null ? null : <p className="text-sm">{pane.moved}</p>}
         <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm" data-testid="day-facts">
           {pane.facts.map((fact) => (
             <div key={fact.label} className="contents">
@@ -280,6 +281,7 @@ function PageDayPanel(p: {
         {pane.title}
       </h2>
       {pane.titleLabel === undefined ? null : <span className="text-xs text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
+      {pane.why === null ? null : <p className="text-sm">{pane.why}</p>}
       {pane.becameUpdate === null ? null : <p className="text-sm" data-testid="day-became-update-line">{pane.becameUpdate}</p>}
       {pane.notes.map((note) => (
         <p key={note} className="text-sm" data-testid="day-needs-you-line">

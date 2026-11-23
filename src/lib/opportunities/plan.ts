@@ -64,6 +64,7 @@ export async function planFirstWeek(siteId: string, now: Date = new Date(), rese
  *  own date and spares, once. `null` where nothing left can be written; `updatesTried` once the update fallback had its turn. */
 export async function pageForDay(siteId: string, date: string, now: Date = new Date(), updatesTried = false): Promise<Opportunity | null> {
   const store = opportunityStore();
+  await (await import("@/lib/hot/place")).placeHotPage(siteId, date, now); // SPEC §7: a dated event that passes takes the date first.
   const held = await store.plannedRows(siteId);
   if (!held.some((row) => row.planned_for != null && row.planned_for >= date)) {
     await planWeek(siteId, { now, from: date });

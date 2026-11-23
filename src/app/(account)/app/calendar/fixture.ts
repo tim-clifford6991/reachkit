@@ -25,7 +25,7 @@
 // one screenshot exercises the whole of §4.6.
 import type { PlanHeadFacts } from "./provider";
 import { measured, measuredZero, unmeasured } from "@/lib/measure/measured";
-import { whySentenceOf } from "./card-lines";
+import { whyLineOf, whySentenceOf } from "./card-lines";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 import type { DayKey } from "./dates";
 import type { State } from "./stages";
@@ -197,6 +197,14 @@ const TITLES: Readonly<Record<DayKey, string>> = {
   "2026-09-20": "Connecting your CRM to Gmail",
 };
 
+// A page placed for something new in the market, written and planned, a page it moved, and one it moved out of the week.
+const NEWS = { points: 0, parts: [{ part: "rising" as const, n: 2 }], rule: null, hot: { signal: "news" as const, event: "Acme CRM 5.2 adds shared inbox rules and team routing to CRM", date: "2026-09-11", a: "TechCrunch", b: "The Verge", key: "news:fixture", detectedOn: "2026-09-15" } };
+const HOT: Readonly<Record<DayKey, Partial<DraftOnDay>>> = {
+  "2026-09-15": { hotLine: whyLineOf(NEWS), whyLine: whySentenceOf(NEWS), movedOut: [{ search: "crm migration checklist", day: "2026-09-17" }] },
+  "2026-09-18": { moved: { from: "2026-09-15", search: "acme crm 5.2 shared inbox rules" } },
+  "2026-09-20": { hotLine: whyLineOf(NEWS), whyLine: whySentenceOf(NEWS) },
+};
+
 const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state], index) => {
   const specimen = SPECIMENS[index % SPECIMENS.length] as Specimen;
   const [y, m, d] = day.split("-").map(Number);
@@ -254,6 +262,7 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     update: index % 3 === 2,
     // Every page states why the week holds it, as the store does for every chosen draft.
     whyLine: whySentenceOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: index % 2 === 0 ? "demand" : "ai_gap", n: 2 }], rule: "best" }),
+    ...HOT[day],
   };
 });
 

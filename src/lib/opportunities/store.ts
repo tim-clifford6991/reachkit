@@ -170,6 +170,8 @@ export interface OpportunityStore {
   openFootprint?(siteId: string, row: string): Promise<void>;
   /** Each row's research as the cache holds it, at 0¢; absent, none is read and the week keeps the ranking's order. */
   researchHeld?(siteId: string, rows: readonly OpportunityRow[], now: Date): Promise<ReadonlyMap<string, import("@/lib/generate/standard").ResearchRead | null>>;
+  /** SPEC §7: the dated events a date's write may answer (`src/lib/hot`). Optional: absent reads none. */
+  hotEvents?(siteId: string, day: string): Promise<readonly import("@/lib/hot/detect").HotEvent[]>;
   /** Writes a row's cluster and the searches it absorbed. */
   setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable one. */
@@ -299,14 +301,6 @@ function reviveDates(value: unknown): unknown {
   return value;
 }
 
-/**
- * The row as the engine reads it. The database's check constraints are
- * what make the casts below sound: `type`, `family`, `fit_band` and
- * `status` are constrained to their closed sets in the schema, so a value
- * outside one cannot be on disk to be read. Dates inside `evidence` and
- * `volume` are revived, so an explanation reads back with the dates it was
- * measured on and not with strings.
- */
 export interface DismissedSearch {
   query: string;
   volume: number | null;
@@ -320,6 +314,8 @@ export function dismissedSearchesOf(row: Pick<OpportunityRow, "target_query" | "
   return queries.flatMap((query) => (query === null ? [] : [{ query, volume: row.volume, stopped }]));
 }
 
+/** The row as the engine reads it: the schema's check constraints keep each cast's closed set, and dates in `evidence`
+ *  and `volume` are revived, so an explanation reads back with the dates it was measured on. */
 export function readOpportunity(row: OpportunityRow): Opportunity {
   const stored = reviveDates(row.evidence) as Evidence;
   // A row stored before rivals left sources out can still name one as its holder.
@@ -788,6 +784,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
     claimRecommit: async (siteId, date) => (await import("@/lib/ops/events")).claimOpsEvent("week_recommitted", siteId, date, date),
     footprintOpened: async (siteId) => (await import("@/lib/ops/events")).opsEventHeld("market_footprint", siteId, "open"),
     researchHeld: async (siteId, rows, now) => (await import("@/lib/generate/research-queue")).researchHeld(siteId, rows, now),
+    hotEvents: async (siteId, day) => (await import("@/lib/hot/detect")).readHotEvents(siteId, day),
     openFootprint: async (siteId, row) => void (await (await import("@/lib/ops/events")).claimOpsEvent("market_footprint", siteId, "open", row)),
 
     setReadiness: (opportunityId, reason) => updateRow("setReadiness", opportunityId, { ready: reason === null, unready_reason: reason }),

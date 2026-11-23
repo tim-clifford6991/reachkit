@@ -3,12 +3,17 @@ import "../generate/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CAPS } from "@/lib/config/constants";
 import { DEFAULT_LOCALE } from "@/lib/locale/locales";
+import type { Profile } from "@/lib/market/questions/profile-types";
 
 const SCAN = "33333333-3333-4333-8333-333333333333";
-const calls = { vendor: [] as string[], rows: [] as Record<string, unknown>[], model: 0 };
+const calls = { vendor: [] as string[], rows: [] as Record<string, unknown>[], model: 0, claims: [] as string[] };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
   const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+  // A stored week with one twice-reported release, and a date already claimed by an earlier run.
+  if (url.pathname.endsWith("/market_changes")) return json([{ site_id: "s", week_start: "2026-11-16", changes: [{ title: "Acme 5 ships", names: "Acme 5", words: ["acme", "5"], lastSeen: "2026-11-16", claims: ["a.com", "b.com"].map((host) => ({ url: `https://${host}/x`, publisher: host, publishedAt: "2026-11-18", quote: "Acme 5 ships today." })) }] }]);
+  if (url.pathname.endsWith("/ops_events") && (init?.method ?? "GET") === "GET") return calls.claims.push(url.searchParams.get("kind") ?? ""), json([{ id: 1 }]);
+  if (url.pathname.endsWith("/opportunities") && init?.method !== undefined && init.method !== "GET") calls.vendor.push(`write ${url.pathname}`);
   if (url.host === "api.dataforseo.com") {
     calls.vendor.push(url.pathname);
     return json({ status_code: 20000, tasks: [{ status_code: 20000, cost: 0.018, result: [{ items: [{ keyword: "plumber near me", keyword_info: { search_volume: 90 } }] }] }] });
@@ -33,6 +38,7 @@ beforeEach(() => {
   calls.vendor.length = 0;
   calls.rows.length = 0;
   calls.model = 0;
+  calls.claims.length = 0;
 });
 
 describe("the top-up's own cap", () => {
@@ -84,5 +90,24 @@ describe("the top-up's own cap", () => {
       readClaims(c, pages, { locale: DEFAULT_LOCALE, search: "plumbing", rivals: [], today: new Date(), calls: 1 })
     );
     expect(calls.model).toBe(1);
+  });
+
+  it("a hot page's angle is refused once the day's page cap is spent: no model is asked, so no page is placed", async () => {
+    const { angleFor } = await import("@/lib/hot/angle");
+    const event = { key: "news:k", signal: "news", event: "Acme 5", date: "2026-11-18", a: "a.com", b: "b.com", title: "Acme 5 ships", claims: [] } as const;
+    const profile = { category: "crm", job: "track deals", audienceTerms: [] } as unknown as Profile;
+    const angle = await withCostContext({ scanId: SCAN, cap: "DRAFT", policyVersion: 1, rollUp: "none", priorCents: CAPS.DRAFT_C }, (c) =>
+      angleFor(c, { event: { ...event, claims: [] }, locale: DEFAULT_LOCALE, market: null, profile, domain: "example.com", knowledge: null })
+    );
+    expect(angle).toBeNull();
+    expect(calls.model).toBe(0);
+  });
+
+  it("a second run of a date's write finds the date claimed: it judges nothing and moves no planned page", async () => {
+    const { placeHotPage } = await import("@/lib/hot/place");
+    expect(await placeHotPage("s", "2026-11-20", new Date("2026-11-20T08:00:00Z"))).toBe(false);
+    expect(calls.claims).toEqual(["eq.hot_day"]);
+    expect(calls.model).toBe(0);
+    expect(calls.vendor).toEqual([]);
   });
 });
