@@ -12,6 +12,20 @@ export function failureCode(error: unknown): string {
   return (error instanceof Error ? error.name : typeof error).slice(0, 40);
 }
 
+/** Whether a Settings read has answered in this process; module state, so a fresh instance or route chunk starts cold. */
+let warm = false;
+
+/** A read's deadline: `warmMs` once one has answered here, four times it before that, because a cold process's first
+ *  screen shares its event loop with module loads and opens its database connections while the timers run. */
+export function readDeadlineMs(warmMs: number): number {
+  return warm ? warmMs : warmMs * 4;
+}
+
+/** Marks the process warm: a read answered inside its deadline. */
+export function readAnswered(): void {
+  warm = true;
+}
+
 interface InsertOnly {
   from(table: string): { insert(row: object): PromiseLike<{ error: { message: string } | null }> };
 }

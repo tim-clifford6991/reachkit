@@ -2,7 +2,7 @@
 import type React from "react";
 import { unstable_rethrow } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
-import { recordSettingsReadFailed } from "@/lib/ops/events";
+import { readAnswered, readDeadlineMs, recordSettingsReadFailed } from "@/lib/ops/events";
 
 /** Above the four 800 ms steps `readSettings` takes in turn; a read past it is a stalled one. */
 const PANEL_DEADLINE_MS = 4_000;
@@ -21,12 +21,14 @@ export function Unread({ testId }: { testId: string }): React.JSX.Element {
 export async function landed<T>(work: Promise<T>, read: string): Promise<T | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    return await Promise.race([
+    const value = await Promise.race([
       work,
       new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error(`settings read timed out: ${read}`)), PANEL_DEADLINE_MS);
+        timer = setTimeout(() => reject(new Error(`settings read timed out: ${read}`)), readDeadlineMs(PANEL_DEADLINE_MS));
       }),
     ]);
+    readAnswered();
+    return value;
   } catch (error) {
     unstable_rethrow(error);
     console.warn(JSON.stringify({ event: "settings_read_failed", read, detail: String(error) }));
