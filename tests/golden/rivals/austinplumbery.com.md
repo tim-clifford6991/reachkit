@@ -29,3 +29,11 @@ From `scripts/panel/evidence/austinplumbery.com.json`: 17 stored searches, 5 riv
 | plumbing services austin tx | — | — |
 | plumber near austin tx | keyword_page | abacusplumbing.com |
 | emergency plumber austin | — | — |
+
+| Absent from | Who's first |
+|---|---|
+| austin emergency plumber | 1800homeusa.com |
+| emergency plumber austin | reliantplumbing.com |
+| emergency plumber austin texas | rotorooter.com |
+| emergency plumber austin tx | reliantplumbing.com |
+| best plumber austin | mooremoreplumbing.com |

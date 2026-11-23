@@ -29,3 +29,11 @@ From `scripts/panel/evidence/zunicafe.com.json`: 17 stored searches, 5 rivals.
 | restaurants in san francisco ca | — | — |
 | best new restaurants san francisco ca | — | — |
 | top restaurants in san francisco ca | — | — |
+
+| Absent from | Who's first |
+|---|---|
+| restaurants in san francisco | — |
+| restaurants in san francisco ca | exploretock.com |
+| restaurants san francisco | sftravel.com |
+| best restaurants san francisco | — |
+| brunch san francisco | townsendbrunch.com |

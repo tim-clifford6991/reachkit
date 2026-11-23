@@ -26,3 +26,11 @@ From `scripts/panel/evidence/streaksapp.com.json`: 14 stored searches, 5 rivals.
 | habit tracker app | — | — |
 | habit builder app | comparison_page | zapier.com |
 | track daily habits | answer_page | reclaim.ai |
+
+| Absent from | Who's first |
+|---|---|
+| habit tracker | yopandtom.com |
+| habit tracker app | drginacleo.com |
+| habit tracking app | loophabits.org |
+| habit tracker templates | yopandtom.com |
+| best app for habit tracking | zapier.com |

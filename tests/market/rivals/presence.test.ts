@@ -140,14 +140,14 @@ describe('REQ-008 c4 — "up to five of the biggest are listed, each with its mo
     expect(card.absentFrom[0]).toEqual({ keyword: "q1", volume: 70, topHolder: "holder.com" });
   });
 
-  it("card/absent-from-top-five-by-volume — a search whose top position is a platform returns topHolder: null", () => {
+  it("card/absent-from-top-five-by-volume — a search whose top position is a platform names the first business after it", () => {
     const card = buildPresenceCard({
       serps: [ok(["reddit.com", "holder.com"])],
       selected: [search("q", 900)],
       ownDomain: "customer.com",
       rivals: [],
     });
-    expect(card.absentFrom).toEqual([{ keyword: "q", volume: 900, topHolder: null }]);
+    expect(card.absentFrom).toEqual([{ keyword: "q", volume: 900, topHolder: "holder.com" }]);
   });
 
   it("card/absent-from-top-five-by-volume — an unmeasured search is neither an absence nor a presence", () => {

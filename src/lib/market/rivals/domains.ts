@@ -567,6 +567,11 @@ export function resolvedRows<T extends { domain: string; url?: string }>(rows: r
   return read.length * 2 < rows.length ? null : read;
 }
 
+/** Who leads a search: the first resolved row, in Google's order, that is no source and, given `ownDomain`, not the customer's own. */
+export function firstBusinessRow<T extends { domain: string; url?: string; title?: string }>(rows: readonly T[], ownDomain: string | null, reading: SourceReading): T | undefined {
+  return resolvedRows(rows)?.find((row) => !(ownDomain !== null && isOwnDomain(row.domain, ownDomain)) && !isSourceRow(row, reading));
+}
+
 /** Whether the customer holds a place in a top ten; `null` where it holds no
  *  resolved row and a row did not resolve, since that row may be its own. */
 export function ownPlaceIn(rows: readonly { domain: string; url?: string }[], ownDomain: string): boolean | null {

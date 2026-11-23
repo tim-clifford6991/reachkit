@@ -24,3 +24,11 @@ From `scripts/panel/evidence/fletcherelectric.co.uk.json`: 12 stored searches, 5
 | eicr leeds | keyword_page | easyepc.org |
 | local electrician leeds | — | — |
 | electrical contractor leeds | keyword_page | absolutelyelectrical.co.uk |
+
+| Absent from | Who's first |
+|---|---|
+| electrical contractor leeds | absolutelyelectrical.co.uk |
+| eicr leeds | easyepc.org |
+| commercial electrician leeds | jpelectricalleeds.co.uk |
+| domestic electrician leeds | lee-electrics.co.uk |
+| consumer unit replacement leeds | sselectricalleeds.co.uk |
