@@ -8,11 +8,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import { PLAN_DEPTH, WEEK_PLAN } from "@/lib/config/constants";
 import { measured } from "@/lib/measure/measured";
 import { choose, type Choice } from "@/lib/opportunities/choose";
+import { collapse } from "@/lib/opportunities/cluster";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { LEDGER_SOURCES, supplyLedger } from "@/lib/opportunities/derive/ledger";
 import { sourceOf } from "@/lib/opportunities/derive/topics";
 import { pageForDay, planFirstWeek, planWeek } from "@/lib/opportunities/plan";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
+import type { OwnLivePage } from "@/lib/opportunities/refresh";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import { memoryStore, newMemoryState, type MemoryState } from "../../opportunities/memory-store";
 import { AT, panelDomains, panelSite, SITE_ID, storedSerps, type PanelSite } from "./panel";
 
@@ -108,6 +111,42 @@ describe("every kind of business commits a full week from its stored supply", ()
       const days = choice.committed.filter((entry) => entry.plannedFor !== null);
       expect(days).toHaveLength(Math.min(WEEK_PLAN.days, ready));
       for (const entry of choice.committed) expect(entry.reason.points).toBe(entry.reason.parts.reduce((sum, part) => sum + part.n, 0));
+    });
+  }
+});
+
+// The weeks above are chosen from every stored row; production first runs derive's collapse over them, where a
+// published page's row still reads `queued`. A topic joined to a live page stays as its update, never dismissed.
+function liveWeek(domain: string, absorbed: readonly number[] = []) {
+  const site = panelSite(domain);
+  const live = new Set(site.rows.filter((row) => row.ready).slice(0, 2).map((row) => row.id));
+  const others = site.rows.filter((row) => !live.has(row.id)).map((row) => row.target_query!);
+  // As production's chained joins stored them: every other topic of the site, then searches nothing links to the page.
+  const list = (n: number) => [...others, ...Array.from({ length: n }, (_, i) => `unlinked search ${i}`)].slice(0, n);
+  const held = site.rows.map((row) => (live.has(row.id) ? { ...row, status: "queued", absorbed_queries: list(absorbed[[...live].indexOf(row.id)] ?? 0) } : row));
+  const topTens = new Map([...storedSerps(domain)].map(([query, read]) => [query, read.rows.slice(0, 10).flatMap((row) => (row.url === undefined ? [] : [canonicalUrl(row.url)]))]));
+  const plan = collapse({ existing: held.map(readOpportunity), candidates: [], brandTokens: site.profile.brandTokens, topTens, market: site.market, live });
+  const gone = new Set(plan.dismiss);
+  const after: OpportunityRow[] = held.map((row) => ({ ...row, absorbed_queries: [...(plan.update.find((u) => u.id === row.id)?.absorbedQueries ?? row.absorbed_queries)] }));
+  const open = after.filter((row) => row.status === "open" && !gone.has(row.id));
+  const pages = after.filter((row) => live.has(row.id)).map((row) => ({ url: `https://${domain}/${row.id}`, publishedAt: new Date(AT.getTime() - 5 * 86_400_000), row: readOpportunity(row), declined: false }) as unknown as OwnLivePage);
+  const choice = choose({ rows: open, fixRows: [], profile: site.profile, market: site.market, cited: [], topTens, linkedClusters: [], live: pages, at: AT, from: FROM });
+  return { site, live, held, plan, gone, open, choice };
+}
+
+describe("a site whose first topics are live pages, stored queued, commits its week from what the collapse leaves", () => {
+  for (const [kind, domain] of Object.entries(KINDS)) {
+    it(`${kind} (${domain})`, async () => {
+      const { site, live, held, plan, gone, open, choice } = liveWeek(domain);
+      const updates = plan.update.filter((u) => u.absorbedQueries.length > 0).map((u) => `${held.find((row) => row.id === u.id)?.target_query}${live.has(u.id) ? " (live)" : ""}: ${u.absorbedQueries.join(", ")}`);
+      const lines = [`Live, stored queued: ${held.filter((row) => live.has(row.id)).map((row) => row.target_query).join("; ")}.`, `Absorbed: ${updates.join("; ") || "none"}.`, `Dismissed: ${held.filter((row) => gone.has(row.id)).map((row) => row.target_query).join("; ") || "none"}.`, "", ...week({ ...site, rows: open }, choice)];
+      await expect(lines.join("\n")).toMatchFileSnapshot(`./results/live/${domain}.md`);
+      // A search joined to a live page is held by an open update of it, never absorbed into the page and dismissed.
+      expect(plan.update.filter((u) => live.has(u.id))).toEqual([]);
+      // Live rows holding 77 and 31 searches a chain of joins stored bind no topic: the week is the one they would leave.
+      const long = liveWeek(domain, [77, 31]);
+      expect(long.choice.committed.filter((entry) => entry.plannedFor !== null)).toHaveLength(WEEK_PLAN.days);
+      expect([long.plan.dismiss, long.choice.committed.map((entry) => entry.opportunityId)]).toEqual([plan.dismiss, choice.committed.map((entry) => entry.opportunityId)]);
     });
   }
 });

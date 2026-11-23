@@ -439,6 +439,7 @@ export async function deriveOpportunities(
     topTens,
     sameQuestion,
     market,
+    live: await store.liveOpportunityIds?.(a.siteId).catch(() => undefined),
     ...(measuredOwnRanked === null
       ? {}
       : { today: (row: Opportunity) => rebandFor(row, measuredOwnRanked) }),
