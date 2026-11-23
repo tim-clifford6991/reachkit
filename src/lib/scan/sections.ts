@@ -159,6 +159,8 @@ export function pageQuestionsSectionOf(a: {
   ownDomain: string;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
+  /** The one place a local business serves, where it serves one. */
+  town?: string;
   /** The market's rivals each answer is read for; `null` where no market is concluded, which leaves `rivals` unread. */
   rivals?: readonly { name: string; domain: string }[] | null;
   measuredAt: Date;
@@ -167,7 +169,7 @@ export function pageQuestionsSectionOf(a: {
 
   const ownDomain = registrableDomain(a.ownDomain) ?? a.ownDomain;
   const rows = a.asked.map((candidate, index): PageQuestionRow => {
-    const cell = overviewCellFor(a.serps[index], ownDomain, a.siteName ?? null);
+    const cell = overviewCellFor(a.serps[index], ownDomain, a.siteName ?? null, a.town);
     const serp = a.serps[index];
     return {
       publicationId: candidate.publicationId,
@@ -184,6 +186,7 @@ export function pageQuestionsSectionOf(a: {
           ...(a.battery[index] === undefined ? {} : { battery: a.battery[index] as BatteryAnswers }),
           ownDomain,
           siteName: a.siteName ?? null,
+          town: a.town,
         }),
         [
           serp === undefined || serp.kind === "unmeasured" ? undefined : { text: serp.value.aiOverview.text, citedDomains: serp.value.aiOverview.referenceDomains },

@@ -27,8 +27,8 @@ describe("issue 1420 — what an AI answer names", () => {
 
   it("an answer that names Tattly in its text, citing only other sites, is a mention and no citation", () => {
     expect(tattly.citedDomains).not.toContain("tattly.com");
-    expect(classifyReferences(tattly.citedDomains, "tattly.com")).toEqual({ cited: false, mentioned: false });
-    expect(classifyReferences(tattly.citedDomains, "tattly.com", said(tattly))).toEqual({ cited: false, mentioned: true });
+    expect(classifyReferences(tattly.citedDomains, "tattly.com")).toEqual({ cited: false, mentioned: false, possiblyOther: false });
+    expect(classifyReferences(tattly.citedDomains, "tattly.com", said(tattly))).toEqual({ cited: false, mentioned: true, possiblyOther: false });
   });
 
   it("a brand word inside a longer word is not a mention: “tatt” is inside “tattoos” and “Tattly” only", () => {
@@ -45,6 +45,7 @@ describe("issue 1420 — what an AI answer names", () => {
     expect(classifyReferences(["g2.com"], "rippling.com", { urls: ["https://www.g2.com/products/rippling/reviews"] })).toEqual({
       cited: false,
       mentioned: true,
+      possiblyOther: false,
     });
   });
 });

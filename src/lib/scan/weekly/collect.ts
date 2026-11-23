@@ -126,7 +126,11 @@ export async function collectLateAnswers(a: {
     const { readSiteMarket } = await import("@/lib/market/infer/stored");
     const rivals = (await readSiteMarket(a.siteId))?.stored.current?.rivals ?? [];
     // The language the prompts were asked in, as the pass stored it.
-    const language = first === null ? "en" : localeOfReport(readStoredReport(first)).language;
+    const stored = first === null ? null : readStoredReport(first);
+    const language = stored === null ? "en" : localeOfReport(stored).language;
+    const { readSiteProfile } = await import("@/lib/site-profile/store");
+    const { readServedPages } = await import("@/lib/known-content/ours");
+    const pages = await readServedPages(a.siteId, (await readSiteProfile(a.domain))?.inventory);
 
     const late: PromptAnswer[] = [];
     const settled: { rowId: string; payload: unknown }[] = [];
@@ -155,6 +159,8 @@ export async function collectLateAnswers(a: {
           siteName: section.siteName,
           rivals,
           language,
+          town: stored?.locale?.place?.name,
+          pages,
         });
         late.push({
           promptId: ask.promptId,
@@ -167,6 +173,7 @@ export async function collectLateAnswers(a: {
           ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
           ...(reading.cited.length === 0 ? {} : { cited: reading.cited }),
           ...(reading.states.length === 0 ? {} : { states: reading.states }),
+          ...(reading.possiblyOther ? { possiblyOther: true as const } : {}),
         });
       })
     );

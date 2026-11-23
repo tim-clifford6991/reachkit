@@ -18,7 +18,7 @@ import type { AnswerEngine } from "@/lib/opportunities/types";
  *
  * The split the owner's 2026-09-20 ruling asks for is the first two:
  * **linked** is a cited domain that is the site's own, **named** is the
- * brand token appearing in a reference somewhere else. `names_others` is
+ * answer naming the site (`classifyReferences`). `names_others` is
  * wider than the approved board's "names a rival" on purpose — an answer
  * can cite a directory or a marketplace, and neither is a rival — and the
  * word beside the mark says so. An answer that cites no address and does

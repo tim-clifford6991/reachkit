@@ -193,7 +193,7 @@ function unmeasuredCell(m: { reason: "undeterminable" | "not_attempted"; because
  *  a page question's column and a tracked question's column can never come
  *  to mean two different things — the same reason `engineColumns` below is
  *  exported. */
-export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string, siteName: string | null = null): AnswerCell {
+export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string, siteName: string | null = null, town?: string): AnswerCell {
   if (measured === undefined) return { kind: "unmeasured", reason: "not_attempted" };
   // Issue 869: the reason the measurement heard travels with the cell.
   if (measured.kind === "unmeasured") return unmeasuredCell(measured);
@@ -213,7 +213,7 @@ export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownD
       citedDomains,
       namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
       ...(urls === undefined ? {} : { ownUrls: ownUrlsOf(urls, ownDomain) }),
-      ...namedOf(overview.referenceDomains, ownDomain, { urls, text: overview.text, siteName }),
+      ...namedOf(overview.referenceDomains, ownDomain, { urls, text: overview.text, siteName, town }),
     },
     overview.referenceDomains,
     urls
@@ -230,12 +230,13 @@ function unlessUnresolved(cell: AnswerCell & { kind: "answered"; ownUrls?: reado
 function namedOf(
   references: readonly string[],
   ownDomain: string,
-  said: { urls: readonly string[] | undefined; text: string | undefined; siteName: string | null }
+  said: { urls: readonly string[] | undefined; text: string | undefined; siteName: string | null; town: string | undefined }
 ): { named?: true } {
   const { mentioned } = classifyReferences(references, ownDomain, {
     ...(said.urls === undefined ? {} : { urls: said.urls }),
     ...(said.text === undefined ? {} : { text: said.text }),
     siteName: said.siteName,
+    town: said.town,
   });
   return mentioned ? { named: true } : {};
 }
@@ -265,7 +266,7 @@ function ownUrlsOf(urls: readonly string[], ownDomain: string): string[] {
  *  - otherwise `answered`, with the domains it cited, whether the
  *    customer is among them, and the site's own addresses it cited.
  */
-function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: string, siteName: string | null): AnswerCell {
+function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: string, siteName: string | null, town?: string): AnswerCell {
   if (answer === undefined) return { kind: "unmeasured", reason: "not_attempted" };
   if (answer.kind === "unmeasured") return unmeasuredCell(answer);
   if (!answer.value.answered) return { kind: "no_answer" };
@@ -278,7 +279,7 @@ function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: 
       citedDomains,
       namesCustomer: citedDomains.some((domain) => isOwnDomain(domain, ownDomain)),
       ...(urls === undefined ? {} : { ownUrls: ownUrlsOf(urls, ownDomain) }),
-      ...namedOf(answer.value.citedDomains, ownDomain, { urls, text: answer.value.text, siteName }),
+      ...namedOf(answer.value.citedDomains, ownDomain, { urls, text: answer.value.text, siteName, town }),
     },
     answer.value.citedDomains,
     urls
@@ -306,12 +307,13 @@ export function engineColumns(a: {
   battery?: BatteryAnswers;
   ownDomain: string;
   siteName?: string | null;
+  town?: string;
 }): readonly EngineCell[] {
   const siteName = a.siteName ?? null;
   return [
     { engine: "ai_overview", cell: a.overview },
-    { engine: "ai_mode", cell: cellForAnswer(a.battery?.aiMode, a.ownDomain, siteName) },
-    { engine: "chatgpt", cell: cellForAnswer(a.battery?.chatgpt, a.ownDomain, siteName) },
+    { engine: "ai_mode", cell: cellForAnswer(a.battery?.aiMode, a.ownDomain, siteName, a.town) },
+    { engine: "chatgpt", cell: cellForAnswer(a.battery?.chatgpt, a.ownDomain, siteName, a.town) },
   ];
 }
 
@@ -347,11 +349,13 @@ export function buildAiAnswersCard(a: {
   ownDomain: string;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
+  /** The one place a local business serves, where it serves one (`possiblyAnother`). */
+  town?: string;
   coverage: AiAnswersCard["coverage"];
 }): AiAnswersCard {
   const siteName = a.siteName ?? null;
   const rows: AnswerRow[] = a.questions.map((question, i) => {
-    const cell = overviewCellFor(a.serps[i], a.ownDomain, siteName);
+    const cell = overviewCellFor(a.serps[i], a.ownDomain, siteName, a.town);
     const bought = a.battery?.[i];
     return {
       questionId: question.id,
@@ -364,6 +368,7 @@ export function buildAiAnswersCard(a: {
         ...(bought === undefined ? {} : { battery: bought }),
         ownDomain: a.ownDomain,
         siteName,
+        town: a.town,
       }),
     };
   });

@@ -1,8 +1,9 @@
 // src/lib/market/prompts/answer.ts — what one AI answer to a tracked prompt
 // says about the site and its rivals (SPEC §6, owner D19, #1162).
 //
-// *Named* is the site's name or domain in the answer's text. *Linked* is
-// one of its pages among the addresses the answer cited. A rival is named
+// *Named* is the site's name or domain in the answer's text, unless it may be
+// another business's. *Linked* is a page the site serves among the addresses
+// the answer cited. A rival is named
 // the same two ways. Never a position and never sentiment: neither has a
 // member here.
 //
@@ -13,7 +14,7 @@
 // country — is read here too (`./misstated.ts`), so the stored row can be
 // held against the site's own facts later without the answer's prose.
 import type { Language } from "@/lib/locale/locales";
-import { namesSite, says } from "@/lib/measure/drivers";
+import { namesSite, possiblyAnother, says } from "@/lib/measure/drivers";
 import { isHomeUrl } from "@/lib/market/rivals/domains";
 import { statementsOf, type AnswerStatement } from "./misstated";
 
@@ -32,6 +33,8 @@ export interface PromptAnswerReading {
   cited: readonly string[];
   /** Issue 1539: the prices, counts and countries it gave the business. */
   states: readonly AnswerStatement[];
+  /** It named a local business without its town while another cited site carries the name, so `named` is false. */
+  possiblyOther: boolean;
 }
 
 function bare(host: string): string {
@@ -93,6 +96,36 @@ export function rivalsNamed(a: { text: string; citedDomains: readonly string[]; 
   return rivals;
 }
 
+/** The address as one page, whatever its scheme, `www.`, query or trailing slash. */
+function pathKey(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${bare(parsed.hostname)}${parsed.pathname.replace(/\/+$/u, "")}`;
+  } catch {
+    return url;
+  }
+}
+
+/** What an answer counts for: a link only to a page the site serves (`pages`; none known keeps every link), and a name another business may
+ *  carry (`possiblyAnother`) not at all. */
+export function countedFor(a: {
+  named: boolean;
+  linked: boolean;
+  ownUrls: readonly string[];
+  text: string;
+  hosts: readonly string[];
+  ownDomain: string;
+  siteName: string | null;
+  town?: string;
+  pages?: readonly string[] | null;
+}): { named: boolean; linked: boolean; ownUrls: string[]; possiblyOther: boolean } {
+  const served = a.pages == null || a.pages.length === 0 ? null : new Set(a.pages.map(pathKey));
+  const ownUrls = served === null ? [...a.ownUrls] : a.ownUrls.filter((url) => served.has(pathKey(url)));
+  const linked = ownUrls.length > 0 || (a.linked && a.ownUrls.length === 0);
+  const possiblyOther = a.named && !linked && possiblyAnother(a);
+  return { named: a.named && !possiblyOther, linked, ownUrls, possiblyOther };
+}
+
 export function readPromptAnswer(a: {
   text: string;
   citedDomains: readonly string[];
@@ -102,6 +135,10 @@ export function readPromptAnswer(a: {
   rivals: readonly { name: string; domain: string }[];
   /** The language the answer was asked in; absent is English. */
   language?: Language;
+  /** The one place a local business serves, where it serves one. */
+  town?: string;
+  /** The pages the site serves; `null` where none are known. */
+  pages?: readonly string[] | null;
 }): PromptAnswerReading {
   const own = bare(a.ownDomain);
   const cited = a.citedDomains.map(bare);
@@ -110,8 +147,14 @@ export function readPromptAnswer(a: {
     const page = pageOf(url);
     if (page !== null && within(bare(new URL(page).hostname), own)) ownUrls.add(page);
   }
-  const linked = ownUrls.size > 0 || cited.some((host) => within(host, own));
-  const named = namesSite(a.text, a.siteName, own);
+  const counted = countedFor({
+    ...a,
+    named: namesSite(a.text, a.siteName, own),
+    linked: ownUrls.size > 0 || cited.some((host) => within(host, own)),
+    ownUrls: [...ownUrls],
+    hosts: [...cited, ...a.citedUrls],
+  });
+  const { named, linked } = counted;
 
   const rivals = rivalsNamed({ ...a, citedDomains: cited });
   const alternatives = [...new Set(a.citedUrls.flatMap((url) => pageOf(url) ?? []))].filter((page) =>
@@ -120,10 +163,11 @@ export function readPromptAnswer(a: {
   return {
     named,
     linked,
-    ownUrls: [...ownUrls],
+    ownUrls: counted.ownUrls,
     rivals,
     alternatives,
     cited: citedPagesOf(a.citedUrls, own),
+    possiblyOther: counted.possiblyOther,
     states: named ? statementsOf({ text: a.text, siteName: a.siteName, ownDomain: own, rivals: a.rivals, language: a.language ?? "en" }) : [],
   };
 }
