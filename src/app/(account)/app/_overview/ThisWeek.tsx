@@ -62,7 +62,7 @@ function Day(p: { day: WeekDay }): React.JSX.Element {
       <span className="num text-xs whitespace-nowrap text-base-content/70">{`${weekdayShort(cell.day)} ${dayNumber(cell.day)}`}</span>
       {page === null ? null : <KindChip update={page.update} />}
       {line === null ? null : (
-        <span className={`min-w-0 line-clamp-2 wrap-anywhere ${page === null ? "rk-cal-empty text-xs text-base-content/70" : "rk-cal-label text-sm font-semibold leading-snug"}`} title={line}>
+        <span className={`min-w-0 wrap-anywhere ${page === null ? "text-xs text-base-content/70" : "text-sm font-semibold leading-snug"}`}>
           {line}
         </span>
       )}

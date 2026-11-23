@@ -199,7 +199,7 @@ export function DayPanelView(p: {
         <h2 className="card-title min-w-0 wrap-anywhere" data-testid="day-title">
           {pane.title}
         </h2>
-        {pane.titleLabel === undefined ? null : <span className="text-xs text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
+        {pane.titleLabel === undefined ? null : <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
         {pane.why === null ? null : <p className="text-sm">{pane.why}</p>}
         {pane.moved === null ? null : <p className="text-sm">{pane.moved}</p>}
         <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm" data-testid="day-facts">
@@ -281,7 +281,7 @@ function PageDayPanel(p: {
       <h2 className="card-title min-w-0 wrap-anywhere" data-testid="day-title">
         {pane.title}
       </h2>
-      {pane.titleLabel === undefined ? null : <span className="text-xs text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
+      {pane.titleLabel === undefined ? null : <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
       {pane.why === null ? null : <p className="text-sm">{pane.why}</p>}
       {pane.becameUpdate === null ? null : <p className="text-sm" data-testid="day-became-update-line">{pane.becameUpdate}</p>}
       {pane.notes.map((note) => (
