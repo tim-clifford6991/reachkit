@@ -241,10 +241,13 @@ async function measuredWeek(a: {
   const reached = published.flatMap((page) => (page.reading?.reached.firstPage === undefined ? [] : [Date.parse(page.reading.reached.firstPage)]));
   const first = reached.length === 0 ? null : Math.min(...reached);
   const firstPage = pass !== undefined && first !== null && first > Date.parse(pass.at) && first <= now.getTime();
+  // A first click is told only where this mail's Visits row draws a clicks line, so the subject never outruns the figures.
+  const tile = results.model.tiles.find((each) => each.key === "visits");
+  const firstClick = firsts?.click === true && (tile?.n ?? 0) > 0 && (tile?.clicks ?? 0) > 0;
   return {
     did,
     next,
-    results: { tiles: results.model.tiles, at: now, due: plusDays(weekStart, 7), goLive: firstDay ?? null, zone, firstPage, firstVisit: firsts?.visit === true, firstClick: firsts?.click === true },
+    results: { tiles: results.model.tiles, at: now, due: plusDays(weekStart, 7), goLive: firstDay ?? null, zone, firstPage, firstVisit: firsts?.visit === true, firstClick },
   };
 }
 
