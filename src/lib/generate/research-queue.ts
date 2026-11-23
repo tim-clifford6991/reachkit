@@ -46,7 +46,7 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
   if (report === null) return 0;
   const locale = await siteLocale(a.siteId);
   const as = type === null ? null : researchedAs(type, own);
-  const reads = as === null || !TEMPLATES[as].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, market: site === null ? "" : siteWritingMarket(site, report).category, guidance: builtFromOutside(as), ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const reads = as === null || !TEMPLATES[as].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, market: site === null ? "" : siteWritingMarket(site, report).category, guidance: builtFromOutside(as), options: as === "listicle", ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
   const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
   const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
   if (reads.length + beside.length === 0) return 0;

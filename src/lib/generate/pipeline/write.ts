@@ -207,7 +207,7 @@ const HOUSE_RULES = [
   "Do not sum the page up at its end, and do not announce what a section is about to say: the last section ends on its last fact or instruction.",
   `Where \`pack.claims\` or \`pack.facts\` hold a statistic or a sentence worth quoting, use ${VOICE.evidence.min} to ${VOICE.evidence.max} of them on the page, each with who measured or said it and its link. Use only the ones \`pack\` holds, as it states them; where it holds fewer, use fewer, and never invent a figure, a quotation or a name.`,
   "A claim of `pack.claims` whose `timeliness` is `dated` and whose `ageAt` is more than six months before `pack.builtAt` says when in its own sentence: its month and year (\"Pew's July 2025 study\"), or its year where `ageAt` is a year. A `dated` claim with no `ageAt` is never the short answer's fact or a takeaway's.",
-  "A claim of `pack.claims` whose `tier` is `vendor` or `other` is one company's or writer's word: state it as theirs, naming who says it (\"Position Digital's roundup lists…\"), or of its own `product` or `about`; never as a general fact in a sentence that names no one, unless a claim of another tier says the same.",
+  "A claim of `pack.claims` whose `tier` is `review`, `vendor`, `other` or `wire` is one company's or writer's word: state it as theirs, naming who says it (\"Position Digital's roundup lists…\"), or of its own `product` or `about`; never as a general fact in a sentence that names no one, unless a claim of another tier says the same.",
 ];
 
 /** A table the writer lays out itself: every cell a fact (`no_placeholder_cell` says what a cell never is). */
