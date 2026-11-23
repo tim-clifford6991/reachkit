@@ -12,6 +12,7 @@
 // page at once and lives with the passages (`generate/pipeline/grounding.ts`).
 import { parse, type HTMLElement } from "node-html-parser";
 import { pageQuestions } from "./questions";
+import { visibleText } from "./parse";
 
 /** What a page wears on every page, and what is never read as prose. */
 const CHROME = "script, style, template, noscript, svg, nav, header, footer, button, [aria-hidden], [hidden]";
@@ -87,6 +88,28 @@ export interface Prose {
   questions: string[];
 }
 
+/** The elements marked or captioned as an example. A notice or a reserved
+ *  domain is read only outside the chrome, where a "Demo" button is not one. */
+function examplesIn(root: HTMLElement): Set<HTMLElement> {
+  const examples = new Set<HTMLElement>();
+  const wholePage = lettersIn(root.querySelector("body") ?? root) * WHOLE_PAGE_SHARE;
+  // A mark on the page itself, or on the wrapper that holds all of it, is a
+  // theme's setting and marks no example.
+  const isThePage = (element: HTMLElement): boolean =>
+    PAGE_LEVEL.has(tagOf(element)) || (wholePage > 0 && lettersIn(element) >= wholePage);
+  for (const element of root.querySelectorAll("*")) {
+    if (markedAsExample(element) && !isThePage(element)) examples.add(element);
+    if (element.querySelector("p, div, section, article, li, table") !== null || element.closest(CHROME) !== null) continue;
+    const text = element.text.replace(/\s+/g, " ").trim();
+    // A notice marked as an example itself still captions what it sits
+    // beside (issue 1163): the sign-in panel's caption carries the mark,
+    // and the figures it captions are its siblings.
+    if (text.length <= EXAMPLE_NOTICE_MAX_CHARS && EXAMPLE_NOTICE_RE.test(text)) examples.add(captioned(element));
+    else if (text.length <= EXAMPLE_NOTICE_MAX_CHARS && RESERVED_DOMAIN_RE.test(text)) examples.add(element);
+  }
+  return examples;
+}
+
 /** Total: any string parses, and one that is not HTML yields its text. */
 export function prose(html: string): Prose {
   const root = parse(html, { comment: false });
@@ -96,29 +119,21 @@ export function prose(html: string): Prose {
   for (const element of root.querySelectorAll(CHROME)) {
     if (element.getAttribute("aria-hidden") !== "false") element.remove();
   }
-  const examples = new Set<HTMLElement>();
-  const wholePage = lettersIn(root.querySelector("body") ?? root) * WHOLE_PAGE_SHARE;
-  // A mark on the page itself, or on the wrapper that holds all of it, is a
-  // theme's setting and marks no example.
-  const isThePage = (element: HTMLElement): boolean =>
-    PAGE_LEVEL.has(tagOf(element)) || (wholePage > 0 && lettersIn(element) >= wholePage);
-  for (const element of root.querySelectorAll("*")) {
-    if (markedAsExample(element) && !isThePage(element)) examples.add(element);
-    if (element.querySelector("p, div, section, article, li, table") !== null) continue;
-    const text = element.text.replace(/\s+/g, " ").trim();
-    // A notice marked as an example itself still captions what it sits
-    // beside (issue 1163): the sign-in panel's caption carries the mark,
-    // and the figures it captions are its siblings.
-    if (text.length <= EXAMPLE_NOTICE_MAX_CHARS && EXAMPLE_NOTICE_RE.test(text)) examples.add(captioned(element));
-    else if (text.length <= EXAMPLE_NOTICE_MAX_CHARS && RESERVED_DOMAIN_RE.test(text)) examples.add(element);
-  }
   const said: string[] = [];
-  for (const element of examples) {
+  for (const element of examplesIn(root)) {
     said.push(...blockLines(element.structuredText));
     element.remove();
   }
   const body = root.querySelector("body") ?? root;
   return { text: blockLines(body.structuredText).join("\n"), examples: [...new Set(said)], questions };
+}
+
+/** The whole rendered page with its examples gone, chrome kept: what the
+ *  profile reads, so a demo's businesses are never taken for the site's rivals. */
+export function pageTextWithoutExamples(html: string): string {
+  const root = parse(html, { comment: false });
+  for (const element of examplesIn(root)) element.remove();
+  return visibleText(root.toString());
 }
 
 /** The document's prose alone. */

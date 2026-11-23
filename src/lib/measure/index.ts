@@ -58,7 +58,8 @@ import { BOT_PROTECTION, challengeOf, HOME_TIMEOUT, notTheSiteOf, type Protectio
 import { answerabilityOf, foundationsOf, ownRankedOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
-import { visibleText, type OnPageFacts } from "./parse";
+import type { OnPageFacts } from "./parse";
+import { pageTextWithoutExamples } from "./prose";
 import { contentOf, detectPricingUrl, factsOf, homeUrlOf, measuredPagesOf, stampedAt, type Tier } from "./pages";
 import type { Drivers } from "./score";
 
@@ -605,10 +606,7 @@ export async function measureDomain(
 
   return {
     drivers,
-    text: {
-      home: home.html === null ? null : visibleText(home.html),
-      pricing: pricingHtml === null ? null : visibleText(pricingHtml),
-    },
+    text: { home: home.html === null ? null : pageTextWithoutExamples(home.html), pricing: pricingHtml === null ? null : pageTextWithoutExamples(pricingHtml) },
     onPage,
     pricing,
     robots,
