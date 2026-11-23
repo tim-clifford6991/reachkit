@@ -15,7 +15,7 @@ import { siteLocale } from "@/lib/locale/site";
 import { readSiteMarket } from "@/lib/market/infer/stored";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { topicWords } from "@/lib/opportunities/intent";
-import { serpNews } from "@/lib/vendors/dataforseo";
+import { serpNews, unwrappedNews } from "@/lib/vendors/dataforseo";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
 import { readScanReport } from "../report";
 import { claimMarketWeek, readMarketChanges, storeMarketChanges } from "./store";
@@ -72,7 +72,8 @@ export async function buyMarketChanges(
     if (c.capHit()) break;
     const news = await serpNews(c, { query, locale: a.locale, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.news });
     if (news.kind === "unmeasured") continue;
-    for (const row of news.value) if (inWindow(row.publishedAt) && !a.notOurs.has(publisherOf(row)) && !rows.some((held) => held.url === row.url)) rows.push(row);
+    // A stored read may still hold a link behind a Google redirect; one that names no address is skipped alone.
+    for (const row of news.value.flatMap((held) => unwrappedNews(held) ?? [])) if (inWindow(row.publishedAt) && !a.notOurs.has(publisherOf(row)) && !rows.some((held) => held.url === row.url)) rows.push(row);
   }
 
   // Each story's reports read and dated by their own page where it states one; a syndicated copy is the report it copies.

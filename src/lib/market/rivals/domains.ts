@@ -541,13 +541,19 @@ function shownHost(text: string | undefined): string | null {
   return parsed.ok && registrableDomain(parsed.domain) !== null && !isGoogleHost(parsed.domain) ? parsed.domain : null;
 }
 
+/** The address a link stands for: itself, or behind a Google redirect the plain `url=`/`q=` address it carries, read
+ *  without a request; `null` where the redirect carries none. */
+export function unwrappedUrl(url: string): string | null {
+  const wrapper = googleWrapper(url);
+  return wrapper === null ? url : (["url", "q"].map((key) => wrapper.searchParams.get(key) ?? "").find((value) => /^https?:\/\//i.test(value)) ?? null);
+}
+
 /** The site a result belongs to. A result behind a Google redirect reads its
  *  plain `url=`/`q=` address, else the host the result shows, else nothing:
  *  `null` is a row whose site is not known, never google.com. */
 export function resolvedHost(row: { domain: string; url?: string; breadcrumb?: string; websiteName?: string }): string | null {
-  const wrapper = googleWrapper(row.url);
-  if (wrapper === null) return row.domain === "" ? null : row.domain;
-  const plain = ["url", "q"].map((key) => wrapper.searchParams.get(key) ?? "").find((value) => /^https?:\/\//i.test(value));
+  if (googleWrapper(row.url) === null) return row.domain === "" ? null : row.domain;
+  const plain = unwrappedUrl(row.url ?? "") ?? undefined;
   return [plain, row.breadcrumb, row.domain, row.websiteName].map(shownHost).find((host) => host !== null) ?? null;
 }
 

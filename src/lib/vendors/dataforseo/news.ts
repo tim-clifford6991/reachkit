@@ -9,6 +9,7 @@ import { PRICE_BOOK } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
 import { localeCacheKey } from "./transport";
 import type { Measured } from "@/lib/measure/measured";
+import { unwrappedUrl } from "@/lib/market/rivals/domains";
 import { asArray, asString, callEndpoint, isRecord, ledgered, type EndpointPaths } from "./envelope";
 import { reportUnreadable, wrappedCount } from "./serp";
 import { scopeKey, type CacheScope, type NewsRow } from "./types";
@@ -36,7 +37,17 @@ function rowOf(item: Record<string, unknown>): NewsRow | null {
     }
   }
   domain = domain.replace(/^www\./, "");
-  return { url, domain, title: asString(item.title) ?? "", source: asString(item.source) ?? domain, publishedAt };
+  const row = { url, domain, title: asString(item.title) ?? "", source: asString(item.source) ?? domain, publishedAt };
+  // One whose redirect carries no address stays, so the wrapped report still counts it.
+  return unwrappedNews(row) ?? row;
+}
+
+/** A result at its own address, read from a Google redirect's own parameter; `null` where the redirect names none. */
+export function unwrappedNews(row: NewsRow): NewsRow | null {
+  const url = unwrappedUrl(row.url);
+  if (url === null || url === row.url) return url === null ? null : row;
+  const domain = URL.canParse(url) ? new URL(url).hostname.toLowerCase().replace(/^www\./, "") : "";
+  return domain === "" ? null : { ...row, url, domain, source: row.source === row.domain ? domain : row.source };
 }
 
 /** The dated results, in the search's own order, each address once. A

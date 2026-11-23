@@ -7,7 +7,7 @@
 // Row counts are typed from the price-book pins, so a count the book does not price is a compile error.
 export { competitorsDomain, keywordOverview, keywordSuggestions, rankedKeywords } from "./labs";
 export { serpOrganic } from "./serp";
-export { serpNews } from "./news";
+export { serpNews, unwrappedNews } from "./news";
 export { aiMode, llmScraper } from "./ai";
 export { placeLocation } from "./locations";
 export { renderedPage } from "./rendered";

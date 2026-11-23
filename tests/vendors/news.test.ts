@@ -62,4 +62,11 @@ describe("the news search returns dated results, in order, with who published th
     expect(none).toMatchObject({ kind: "zero", value: [] });
     expect(news.parseNews("not a result")).toBeUndefined();
   });
+
+  it("a result behind a Google redirect is read at the address it carries, and one carrying none is skipped alone", () => {
+    const at = (url: string) => ({ type: "news_search", domain: "news.google.com", title: "t", url, timestamp: "2026-11-20 08:00:00 +00:00" });
+    const [real, bare] = news.parseNews({ items: [at("https://news.google.com/url?url=https://www.reuters.com/x"), at("https://www.google.com/url?sa=t")] })!;
+    expect(real).toMatchObject({ url: "https://www.reuters.com/x", domain: "reuters.com", source: "reuters.com" });
+    expect(news.unwrappedNews(bare!)).toBeNull();
+  });
 });
