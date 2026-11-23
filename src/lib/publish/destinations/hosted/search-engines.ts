@@ -240,9 +240,12 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       .select("id, live_url, destination, published_at, acceptance, search_reading, drafts(opportunities(acceptance, target_query))")
       .eq("site_id", a.siteId)
       .not("published_at", "is", null)
-      .is("unpublished_at", null);
+      .is("unpublished_at", null)
+      .order("published_at", { ascending: false });
     if (error !== null) return;
     const pages = (pageRows ?? []).filter((row): row is PageRow & { live_url: string } => typeof row.live_url === "string");
+    // A refresh leaves older versions live at one address; only the newest, which the edge serves, keeps weeks.
+    const newestAt = new Map(pages.slice().reverse().map((page) => [page.live_url, page.id]));
     // A site with no live page still has its old weeks trimmed.
     if (pages.length === 0) return await keepWeeks({ siteId: a.siteId, rows: [], now: a.now });
 
@@ -344,7 +347,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       });
       const stamped = reannounced && due.includes(page.live_url) ? { ...reading, reannounced: a.now.toISOString() } : reading;
       await db.from("publications").update({ search_reading: stamped }).eq("id", page.id);
-      if (counted) weeks.push(...pageWeeks({ siteId: a.siteId, page, reads: reads ?? [], reading, now: a.now }));
+      if (counted && newestAt.get(page.live_url) === page.id) weeks.push(...pageWeeks({ siteId: a.siteId, page, reads: reads ?? [], reading, now: a.now }));
     }
     await keepWeeks({ siteId: a.siteId, rows: weeks, now: a.now });
   } catch (error) {

@@ -43,4 +43,8 @@ describe("known content — a replace never leaves the site empty", () => {
     await store.writeKnownSource({ siteId: SITE, source: "site", pages: [page("b", "B"), page("c")] });
     expect(titles()).toEqual(["B", "c"]);
   });
+  it("an address held by two live versions is written once, the first kept", async () => {
+    await store.writeKnownSource({ siteId: SITE, source: "site", pages: [page("d", "new"), page("d", "old")] });
+    expect(titles()).toEqual(["new"]);
+  });
 });

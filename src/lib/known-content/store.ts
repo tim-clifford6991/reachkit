@@ -133,10 +133,12 @@ export async function writeKnownSource(a: {
 }): Promise<void> {
   const client = untyped();
   const seenAt = new Date().toISOString();
-  if (a.pages.length > 0) {
+  // One upsert may not touch a key twice; a refresh leaves older versions live at one address, so the first (newest) wins.
+  const pages = [...new Map(a.pages.slice().reverse().map((page) => [page.ref, page])).values()];
+  if (pages.length > 0) {
     const written = await client
       .from<KnownRow>("known_content")
-      .upsert(a.pages.map((page) => rowOf(a.siteId, page, seenAt)), { onConflict: "site_id,source,ref" });
+      .upsert(pages.map((page) => rowOf(a.siteId, page, seenAt)), { onConflict: "site_id,source,ref" });
     if (written.error) {
       throw new Error(`known content: writing ${a.source} for ${a.siteId}: ${written.error.message}`);
     }
@@ -267,7 +269,8 @@ export async function readOurPages(siteId: string): Promise<KnownPage[]> {
     .eq("site_id", siteId)
     .not("published_at", "is", null)
     .not("live_url", "is", null)
-    .is("unpublished_at", null);
+    .is("unpublished_at", null)
+    .order("published_at", { ascending: false });
   if (live.error) throw new Error(`known content: reading publications for ${siteId}: ${live.error.message}`);
 
   const waiting = await client
