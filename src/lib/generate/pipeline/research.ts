@@ -70,7 +70,7 @@
 // page is written from its business facts alone, as before this step.
 import { parse } from "node-html-parser";
 import { z } from "zod";
-import { ASKED_TOPICS, CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
+import { ASKED_TOPICS, CACHE_WINDOWS_D, CITES_MARKET, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { safeFetch } from "@/lib/egress";
 import { llm } from "@/lib/llm";
@@ -629,19 +629,20 @@ export async function researchMarket(
   };
   const same = (left: string, right: string): boolean => sameSite(left, right) || sameSite(right, left);
 
-  // 1. The network, in parallel: the top results in order until enough are
-  //    readable, and each rival's two pages. A page that compares options
-  //    then reads the products its top results name.
-  //    The target's SERP, bought once first: its organic rows are the top
-  //    results where the scan stored none, its questions what buyers ask.
+  // 1. The network, in parallel: the top results, each rival's two pages, then on a page that compares options the products
+  //    its top results name. The target's SERP, bought once first, gives today's results and what buyers ask.
   const stored = a.urls?.length ? [...a.urls] : storedTopTen(a.report, a.searches);
+  // A stored list short of the two-source floor is topped up from today's results, and even an update runs the study search.
+  const short = stored.length < CITES_MARKET.min;
   let pending = false;
-  const [targetRead, studyRead] = researchSerps({ ...a, target, market: a.marketWords?.[0] }, RESEARCH.queueWaitS * 1000).map((read) => ({ ...read, onFailure: (failed: { taskId?: string }) => void (pending ||= failed.taskId !== undefined) }));
-  const beside = a.questions === true || stored.length === 0 ? await askedBeside(c, targetRead!) : null;
-  const topTen = (stored.length > 0 ? stored : (beside?.organic ?? [])).filter(notOurs);
+  const [targetRead, studyRead] = researchSerps({ ...a, target, market: a.marketWords?.[0], study: a.study !== false || short }, RESEARCH.queueWaitS * 1000).map((read) => ({ ...read, onFailure: (failed: { taskId?: string }) => void (pending ||= failed.taskId !== undefined) }));
+  const beside = a.questions === true || short ? await askedBeside(c, targetRead!) : null;
+  const topTen = [...new Set([...stored, ...(short ? (beside?.organic ?? []) : [])])].filter(notOurs);
   // The own pages read, only of the rivals the page is about: eight products on a listicle (owner), four on any other page.
   const bound = a.options === true ? RESEARCH.options : RESEARCH.rivals;
-  const first = rivalsInScope(inForce, a).slice(0, bound);
+  // A product the search names is read from its own site, listed rival or not: the result whose address spells its name.
+  const sites = [...topTen, ...(beside?.organic ?? [])].map(registrableDomain).filter((domain): domain is string => domain !== null && !isPlatformDomain(domain) && !sameSite(domain, own));
+  const first = [...new Set([...rivalsInScope(inForce, a), ...namedIn(target, sites.filter((domain) => !inForce.some((rival) => same(domain, rival))).map((domain) => ({ domain })))])].slice(0, bound);
   // The week's other pages, read at 0¢: a site cited on enough of them ranks last here (`a.page` ends in its date).
   const capped = a.page === undefined ? new Set<string>() : await cappedSites(a.siteId, own, /\d{4}-\d{2}-\d{2}$/.exec(a.page)?.[0] ?? a.today.toISOString().slice(0, 10));
   const [topReads, firstReads] = await Promise.all([Promise.all(topTen.map((url) => fetchPage(url))), Promise.all(first.map(readRival))]);
@@ -664,16 +665,14 @@ export async function researchMarket(
       : null;
   // A product the results name, beside the rivals in force, read to judge
   // whether it is an option at all. Its reads are free.
-  const onResults = named.map((product) => product.domain).filter((domain) => domain !== baseline && !inForce.some((rival) => same(domain, rival)));
+  const onResults = named.map((product) => product.domain).filter((domain) => domain !== baseline && ![...inForce, ...first].some((rival) => same(domain, rival)));
   const spare = onResults.slice(0, bound);
   const moreReads = await Promise.all(
     [...(baseline === null || first.some((rival) => same(rival, baseline)) ? [] : [baseline]), ...spare].map(readRival)
   );
   const byDomain = new Map([...firstReads, ...moreReads].map((read) => [read.domain, read] as const));
-  // Issue 1508: a product found on the results is an option only where its
-  // own pages are of the market's category (D49) and, for a business that
-  // serves one place (D67), name that place. A rival in force was chosen
-  // for both already; the baseline is what the page is about.
+  // A product found on the results is an option only where its own pages are of the market's category (D49) and, for a
+  // business that serves one place (D67), name that place; a rival in force fits already, and the baseline is the subject.
   const category = new Set((a.marketWords ?? []).flatMap((words) => [...topicWords(words)]).filter((word) => !GENERIC_TOKENS.has(word)));
   const place = [a.locale.place?.name, a.locale.place?.region].flatMap((name) => (name === undefined || name.trim() === "" ? [] : [name.toLowerCase()]));
   const fits = (domain: string): boolean => {
@@ -765,7 +764,7 @@ export async function researchMarket(
   const dealt = byTier(newestCredible(tiered(ownPagesFirst(facts), tiers), a.today), (tier) => inTurn(tier, pages)).slice(0, RESEARCH.briefFacts);
   const ordered = byTier(tiered(await toOriginals(dealt, pages, (url) => readFresh(c, url)), tiers));
   for (const fact of ordered) if (fact.capped === true) skipped.add(registrableDomain(fact.url) ?? hostOf(fact.url));
-  const minimum = a.study === false ? 0 : compares({ target, options: a.options }) ? 1 : 2;
+  const minimum = compares({ target, options: a.options }) ? 1 : 2;
   const products = rivalDomains
     .map((domain) => {
       const name = names.get(domain);
