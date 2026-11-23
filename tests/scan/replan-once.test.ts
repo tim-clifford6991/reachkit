@@ -58,10 +58,12 @@ it("re-commits the week once per planner, after an apply cut short too, and tell
   expect(mails[0]).toContain(`2026-10-20 · ${handSet.target_query}`);
 });
 
-it("applies a week whose lost day held a topic the select cannot take, and dates that day with a ready one", async () => {
-  for (const row of state.rows) Object.assign(row, (row.planned_for ?? "") < "2026-10-20" ? { status: "dismissed" } : row.planned_for === "2026-10-21" ? { ready: false, unready_reason: "resting", rest_until: "2027-01-01T00:00:00Z" } : {});
+it("keeps every date whose topic still ranks and dates the lost day with a ready row", async () => {
+  for (const row of state.rows) Object.assign(row, row.planned_for === "2026-10-21" ? { ready: false, unready_reason: "resting", rest_until: "2027-01-01T00:00:00Z" } : {});
+  const dated = () => state.rows.filter((row) => row.planned_for != null && row.planned_for >= "2026-10-20" && row.ready);
+  const before = Object.fromEntries(dated().map((row) => [row.planned_for, row.id]));
   expect(await tick(0).catch(() => tick(1))).toEqual({ replanned: [SITE_ID], held: [], empty: [] });
-  expect(state.rows.find((row) => row.planned_for === "2026-10-21")?.ready).toBe(true);
+  expect(Object.fromEntries(dated().map((row) => [row.planned_for, row.id]))).toMatchObject({ ...before, "2026-10-21": expect.any(String) });
 });
 
 it("sends no mail at a next planner that leaves the week as committed, and logs it once", async () => {

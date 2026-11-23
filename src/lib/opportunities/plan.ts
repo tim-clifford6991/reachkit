@@ -14,7 +14,7 @@ const DAY_MS = 86_400_000;
 
 /** The week's one readiness check, after its verdicts and refreshes, then its ranking: a day is planned only from a
  *  ready row, and `best` is the `WEEK_RESEARCH.rowsMax` rows whose research the commit reads. */
-async function ranked(siteId: string, a: { now: Date; from?: string; record?: boolean; keepLater?: boolean; days?: number }) {
+async function ranked(siteId: string, a: { now: Date; from?: string; record?: boolean; keepLater?: boolean; keepDates?: boolean; days?: number }) {
   // On demand, the week starts at the date being written; on Monday, at the first date with no page.
   const store = opportunityStore(), from = a.from ?? new Date(firstOpenDay(await store.draftedPages(siteId, 1), a.now) * DAY_MS).toISOString().slice(0, 10);
   await assessReadiness(siteId, { at: a.now, now: a.now });
@@ -25,7 +25,8 @@ async function ranked(siteId: string, a: { now: Date; from?: string; record?: bo
   const kept = a.keepLater ? (await store.plannedRows(siteId)).filter((r) => r.planned_for != null && r.planned_for > from) : [];
   const later = new Set(kept.map((r) => r.id)), top = Math.max(0, ...kept.map((r) => r.plan_place ?? 0));
   const load = await loadRanking(siteId, a.now, undefined, a.record === true), free = (r: OpportunityRow) => !later.has(r.id);
-  const input = { ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: a.now, from, days };
+  const keep = a.keepDates ? new Map((await store.plannedRows(siteId)).flatMap((r) => (r.planned_for != null && r.planned_for >= from ? [[r.id, r.planned_for] as const] : []))) : undefined;
+  const input = { ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: a.now, from, days, ...(keep === undefined ? {} : { keep }) };
   const order = choose(input), best = new Set([...order.committed, ...order.rejected.filter((r) => r.reason === "after_the_week")].slice(0, WEEK_RESEARCH.rowsMax).map((r) => r.opportunityId));
   return { input, order, best: [...best].flatMap((id) => input.rows.filter((r) => r.id === id)), later, top, from, days };
 }
@@ -35,7 +36,7 @@ export const weekCandidates = async (siteId: string, now: Date): Promise<Opportu
 
 /** Commits and returns the site's week, from `from` where it is given; what is chosen is `choose`'s. `research` is the
  *  row checks the Monday job already made; a best row it lacks is read from the cache. */
-export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean; keepLater?: boolean; days?: number; research?: ReadonlyMap<string, ResearchRead | null> } = {}): Promise<readonly PlanEntry[] & { from: string; days: number; rejected: Record<string, { n: number; ids?: string[] }>; rested: { opportunityId: string; short: string[] }[] }> {
+export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean; keepLater?: boolean; keepDates?: boolean; days?: number; research?: ReadonlyMap<string, ResearchRead | null> } = {}): Promise<readonly PlanEntry[] & { from: string; days: number; rejected: Record<string, { n: number; ids?: string[] }>; rested: { opportunityId: string; short: string[] }[] }> {
   const now = a.now ?? new Date(), store = opportunityStore();
   const { input, order, best, later, top, from, days } = await ranked(siteId, { ...a, now });
   // The ranking's best rows are then ordered by what research the cache holds for them.
