@@ -277,11 +277,21 @@ export function collapse(a: {
     return true;
   };
 
-  for (const row of a.existing) {
-    if (row.family === "fix" || row.status === "dismissed") continue;
+  // A stored absorbed search stays a row's only while it is directly one question with the row's own search, so a list
+  // an earlier chain of joins wrote heals here and binds nothing more.
+  const same = new Set([...(a.sameQuestion ?? [])].flatMap(([x, y]) => [`${queryKey(x)}\n${queryKey(y)}`, `${queryKey(y)}\n${queryKey(x)}`]));
+  const words = (q: string) => [clusterKey(q, a.brandTokens), a.market == null ? null : clusterKey(q, a.brandTokens, a.market)];
+  const tens = (q: string) => a.topTens?.get(queryKey(q)) ?? [];
+  const direct = (own: string, q: string) => words(own).some((k, i) => k !== null && k === words(q)[i]) || shareATopTen(tens(own), tens(q)) || same.has(`${queryKey(own)}\n${queryKey(q)}`);
+  const trimmed: { row: Opportunity; member: Member }[] = [];
+  for (const held of a.existing) {
+    if (held.family === "fix" || held.status === "dismissed") continue;
     // A refresh of a page of ours is the update of that page, not a second page on its topic, so it never competes with the page's own row.
-    if (isOwnRefresh(row)) continue;
-    add(row.clusterKey ?? clusterKey(row.targetQuery, a.brandTokens), { kind: "row", row });
+    if (isOwnRefresh(held)) continue;
+    const kept = held.targetQuery === null ? held.absorbedQueries : held.absorbedQueries.filter((q) => direct(held.targetQuery!, q));
+    const row = { ...held, absorbedQueries: kept }, member: Member = { kind: "row", row };
+    if (kept.length !== held.absorbedQueries.length) trimmed.push({ row, member });
+    add(held.clusterKey ?? clusterKey(held.targetQuery, a.brandTokens), member);
   }
   for (const candidate of a.candidates) {
     const key = candidate.family === "fix" ? null : clusterKey(candidate.targetQuery, a.brandTokens, a.market);
@@ -334,6 +344,9 @@ export function collapse(a: {
     } else if (survivor.row.clusterKey !== key || absorbedQueries.join("\n") !== [...survivor.row.absorbedQueries].sort().join("\n")) {
       update.push({ id: survivor.row.id, clusterKey: key, absorbedQueries });
     }
+  }
+  for (const { row, member } of trimmed.filter(({ row }) => !dismiss.includes(row.id) && !update.some((u) => u.id === row.id))) {
+    update.push({ id: row.id, clusterKey: keyOf.get(member)!, absorbedQueries: [...row.absorbedQueries].sort() });
   }
   return { dismiss, update, insert };
 }

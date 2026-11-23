@@ -494,13 +494,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async countUnused(siteId) {
-      const { data, error } = await untyped()
-        .from<{ id: string; type: string; target_query: string | null }>("opportunities")
-        .select("id, type, target_query")
-        .eq("site_id", siteId)
-        .eq("status", "open")
-        .eq("ready", true)
-        .neq("family", "fix");
+      const { data, error } = await untyped().from<{ id: string; type: string; target_query: string | null }>("opportunities").select("id, type, target_query")
+        .eq("site_id", siteId).eq("status", "open").eq("ready", true).neq("family", "fix");
       if (error) throw new Error(`opportunities.countUnused: ${error.message}`);
       return (data ?? []).length;
     },
@@ -601,11 +596,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
     async topTens(scanIds) {
       const topTens = new Map<string, readonly string[]>();
       if (scanIds.length === 0) return topTens;
-      const { data, error } = await untyped()
-        .from<Pick<StoredReport, "questions" | "serps">>("scans")
-        .select("questions:report->questions, serps:report->serps")
-        .in("id", [...scanIds])
-        .order("created_at", { ascending: true });
+      const { data, error } = await untyped().from<Pick<StoredReport, "questions" | "serps">>("scans").select("questions:report->questions, serps:report->serps")
+        .in("id", [...scanIds]).order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.topTens: ${error.message}`);
       for (const report of data ?? []) for (const [query, urls] of topTensOf(report)) topTens.set(query, urls);
       return topTens;
@@ -657,50 +649,31 @@ export function supabaseOpportunityStore(): OpportunityStore {
     setCluster: (opportunityId, clusterKey, absorbedQueries) => updateRow("setCluster", opportunityId, { cluster_key: clusterKey, absorbed_queries: [...absorbedQueries] }),
 
     async lastStatusChangeAt(siteId) {
-      const { data, error } = await untyped()
-        .from<{ status_changed_at: string }>("opportunities")
-        .select("status_changed_at")
-        .eq("site_id", siteId)
-        .neq("family", "fix")
-        .order("status_changed_at", { ascending: false })
-        .limit(1);
+      const { data, error } = await untyped().from<{ status_changed_at: string }>("opportunities").select("status_changed_at")
+        .eq("site_id", siteId).neq("family", "fix").order("status_changed_at", { ascending: false }).limit(1);
       if (error) throw new Error(`opportunities.lastStatusChangeAt: ${error.message}`);
       const at = data?.[0]?.status_changed_at;
       return at === undefined ? null : new Date(at);
     },
 
     async latestCompletedScanAt(siteId) {
-      const { data, error } = await untyped()
-        .from<{ created_at: string }>("scans")
-        .select("created_at")
-        .eq("site_id", siteId)
-        .in("status", ["done", "degraded"])
-        .order("created_at", { ascending: false })
-        .limit(1);
+      const { data, error } = await untyped().from<{ created_at: string }>("scans").select("created_at")
+        .eq("site_id", siteId).in("status", ["done", "degraded"]).order("created_at", { ascending: false }).limit(1);
       if (error) throw new Error(`opportunities.latestCompletedScanAt: ${error.message}`);
       const at = data?.[0]?.created_at;
       return at === undefined ? null : new Date(at);
     },
 
     async byId(opportunityId) {
-      const { data, error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .select(COLUMNS)
-        .eq("id", opportunityId)
-        .limit(1);
+      const { data, error } = await untyped().from<OpportunityRow>("opportunities").select(COLUMNS).eq("id", opportunityId).limit(1);
       if (error) throw new Error(`opportunities.byId: ${error.message}`);
       const row = data?.[0] ?? null;
       return row === null ? null : ((await atCurrentHost(row.site_id, [row]))[0] ?? row);
     },
 
     async openFixPages(siteId) {
-      const { data, error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .select(COLUMNS)
-        .eq("site_id", siteId)
-        .eq("status", "open")
-        .eq("type", "fix_page")
-        .order("created_at", { ascending: true });
+      const { data, error } = await untyped().from<OpportunityRow>("opportunities").select(COLUMNS)
+        .eq("site_id", siteId).eq("status", "open").eq("type", "fix_page").order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.openFixPages: ${error.message}`);
       return data ?? [];
     },
@@ -756,24 +729,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async plannedRows(siteId) {
-      const { data, error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .select(COLUMNS)
-        .eq("site_id", siteId)
-        .not("plan_place", "is", null)
-        .order("plan_place", { ascending: true });
+      const { data, error } = await untyped().from<OpportunityRow>("opportunities").select(COLUMNS)
+        .eq("site_id", siteId).not("plan_place", "is", null).order("plan_place", { ascending: true });
       if (error) throw new Error(`opportunities.plannedRows: ${error.message}`);
       return atCurrentHost(siteId, data ?? []);
     },
     async weeklyCommit(siteId) {
-      const { data, error } = await untyped()
-        .from<{ week_start: string }>("scans")
-        .select("week_start")
-        .eq("site_id", siteId)
-        .eq("tier", "weekly").not("week_start", "is", null)
-        .in("status", ["done", "degraded"])
-        .order("week_start", { ascending: false })
-        .limit(1);
+      const { data, error } = await untyped().from<{ week_start: string }>("scans").select("week_start")
+        .eq("site_id", siteId).eq("tier", "weekly").not("week_start", "is", null).in("status", ["done", "degraded"]).order("week_start", { ascending: false }).limit(1);
       if (error) throw new Error(`opportunities.weeklyCommit: ${error.message}`);
       return data?.[0]?.week_start ?? null;
     },
