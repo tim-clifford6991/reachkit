@@ -21,6 +21,8 @@ export interface ChooseInput extends RankLoad {
   days?: number; // dated days the week holds, `WEEK_PLAN.days` where absent
   /** The cached research of the best-ranked rows; absent, the order is the ranking's. */
   research?: ReadonlyMap<string, ResearchRead | null>;
+  /** Committed dates by row: a row the rules still rank keeps its date (a short one does not), and only the other dates are filled. */
+  keep?: ReadonlyMap<string, string>;
 }
 
 export interface Choice {
@@ -35,17 +37,12 @@ export function choose(input: ChooseInput): Choice {
   const rejected: Choice["rejected"] = [...ranking.rejected];
   const ranked = byResearch(oneTopicEach(placeFixPages(ranking.scored, ranking.fixes), input, rejected), input);
   const first = Math.floor(Date.parse(`${input.from}T00:00:00Z`) / DAY_MS);
-  const days = input.days ?? WEEK_PLAN.days, depth = days + WEEK_PLAN.spares;
+  const days = input.days ?? WEEK_PLAN.days, dates = Array.from({ length: days }, (_, place) => new Date((first + place) * DAY_MS).toISOString().slice(0, 10));
+  const kept = (entry: Joined) => dates.includes(input.keep?.get(entry.opportunityId) ?? "") && entry.reason.research?.state !== "short", pinned = new Map(ranked.filter(kept).map((entry) => [input.keep!.get(entry.opportunityId)!, entry]));
+  const rest = ranked.filter((entry) => !kept(entry)), week = [...dates.map((date) => pinned.get(date) ?? rest.shift()), ...rest.splice(0, WEEK_PLAN.spares)];
   return {
-    committed: ranked.slice(0, depth).map((entry, place) => ({
-      opportunityId: entry.opportunityId,
-      place,
-      plannedFor: place < days ? new Date((first + place) * DAY_MS).toISOString().slice(0, 10) : null,
-      writeAs: entry.writeAs ?? null,
-      reason: entry.reason,
-      ...(entry.set === undefined ? {} : { set: entry.set }),
-    })),
-    rejected: [...rejected, ...ranked.slice(depth).map((entry) => ({ opportunityId: entry.opportunityId, ...(entry.reason.research?.state === "short" ? { reason: "short" as const, short: entry.reason.research.short ?? [] } : { reason: "after_the_week" as const }) }))],
+    committed: week.flatMap((entry, place) => (entry === undefined ? [] : [{ opportunityId: entry.opportunityId, place, plannedFor: dates[place] ?? null, writeAs: entry.writeAs ?? null, reason: entry.reason, ...(entry.set === undefined ? {} : { set: entry.set }) }])),
+    rejected: [...rejected, ...rest.map((entry) => ({ opportunityId: entry.opportunityId, ...(entry.reason.research?.state === "short" ? { reason: "short" as const, short: entry.reason.research.short ?? [] } : { reason: "after_the_week" as const }) }))],
   };
 }
 
