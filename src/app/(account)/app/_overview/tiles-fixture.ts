@@ -5,6 +5,18 @@ import { onGoogleSince } from "@/lib/measure/ladder";
 import { addressOf, type PlaceReport } from "@/lib/measure/page-reading";
 import type { AnswerQuestion } from "./answers-model";
 import { TILE_WEEKS, type TilePage, type TilePass } from "@/lib/measure/results";
+import type { Visits } from "@/lib/publish/reads/visits";
+
+/** The reserved account's 28 days of visits: small, with a week before the line starts. */
+export const FIXTURE_VISITS: Visits = {
+  n: 46,
+  bySource: { google: 31, ai: 6, other: 9 },
+  direct: 12,
+  clicks: 5,
+  aiRead: [],
+  since: null,
+  weeks: [null, 6, 9, 11, 10, 14],
+};
 
 const WEEK_MS = 7 * 86_400_000;
 const NOT_READ = { kind: "unmeasured", reason: "not_attempted" } as const;

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { formatShortDay, formatTime } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
-import { loadShowAll, OVERVIEW } from "../../_overview/frame";
+import { loadFrom, loadShowAll, OVERVIEW } from "../../_overview/frame";
 import { checkedOf, liveRowsOf, LivePages } from "../../_overview/LivePages";
 import { TabHead } from "../../_overview/TabHead";
 import { DetailTiles } from "../../_overview/Tiles";
@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: copy("meta.app.pages.title") };
 const INK = "min-w-0 text-sm text-base-content/70";
 
 export default async function PagesLivePage(p: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<React.JSX.Element> {
-  const [shell, tiles, { all }] = await Promise.all([readShell(), readTiles(0, false), p.searchParams.then(loadShowAll)]);
+  const [shell, tiles, { all }, { from }] = await Promise.all([readShell(), readTiles(0, false), p.searchParams.then(loadShowAll), p.searchParams.then(loadFrom)]);
   if (tiles === null) throw new Error("pages: tiles unreadable");
   const tz = shell.timeZone;
   const rows = liveRowsOf(tiles, shell.nextDueOn, tz);
@@ -27,7 +27,7 @@ export default async function PagesLivePage(p: { searchParams: Promise<Record<st
 
   return (
     <div className={OVERVIEW} data-testid="pages-tab">
-      <DetailTiles model={tiles} tab="pages" />
+      <DetailTiles model={tiles} tab={from ?? "pages"} />
       <TabHead
         title={copy("overview.tile.short.pages")}
         testId="pages"

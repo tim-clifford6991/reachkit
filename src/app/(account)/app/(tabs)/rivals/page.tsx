@@ -1,8 +1,8 @@
-// SPEC §4 *Competitors tab* (plate O5) — Against Competitors' detail: back to Overview, the tiles with this one
+// SPEC §4 *Competitors tab* (plate O5) — Against Competitors: back to Overview, the tiles with Pages on Google
 // current, the head, then the twelve main searches with the site beside each competitor and who AI answers mention.
 //
-// **Every read is a stored one**: the first-page counts are `readRivals().firstPage`, the one reader the tile and
-// Settings › Market also read; the mentions are `namedOf` over the AI tile's own panel answers. No measurement, vendor
+// **Every read is a stored one**: the first-page counts are `readRivals().firstPage`, the one reader the Google detail's card
+// and Settings › Market also read; the mentions are `namedOf` over the AI tile's own panel answers. No measurement, vendor
 // call or model call happens on render. It declares no `Surface`: the shell's layout owns the screen root.
 import type React from "react";
 import type { Metadata } from "next";
@@ -44,7 +44,7 @@ export default async function RivalsTabPage(p: { searchParams: Promise<Record<st
   const shown = model.rows.length > 0;
 
   // Before the first Monday the tile's own reading is the deep pass's; a newer failed pass keeps the last places.
-  const start = tiles?.tiles.find((tile) => tile.key === "rivals")?.change?.kind === "start";
+  const start = tiles !== null && tiles.search.readAt === null;
   const pass = shell.pass;
   const failed = measuredAt !== null && pass?.kind === "ended" && pass.end.outcome === "failed" && Date.parse(pass.end.at) > measuredAt.getTime();
   const measured =
@@ -52,7 +52,7 @@ export default async function RivalsTabPage(p: { searchParams: Promise<Record<st
       ? null
       : failed
         ? copy("overview.rivals.failed", { date: formatShortDay(measuredAt, shell.timeZone) })
-        : copy(start ? "overview.tile.rivals.start" : "overview.detail.checked", { date: formatShortDay(measuredAt, shell.timeZone) });
+        : copy(start ? "overview.rivals.start" : "overview.detail.checked", { date: formatShortDay(measuredAt, shell.timeZone) });
 
   // No tracked competitor counted: the site's column alone, and who holds those first pages (SPEC §4, 2026-10-09).
   const columns = firstPage.noRival ? [] : [...firstPage.rivals].sort((a, b) => b.count - a.count);
@@ -60,7 +60,7 @@ export default async function RivalsTabPage(p: { searchParams: Promise<Record<st
 
   return (
     <div className={OVERVIEW} data-testid="rivals-tab">
-      <DetailTiles model={tiles} tab="rivals" />
+      <DetailTiles model={tiles} tab="google" />
       <TabHead
         title={copy("overview.tab.rivals")}
         testId="rivals"

@@ -66,7 +66,7 @@ function firstPageOf(questions: PassRow["questions"], serps: PassRow["serps"], d
   return [...out.values()].some((on) => on !== null) ? out : null;
 }
 
-export async function readTileRows(a: { siteId: string; domain: string; week: string }): Promise<{ passes: TilePass[]; pages: TilePage[]; gsc: GoogleConsole | null }> {
+export async function readTileRows(a: { siteId: string; domain: string; week: string }): Promise<{ passes: TilePass[]; pages: TilePage[]; gsc: GoogleConsole | null; hosted: boolean }> {
   const since = new Date(Date.parse(`${a.week}T12:00:00Z`) - (TILE_WEEKS + AI_WINDOW_WEEKS) * 7 * 86_400_000).toISOString().slice(0, 10);
   const [passes, pages, hosted] = await Promise.all([
     from<PassRow>("scans")
@@ -119,5 +119,7 @@ export async function readTileRows(a: { siteId: string; domain: string; week: st
       onGoogle: onGoogleSince(readingOf(row.search_reading)),
     })),
     gsc: google === undefined ? null : { sitemapAt: typeof sitemapAt === "string" ? sitemapAt : null },
+    // No hosted destination: the pages are on WordPress, whose visits no request of ours sees.
+    hosted: hosted.data.length > 0,
   };
 }

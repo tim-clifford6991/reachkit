@@ -20,33 +20,44 @@ export const TILE_NAME: Readonly<Record<TileKey, CopyKey>> = {
   pages: "overview.tile.pages.name",
   google: "overview.tile.google.name",
   ai: "overview.tile.ai.name",
-  rivals: "overview.tile.rivals.name",
+  visits: "overview.tile.visits.name",
 };
-const OF: Readonly<Record<Exclude<TileKey, "pages">, CopyKey>> = {
+const OF: Readonly<Record<"google" | "ai", CopyKey>> = {
   google: "overview.tile.google.of",
   ai: "overview.tile.ai.of",
-  rivals: "overview.tile.rivals.of",
 };
 const NONE_OF: Readonly<Record<TileKey, CopyKey>> = {
   pages: "overview.tile.pages.none.of",
   google: "overview.tile.google.none.of",
   ai: "overview.tile.google.none.of",
-  rivals: "overview.tile.due.of",
+  visits: "overview.tile.visits.due",
 };
 /** What a week that could not be checked names. */
 export const TILE_UNREAD: Readonly<Record<TileKey, CopyKey>> = {
   pages: "overview.tile.short.google",
   google: "overview.tile.short.google",
   ai: "overview.tile.unread.ai",
-  rivals: "overview.tile.short.google",
+  visits: "overview.tile.unread.visits",
 };
 
-export function ofWords(tile: Tile, count: TileFormat["count"]): Said {
-  if (tile.of.kind === "due") return { text: "overview.tile.due.of" };
-  if (tile.of.kind === "none") return { text: NONE_OF[tile.key] };
-  const m = count(tile.of.m);
-  if (tile.key === "google" && (tile.of.u ?? 0) > 0) return { text: "overview.tile.google.of.unchecked", vars: { m, u: count(tile.of.u!) } };
-  return tile.key === "pages" ? { text: "overview.tile.pages.of", vars: { total: m } } : { text: OF[tile.key], vars: { m, n: m, weeks: count(AI_WINDOW_WEEKS) } };
+export function ofWords(tile: Tile, f: Pick<TileFormat, "count" | "date">): Said {
+  const of = tile.of;
+  switch (of.kind) {
+    case "due":
+      return { text: "overview.tile.due.of" };
+    case "none":
+      return { text: NONE_OF[tile.key] };
+    case "unread":
+      return { text: "overview.tile.change.unread", vars: { what: copy(TILE_UNREAD[tile.key]) } };
+    case "wordpress":
+      return { text: "overview.tile.visits.wordpress" };
+    case "window":
+      return of.since === null ? { text: "overview.tile.visits.of" } : { text: "overview.tile.visits.since", vars: { date: f.date(of.since) } };
+  }
+  const m = f.count(of.m);
+  if (tile.key === "google" && (of.u ?? 0) > 0) return { text: "overview.tile.google.of.unchecked", vars: { m, u: f.count(of.u!) } };
+  if (tile.key === "pages") return { text: "overview.tile.pages.of", vars: { total: m } };
+  return { text: OF[tile.key === "ai" ? "ai" : "google"], vars: { m, n: m, weeks: f.count(AI_WINDOW_WEEKS) } };
 }
 
 /** `due` is the next Monday's check; `goLive` the next page's go-live, `null` where none is set. */
@@ -72,8 +83,6 @@ function changeOf(key: TileKey, change: TileChange, d: { due: Date; goLive: Date
       return { text: "overview.tile.change.unread", vars: { what: copy(TILE_UNREAD[key]) } };
     case "due":
       return { text: "overview.tile.due.change", vars: { date: f.day(d.due) } };
-    case "start":
-      return { text: "overview.tile.rivals.start", vars: { date: f.date(change.at) } };
     case "coming":
       return { text: "overview.tile.pages.coming", vars: { n: f.count(change.n) } };
     case "golive":

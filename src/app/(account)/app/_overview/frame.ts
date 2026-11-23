@@ -27,6 +27,9 @@ export const GOOGLE_SHOWN = ["showing", "not-yet", "all"] as const;
 export const SHOW_GOOGLE = { show: parseAsStringLiteral(GOOGLE_SHOWN).withDefault("showing") };
 export const loadShowGoogle = createLoader(SHOW_GOOGLE);
 
+/** `?from=visits`: the tile that opened `/app/pages`, which its compact row marks. */
+export const loadFrom = createLoader({ from: parseAsStringLiteral(["visits"] as const) });
+
 /** The rows a detail's list shows before *Show All*: 8 at `lg` and up, 5 below. */
 export const ROWS = { lg: 8, below: 5 } as const;
 
