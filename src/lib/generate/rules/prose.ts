@@ -31,7 +31,7 @@
 import { PAGE_BLOCKS, PROSE } from "@/lib/config/constants";
 import type { Language } from "@/lib/locale/locales";
 import { ownTells, type Tell } from "./prose-english";
-import { renderOf, sourceBlocksOf, splitSentences } from "./text";
+import { linksOf, renderOf, sourceBlocksOf, splitSentences, withoutReferenceLists } from "./text";
 import type { RuleFailure } from "./types";
 
 /** What a page can be stopped for, in the order the faults are listed. */
@@ -41,7 +41,9 @@ export type ProseTell =
   | "repeated_phrase"
   | "list_scaffold"
   | "even_sentences"
-  | "tell_phrases";
+  | "tell_phrases"
+  /** A time-sensitive source over six months old cited in a sentence that does not say when (SPEC §7, owner 2026-11-22). */
+  | "dated_claim";
 
 /** One habit the page has too much of: how often, and its own words. */
 export interface ProseFault {
@@ -64,6 +66,8 @@ export interface ProseRuleInputs {
   /** What `slopless` flagged on the page (`./prose-lint.ts`), where the
    *  caller ran it. Absent, the page is held to the counts alone. */
   flagged?: readonly Tell[];
+  /** The pack's time-sensitive claims over six months old, each with its age date (`YYYY` or `YYYY-MM-DD`). */
+  dated?: readonly { url: string; ageAt: string }[];
 }
 
 /** A phrase and how often the page says it. */
@@ -291,8 +295,28 @@ export function tellCount(score: ProseScore): number {
  *  wrote or edited is theirs to word. */
 export function checkProse(a: { markdown: string; prose: ProseRuleInputs | null }): RuleFailure | null {
   if (a.prose === null) return null;
-  const faults = proseFaults(proseScore(a.markdown, a.prose));
+  const faults = [...proseFaults(proseScore(a.markdown, a.prose)), ...undatedCites(a.markdown, a.prose)];
   return faults.length === 0 ? null : { rule: "plain_prose", detail: { rule: "plain_prose", faults } };
+}
+
+/** How the page's language writes an age date: "July 2025", or the year alone. */
+export function whenSaid(ageAt: string, language: Language, month: "long" | "short" = "long"): string {
+  return /^\d{4}$/.test(ageAt) ? ageAt : new Intl.DateTimeFormat(language, { month, year: "numeric", timeZone: "UTC" }).format(new Date(`${ageAt}T12:00:00Z`));
+}
+
+/** The sentences that link an older time-sensitive source and say neither its year nor, where it has one, its month. */
+function undatedCites(markdown: string, prose: ProseRuleInputs): ProseFault[] {
+  if ((prose.dated ?? []).length === 0) return [];
+  const found: string[] = [];
+  for (const sentence of withoutReferenceLists(markdown).split(/\n\s*\n/).flatMap(splitSentences)) {
+    const lower = sentence.toLowerCase();
+    const links = new Set(linksOf(sentence));
+    const old = prose.dated!.find((claim) => links.has(claim.url));
+    if (old === undefined) continue;
+    const month = /^\d{4}$/.test(old.ageAt) ? [""] : (["long", "short"] as const).map((form) => whenSaid(old.ageAt, prose.language, form).replace(/\d{4}/, "").replace(/\.$/, "").trim().toLowerCase());
+    if (!lower.includes(old.ageAt.slice(0, 4)) || !month.some((name) => lower.includes(name))) found.push(`${sentence.trim().slice(0, 200)} (${whenSaid(old.ageAt, prose.language)})`);
+  }
+  return found.length === 0 ? [] : [{ tell: "dated_claim", count: found.length, found: found.slice(0, FOUND_MAX) }];
 }
 
 const quoted = (found: readonly string[]): string => found.map((text) => `"${text}"`).join("; ");
@@ -314,6 +338,8 @@ export function proseNotes(faults: readonly ProseFault[]): string[] {
         return "sentence length: the sentences are all about one length. Mix short sentences of a few words with longer ones.";
       case "tell_phrases":
         return `stock phrasing: ${fault.count} turns of phrase a reader knows a generated page by — ${quoted(fault.found)}. Rewrite each as a plain statement of what is so.`;
+      case "dated_claim":
+        return `undated source: ${fault.count} sentences cite a source over six months old without saying when — ${quoted(fault.found)}. Say in each of those sentences, in its own words, the month and year its source is dated (as given in brackets: "Pew's July 2025 study"), and change nothing else.`;
     }
   });
 }

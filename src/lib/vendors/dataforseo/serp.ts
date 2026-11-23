@@ -112,15 +112,18 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
   const relatedSearches: string[] = [];
   // SPEC §6 (D67): the local pack rides on the same SERP; only businesses with a site are kept.
   const localPack: { title: string; domain: string; unresolved?: true }[] = [];
+  let topStories = false;
   for (const item of result.items) {
     if (!isRecord(item)) continue;
-    if (item.type === "organic") {
+    if (item.type === "top_stories") topStories = true;
+    else if (item.type === "organic") {
       const position = asNumber(item.rank_group) ?? asNumber(item.rank_absolute);
       const domain = asString(item.domain)?.toLowerCase();
       if (position === undefined || !domain) continue;
       const url = asString(item.url) ?? "";
       const host = resolvedHost({ domain, url, breadcrumb: asString(item.breadcrumb), websiteName: asString(item.website_name) });
-      organic.push({ position, domain: host ?? "", url, title: asString(item.title) ?? "", ...(host === null ? { unresolved: true as const } : {}) });
+      const dated = /^\d{4}-\d{2}-\d{2}/.exec(asString(item.timestamp) ?? "")?.[0];
+      organic.push({ position, domain: host ?? "", url, title: asString(item.title) ?? "", ...(dated === undefined ? {} : { publishedAt: dated }), ...(host === null ? { unresolved: true as const } : {}) });
     } else if (item.type === "ai_overview") {
       aiOverview = parseAiOverview(item);
     } else if (item.type === "people_also_ask") {
@@ -150,6 +153,7 @@ export function parseSerp(result: unknown): SerpResult[] | undefined {
       ...(peopleAlsoAsk.length === 0 ? {} : { peopleAlsoAsk }),
       ...(relatedSearches.length === 0 ? {} : { relatedSearches }),
       ...(localPack.length === 0 ? {} : { localPack }),
+      ...(topStories ? { topStories: true as const } : {}),
     },
   ];
 }
@@ -188,9 +192,9 @@ export async function reportUnreadable(
 }
 
 /** The ledger key of one SERP read. Every SERP is parsed for its People also ask, so one search has one key. */
-function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: boolean; scope: CacheScope; depth?: SerpDepth }): string {
+function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: boolean; scope: CacheScope; depth?: SerpDepth; searchParam?: string }): string {
   const depth = a.depth ?? VENDOR.serpDepth;
-  return `${a.query}|${placeCacheKey(a.locale)}|aio:${a.loadAsyncAiOverview ? "async" : "cached"}|${scopeKey(a.scope)}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}`;
+  return `${a.query}|${placeCacheKey(a.locale)}|aio:${a.loadAsyncAiOverview ? "async" : "cached"}|${scopeKey(a.scope)}${depth === VENDOR.serpDepth ? "" : `|depth:${depth}`}${a.searchParam === undefined ? "" : `|param:${a.searchParam}`}`;
 }
 
 /** The SERP `serpOrganic` would serve from the ledger for the same read, at 0¢ and with no vendor call; `null` where none is held. */
@@ -232,6 +236,8 @@ export async function serpOrganic(
     pollMs?: number;
     /** A read deeper than `VENDOR.serpDepth`, for a page's own search. */
     depth?: SerpDepth;
+    /** Google's own search parameters (`search_param`), at the same price: `&tbs=qdr:y` is the past year. */
+    searchParam?: string;
   }
 ): Promise<Measured<SerpResult>> {
   const highPriority = a.mode === "std" && a.priority === "high";
@@ -259,6 +265,7 @@ export async function serpOrganic(
           // The never-list's one exception, set only here, from the caller's boolean; `false` is sent, never omitted.
           load_async_ai_overview: flagged,
           ...(highPriority ? { priority: QUEUE_PRIORITY_HIGH } : {}),
+          ...(a.searchParam === undefined ? {} : { search_param: a.searchParam }),
         },
         a.abortMs,
         a.untilMs,

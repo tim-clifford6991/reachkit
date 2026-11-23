@@ -74,6 +74,8 @@ export interface SerpOrganicRow {
   domain: string;
   url: string;
   title: string;
+  /** The day Google dates the result (its `timestamp`), where it shows one. */
+  publishedAt?: string;
   /** Google sent the result through its redirect and the response named no site for it: the row is nobody's. */
   unresolved?: true;
 }
@@ -118,6 +120,8 @@ export interface SerpResult {
    *  of their own (SPEC §6, D67). Absent where it showed
    *  none: a search that is not asked of a place has no pack. */
   localPack?: readonly { title: string; domain: string; unresolved?: true }[];
+  /** Google showed a Top Stories block on this SERP (SPEC §6 *Market changes*). Absent where it showed none. */
+  topStories?: true;
 }
 
 /** `serpNews` — one result of a Google News search (SPEC §7, D48): the
