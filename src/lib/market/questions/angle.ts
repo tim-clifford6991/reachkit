@@ -65,7 +65,7 @@ function namedThings(title: string): string[] {
 }
 
 /** Every named thing is written in the search or a source: never the model's memory. */
-function namesAreReal(title: string, a: AngleContext): boolean {
+export function namesAreReal(title: string, a: AngleContext): boolean {
   const held = [a.search, ...a.sources, ...a.ranks].join("\n").toLowerCase();
   return namedThings(title).every((token) => held.includes(token.toLowerCase().replace(/^[$€£¥]/u, "")));
 }

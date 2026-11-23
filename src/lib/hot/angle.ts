@@ -5,6 +5,7 @@ import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Locale } from "@/lib/locale/locales";
 import type { MarketConclusion } from "@/lib/market/infer/types";
+import { namesAreReal, type TopicAngle } from "@/lib/market/questions/angle";
 import type { Profile } from "@/lib/market/questions/profile";
 import { newsWords } from "@/lib/generate/rules/title";
 import { judgeFit } from "@/lib/opportunities/derive/fit";
@@ -28,15 +29,10 @@ const TASK = [
 ].join(" ");
 
 
-/** Whether `text` names only what the event's sources do: every token with a digit is theirs. Pure. */
-export function namesOnlySourced(text: string, sources: string): boolean {
-  const said = sources.toLowerCase();
-  return (text.match(/[\p{L}\p{N}.\-]*\p{N}[\p{L}\p{N}.\-]*/gu) ?? []).every((token) => said.includes(token.toLowerCase().replace(/\.$/, "")));
-}
-
 export interface HotAngle {
   search: string;
   title: string;
+  angle: TopicAngle;
   fact: FitFact;
 }
 
@@ -65,17 +61,17 @@ export async function angleFor(
     },
   });
   if (answer.kind === "unmeasured" || !answer.value.changes || answer.value.sensitive) return null;
-  const sources = [a.event.event, a.event.title, ...a.event.claims.map((claim) => claim.quote)].join(" ");
+  const sources = [a.event.event, a.event.title, ...a.event.claims.map((claim) => claim.quote)];
   // The language's news words, which the page's own title is held to as well.
   const news = newsWords(a.locale.language);
-  const fair = (text: string): boolean => text.trim() !== "" && !news.test(text) && namesOnlySourced(text, sources);
+  const fair = (text: string): boolean => text.trim() !== "" && !news.test(text) && namesAreReal(text, { search: "", sources, ranks: [] });
   const angles = [...new Set(answer.value.angles.map((angle) => angle.trim()))].filter(fair);
   if (angles.length === 0 || c.capHit()) return null;
-  const fits = await judgeFit(c, { searches: angles.map((query) => ({ query, source: "category" })), market: a.market, profile: a.profile, domain: a.domain, knowledge: a.knowledge, locale: a.locale });
+  const fits = await judgeFit(c, { searches: angles.map((query) => ({ query, source: "category", ranks: sources })), market: a.market, profile: a.profile, domain: a.domain, knowledge: a.knowledge, locale: a.locale });
   for (const [i, search] of angles.entries()) {
     const judged = fits.get(i);
-    if (judged?.fit !== 3 || judged.fact === null) continue;
-    return { search, title: judged.title !== null && fair(judged.title) ? judged.title : search, fact: judged.fact };
+    if (judged?.fit !== 3 || judged.fact === null || judged.angle === null || judged.title === null || !fair(judged.title)) continue;
+    return { search, title: judged.title, angle: judged.angle, fact: judged.fact };
   }
   return null;
 }

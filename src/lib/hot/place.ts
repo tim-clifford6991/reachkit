@@ -74,7 +74,7 @@ async function place(siteId: string, date: string, now: Date, event: HotEvent): 
   );
   if (angle === null) return outcome(siteId, date, event, "no_angle");
 
-  const evidence = { family: "write" as const, query: angle.search, volume: unmeasured<number>("not_attempted", now), rival: null, fitFact: angle.fact, hot: { claims: event.claims } };
+  const evidence = { family: "write" as const, query: angle.search, volume: unmeasured<number>("not_attempted", now), rival: null, fitFact: angle.fact, angle: angle.angle, hot: { claims: event.claims } };
   const inserted = await store.insert({
     site_id: siteId, scan_id: report.scanId, type: "keyword_page", family: "write", target_query: angle.search, target_ref: slugify(angle.search, measuredLocale(report).language),
     proposed_slug: null, title: angle.title, volume: null, evidence, acceptance: { form: "top20", query: angle.search }, fit_band: "reach", business_fit: 3, source: "category", effort: EFFORT_BY_TYPE.keyword_page,
