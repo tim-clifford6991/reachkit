@@ -74,10 +74,13 @@ export async function serpNews(
     /** The vendor follows Google's `goto` links to the publisher's address (`resolve_goto_urls`), for a caller that can
      *  wait `VENDOR.resolvedNewsAbortMs`; a link it cannot follow comes back wrapped. */
     resolveRedirects?: true;
+    /** Only what Google dates in the past seven days (`tbs=qdr:w`), for a caller that wants what happened, not what ranks. */
+    pastWeek?: true;
   }
 ): Promise<Measured<NewsRow[]>> {
   let reused = false;
-  const cacheKey = `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${a.resolveRedirects ? "|goto" : ""}`;
+  const cacheKey = `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${a.resolveRedirects ? "|goto" : ""}${a.pastWeek ? "|w" : ""}`;
+  const fields = { keyword: a.query, ...(a.pastWeek ? { search_param: "&tbs=qdr:w" } : {}) };
   const rows = await ledgered<NewsRow>(c, {
     source: SOURCE,
     cacheKey,
@@ -86,9 +89,9 @@ export async function serpNews(
     fetch: () =>
       a.resolveRedirects
         ? // eslint-disable-next-line local/serp-normal-queue -- the job step holds one invocation; the vendor resolves the links on the live read.
-          callEndpoint(PATHS, "live", a.locale, { keyword: a.query, resolve_goto_urls: true }, VENDOR.resolvedNewsAbortMs)
+          callEndpoint(PATHS, "live", a.locale, { ...fields, resolve_goto_urls: true }, VENDOR.resolvedNewsAbortMs)
         : // eslint-disable-next-line local/serp-normal-queue -- a page is written inside one invocation.
-          callEndpoint(PATHS, "live", a.locale, { keyword: a.query }),
+          callEndpoint(PATHS, "live", a.locale, fields),
     parse: parseNews,
     onReused: () => {
       reused = true;

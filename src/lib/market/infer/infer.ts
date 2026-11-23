@@ -43,6 +43,8 @@ export const MARKET_SCHEMA = z.strictObject({
   synonyms: bounded(2, 4),
   differentiators: bounded(1, 5),
   notOurMarket: bounded(1, 6),
+  // Optional, so an answer without it still concludes the market.
+  watch: bounded(0, 4).optional(),
   categoryReason: z.string().min(1),
   // D69 and D67 (issue 1318).
   kind: z.enum(BUSINESS_KIND_NAMES as [string, ...string[]]),
@@ -69,6 +71,8 @@ export const MARKET_FIELDS = Object.freeze({
     "2 to 4 short strings: the established names buyers and vendors use for this same category, each 2-4 words, as a buyer would type it into a search box",
   differentiators: "1 to 5 short strings: what this business does that its rivals do not, from its own pages",
   notOurMarket: "1 to 6 short strings: adjacent categories buyers might confuse this with, whose buyers want a different outcome",
+  watch:
+    "0 to 4 short strings, in the site's language: the named things whose changes alter what this business's buyer does, as a news headline names them — the platforms, engines, regulators, rules, suppliers or seasons the buyer depends on (for an AI-visibility product: \"ChatGPT\", \"Google AI Mode\"; for a plumber: \"Gas Safe\", \"boiler grant\"); never this business, a rival or the category itself",
   categoryReason: "one sentence: why this category, citing the evidence",
   kind: `one of ${BUSINESS_KIND_NAMES.join("|")}`,
   servesCity: "one string: the city or metro it serves (\"Austin\"), or an empty string where it sells nationally or online",
@@ -217,6 +221,7 @@ export function concludeMarket(answer: MarketAnswer): Omit<MarketConclusion, "ri
     synonyms: list(answer.synonyms),
     differentiators: list(answer.differentiators),
     notOurMarket: list(answer.notOurMarket),
+    ...(answer.watch === undefined ? {} : { watch: list(answer.watch) }),
     categoryReason: answer.categoryReason.trim(),
     kind: answer.kind as BusinessKind,
     serves: placeOf(answer.servesCity, answer.servesRegion),

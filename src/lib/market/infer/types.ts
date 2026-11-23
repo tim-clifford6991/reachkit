@@ -90,6 +90,8 @@ export interface MarketConclusion {
   /** Adjacent markets this site is not in — the head categories a guess
    *  could slide into. */
   notOurMarket: readonly string[];
+  /** Up to four named things whose changes alter what the buyer does: the weekly news read searches them. */
+  watch?: readonly string[];
   /** One line: why this category. */
   categoryReason: string;
   /** Three to five real competitors, closest first. */
