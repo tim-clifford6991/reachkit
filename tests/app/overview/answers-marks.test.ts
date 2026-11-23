@@ -29,11 +29,8 @@ describe("what one engine said about the site, as one mark", () => {
     expect(markOf(answered("wikipedia.org", OWN), OWN)).toBe("links_to_you");
   });
 
-  it("an answer carrying the brand somewhere else names it, and does not link", () => {
-    // A marketplace listing, a profile page, a review: the answer reached
-    // the brand through somebody else's page, which is a weaker fact than a
-    // link and a real one. It is the score's own mention rate, drawn.
-    expect(markOf(answered("reachkit-reviews.com"), OWN)).toBe("names_you");
+  it("a host that only carries the brand somewhere else is no mention", () => {
+    expect(markOf(answered("reachkit-reviews.com"), OWN)).toBe("names_others");
   });
 
   it("a brand token matches a whole label and never a fragment of one", () => {

@@ -486,6 +486,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tiles.how.google": "Pages on Google: live pages Google has added or shown in a search. “Shown” is how often Google showed them in the last 28 days.",
   "overview.tiles.how.google.no-console": "Without Search Console, we only see the searches we check ourselves.",
   "overview.tiles.how.ai": "AI answers mentioning you: answers that name or link your site. We ask AI your buyers’ questions over {weeks} weeks, leaving out ones that name you.",
+  "overview.tiles.how.ai.other": "A name that may belong to another business is not counted.",
   "overview.tiles.how.ai.read": "AI apps read: pages an AI app opened to answer someone. Our own checks are left out.",
   "overview.tiles.how.visits": "Visits from Google, AI apps and other sites to the pages we host. AI reading your pages is counted on the AI tile, not here.",
   "overview.tiles.how.visits.floor": "Some apps hide where visitors came from, so the real number can be higher.",

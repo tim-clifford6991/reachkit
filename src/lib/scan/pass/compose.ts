@@ -44,6 +44,7 @@ export function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | 
       schemaTypes: sections.measurement === null || sections.measurement.onPage.kind === "unmeasured" ? [] : sections.measurement.onPage.value.schemaTypes,
     },
     siteName: sections.siteName,
+    town: sections.measurement?.locale.place?.name,
     coverage: a.parameters.asyncAiOverview && !a.correction ? "async_included" : "cached_only",
   });
   sections.rivals = measured(cards.rivals, sections.questions.at);
@@ -67,6 +68,7 @@ export function score(a: Pick<StageArgs, "domain" | "sections" | "parameters" | 
     selected: sections.questions.kind === "unmeasured" ? 0 : sections.questions.value.length,
     ownDomain: domain,
     siteName: sections.siteName,
+    town: sections.measurement?.locale.place?.name,
     measuredAt: sections.questions.at,
   });
 
@@ -132,7 +134,7 @@ export function composeReport(a: {
       : {
           ...m.drivers,
           searchPresence: searchPresenceOf({ card: searchCard, serps: s.serps, at: measuredAt }),
-          aiPresence: aiPresenceOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, at: measuredAt }),
+          aiPresence: aiPresenceOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, town: m?.locale.place?.name, at: measuredAt }),
         };
 
   const market = marketOf(s, measuredAt);
@@ -153,7 +155,7 @@ export function composeReport(a: {
     question_serps: outcomeOf(foldSerps(s.serps, measuredAt)),
   };
 
-  const aiSample = aiSampleOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName });
+  const aiSample = aiSampleOf({ serps: s.serps, pageCells, ownDomain: a.domain, siteName: s.siteName, town: m?.locale.place?.name });
   const verdict: Verdict = verdictOf({
     domain: a.domain,
     measuredAt,

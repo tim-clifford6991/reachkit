@@ -179,6 +179,7 @@ export async function finishReads(
       ownDomain: report.domain,
       reach: reachOfReport(report),
       siteName: promptSiteName(await store.siteName(report.domain), report.domain),
+      town: report.locale?.place?.name,
       coverage: "async_included",
     });
     merged.presence = stored(cards.presence);

@@ -135,3 +135,8 @@ export async function readLivePages(siteId: string): Promise<string[]> {
     .sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""))
     .map((row) => row.live_url);
 }
+
+/** The pages the site serves as last read: its stored crawl's and ReachKit's live ones; `null` where no crawl is stored, so an unread site unlinks nothing. */
+export async function readServedPages(siteId: string, inventory: readonly { url: string }[] | undefined): Promise<string[] | null> {
+  return inventory === undefined || inventory.length === 0 ? null : [...(await readLivePages(siteId).catch(() => [])), ...inventory.map((row) => row.url)];
+}

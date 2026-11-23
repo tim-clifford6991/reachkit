@@ -208,7 +208,7 @@ export function TilesHow(p: { noConsole: boolean; read: boolean }): React.JSX.El
         <p>{copy("overview.tiles.how.pages")}</p>
         <p>{copy("overview.tiles.how.google")}</p>
         {p.noConsole ? <p>{copy("overview.tiles.how.google.no-console")}</p> : null}
-        <p>{copy("overview.tiles.how.ai", { weeks: formatCount(AI_WINDOW_WEEKS) })}</p>
+        <p>{`${copy("overview.tiles.how.ai", { weeks: formatCount(AI_WINDOW_WEEKS) })} ${copy("overview.tiles.how.ai.other")}`}</p>
         {p.read ? <p>{copy("overview.tiles.how.ai.read")}</p> : null}
         <p>{copy("overview.tiles.how.visits")}</p>
         <p>{copy("overview.tiles.how.visits.floor")}</p>

@@ -64,9 +64,8 @@ export interface AnswersSite {
  *
  * An answered cell is split by `classifyReferences` — the score's function,
  * not a second one. *Linked* is a reference whose host is the site's own;
- * *named* is a reference somewhere else carrying the site's brand token
- * whole, or the cell's `named`, which the pass set with the same function
- * from the answer's text and cited addresses (issue 1420). `linked` wins
+ * *named* is the cell's `named`, which the pass set with the same function
+ * from the answer's text and cited addresses. `linked` wins
  * where an answer did both: a link is the stronger fact and the tile
  * beneath already counts the two apart.
  */

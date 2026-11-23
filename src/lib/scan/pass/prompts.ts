@@ -77,7 +77,9 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
       console.log(JSON.stringify({ event: "tracked_prompts", asked: 0, because: "no_market" }));
       return;
     }
-    const siteName = promptSiteName((await readSiteProfile(a.domain))?.siteName ?? null, a.domain);
+    const profile = await readSiteProfile(a.domain);
+    const siteName = promptSiteName(profile?.siteName ?? null, a.domain);
+    const pages = await import("@/lib/known-content/ours").then(({ readServedPages }) => readServedPages(siteId, profile?.inventory));
     const stored = await readPromptSet(siteId);
     // The twelve as this pass asks them, then the runners-up.
     const twelve = sections.questions.kind === "unmeasured" ? sections.selected : sections.questions.value.map((question) => question.search);
@@ -115,6 +117,8 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         siteName,
         rivals: market.rivals,
         language: locale.language,
+        town: locale.place?.name,
+        pages,
       });
       answers.push({
         promptId: prompt.id,
@@ -127,6 +131,7 @@ export async function askTheTrackedPrompts(a: StageArgs): Promise<void> {
         ...(reading.alternatives.length === 0 ? {} : { alternatives: reading.alternatives }),
         ...(reading.cited.length === 0 ? {} : { cited: reading.cited }),
         ...(reading.states.length === 0 ? {} : { states: reading.states }),
+        ...(reading.possiblyOther ? { possiblyOther: true as const } : {}),
       });
       if (prompt.kind !== "branded" && prompt.kind !== "comparison" && !evidence.has(prompt.id)) {
         evidence.set(prompt.id, {
