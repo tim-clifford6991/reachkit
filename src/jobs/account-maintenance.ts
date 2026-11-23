@@ -51,7 +51,7 @@ import {
   backstopProvision,
   chaseSignIn,
   finishScanLeftRunning,
-  hostedDestinationsDueHealth,
+  destinationsDueHealth,
   marketDigestsDue,
   noticeHostingEnd,
   paymentsAwaitingSignIn,
@@ -113,10 +113,8 @@ const DUE_WORK: readonly {
   { due: accountsDuePaymentFailed, handOff: noticePaymentFailed },
   { due: accountsDueCancellation, handOff: noticeCancellation },
   { due: accountsDueWinback, handOff: winBack },
-  // Issue #791: a hosted destination's health, refreshed once its window
-  // has passed, so `destination_working` stops depending on a founder
-  // opening Settings after their record verifies.
-  { due: hostedDestinationsDueHealth, handOff: refreshDestinationHealth },
+  // A destination's health, refreshed once its window has passed: no screen re-checks it.
+  { due: destinationsDueHealth, handOff: refreshDestinationHealth },
   deepPassBackstop,
   // Issue 796: the weekly passes that found too little market, told to the
   // owner as one digest per Monday rather than one mail per site.

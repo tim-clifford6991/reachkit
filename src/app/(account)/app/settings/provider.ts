@@ -40,8 +40,7 @@
 //
 // WO-179 step 2: no measurement, no vendor call and no model call happens
 // here or downstream of here for the site's own facts. `listDestinations`
-// reaches Postgres and resolves DNS for a hosted destination, and neither
-// is a measurement, a vendor call or a model call.
+// reads the stored check; the maintenance tick makes it.
 import type { LinkMap } from "@/lib/known-content/link-map";
 import type { MonthGot } from "@/lib/account/billing";
 import { cache } from "react";

@@ -99,6 +99,8 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   publishingEnabled: true,
   voiceText: "Plain and specific. No hype, no superlatives, first person plural.",
   doNotClaim: Object.freeze(["fastest on the market", "GDPR certified"]),
+  // A hostname, never a sentence — the value setup's fixture carries.
+  cnameTarget: "content.dev.reachkit.app",
   // **One destination, and one only** — the database allows one live row
   // per site. A live hosted address on the shell fixture's own blog host,
   // the state the Publishing board draws; the broken arms are exercised by
@@ -106,9 +108,6 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   //
   // Built through the registry's own `destinationView`, never hand-written,
   // so a fixture cannot show a control the engine would not offer.
-  destinationsReadable: true,
-  // A hostname, never a sentence — the value setup's fixture carries.
-  cnameTarget: "content.dev.reachkit.app",
   destinations: Object.freeze([
     destinationView({
       id: "dest-hosted",

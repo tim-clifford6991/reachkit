@@ -37,9 +37,8 @@ import { fakeDb } from "../../harness";
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
-const { connect } = await import("@/lib/publish/destinations");
+const { connect, listDestinations } = await import("@/lib/publish/destinations");
 const { destinationView } = await import("@/lib/publish/destinations/view");
-const { __resetHealthDebounceForTesting } = await import("@/lib/publish/destinations/health");
 const { WORDPRESS_ADAPTER, WordPressProbeError, canPublish, canStamp } = await import(
   "@/lib/publish/destinations/wordpress/adapter"
 );
@@ -61,7 +60,6 @@ beforeEach(() => {
   db.seed("destinations", []);
   site.status = 401;
   site.requests = [];
-  __resetHealthDebounceForTesting();
   logged = [];
   vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
     logged.push(args.map(String).join(" "));
@@ -137,5 +135,16 @@ describe("a connect with a wrong application password, through to the card", () 
     await connect({ siteId: "site-1", kind: "wordpress", config: CREDENTIAL, by: CUSTOMER });
     expect(logged.length).toBeGreaterThan(0);
     expect(leaks(logged.join("\n"))).toEqual([]);
+  });
+});
+
+describe("Settings reads a destination last checked days ago", () => {
+  it("from its stored row, without asking the customer's site", async () => {
+    await connect({ siteId: "site-1", kind: "wordpress", config: CREDENTIAL, by: CUSTOMER });
+    db.rows("destinations")[0]!.last_checked_at = "2026-01-01T00:00:00.000Z";
+    site.requests = [];
+    const [view] = await listDestinations("site-1");
+    expect(site.requests).toEqual([]);
+    expect(view?.action).toBe("reconnect");
   });
 });

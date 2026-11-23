@@ -48,7 +48,7 @@ export default function SettingsPagesTab(): React.JSX.Element {
 
 async function Publishing(): Promise<React.JSX.Element> {
   const [all, shell] = await Promise.all([landed(readSettings(), "settings"), landed(readShell(), "shell")]);
-  const settings = readsLanded(all, "publishing", "publishingOn");
+  const settings = readsLanded(all, "publishing", "publishingOn", "destinations");
   if (settings === null || shell === null) return <Unread testId="settings-unread-publishing" />;
   return <PublishingPanel settings={settings} next={nextPageOf(shell, settings.publishing.vetoHours)} />;
 }
