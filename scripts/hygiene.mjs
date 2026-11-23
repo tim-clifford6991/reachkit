@@ -9,7 +9,7 @@ import { existsSync, lstatSync, readFileSync, readdirSync, unlinkSync, writeFile
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { blockRuleFindings, blockRules, budgetFindings, GENERATED_DB_TYPES, isMeasured, lineCount, lineFindings, plainWordsFindings, RATCHETS, ratchetFindings } from "./lib/budgets.mjs";
+import { blockRuleFindings, blockRules, budgetFindings, specRowFindings, GENERATED_DB_TYPES, isMeasured, lineCount, lineFindings, plainWordsFindings, RATCHETS, ratchetFindings } from "./lib/budgets.mjs";
 import { duplicateKeys, ENTRY_RE, keyFileCounts } from "./lib/plain-words.mjs";
 import { mainCheckoutFinding } from "./lib/main-checkout.mjs";
 import { fetchesPayloadFilters } from "./lib/fetches-payload-filter.mjs";
@@ -314,6 +314,7 @@ function checkBudgets(texts) {
   const baseSpec = diffed ? run("git", ["-C", ROOT, "show", "HEAD^1:docs/SPEC.md"]) : null;
   const rules = { head: blockRules(readRel("docs/SPEC.md") ?? ""), base: baseSpec?.ok ? blockRules(baseSpec.stdout) : null };
   for (const finding of blockRuleFindings({ budget: budgets?.blockRules, ...rules, named: added.map(readRel).join("\n") })) add("repo", finding);
+  for (const finding of specRowFindings({ budget: budgets?.specRows, spec: readRel("docs/SPEC.md") ?? "" })) add("repo", finding);
   const grep = (token) => run("git", ["-C", ROOT, "grep", "-l", "-F", token, "HEAD^1", "--", "src"]).stdout.split("\n").filter(Boolean).map((l) => l.slice(7));
   for (const finding of ratchetFindings({ budget: budgets?.ratchets, files: texts, baseFiles: diffed ? Object.fromEntries(Object.entries(RATCHETS).map(([n, t]) => [n, grep(t)])) : null })) add("repo", finding);
   if (!diffed) return;
