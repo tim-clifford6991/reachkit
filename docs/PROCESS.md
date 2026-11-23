@@ -10,7 +10,7 @@ This page states the approach of the open `simplify` tracking issue (#2513) and 
 
 `docs/SPEC.md` holds one table of current rules per section (owner C7, 2026-11-08): `name | block/warn | outcome protected | ruling`. Once a section's table has landed, an owner ruling edits its row, with the date and the ruling, in the same pull request, and no new decision file is added for that section. Until then a ruling is a dated decision file, `docs/spec/decisions/YYYY-MM-DD-<issue>.md`, headed by its section (`node scripts/spec-decisions.mjs new <issue> <§n>`); a file that supersedes another names it on a `replaces:` line.
 
-Agents add only `warn` rules, and only the owner makes a rule `block`. An incident fix adds no block rule: it relaxes or deletes one, or it goes to the owner. `blockRules` in `scripts/budgets.json` holds each section's count of `block` rows, and `scripts/hygiene.mjs` fails a count that differs from it.
+A rule may stop a topic or a page for five reasons only, the five `block` rows of `docs/SPEC.md` §0 (owner, 2026-11-23, #2722 rulings 97 and 98): a duplicate of a live or planned page; not a buyer's search for what the business sells; a claim no stored source supports; harm (the law, a platform's terms, or the customer's no); a spend or volume cap. Each reason is checked once, where the pipeline needs it; every other rule is a ranking weight or is deleted. A sixth reason needs an owner ruling, and an incident fix never adds one. An issue or pull request that adds or changes a check that can stop a topic or a page names, under Conditions, the reason it enforces and the one check it extends. `blockRules` in `scripts/budgets.json` is 5 for §0 and 0 elsewhere, and `scripts/hygiene.mjs` fails any other count.
 
 ### 2. The queue
 
@@ -24,7 +24,7 @@ One issue, one worktree, one session; no session directs another. There is no ma
 
 A session is started with `space.sh reachkit <issue> [role]` in the Herdr workspace `reachkit`, one tab per issue. The engineer works in `/root/projects/reachkit/.wt/issue-<N>`, branched from `origin/main`, and stops at one pull request or one comment. The checkout at `/root/projects/reachkit` stays on `main`. A worktree is removed when its pull request merges. The agent roles are the files in `.claude/agents/`.
 
-Two agents are scheduled, both read-only and 0¢. The first is the Monday weekly review, `.claude/skills/weekly-review/`, which opens at most five unready `from-weekly` issues. The second is the daily check, `.claude/agents/daily-check.md`, run by `rk-daily-check.timer`.
+Two agents are scheduled, both read-only and 0¢. The first is the Monday weekly review, `.claude/skills/weekly-review/`, which files no issues: its findings go to the owner in its report (owner, 2026-11-23, #2722 ruling 99). The second is the daily check, `.claude/agents/daily-check.md`, run by `rk-daily-check.timer`.
 
 ### 4. Merge and deploy
 
@@ -69,9 +69,8 @@ Owner, 2026-11-15 (#2712): "ensure for any future UX improvements or fixes, teh 
 - Any issue that changes what a person sees, reads or does (a screen, dialog, mail, copy or layout) gets a **ux-designer** review before an engineer builds it.
 - A screen only the owner can see (for example `/app/review` and other owner-only keys and boards) needs no UX review; customer-facing screens, mail and public pages always do.
 - The product manager copies the ux-designer's conditions into the issue as a comment headed `UX review`. Until that comment exists the issue is not Ready.
-- A pull request that changes a screen, dialog, mail, public page or customer-facing wording also gets a ux-designer read of the built change (390 and 1280, the strings as built) before merge, labelled or not; the read is a PR comment headed `UX check`, and until it exists the pull request is not armed (owner, 2026-11-20, #2722 ruling 55). It is one pass: the designer names blocking defects only and never asks for a test, and a non-blocking note goes to one follow-up issue. The coordinator verifies the fixes from `git diff <passed sha> <head> -- src` and asks for a second pass only when that delta changes layout structure (owner, 2026-11-22).
+- A pull request that changes a screen, dialog, mail, public page or customer-facing wording also gets a ux-designer read of the built change (390 and 1280, the strings as built) before merge, labelled or not; the read is a PR comment headed `UX check`, and until it exists the pull request is not armed (owner, 2026-11-20, #2722 ruling 55). It is one pass: the designer names blocking defects only and never asks for a test, and a non-blocking note goes to one follow-up issue. These two, the review before build and the check of the built pull request, are the only UX checkpoints (owner, 2026-11-23, #2722 ruling 99).
 - The pull request lists those conditions under Conditions, and its body says it meets each one with its proof.
-- Release QA returns NO-GO on a pull request that touches a customer-facing screen, mail or public page without the issue's `UX review` comment and the pull request's `UX check` comment.
 - The automatic half is the daisyUI include-list check from #2711: it fails when `src/**/*.tsx` uses a daisyUI component that `src/ui/tailwind.css`'s `include:` leaves out. It runs inside the existing gates; it is not a fifth gate.
 
 ### Coherence

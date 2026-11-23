@@ -15,7 +15,7 @@ cd /root/projects/reachkit
 unset ANTHROPIC_API_KEY
 read_tools="Read Grep Glob Task Skill WebFetch Edit(./.review/weekly/**) Bash(git fetch -q origin) Bash(git ls-files src) Bash(xargs wc -l) Bash(sort -n) Bash(tail -21) Bash(mkdir -p .review/weekly) Bash(date -u +%F) Bash(date -u -d '7 days ago' +%F) Bash(curl -fsS https://reachkit.app/api/health) Bash(npm run orphans) Bash(npm run costs -- --stored) Bash(npm outdated --json) Bash(npm audit --omit=dev --json) Bash(node scripts/hygiene.mjs) Bash(node scripts/this-week.mjs) Bash(gh issue list:*) Bash(gh issue view:*) Bash(gh pr list:*) Bash(gh run list:*) Bash(gh api 'repos/tim-clifford6991/reachkit/actions/runs?per_page=100' --jq:*)"
 # The only file it may write is under .review/weekly/; a dry run is given no tool that writes to GitHub.
-write_tools="Bash(gh issue create:*) Bash(gh issue comment:*) Bash(gh issue edit:*) Bash(gh issue pin:*) Bash(gh label create:*)"
+write_tools="Bash(gh issue edit:*)"
 [[ "${1:-}" == "dry-run" ]] && write_tools=""
 exec /root/.local/bin/claude -p "/weekly-review ${1:-}" \
   --permission-mode dontAsk \
@@ -25,7 +25,7 @@ exec /root/.local/bin/claude -p "/weekly-review ${1:-}" \
 
 Every allowed command is read-only and written exactly as `SKILL.md` runs it. A prefix (`:*`) stays only where no option of that command writes a file or runs another program: `gh issue list`, `gh issue view`, `gh pr list` and `gh run list` only read, and the runs call takes a date in its `--jq` filter and that path has no write method. A command the skill does not run is not on the list.
 
-A dry run by hand: `bash /root/ops/reachkit/bin/weekly.sh dry-run`. It writes the report and the page and files nothing.
+A dry run by hand: `bash /root/ops/reachkit/bin/weekly.sh dry-run`. It writes the report and the page and edits nothing on GitHub.
 
 `/etc/systemd/system/rk-weekly.service`:
 
