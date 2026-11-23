@@ -520,7 +520,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     async liveOpportunityIds(siteId) {
       const { data, error } = await untyped().from<{ drafts: { opportunity_id: string | null } | null }>("publications").select("drafts(opportunity_id)")
-        .eq("site_id", siteId).not("published_at", "is", null).is("unpublished_at", null);
+        .eq("site_id", siteId).not("published_at", "is", null).not("live_url", "is", null).is("unpublished_at", null);
       if (error) throw new Error(`opportunities.liveOpportunityIds: ${error.message}`);
       return new Set((data ?? []).flatMap((page) => page.drafts?.opportunity_id ?? []));
     },
