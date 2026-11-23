@@ -241,6 +241,18 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   a day already at either is refused `spend_ceiling` before spend. Each re-run writes one
   `ops_events` row of kind `weekly_rerun`, code its key, read `{weekStart, scanId, cents, outcome}`.
   Add `early: true` with next Monday's `weekStart` to re-run an early pass.
+- **A test site's page for a date, written now** (temporary). The owner sends `draft/generate/subject`
+  with `{siteId, publishDate: <the site-local date, YYYY-MM-DD>, hour: <now, ISO>, test: true,
+  key: "draft:<siteId>:<publishDate>:test:<n>"}`, a new `<n>` each time (the same key twice is one
+  run). Only a site in `WEEKLY_RERUN_SITES` may; any other is refused `not_a_test_site` at 0¢, and a
+  day already at `DAILY_SITE_C` or the product's day ceiling is refused `spend_ceiling` before spend.
+  It runs the date's plan row, research, write and rules under a fresh `DRAFT_C` 87¢, and saves the
+  page as a **test draft**: undated, `meta.test: true`, moving no topic, taken `in_review` (or
+  `needs_attention` when the rules stop it) and then `skipped` by `draft/test`, so it never
+  publishes, mails or starts a veto clock, and the date's 08:03 write still happens. Read it with
+  `select title, body_md, meta, transitions from drafts where site_id = '<siteId>' and meta->>'test' = 'true' order by created_at desc`.
+  Each run writes one `ops_events` row of kind `draft_test`, code the date, read
+  `{key, publishDate, outcome, draftId, cents}`.
 - **`publish/verify` sleeps 24 hours** before its body, by design. Invoking it is not a way to
   check a page now.
 

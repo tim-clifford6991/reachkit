@@ -55,7 +55,7 @@ export async function openDayCost<T>(a: { scanId: string; siteId: string; since:
   return withCostContext({ scanId: a.scanId, cap: "DRAFT", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", priorCents: priorCents ?? CAPS.DRAFT_C }, body);
 }
 
-async function draftSpendSince(siteId: string, since: Date): Promise<number | null> {
+export async function draftSpendSince(siteId: string, since: Date): Promise<number | null> {
   const { data, error } = await untypedFetches(dbAdmin()).from<Pick<FetchesRow, "cost_cents">>("fetches").select("cost_cents").eq("site_id", siteId).eq("activity", "draft").gte("created_at", since.toISOString());
   const total = (data ?? []).reduce((sum, row) => sum + Number(row.cost_cents), 0);
   return error !== null || data === null || !Number.isFinite(total) ? null : total;

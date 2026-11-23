@@ -141,8 +141,8 @@ export async function transition<To extends State>(
   }
 
   log({ draftId, from, to, actor: by.kind, outcome: "moved" });
-  // The recheck's retire leaves the topic as the stop left it, so a topic since un-rested stays un-rested.
-  const retired = to === "skipped" && by.kind === "system" && by.job === "draft/recheck";
+  // The recheck's retire and a test draft's end leave the topic as it was, so a topic since un-rested stays un-rested.
+  const retired = to === "skipped" && by.kind === "system" && (by.job === "draft/recheck" || by.job === "draft/test");
   if ((to === "skipped" && !retired) || (from === "needs_attention" && to === "in_review")) {
     await settleOpportunityOf(draftId, from, to, at);
   }

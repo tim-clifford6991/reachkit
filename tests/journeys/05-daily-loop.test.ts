@@ -39,6 +39,8 @@
 // refuses an owner-owed key and every sentence on this chain is owed.
 // `COPY` itself is left real.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// The fixture site is a test site, so the owner's test write runs for it (`WEEKLY_RERUN_SITES`, read once at import).
+vi.hoisted(() => void (process.env.WEEKLY_RERUN_SITES = "22222222-2222-4222-8222-222222222222"));
 import { captureMail } from "./harness";
 import { textRowOf } from "@/lib/measure/text-store";
 import { actionsFor } from "@/app/(account)/app/calendar/actions";
@@ -46,13 +48,8 @@ import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRp
 
 const db: FakeDb = fakeDb();
 
-/** `fetches` needs a builder the §9 harness's double does not carry: the
- *  cost seam's cache read chains `.gt().order().limit()`, and §8's
- *  grounding read chains `.eq().in()`. This is that one table, with the
- *  chain those two reads use and rows stored in the same `db.tables` the
- *  rest of the journey reads — so the ledger below is the ledger the
- *  product would have written, and every cache read is the miss it is
- *  (this journey spends fresh: nothing it asks for was asked before). */
+/** `fetches` with the chains the cost seam's cache read and §8's grounding read use, stored in the journey's own
+ *  `db.tables`: the ledger below is the product's, and every cache read misses, since this journey spends fresh. */
 function fetchesBuilder() {
   const filters: { op: string; column: string; value: unknown }[] = [];
   let verb: "select" | "insert" = "select";
@@ -602,17 +599,8 @@ async function generateTonightsPage(): Promise<string> {
   return outcome.draftId;
 }
 
-/** Step 3 — the edge into review, with the deadline the site's window puts
- *  on it, and the telling the customer is owed.
- *
- *  **The engine takes it now** (issue 709): `enterReview` is what the
- *  evening tick's `generateDraft` seam calls after a passing generation —
- *  it stamps the deadline, moves the page, and sends the draft-ready mail
- *  through the real template, compose shell and send seam (#174). Until
- *  then this journey made those three moves by hand, because nothing in
- *  the product did. The token this returns is read back out of the link
- *  that actually went to the inbox, so the veto tests below stop the page
- *  with the link the customer was actually sent. */
+/** Step 3 — the edge into review as the evening tick's `enterReview` makes it: the deadline, the move and the
+ *  draft-ready mail through the real send seam. The token is read out of the link that went to the inbox. */
 async function enterReviewAndTell(draftId: string): Promise<{ token: string }> {
   expect(await enterReview({ draftId, at: TOLD_AT })).toEqual({ kind: "entered", told: true });
   expect(theDraftRow().veto_deadline).toBe(
@@ -740,6 +728,17 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     },
     JOURNEY_TIMEOUT_MS
   );
+
+  it("the owner's test write: off the list it is refused before spend, and on it the topic is read, never planned", async () => {
+    await seedOneOpportunity();
+    const [before, steps] = [JSON.stringify(opportunities.rows), [] as string[]];
+    const { writeTestDraft } = await import("../../src/lib/generate/test-draft");
+    const write = (siteId: string) => writeTestDraft({ siteId, publishDate: nextPublishDate(EVENING, SITE_CLOCK), key: `draft:${siteId}:test:1`, now: EVENING, step: (name, body) => (steps.push(name), body()) });
+    expect([await write("site-off-the-list"), steps]).toEqual([{ outcome: "not_a_test_site", draftId: null }, ["record"]]);
+    // The seeded row is unplanned: the date's own run would plan the week, and a test write leaves the plan as it is.
+    expect(await write(SITE_ID)).toEqual({ outcome: "no_opportunity", draftId: null });
+    expect([JSON.stringify(opportunities.rows), ledger(), generateStore.rows.size]).toEqual([before, [], 0]);
+  });
 
   it(
     "the veto window: the page enters review and the customer is told",

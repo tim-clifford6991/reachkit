@@ -62,6 +62,7 @@ import type { FixNote } from "./pipeline/repair";
 import type { MarketResearch } from "./pipeline/research";
 import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
+import { inTest } from "./test-draft";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 
@@ -187,7 +188,7 @@ export async function generateDayPage(a: {
               ? await fixPage(page, own)
               : mendable(opportunity) || snippetOnly(opportunity)
                 ? await mendPage(page, own)
-                : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now(), fixStep: "owe" }, own);
+                : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now(), ...(inTest() ? {} : { fixStep: "owe" as const }) }, own);
         } catch (error) {
           // The customer stopped this page while it was written: nothing was saved, and the day takes the week's next spare.
           if (!(error instanceof PageStopped)) throw error;
@@ -196,6 +197,8 @@ export async function generateDayPage(a: {
           opportunity = spare;
           continue;
         }
+        // A test draft is one page that moves no topic: its row is ended by `writeTestDraft`.
+        if (inTest()) return outcome;
         await settle(outcome, opportunity.id, now, site);
 
         // SPEC §7 (D26, issue 1179): a stopped draft does not cost its day.
@@ -546,7 +549,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     // the day becomes an update of it — on the same row, once, and held to no
     // bar of its own; otherwise the row rests and the draft asks the founder
     // for the missing fact.
-    if (last.step === "adds" && !becameUpdate && !cost.capHit()) {
+    if (last.step === "adds" && !becameUpdate && !cost.capHit() && !inTest()) {
       const update = await updateInstead(opportunity, known, new Date());
       if (update !== null) {
         console.log(JSON.stringify({ event: "draft_became_update", siteId: a.siteId, draftId: draftId ?? null, page: update.targetRef }));
