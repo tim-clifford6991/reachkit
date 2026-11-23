@@ -155,18 +155,16 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
  *  of. Only a week with no measurement at all sends nothing, and that
  *  decision is `sendWeeklyDigest`'s, read from `accountForWeek`. */
 export async function startWeeklyScan(
-  a: DueSite & { readonly now: Date; readonly step?: StepRunner; readonly early?: boolean }
+  a: DueSite & { readonly now: Date; readonly step?: StepRunner; readonly early?: boolean; readonly rerun?: Rerun }
 ): Promise<EngineResult> {
   const step: StepRunner = a.step ?? ((_name, body) => body());
+  const { siteId, domain, zone, now, weekStart } = a;
   const outcome = await step(`measure-${a.siteId}`, () =>
-    runWeekly({
-      siteId: a.siteId,
-      domain: a.domain,
-      zone: a.zone,
-      now: a.now,
-      ...(a.early === true ? { early: true, weekStart: a.weekStart } : {}),
-    })
+    runWeekly({ siteId, domain, zone, now, ...(a.early === true ? { early: true, weekStart } : {}), ...(a.rerun === undefined ? {} : { rerun: { mail: a.rerun.mail }, weekStart }) })
   );
+  // A refused re-run touches nothing further; every re-run records what it cost.
+  const recorded = (rerun: Rerun) => step(`rerun-${siteId}`, async () => (await import("@/lib/scan/weekly/rerun")).recordRerun({ siteId, weekStart, key: rerun.key, outcome }));
+  if (a.rerun !== undefined && !outcome.ran) return recorded(a.rerun).then(() => ({ degraded: outcome.because }));
 
   if (outcome.ran && outcome.status !== "failed") {
     const scanId = outcome.scanId;
@@ -186,7 +184,7 @@ export async function startWeeklyScan(
   // the week is judged — #1538's `seen` reads URL Inspection. Never throws.
   await step(`search-${a.siteId}`, async () => {
     const { readSearchEngines } = await import("@/lib/publish/destinations/hosted/search-engines");
-    await readSearchEngines({ siteId: a.siteId, now: a.now });
+    await readSearchEngines({ siteId: a.siteId, now: a.now, again: a.rerun !== undefined });
   });
 
   // SPEC §7: the week judged, its best rows' own SERPs bought and their research checked, then committed before it is told.
@@ -200,19 +198,21 @@ export async function startWeeklyScan(
     for (let n = 0; at(n).length > 0; n++) checks.push(...(await step(`research-check-${a.siteId}-${n}`, () => checkWeekResearch({ ...week, rows: at(n) }))));
     await step(`commit-${a.siteId}`, () => commitWeek({ ...week, rows, checks }));
   }
-  return step(`tell-${a.siteId}`, () => tellWeek(a, outcome));
+  const told = await step(`tell-${a.siteId}`, () => tellWeek(a, outcome));
+  if (a.rerun !== undefined) await recorded(a.rerun);
+  return told;
 }
 
+/** The owner's re-run of a test site's week: its own idempotency key, and whether the Monday mail goes again. */
+export type Rerun = { readonly key: string; readonly mail: boolean };
+
 /** The week told, after it is judged and committed. A failed pass stored no report, so its week judges nothing. */
-async function tellWeek(a: DueSite & { readonly now: Date }, outcome: WeeklyOutcome): Promise<EngineResult> {
+async function tellWeek(a: DueSite & { readonly now: Date; readonly rerun?: Rerun }, outcome: WeeklyOutcome): Promise<EngineResult> {
   // A week the vendor refused for credit is still due: nothing is judged, planned or told until a pass measures it.
   if (outcome.ran && outcome.status === "failed" && outcome.because === "vendor_funds") return { degraded: "vendor_funds" };
   const { sendWeeklyDigest } = await import("@/lib/mail/weekly");
-  const told = await sendWeeklyDigest({
-    siteId: a.siteId,
-    weekStart: a.weekStart,
-    now: a.now,
-  });
+  if (a.rerun !== undefined && !a.rerun.mail) return outcome.ran && outcome.status === "degraded" ? { degraded: outcome.unmeasured.join(",") } : { done: true };
+  const told = await sendWeeklyDigest({ siteId: a.siteId, weekStart: a.weekStart, now: a.now });
 
   if (outcome.ran && outcome.status === "degraded") return { degraded: outcome.unmeasured.join(",") };
   // A measured week whose telling could not be composed is a degraded
@@ -255,11 +255,6 @@ async function tellWeek(a: DueSite & { readonly now: Date }, outcome: WeeklyOutc
 // nobody ran. It is a different failure from `EngineNotBuilt` and carries
 // a different name, so an operator reading a dead-letter can tell "this
 // engine is missing" from "this event should never have been sent".
-//
-// (What was here before pointed the free arm at "#24's admission claim".
-// #24 is closed and was the `llm()` seam; no admission issue exists, and
-// admission is not what stands between the free tier and this job — the
-// route is.)
 //
 // A deep pass takes `runDeepPass` rather than `runScan` directly, because
 // onboarding needs two things the other tiers do not: the founder's stage

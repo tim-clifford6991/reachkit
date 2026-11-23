@@ -14,13 +14,14 @@ import { topUpSpend } from "@/lib/market/questions/top-up-buy";
 import { FREE_SCAN_POLICY_VERSION } from "../ceilings";
 import { accountForWeek, type UnmeasuredPart } from "./account";
 import { hasActiveAccess } from "@/lib/account/billing";
-import { claimWeek, readSiteZone, releaseWeek } from "./store";
+import { dayRefused, isTestSite } from "./rerun";
+import { claimRerun, claimWeek, readSiteZone, releaseWeek, supersedeWeek } from "./store";
 import { runScan, spendOnStoredReport } from "../run";
 import { readSiteCategory } from "../site-category";
 import { localClock, weekHasBegun, weekStartFor, weekStartInstant } from "./week";
 
 /** Why a week was not measured, before anything was spent. */
-export type WeeklyRefusal = "week_not_begun" | "already_measured" | "no_active_access" | "kill_switch" | "not_next_week";
+export type WeeklyRefusal = "week_not_begun" | "already_measured" | "no_active_access" | "kill_switch" | "not_next_week" | "not_this_week" | "not_a_test_site" | "spend_ceiling";
 
 export type WeeklyOutcome =
   | { readonly ran: true; readonly scanId: string; readonly status: "done" }
@@ -47,8 +48,11 @@ export async function runWeekly(a: {
   now: Date;
   /** Sent by the owner: next week's pass, run now, which that Monday then finds measured. */
   early?: boolean;
+  /** Sent by the owner for a listed test site: the named week measured again on a fresh budget. */
+  rerun?: { readonly mail: boolean };
   weekStart?: string;
 }): Promise<WeeklyOutcome> {
+  if (a.rerun !== undefined && !isTestSite(a.siteId)) return refuse(a.siteId, "not_a_test_site");
   // A site with no stated zone has no local Monday, so no week has begun; nothing is spent, and no zone is chosen for it.
   const zone = a.zone ?? (await readSiteZone(a.siteId));
   if (zone === null || zone === undefined) return refuse(a.siteId, "week_not_begun");
@@ -58,7 +62,7 @@ export async function runWeekly(a: {
 
   const thisWeek = weekStartFor({ at: a.now, zone });
   const weekStart = a.early === true ? new Date(Date.parse(`${thisWeek}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10) : thisWeek;
-  if (a.early === true && a.weekStart !== weekStart) return refuse(a.siteId, "not_next_week");
+  if ((a.early === true || a.rerun !== undefined) && a.weekStart !== weekStart) return refuse(a.siteId, a.early === true ? "not_next_week" : "not_this_week");
   if (!weekHasBegun({ at: a.now, zone })) return refuse(a.siteId, "week_not_begun");
 
   if (!(await hasActiveAccess(a.siteId))) return refuse(a.siteId, "no_active_access");
@@ -66,7 +70,9 @@ export async function runWeekly(a: {
   // Read before the claim, so a failed read leaves no week to release. The category the founder confirmed is the one the week searches.
   const category = await readSiteCategory(a.siteId);
 
-  const claim = await claimWeek({ siteId: a.siteId, domain: a.domain, weekStart });
+  // The site's day and the product's are the re-run's runaway guard, read before its row is claimed.
+  if (a.rerun !== undefined && (await dayRefused(a.siteId, a.now))) return refuse(a.siteId, "spend_ceiling");
+  const claim = a.rerun !== undefined ? await claimRerun(a) : await claimWeek({ siteId: a.siteId, domain: a.domain, weekStart });
   if (!claim.claimed) return refuse(a.siteId, "already_measured");
 
   // 2. The one pipeline. Everything about what a weekly pass buys — the
@@ -135,6 +141,8 @@ export async function runWeekly(a: {
     logWeekly({ siteId: a.siteId, weekStart, outcome: "failed" });
     return { ran: true, scanId: claim.scanId, status: "failed" };
   }
+
+  if (a.rerun !== undefined) await supersedeWeek({ siteId: a.siteId, weekStart, scanId: claim.scanId, mail: a.rerun.mail });
 
   // 3. What came back, read through the one account of the week — so the
   //    parts a degraded run did not reach are named in exactly one place.

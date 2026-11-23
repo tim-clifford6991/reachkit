@@ -646,9 +646,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     // has begun (REQ-073 c1 forbids a zone we chose).
     sites = [{ id: SITE_ID, domain: DOMAIN, timezone: null, user_id: USER_ID }];
     await expect(weekly.dueSites(MONDAY)).resolves.toEqual([]);
-    await expect(
-      weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, now: MONDAY })
-    ).resolves.toEqual({ ran: false, because: "week_not_begun" });
+    await expect(weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, now: MONDAY })).resolves.toEqual({ ran: false, because: "week_not_begun" });
 
     // Access ended: no week is owed, and none is measured.
     sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE, user_id: USER_ID }];
@@ -657,6 +655,8 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     await expect(
       weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: MONDAY })
     ).resolves.toEqual({ ran: false, because: "no_active_access" });
+    // A re-run for a site not on the test list is refused before anything is read or spent.
+    await expect(weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: MONDAY, rerun: { mail: false }, weekStart: "2000-01-03" })).resolves.toEqual({ ran: false, because: "not_a_test_site" });
 
     expect(ledger()).toEqual([]);
     expect(scans).toEqual([]);

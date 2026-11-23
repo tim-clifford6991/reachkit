@@ -136,6 +136,7 @@ export async function pageQuestionMisses(siteId: string): Promise<MissesByPage> 
     .select("week_start, report")
     .eq("site_id", siteId)
     .eq("tier", "weekly")
+    .not("week_start", "is", null)
     .not("report", "is", null)
     .order("week_start", { ascending: false })
     .limit(PAGE_QUESTION_RETIRE_WEEKS);

@@ -229,7 +229,7 @@ async function restoreShown(a: { siteId: string; totals: readonly { page: string
 }
 
 /** The weekly step for one site. Never throws. */
-export async function readSearchEngines(a: { siteId: string; now: Date; deps?: SearchEngineDeps }): Promise<void> {
+export async function readSearchEngines(a: { siteId: string; now: Date; deps?: SearchEngineDeps; again?: boolean }): Promise<void> {
   const deps = a.deps ?? {};
   try {
     await announceUnannounced({ siteId: a.siteId, at: a.now, ...(deps.announce === undefined ? {} : { send: deps.announce }) });
@@ -349,7 +349,7 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       await db.from("publications").update({ search_reading: stamped }).eq("id", page.id);
       if (counted && newestAt.get(page.live_url) === page.id) weeks.push(...pageWeeks({ siteId: a.siteId, page, reads: reads ?? [], reading, now: a.now }));
     }
-    await keepWeeks({ siteId: a.siteId, rows: weeks, now: a.now });
+    await keepWeeks({ siteId: a.siteId, rows: weeks, now: a.now, again: a.again === true });
   } catch (error) {
     log("search_engines_failed", { siteId: a.siteId, message: String(error) });
   }

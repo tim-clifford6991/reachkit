@@ -71,10 +71,13 @@ export function pageWeeks(a: {
     });
 }
 
-/** Writes the weeks not yet on file in one statement, then trims the site's weeks past 57; never on a request. */
-export async function keepWeeks(a: { siteId: string; rows: readonly WeekRow[]; now: Date }): Promise<void> {
-  const db = publishDb();
-  const kept = a.rows.length === 0 ? { error: null } : await db.from("publication_weeks").upsert(a.rows, { onConflict: "publication_id,week_start", ignoreDuplicates: true });
+/** Writes the weeks not yet on file, then trims the site's weeks past 57; never on a request. `again` writes the newest week over what is
+ *  on file too, since only it carries this pass's reading: an older week's reading cannot be measured again. */
+export async function keepWeeks(a: { siteId: string; rows: readonly WeekRow[]; now: Date; again?: boolean }): Promise<void> {
+  const db = publishDb(), upsert = (rows: WeekRow[], over: boolean) => db.from("publication_weeks").upsert(rows, { onConflict: "publication_id,week_start", ignoreDuplicates: !over });
+  const newest = a.rows.filter((row) => a.again === true && row.reading !== null), rest = a.rows.filter((row) => !newest.includes(row));
+  const kept = newest.length > 0 ? await upsert(newest, true) : { error: null };
+  const added = rest.length > 0 ? await upsert(rest, false) : { error: null };
   const trimmed = await db.from("publication_weeks").delete().eq("site_id", a.siteId).lt("week_start", weeksKeptFrom(a.now));
-  for (const { error } of [kept, trimmed]) if (error !== null) console.log(JSON.stringify({ event: "publication_weeks_unwritten", siteId: a.siteId, message: error.message }));
+  for (const { error } of [kept, added, trimmed]) if (error !== null) console.log(JSON.stringify({ event: "publication_weeks_unwritten", siteId: a.siteId, message: error.message }));
 }
