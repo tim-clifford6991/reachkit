@@ -102,8 +102,8 @@ export interface RepairInputs {
   /** The customer's own pages the page's facts were read from, by address,
    *  with the text the measurement read on them. */
   sources: readonly { url: string; text: string }[];
-  /** The rivals recorded for the site, for the rival-figure repair. */
-  rivals?: readonly string[];
+  /** The rivals recorded for the site, for the rival-figure repair; the business's own pages (`domain`) never source one's figure. */
+  rivals?: readonly string[]; domain?: string;
   /** The same rivals with their market names (issue 1485). */
   rivalsNamed?: readonly NamedRival[];
   /** What the prose check reads, so a phrase it counts too often is dropped by its own count. */
@@ -223,8 +223,10 @@ function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
     const figure = unsourcedRivalFigure({ text, hasLink: hasLink(piece), links: linksOf(piece) }, rivals, pages);
     if (figure === null) return piece;
     const named = rivals.map((rival) => rival.trim().toLowerCase().split(/[.\s]/)[0] ?? "").filter((label) => label.length > 2 && text.toLowerCase().includes(label));
-    const own = (url: string) => named.some((label) => (/^[a-z]+:\/\/([^/]+)/i.exec(url)?.[1] ?? "").toLowerCase().includes(label));
-    const url = sourceOf(figure, text, [...inputs.sources].sort((a, b) => Number(own(b.url)) - Number(own(a.url))));
+    const host = (url: string) => (/^[a-z]+:\/\/(?:www\.)?([^/]+)/i.exec(url)?.[1] ?? "").toLowerCase();
+    const own = (url: string) => named.some((label) => host(url).includes(label));
+    const theirs = inputs.sources.filter((source) => inputs.domain === undefined || host(source.url) !== inputs.domain.toLowerCase().replace(/^www\./, ""));
+    const url = sourceOf(figure, text, theirs.sort((a, b) => Number(own(b.url)) - Number(own(a.url))));
     return url === null ? piece : piece.replace(numeralRe(figure), `[${figure}](${url})`);
   }, true);
 }

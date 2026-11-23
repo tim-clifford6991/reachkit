@@ -222,6 +222,7 @@ export async function checkPage(
           ...b.pack.claims.map((claim) => ({ url: claim.url, text: claim.passage })),
         ],
         rivals: b.site.rivals,
+        domain: b.site.domain,
         rivalsNamed: b.rivalsNamed,
         prose: inputs.prose,
         // Issue 2375: the sentences the fit check named.
