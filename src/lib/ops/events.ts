@@ -90,6 +90,15 @@ export async function claimOpsEvent(kind: string, siteId: string, code: string, 
   return true;
 }
 
+/** Writes the site's `kind` row keyed `code`, then drops the ones held before it, so the one read is this. */
+export async function replaceOpsEvent(kind: string, siteId: string, code: string, read: string): Promise<void> {
+  const rows = await events();
+  const { data, error } = await rows().insert({ kind, read, site_id: siteId, code }).select("id").single();
+  if (error !== null) throw new Error(`ops_events replace: ${error.message}`);
+  const dropped = await rows().delete().eq("kind", kind).eq("site_id", siteId).eq("code", code).lt("id", (data as { id: number }).id);
+  if (dropped.error !== null) throw new Error(`ops_events replace: ${dropped.error.message}`);
+}
+
 /** A page written anyway after its day's pack fell short, `reason` what it fell short of: one row per draft however often
  *  its day's job runs. Never throws, since the page it reports on stands. */
 export function recordWrittenAnyway(siteId: string, draftId: string, reason: string): Promise<boolean> {
