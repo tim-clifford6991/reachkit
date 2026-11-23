@@ -3,11 +3,11 @@
 import type React from "react";
 import Link from "next/link";
 import { ChevronDown, FileText } from "lucide-react";
-import type { ContentType } from "@/lib/opportunities/content-type";
 import type { CommittedRow } from "@/lib/opportunities/review/week";
 import type { PlanWriteAs, PointPart } from "@/lib/opportunities/types";
 import type { Label } from "@/lib/opportunities/verdicts/types";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { pageTypeWord } from "@/lib/presentation/page-type";
 import { LinkMapPanel } from "../settings/panels/LinkMapPanel";
 import { whyLineOf } from "../calendar/card-lines";
 import { Answers } from "./Answers";
@@ -50,16 +50,6 @@ const LABEL: Record<Label, { key: CopyKey; badge: string }> = {
 };
 const UNMEASURED_BADGE = "badge badge-ghost";
 
-const PAGE: Record<Exclude<ContentType, "update">, CopyKey> = {
-  listicle: "review.page.listicle",
-  how_to: "review.page.how_to",
-  documentation: "review.page.documentation",
-  research: "review.page.research",
-  qa: "review.page.qa",
-  insights: "review.page.insights",
-  offering: "review.page.offering",
-};
-
 const PART: Record<PointPart, CopyKey> = {
   fit: "review.part.fit",
   demand: "review.part.demand",
@@ -85,9 +75,7 @@ function cell(value: string | number | null): string {
 }
 
 function pageWord(row: CommittedRow): string {
-  if (row.page === "update") return copy("review.page.update");
-  const type = (row.writeAs as PlanWriteAs | null) ?? row.page;
-  return type === null ? NONE : copy("review.page.new", { type: copy(PAGE[type]) });
+  return pageTypeWord(row.page === "update" ? "update" : ((row.writeAs as PlanWriteAs | null) ?? row.page)) ?? NONE;
 }
 
 function Head(p: { cols: readonly CopyKey[] }): React.JSX.Element {

@@ -331,8 +331,8 @@ export const CALENDAR_COPY = Object.freeze({
   // a date with nothing to say at all. Composed from a key rather than
   // joined in the renderer, so the punctuation a screen reader pauses on is
   // the owner's.
-  "calendar.card.aria.page": "{date}. {stage}. {title}",
-  "calendar.card.aria.written": "{date}. {stage}. {title}. {label}",
+  "calendar.card.aria.page": "{date}. {stage}. {kind}. {title}",
+  "calendar.card.aria.written": "{date}. {stage}. {kind}. {title}. {label}",
   "calendar.card.aria.empty": "{date}. {reason}",
   "calendar.card.aria.date": "{date}",
 
@@ -412,7 +412,9 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.pane.stopped.next": "Nothing goes live on {weekday}. Monday’s check picks the next 7.",
   "calendar.pane.writing": "Being written now, started {time}. It shows here to read when it’s done.",
   "calendar.pane.body.label": "{title}, the page",
-  "calendar.next": "{date}: we check again and pick the next {n}.",
+  "calendar.card.check": "Weekly check: we see where you stand on Google and in AI answers, then pick the next {n} pages.",
+  "calendar.card.after-check": "The weekly check on {day} may change this page.",
+  "calendar.week.next": "Next Week",
   "calendar.chosen.title": "How this week’s pages were chosen",
   "calendar.chosen.body": "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
   "calendar.chosen.added": "When news fits what you sell, we add a page the next day we write. The page planned there moves to the next free day.",

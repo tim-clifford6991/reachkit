@@ -18,6 +18,7 @@
 // ("Supply is the cap: never invent an opportunity to fill a day; the
 // calendar is never padded") are kept by a read that cannot pad.
 import type { SiteCheck } from "@/lib/site-issues/types";
+import type { ContentType } from "@/lib/opportunities/content-type";
 import type { TargetFacts } from "./target";
 import type { DestinationKind, UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
 import type { NeedsYouCause } from "@/lib/publish/record/needs-you";
@@ -53,6 +54,10 @@ export interface DraftOnDay {
   title: string;
   /** `renderGenerated`'s label where `title` is the draft's own written title; absent where it is the search. */
   titleLabel?: string;
+  /** A planned page's stored proposed title, with its label, as `renderGenerated` gave them. */
+  proposed?: { title: string; label: string };
+  /** The type the page is written as, the stored `plan_write_as` before the row's own. */
+  type?: ContentType | null;
   state: State;
   scheduledFor: DayKey;
   why: WhyThisPage;
@@ -384,6 +389,8 @@ function countsOf(cells: readonly DayCell[]): Record<StageFilter, number> {
  *  spares. */
 export interface WeekModel extends Pick<MonthModel, "timeZone" | "stopped" | "destination" | "held" | "today" | "spares"> {
   cells: readonly DayCell[];
+  /** After the week's Sunday: each day holding a page, and the next Monday, whose weekly check plans the days ahead. */
+  after: readonly DayCell[];
   /** The days drawn: the site's week from setup on, ending at its last day with something to say. */
   days: readonly DayKey[];
   /** The first day of the site's own week (`weekStartFor`), which a first week drawn from setup does not start on. */
@@ -418,10 +425,16 @@ export function weekOf(months: readonly MonthModel[], a: { today: DayKey; weekSt
   }
   // No run of empty cards waits at the week's end for a pass that has not run.
   while (cells.length > 0 && bare(cells.at(-1)!, today)) cells.pop();
+  // After Sunday the next Monday says "planned later" when it holds no page, and no other empty day is drawn.
+  const monday = addDays(weekStart, 7);
+  const after = months
+    .flatMap((model) => model.cells.filter((cell) => cell.inMonth && cell.day >= monday && (cell.page !== null || cell.day === monday)))
+    .map((cell) => (cell.page === null ? { ...cell, empty: null, statesLine: false, horizonMarker: true } : cell))
+    .sort((x, y) => x.day.localeCompare(y.day));
   // The month today falls in carries the site's facts; the first week of a month starts in the month before it.
   const home = months.find((model) => cellFor(model, today) !== undefined) ?? months[0]!;
   const { timeZone, stopped, destination, held, spares } = home;
-  return { cells, days: cells.map((cell) => cell.day), weekStart, counts: countsOf(cells), timeZone, stopped, destination, held, today, spares };
+  return { cells, after, days: cells.map((cell) => cell.day), weekStart, counts: countsOf(cells), timeZone, stopped, destination, held, today, spares };
 }
 
 /** "Pages this week", as This Week and Overview both state it: the drawn days that hold a page. */

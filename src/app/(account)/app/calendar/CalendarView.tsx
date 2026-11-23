@@ -69,7 +69,7 @@ export function CalendarView(p: {
   const wide = useSyncExternalStore(onWidth, () => window.matchMedia(WIDE).matches, () => true);
   const implicit = day === null;
   const selected: DayKey | null = day === DAY_CLOSED ? null : (day ?? p.screen.opensOn);
-  const card = selected === null ? undefined : p.screen.cards.find((found) => found.day === selected);
+  const card = selected === null ? undefined : [...p.screen.cards, ...p.screen.nextWeek].find((found) => found.day === selected);
   // Below `lg` the pane covers the list, and an implicit day opens nothing there.
   const shown = card === undefined || (implicit && !wide) ? null : card.day;
   const covers = shown !== null && !wide;
@@ -94,7 +94,7 @@ export function CalendarView(p: {
   return (
     <div className={BODY} data-frame={REGION.body}>
       <div className={COLUMN} data-testid="plan-week-card">
-        <WeekGrid cards={p.screen.cards} selected={shown} onSelect={(next) => void setDay(next)} />
+        <WeekGrid cards={p.screen.cards} nextWeek={p.screen.nextWeek} selected={shown} onSelect={(next) => void setDay(next)} />
 
         {/* The week's spares, used only where a day's page cannot be written. */}
         {p.week.spares.length === 0 ? null : (

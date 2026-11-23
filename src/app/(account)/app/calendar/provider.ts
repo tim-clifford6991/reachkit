@@ -117,8 +117,9 @@ export const readMonth = cache(async function readMonth(month: MonthKey): Promis
 
 /** Plan's week (SPEC §7, E5): the site's own week that holds `today`, read through `readMonth` for each month it touches. */
 export const readWeek = cache(async function readWeek(today: DayKey): Promise<WeekModel> {
-  const { weekStart, setupDay } = await readPlanHead();
-  const months = [...new Set([weekStart, today, addDays(weekStart, 6)].map(monthOf))];
+  const { weekStart, setupDay, commitStart } = await readPlanHead();
+  // Through the next Monday and the commit's last date, so the days after Sunday are read too.
+  const months = [...new Set([weekStart, today, addDays(weekStart, 7), commitEnd(today, commitStart)].map(monthOf))];
   return weekOf(await Promise.all(months.map((month) => readMonth(month))), { today, weekStart, setupDay });
 });
 

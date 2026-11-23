@@ -11,6 +11,7 @@ import type { PublishedPage, PublishedRead } from "@/lib/measure/published";
 import type { AnswerEngine } from "@/lib/opportunities/types";
 import type { CitationEntry, PageCitations } from "@/lib/generate/citations";
 import { whenSaid } from "@/lib/generate/rules/prose";
+import { pageTypeWord } from "@/lib/presentation/page-type";
 import { formatCount, formatDate, formatDateTime, formatShortDay, formatTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
@@ -39,7 +40,6 @@ export interface ScreenHead {
 }
 
 export interface ScreenFoot {
-  next: string;
   title: string;
   body: string;
 }
@@ -67,7 +67,7 @@ export type PaneModel =
       unread: string | null;
       sources: SourcesModel | null;
     }
-  | { kind: "planned"; date: string; title: string; why: string | null; moved: string | null; facts: PaneFact[]; next: string | null }
+  | { kind: "planned"; date: string; title: string; titleLabel?: string; why: string | null; moved: string | null; facts: PaneFact[]; next: string | null }
   | { kind: "lines"; date: string; lines: string[] };
 
 export interface SourceEntryModel {
@@ -105,6 +105,8 @@ export interface CardModel {
   /** "Mon 23", the card's own date; "Today, Mon 23" on today's. */
   dayLabel: string;
   kind: "new" | "update" | null;
+  /** The kind chip's words: "Update", or "New · {type}". */
+  chip: string | null;
   state: DayState | null;
   title: string | null;
   titleLabel?: string;
@@ -118,6 +120,10 @@ export interface CardModel {
   /** The quiet two words a day with no page says, where it says them. */
   emptyLine: string | null;
   fix: SiteCheck | null;
+  /** On a planned page after the next check: that check may change it. */
+  afterCheck: string | null;
+  /** On the next check's own day: what the weekly check does. */
+  check: string | null;
   ariaLabel: string;
   pane: PaneModel;
 }
@@ -125,6 +131,8 @@ export interface CardModel {
 export interface WeekScreen {
   head: ScreenHead;
   cards: CardModel[];
+  /** After Sunday, under Next Week: each day holding a page, and the next check's day. */
+  nextWeek: CardModel[];
   /** The card the pane opens on when the address names none. */
   opensOn: DayKey | null;
 }
@@ -177,7 +185,6 @@ export function headOf(facts: PlanHeadFacts, week: WeekModel): ScreenHead {
     paused: week.held === "publishing_off" ? copy("calendar.head.paused") : null,
     timed: chosen !== null && time !== null,
     foot: {
-      next: copy("calendar.next", { date: next, n: formatCount(WEEK_PLAN.days) }),
       title: copy("calendar.chosen.title"),
       body: `${copy("calendar.chosen.body", { n: formatCount(WEEK_PLAN.days) })} ${copy("calendar.chosen.added")} ${copy("calendar.chosen.stored")}`,
     },
@@ -308,6 +315,8 @@ function cardOf(
     week: WeekModel;
     time: string | null;
     next: string;
+    /** The next weekly check's day. */
+    check: DayKey;
     firstSkip: boolean;
     published: ReadonlyMap<string, PublishedPage>;
     bodies: ReadonlySet<string> | null;
@@ -324,6 +333,8 @@ function cardOf(
   const stateLine = stateLineOf(cell, a.firstSkip);
   // A stopped or skipped day's own sentence says it; its two words would repeat the badge.
   const emptyLine = stateLine !== null && (state === "stopped" || state === "skipped") ? null : cardLineFor(cell, "all");
+  const chip = page === null ? null : (pageTypeWord(page.update ? "update" : (page.type ?? null)) ?? copy("calendar.chip.new"));
+  const checkDay = `${weekdayShort(a.check)} ${dayNumber(a.check)}`;
   const base = {
     cell,
     day: cell.day,
@@ -332,12 +343,17 @@ function cardOf(
     stateLine,
     emptyLine,
     fix: emptyLine !== null && cell.empty?.cause === "instruction" ? cell.empty.check : null,
-    ariaLabel: cardLabel({ cell, page, line: emptyLine ?? stateLine, date: spoken }),
+    chip,
+    afterCheck: state === "planned" && cell.day > a.check ? copy("calendar.card.after-check", { day: checkDay }) : null,
+    check: cell.day === a.check ? copy("calendar.card.check", { n: formatCount(WEEK_PLAN.days) }) : null,
+    ariaLabel: cardLabel({ cell, line: emptyLine ?? stateLine, date: spoken }),
     sources: null,
   };
-  // A page's label names the stage its badge shows.
-  const labelled = (title: string): string =>
-    state === null ? base.ariaLabel : copy("calendar.card.aria.page", { date: spoken, stage: copy(DAY_STATE_COPY_KEY[state]), title });
+  // A page's label names the stage its badge shows and the kind its chip says.
+  const labelled = (title: string, label?: string): string =>
+    state === null
+      ? base.ariaLabel
+      : copy(label === undefined ? "calendar.card.aria.page" : "calendar.card.aria.written", { date: spoken, stage: copy(DAY_STATE_COPY_KEY[state]), kind: chip ?? "", title, label: label ?? "" });
 
   if (page === null) {
     const lines =
@@ -361,17 +377,22 @@ function cardOf(
   if (page.stage === "planned" && page.state === "planned") {
     const { lines, facts } = plannedFacts(page);
     if (page.hotLine != null) lines.unshift(page.hotLine);
+    const search = page.why.search || page.title;
+    const proposed = page.proposed;
+    const label = proposed === undefined ? {} : { titleLabel: proposed.label };
     return {
       ...base,
-      ariaLabel: labelled(page.why.search || page.title),
+      ariaLabel: labelled(proposed?.title ?? search, proposed?.label),
       kind,
-      title: page.why.search || page.title,
-      search: true,
+      title: proposed?.title ?? search,
+      ...label,
+      search: proposed === undefined,
       lines,
       pane: {
         kind: "planned",
         date,
-        title: copy("calendar.pane.planned.title", { search: page.why.search || page.title }),
+        title: proposed?.title ?? copy("calendar.pane.planned.title", { search }),
+        ...label,
         why: page.whyLine,
         moved: movedLine(page, cell.day),
         facts,
@@ -410,7 +431,7 @@ function cardOf(
   return {
     ...base,
     sources: count === 0 ? null : count === 1 ? copy("calendar.card.sources.one") : copy("calendar.card.sources", { n: formatCount(count) }),
-    ariaLabel: labelled(page.title),
+    ariaLabel: labelled(page.title, page.titleLabel),
     kind,
     title: page.title,
     ...(page.titleLabel === undefined ? {} : { titleLabel: page.titleLabel }),
@@ -452,7 +473,7 @@ export function waitsToGoLive(cell: DayCell, today: DayKey): boolean {
 
 /** The drafts whose body the pane draws: a page written or live, never one still planned or being written. */
 export function writtenDrafts(week: WeekModel): string[] {
-  return week.cells.flatMap((cell) => {
+  return [...week.cells, ...week.after].flatMap((cell) => {
     const page = cell.page;
     return page === null || page.draftId === null || page.state === "generating" || page.state === "planned" ? [] : [page.draftId];
   });
@@ -470,19 +491,21 @@ export function weekScreen(a: {
 }): WeekScreen {
   const { week } = a;
   const time = weekGoesLive(week, a.head.publishTime);
-  const next = shortDay(checkDays(a.head, week.today).next);
+  const check = checkDays(a.head, week.today).next;
+  const next = shortDay(check);
   const firstSkip = week.cells.find((cell) => cell.day >= week.today && dayStateOf(cell) === "skipped")?.day ?? null;
   const published = new Map((a.published?.pages ?? []).flatMap((page) => (page.draftId === undefined ? [] : [[page.draftId, page] as const])));
   const bodies = a.bodies === undefined ? new Set(writtenDrafts(week)) : a.bodies;
-  const cards = [...week.cells]
-    .sort((x, y) => x.day.localeCompare(y.day))
-    .map((cell) => cardOf(cell, { week, time, next, firstSkip: cell.day === firstSkip, published, bodies, sources: a.sources ?? new Map() }));
+  const card = (cell: DayCell): CardModel => cardOf(cell, { week, time, next, check, firstSkip: cell.day === firstSkip, published, bodies, sources: a.sources ?? new Map() });
+  const cards = [...week.cells].sort((x, y) => x.day.localeCompare(y.day)).map(card);
   const today = cards.find((card) => card.day === week.today);
   const written = cards.find((card) => card.day >= week.today && card.pane.kind === "page");
   const live = [...cards].reverse().find((card) => card.day < week.today && card.state === "live");
   return {
     head: headOf(a.head, week),
     cards,
+    // The next Monday is drawn bare only where the weekly check runs on it.
+    nextWeek: week.after.filter((cell) => cell.page !== null || cell.day === check).map(card),
     opensOn: (today?.cell.page != null ? today : (written ?? live))?.day ?? week.today,
   };
 }

@@ -46,7 +46,7 @@ export const REVIEW_COPY = Object.freeze({
   "review.page.update": "Update",
   "review.page.listicle": "comparison",
   "review.page.how_to": "how-to",
-  "review.page.documentation": "documentation",
+  "review.page.documentation": "explainer",
   "review.page.research": "research",
   "review.page.qa": "Q&A",
   "review.page.insights": "current insights",
