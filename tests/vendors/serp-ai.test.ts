@@ -476,11 +476,11 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
     expect(result.value.citedDomains).not.toContain("retrieved-not-cited.com");
   });
 
-  it("parseLlmScraper keeps the distinct fan-outs and every retrieved page, and cites only `sources`", () => {
+  it("parseLlmScraper keeps every item's text and `sources`, the distinct fan-outs and every retrieved page, and cites only `sources`", () => {
     const [answer] = ai.parseLlmScraper({
       items: [
         {
-          markdown: "ChatGPT's answer …",
+          markdown: "## Top tools",
           fan_out_queries: ["best crm for agencies", "  best crm for agencies ", "crm pricing compared"],
           search_results: [
             { url: "https://cited-one.test/guide" },
@@ -488,11 +488,13 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
             { url: "https://retrieved-b.test/b" },
             { url: "https://retrieved-c.test/c" },
           ],
-          sources: [{ domain: "cited-one.test", url: "https://cited-one.test/guide" }, { url: "https://cited-two.test/page" }],
+          sources: [{ domain: "cited-one.test", url: "https://cited-one.test/guide" }],
         },
+        { markdown: "1. Cited Two", sources: [{ url: "https://cited-two.test/page" }] },
       ],
     }) ?? [];
 
+    expect(answer?.text).toBe("## Top tools\n\n1. Cited Two");
     expect(answer?.fanOuts).toEqual(["best crm for agencies", "crm pricing compared"]);
     expect(answer?.retrievedUrls).toHaveLength(4);
     expect(answer?.citedUrls).toEqual(["https://cited-one.test/guide", "https://cited-two.test/page"]);
