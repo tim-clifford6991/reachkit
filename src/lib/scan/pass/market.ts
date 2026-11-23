@@ -95,9 +95,12 @@ export async function readMarket(a: StageArgs, abandoned: () => boolean): Promis
   // as for a bot-protected site, but only where the pass still has time for this call and the phrasing after it.
   if ((failed(profile) || profile.kind === "unmeasured" || profile.value.category === "") && "home" in reading && roomForAnotherProfile(bounds)) {
     const listing = listingReadingOf(a, measurement);
-    if (listing !== null) {
-      reading = listing;
-      profile = await attempt("reading_your_market", () => deriveProfile(cost, { locale: localeOfPass(a), ...listing }));
+    // A paying site with no listing to read asks its own pages once more where the model gave no answer at all: one slow call must not cost it the week.
+    const unanswered = failed(profile) || profile.kind === "unmeasured";
+    const again = listing ?? (unanswered && a.concludesMarket === true ? reading : null);
+    if (again !== null) {
+      reading = again;
+      profile = await attempt("reading_your_market", () => deriveProfile(cost, { locale: localeOfPass(a), ...again }));
       if (abandoned()) return;
     }
   }

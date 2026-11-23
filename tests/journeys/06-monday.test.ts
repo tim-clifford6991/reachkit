@@ -755,6 +755,14 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     JOURNEY_TIMEOUT_MS
   );
 
+  it("a profile call the model never answers is asked once more, so one timeout does not leave the week without a market", async () => {
+    let timeouts = 1;
+    modelCalls.push = (input: string) => { if (input.includes('"home"') && timeouts-- > 0) throw new Error("Request timed out."); return Array.prototype.push.call(modelCalls, input); };
+    const outcome = await measureTheWeek().finally(() => delete (modelCalls as { push?: unknown }).push);
+    const report = readStoredReport(JSON.parse(JSON.stringify(db.rpcCalls.find((call) => call.fn === "store_current_report")?.args.p_report)));
+    expect([outcome.ran && outcome.status !== "failed", report.market.kind]).toEqual([true, "measured"]);
+  }, JOURNEY_TIMEOUT_MS);
+
   it("an unmeasured week states no number, and the digest is told once", async () => {
     const greeting = { name: "Dana", week: 3, business: "acme.example" };
     // A week that measured nothing states no number; the whole-mail line says so, and the standing line follows it.
@@ -762,25 +770,10 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     expect(partial.blocks.map((block) => block.block)).toEqual(["heading", "action", "paragraph"]);
     expect(chooseWholeMailLine({ blocks: partial.blocks, measurement: { state: "none", nextDueOn: MONDAY } })).toBe("mail.week_unmeasured");
 
-    // And through the sender the tick actually calls (#181). The week has
-    // to exist for it to be told about: this row is the one `claimWeek`
-    // writes, with no report — which reads back as a *partial* week, the
-    // arm that still sends and names the sections it missed.
-    scans.push({
-      id: "scan-told",
-      site_id: SITE_ID,
-      tier: "weekly",
-      week_start: "2026-08-31",
-      status: "done",
-      report: null,
-      digest_sent_at: null,
-    });
+    // Through the sender the tick calls: the row `claimWeek` writes, with no report, reads back as a partial week, which still sends.
+    scans.push({ id: "scan-told", site_id: SITE_ID, tier: "weekly", week_start: "2026-08-31", status: "done", report: null, digest_sent_at: null });
 
-    // The digest's own lines are written (issue #458), and this week judged
-    // a page: the word a judged page is given — `verdict.page.*`, the
-    // verdict partition's — is written too, the owner's approved words of
-    // 2026-09-10 (#459). So the mail composes: the vendor is handed it once,
-    // and **the week is stamped**, so the next tick does not tell it again.
+    // The digest's lines are written, so the mail composes: the vendor is handed it once, and the week is stamped so the next tick does not tell it again.
     for (const key of DIGEST_KEYS) expect(COPY[key].trim(), key).not.toBe("");
     const told = await sendWeeklyDigest({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
     expect(told).toEqual({ sent: true, id: "resend-1" });

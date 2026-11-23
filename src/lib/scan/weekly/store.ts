@@ -109,7 +109,7 @@ function isAWeek(row: { status?: string }): boolean {
  *  fault. */
 const UNIQUE_VIOLATION = "23505";
 
-export type Claim = { readonly claimed: true; readonly scanId: string } | { readonly claimed: false };
+export type Claim = { readonly claimed: true; readonly scanId: string; readonly retaken?: true } | { readonly claimed: false };
 
 /** Inserts the `running` row for one site's week before any spend; `runScan` writes its report to this row, so a pass never inserts a second. */
 export async function claimWeek(a: {
@@ -142,7 +142,7 @@ export async function claimWeek(a: {
     .select("id");
   if (retaken.error) throw new Error(`weekly: could not claim the week: ${retaken.error.message}`);
   const row = retaken.data?.[0];
-  return row === undefined ? { claimed: false } : { claimed: true, scanId: row.id };
+  return row === undefined ? { claimed: false } : { claimed: true, scanId: row.id, retaken: true };
 }
 
 /** Releases a claim that measured nothing, so the next hourly tick retries
