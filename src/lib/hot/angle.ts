@@ -9,6 +9,7 @@ import { namesAreReal, type TopicAngle } from "@/lib/market/questions/angle";
 import type { Profile } from "@/lib/market/questions/profile";
 import { newsWords } from "@/lib/generate/rules/title";
 import { judgeFit } from "@/lib/opportunities/derive/fit";
+import type { BusinessFit } from "@/lib/opportunities/types";
 import type { FitFact, KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import type { HotEvent } from "./detect";
 
@@ -34,7 +35,7 @@ export interface HotAngle {
   title: string;
   angle: TopicAngle;
   fact: FitFact | null;
-  fit: number;
+  fit: BusinessFit;
   /** Whether the event changes what a buyer decides or does, which its `timely` part reads. */
   changes: boolean;
 }

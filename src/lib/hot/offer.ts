@@ -19,13 +19,16 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
     const store = opportunityStore(), day = a.now.toISOString().slice(0, 10);
     const events = await readHotEvents(a.siteId, day);
     if (events.length === 0) return 0;
-    const [report, held, locale] = await Promise.all([store.currentReport(a.siteId), store.marketFor(a.siteId), siteLocale(a.siteId)]);
-    if (report === null) return 0;
-    const profile = report.market.kind === "unmeasured" ? null : report.market.value.profile;
+    const context = () => Promise.all([store.currentReport(a.siteId), store.marketFor(a.siteId), siteLocale(a.siteId)] as const);
+    let read: ReturnType<typeof context> | undefined;
     return await withCostContext({ scanId: a.scanId, cap: "WEEK_NEWS", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, async (c) => {
       let added = 0;
       for (const event of events) {
         if (c.capHit() || !(await claimOpsEvent("hot_topic", a.siteId, event.key, JSON.stringify({ day, signal: event.signal, at: a.now.toISOString() })))) continue;
+        // Read once, and only for an event this run claimed.
+        const [report, held, locale] = await (read ??= context());
+        if (report === null) break;
+        const profile = report.market.kind === "unmeasured" ? null : report.market.value.profile;
         const angle = await angleFor(c, { event, locale, market: held.market, profile, domain: report.domain, knowledge: held.knowledge ?? null });
         const reason = { signal: event.signal, event: event.event, date: event.date, a: event.a, b: event.b, key: event.key, detectedOn: day };
         const inserted = angle === null ? null : await store.insert({

@@ -16,8 +16,8 @@ export function timelyOf(o: Pick<Opportunity, "evidence">, at: Date): number {
 
 /** Adds each scored row's `timely` part; none where `at` is absent. */
 export function addTimely(scored: readonly Scored[], at: Date | undefined): void {
-  for (const entry of at === undefined ? [] : scored) {
-    const n = timelyOf(entry.opportunity, at);
+  for (const entry of scored) {
+    const n = at === undefined ? 0 : timelyOf(entry.opportunity, at);
     if (n > 0) [entry.parts, entry.points] = [[...entry.parts, { part: "timely", n }], entry.points + n];
   }
 }

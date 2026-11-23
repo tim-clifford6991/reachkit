@@ -10,7 +10,7 @@ const calls = { vendor: [] as string[], rows: [] as Record<string, unknown>[], m
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
   const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-  // A stored week with one twice-reported release, and a date already claimed by an earlier run.
+  // A stored week with one twice-reported release, already claimed by an earlier run.
   if (url.pathname.endsWith("/market_changes")) return json([{ site_id: "s", week_start: "2026-11-16", changes: [{ title: "Acme 5 ships", names: "Acme 5", words: ["acme", "5"], lastSeen: "2026-11-16", claims: ["a.com", "b.com"].map((host) => ({ url: `https://${host}/x`, publisher: host, publishedAt: "2026-11-18", quote: "Acme 5 ships today." })) }] }]);
   if (url.pathname.endsWith("/ops_events") && (init?.method ?? "GET") === "GET") return calls.claims.push(url.searchParams.get("kind") ?? ""), json([{ id: 1 }]);
   if (url.pathname.endsWith("/opportunities") && init?.method !== undefined && init.method !== "GET") calls.vendor.push(`write ${url.pathname}`);
@@ -103,10 +103,10 @@ describe("the top-up's own cap", () => {
     expect(calls.model).toBe(0);
   });
 
-  it("a second run of a date's write finds the date claimed: it judges nothing and moves no planned page", async () => {
-    const { placeHotPage } = await import("@/lib/hot/place");
-    expect(await placeHotPage("s", "2026-11-20", new Date("2026-11-20T08:00:00Z"))).toBe(false);
-    expect(calls.claims).toEqual(["eq.hot_day"]);
+  it("a second run of Monday's judge finds the week's event claimed: it judges nothing and adds no topic", async () => {
+    const { offerHotTopics } = await import("@/lib/hot/offer");
+    expect(await offerHotTopics({ siteId: "s", scanId: SCAN, now: new Date("2026-11-20T08:00:00Z") })).toBe(0);
+    expect(calls.claims).toEqual(["eq.hot_topic"]);
     expect(calls.model).toBe(0);
     expect(calls.vendor).toEqual([]);
   });
