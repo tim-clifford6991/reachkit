@@ -43,7 +43,7 @@ import {
   supplyMeasured,
   type Choice,
 } from "@/lib/opportunities";
-import { fromStored, renderGenerated } from "@/lib/presentation/generated";
+import { fromStored, generatedLabel, renderGenerated } from "@/lib/presentation/generated";
 import { pageTitle } from "@/lib/presentation/page-title";
 import { siteLocale } from "@/lib/locale/site";
 import type { Language } from "@/lib/locale/locales";
@@ -68,7 +68,8 @@ import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
 import type { BestRival } from "./target";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
-import type { PlanReason } from "@/lib/opportunities/types";
+import type { Opportunity, PlanReason, PlanWriteAs } from "@/lib/opportunities/types";
+import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-type";
 
 /** The site one calendar belongs to. Which site that is, is
  *  `currentSession()`'s (issue #35) — `provider.ts` names the gap. */
@@ -105,6 +106,11 @@ function bestRival(choice: Choice, at: Date): BestRival | null {
 function isUpdate(choice: Choice): boolean {
   const family = choice.evidence.family;
   return family === "improve" || family === "fix";
+}
+
+/** The type a page is written as: the week's stored one, else its row's own. */
+function typeOf(choice: Choice, writeAs: PlanWriteAs | undefined): ContentType | null {
+  return writeAs ?? contentTypeOf({ type: choice.type, targetQuery: choice.evidence.family === "fix" ? null : choice.evidence.query, evidence: choice.evidence });
 }
 
 /** The live page an update rewrites, by the address its row stored — never by title. */
@@ -206,6 +212,7 @@ function pageOn(a: {
   language: Language;
   /** When work on the page's day began. */
   startedAt: Date | null;
+  writeAs: PlanWriteAs | undefined;
   now: Date;
 }): DraftOnDay {
   const at = measuredAtOf(a.choice, a.now);
@@ -237,6 +244,7 @@ function pageOn(a: {
     // Issue 930: this week's place, read and never re-measured.
     standing: a.standing,
     update: isUpdate(a.choice),
+    type: typeOf(a.choice, a.writeAs),
     ...replacesOf(a.choice),
     whyLine: whySentenceOf(a.choice.planReason),
     ...hotOf(a.choice.planReason),
@@ -248,11 +256,18 @@ function pageOn(a: {
 /** One planned date. `draftId` is null and every §9 field is null: nothing
  *  has been written, scheduled or published for this date yet, and a date
  *  that says otherwise would offer controls with nothing to act on. */
-function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
+function plannedOn(day: DayKey, row: Opportunity, language: Language, now: Date): DraftOnDay {
+  const choice = choiceOf(row);
   const at = measuredAtOf(choice, now);
+  const search = choice.evidence.family === "fix" ? "" : choice.evidence.query;
+  // Model-written, so it reaches the card only through `renderGenerated`, labelled with the search it goes after.
+  const stored = row.title === null || search === "" ? "" : pageTitle(row.title.trim(), language);
+  const title = fromStored("opportunities.proposed_title", stored);
+  const proposed = stored === "" ? null : renderGenerated(title, { state: "proposed", opportunityId: row.id, title, slug: fromStored("opportunities.proposed_slug", row.targetRef) });
   return {
     draftId: null,
-    title: choice.evidence.family === "fix" ? "" : choice.evidence.query,
+    title: search,
+    ...(proposed === null ? {} : { proposed: { title: proposed.text, label: generatedLabel({ pageTitle: search, written: false }).label } }),
     state: "planned",
     // A planned page has no draft at all yet, so it has certainly never
     // been in review (#143). Honest rather than defaulted: every §9 field
@@ -276,6 +291,7 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     // against.
     standing: null,
     update: isUpdate(choice),
+    type: typeOf(choice, row.writeAs),
     ...replacesOf(choice),
     whyLine: whySentenceOf(choice.planReason),
     ...hotOf(choice.planReason),
@@ -536,6 +552,7 @@ export async function readCalendarFacts(a: {
         plannedNew: planned === "write" || planned === "earn",
         language: locale.language,
         startedAt: publishing.startedAt.get(page.scheduledFor as DayKey) ?? null,
+        writeAs: week.days.find((day) => day.opportunity.id === page.opportunityId)?.opportunity.writeAs,
         now: a.now,
       })
     );
@@ -552,7 +569,7 @@ export async function readCalendarFacts(a: {
   const rows = new Map(week.days.map((day) => [day.opportunity.id, day.opportunity]));
   for (const [day, opportunityId] of plannedByDay(week.days, publishing.pagesByDay, publishing.readable ? dates : [])) {
     const row = rows.get(opportunityId);
-    if (row !== undefined) drafts.push({ ...plannedOn(day, choiceOf(row), a.now), startedAt: publishing.startedAt.get(day) ?? null });
+    if (row !== undefined) drafts.push({ ...plannedOn(day, row, locale.language, a.now), startedAt: publishing.startedAt.get(day) ?? null });
   }
 
   return {

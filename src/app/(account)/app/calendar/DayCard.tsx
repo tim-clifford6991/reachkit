@@ -39,13 +39,13 @@ export function cardLineFor(cell: DayCell, filter: StageFilter): string | null {
   return short ?? horizonShortFor(cell);
 }
 
-/** What a page is, as the board's chip: New, or Update. */
-export function KindChip(p: { update: boolean }): React.JSX.Element {
+/** What a page is, as the board's chip: New, or Update; `label` where the chip names the type too. */
+export function KindChip(p: { update: boolean; label?: string }): React.JSX.Element {
   const Icon = p.update ? RefreshCw : Plus;
   return (
     <span className="badge badge-sm badge-soft badge-primary shrink-0 gap-1 font-semibold" data-testid="day-kind">
       <Icon aria-hidden className="size-3" />
-      {copy(p.update ? "calendar.card.update" : "calendar.chip.new")}
+      {p.label ?? copy(p.update ? "calendar.card.update" : "calendar.chip.new")}
     </span>
   );
 }
