@@ -80,7 +80,7 @@ async function place(siteId: string, date: string, now: Date, event: HotEvent): 
     proposed_slug: null, title: angle.title, volume: null, evidence, acceptance: { form: "top20", query: angle.search }, fit_band: "reach", business_fit: 3, source: "category", effort: EFFORT_BY_TYPE.keyword_page,
   });
   if (inserted.outcome !== "created") return outcome(siteId, date, event, "duplicate");
-  await assessReadiness(siteId, { at: now, now, only: new Set([inserted.row.id]), plannedFrom: date });
+  await assessReadiness(siteId, { at: now, now, only: new Set([inserted.row.id]) });
   if ((await store.byId(inserted.row.id))?.ready !== true) return outcome(siteId, date, event, "not_ready");
 
   const byId = new Map(rows.map((row) => [row.id, row]));

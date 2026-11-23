@@ -34,7 +34,6 @@ import { topUpRecord, topUpWithPurchase, type TopUpTopic } from "./top-up";
 import type { TopUpSpend } from "@/lib/market/questions/top-up-buy";
 import { competitorWins } from "@/lib/market/competitor-wins";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
-import { footprintOpen } from "@/lib/market/footprint";
 import { EARNING, earnedSearches, pageSearchOf } from "@/lib/measure/page-reading";
 import { closestPrompt } from "../intent";
 
@@ -207,9 +206,7 @@ export async function deriveOpportunities(
   const answered = await import("@/lib/scan/health-record").then(({ healthyPrompts }) => healthyPrompts(a.siteId)).catch(() => null);
   const have = held.filter((row) => !gone.has(row.id) && writable(row)).length;
   const topUp = a.topUp === undefined ? undefined : topUpRecord(have);
-  // An unreadable footprint stays closed, as the hold it mirrors would.
-  const footprint = topUp?.fired === true && (await footprintOpen(store, a.siteId, { report: a.report, market, record: false }).catch(() => false));
-  const topping: TopUpTopic[] = topUp === undefined ? [] : await topUpWithPurchase(a.topUp?.spend, { record: topUp, report: a.report, market, ownRanked, footprint, language: locale.language, locale, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
+  const topping: TopUpTopic[] = topUp === undefined ? [] : await topUpWithPurchase(a.topUp?.spend, { record: topUp, report: a.report, market, ownRanked, language: locale.language, locale, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
   const toppedUp = new Set<unknown>(topping);
   const earnedKeys = new Set([...taken, ...topping.map((topic) => topic.query)].map(queryKey));
   const earned = earnedTopics(await store.refreshPages(a.siteId).catch(() => []), {

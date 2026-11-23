@@ -17,6 +17,7 @@ export const POINTS = Object.freeze({
   linkedByAi: 1,
   notMoving: 0,
   outsized: -2,
+  noFootprint: -2,
 });
 
 /** The quarterly change in searches, in percent, from which a search is rising. */

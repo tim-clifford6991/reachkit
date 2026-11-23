@@ -4,7 +4,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { newestStop, readsAsBefore } from "./drafted";
 import { measuredMarketOf, neverMeasured } from "@/lib/market/questions/measured";
-import { opportunityStore, readOpportunity, type OpportunityRow } from "./store";
+import { opportunityStore, readOpportunity } from "./store";
 import { isResting, isRetarget, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
 import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
@@ -12,13 +12,8 @@ import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
 import type { IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import type { MarketWords } from "@/lib/market/infer/terms";
-import { brandTokensOf, queryKey, reachedBy } from "./cluster";
+import { queryKey } from "./cluster";
 import { contentTypeOf, SHAPED } from "./content-type";
-import { firstOpenDay, orderRanked } from "./rank/open";
-import { pointsOf } from "./rank/points";
-import { footprintOpen } from "@/lib/market/footprint";
-import { earnedSearches } from "@/lib/measure/page-reading";
-import { weekStartFor } from "@/lib/scan/weekly/week";
 import { comparisonUnasked, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshRead, offeringTopTen, type KindOfBusiness, type TopTenRead } from "./derive/top-ten-kind";
 import type { Evidence, Opportunity, UnreadyReason } from "./types";
@@ -32,12 +27,6 @@ export interface ReadinessContext {
   canUpdate: (url: string) => boolean;
   /** The page this site already has on the row's topic, resolved before the loop so `eligible` stays pure. */
   coveredBy: (o: Opportunity) => KnownMatch | null;
-  /** The site's market footprint is open (`footprintOpen`); while closed, a new comparison or listicle waits, */
-  footprint: boolean;
-  /** but for the one row `heldAllowed` lets the week plan, */
-  allowed?: string | null;
-  /** or a row whose search, or one it absorbed, Search Console measured the site at `EARNING.reach` or better on. */
-  reachedBy?: (o: Opportunity) => string | null;
 }
 
 /** What `comparisonWithoutAsking` reads beside the row. Absent members read none. */
@@ -94,19 +83,7 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "destination_cannot_address";
   // Fit ranks a row; only a search the business does not sell is held, and an unscored one ranks as a 2.
   if (o.family !== "fix" && (o.businessFit ?? TOPIC_FIT.gate) < TOPIC_FIT.gate) return "low_fit";
-  if (!ctx.footprint && waitsForFootprint(o) && o.id !== ctx.allowed && (ctx.reachedBy?.(o) ?? null) === null) return "out_of_reach";
   return null;
-}
-
-/** The one held-kind row a closed gate lets a week take: none once one is drafted, else its committed one, `ai_gap`, rank. */
-async function heldAllowed(siteId: string, open: readonly OpportunityRow[], ctx: ReadinessContext, a: { date?: string; evening: boolean; stopped: (o: Opportunity) => boolean }): Promise<string | null> {
-  const store = opportunityStore(), pages = await store.draftedPages(siteId, 14), mondayOf = (date: string) => weekStartFor({ at: new Date(`${date}T00:00:00Z`), zone: "UTC" });
-  const week = mondayOf(a.date ?? new Date(firstOpenDay(pages, ctx.now) * 86_400_000).toISOString().slice(0, 10)), inWeek = (date?: string | null) => date != null && mondayOf(date) === week;
-  if (pages.some((page) => inWeek(page.date) && waitsForFootprint(readOpportunity(page.row)))) return null;
-  const held = open.filter((row) => waitsForFootprint(readOpportunity(row)) && !a.stopped(readOpportunity(row)) && eligible(readOpportunity(row), { ...ctx, footprint: true }) === null);
-  const seen = { cited: new Set<string>() };
-  const ranked = orderRanked(held.map((row) => ({ opportunity: readOpportunity(row), ...pointsOf(readOpportunity(row), seen) }))).map((entry) => held.find((row) => row.id === entry.opportunityId)!);
-  return (ranked.find((row) => inWeek(row.planned_for)) ?? (a.evening ? ranked.find((row) => row.planned_for != null) : undefined) ?? ranked.find((row) => row.source === "ai_gap") ?? ranked[0])?.id ?? null;
 }
 
 /** A new page, or a live page retargeted onto a new search, written as a comparison or listicle. */
@@ -178,9 +155,6 @@ export async function assessReadiness(
     now?: Date;
     /** Issue 1559: only these rows — a pass's new ones, or the evening's committed week. Absent: every open row. */
     only?: ReadonlySet<string>;
-    /** The Monday pass: an open market footprint is recorded. */
-    record?: boolean;
-    plannedFrom?: string;
   }
 ): Promise<{ ready: number; unready: number }> {
   const now = a.now ?? new Date();
@@ -219,13 +193,7 @@ export async function assessReadiness(
     suppression: suppressionOf(verdicts),
     canUpdate: canUpdateFrom(ownPages),
     coveredBy: (o) => covered.get(o.id) ?? null,
-    // Read only where a row could wait on it.
-    footprint: !rows.some((row) => waitsForFootprint(readOpportunity(row))) || (await footprintOpen(store, siteId, { report, market, record: a.record === true })),
   };
-  if (!ctx.footprint) {
-    ctx.allowed = await heldAllowed(siteId, open, ctx, { date: a.plannedFrom, evening: a.only !== undefined, stopped: stillStopped });
-    ctx.reachedBy = reachedBy(earnedSearches(await store.refreshPages(siteId).catch(() => [])), report === null ? [] : brandTokensOf(report), market);
-  }
   const business: KindOfBusiness | null =
     market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null, words: [market.category, ...market.synonyms].join(" ") };
 
@@ -252,8 +220,6 @@ export async function assessReadiness(
     if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);
     const opportunity = band === null ? stored : { ...stored, fitBand: band };
     const reason = stillStopped(opportunity) ? "resting" : eligible(opportunity, ctx);
-    const by = reason === null && !ctx.footprint && waitsForFootprint(opportunity) && opportunity.id !== ctx.allowed ? (ctx.reachedBy?.(opportunity) ?? null) : null;
-    if (by !== null) console.log(JSON.stringify({ event: "reach_from_search_console", siteId, opportunityId: opportunity.id, search: by }));
     if (reason === null) ready += 1;
     if (stored.ready !== (reason === null) || stored.unreadyReason !== reason) {
       await store.setReadiness(opportunity.id, reason);

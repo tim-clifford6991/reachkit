@@ -84,7 +84,7 @@ describe("the ranking reads whether the site is new from its current report", ()
   const rank = async (report: StoredReport | null) => {
     const held = rows(KINDS.local).map((row) => ({ ...row, site_id: SITE_ID }));
     const state = newMemoryState({ rows: held, profile: panelSite(KINDS.local.domain).profile, report, now: AT });
-    setOpportunityStore(memoryStore(state));
+    setOpportunityStore({ ...memoryStore(state), footprintOpened: async () => true });
     const ranked = await rankOpen(SITE_ID, AT);
     const byId = new Map(held.map((row) => [row.id, row.target_query]));
     return ranked.map((entry) => byId.get(entry.opportunityId));

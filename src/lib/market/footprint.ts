@@ -1,5 +1,5 @@
-// SPEC §7 *Readiness holds only for harm*: a site's market footprint, the gate that holds its new comparison and
-// listicle pages `out_of_reach`. Every stored row that places a page of the site is read; the gate opens on one at 20
+// SPEC §7 *Readiness holds only for harm*: a site's market footprint; while it is closed, a new comparison or listicle
+// ranks with the `no_footprint` points part. Every stored row that places a page of the site is read; the gate opens on one at 20
 // or better whose search carries no own brand token and passes the test a search passes before it joins the twelve
 // (`selectTwelve`: `neverMeasured` against the market in force, then `passesRelevanceGuard`); a live page's own search
 // needs no test. Pure; nothing is bought.

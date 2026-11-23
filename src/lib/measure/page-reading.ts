@@ -60,7 +60,7 @@ export interface PlaceReport {
 export const TRACKED_DEPTH = 20;
 export const FIRST_PAGE_PLACES = 10;
 /** The searches a page earns on that its stored reading keeps, and the places a refresh answers them from. */
-export const EARNING = Object.freeze({ kept: 20, answered: { min: 8, max: TRACKED_DEPTH }, offered: { min: 8, max: 30, impressions: 5, words: 6 }, reach: 30 } as const);
+export const EARNING = Object.freeze({ kept: 20, answered: { min: 8, max: TRACKED_DEPTH }, offered: { min: 8, max: 30, impressions: 5, words: 6 } } as const);
 
 /** One page's address as two readings of it compare: tracking parameters,
  *  the fragment, the scheme, `www.` and a trailing slash dropped, lower-cased. */

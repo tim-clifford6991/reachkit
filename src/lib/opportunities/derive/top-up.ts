@@ -11,17 +11,16 @@ import { seedLadder } from "@/lib/market/questions/widen";
 import { classifyIntent } from "@/lib/market/questions/select";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import type { StoredReport } from "@/lib/scan/report";
-import { waitsForFootprint } from "../readiness";
 import { queryKey } from "../cluster";
 import { demandBand, difficultyBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import type { Winnability } from "../types";
-import { composedSearches, namesOwnOnly, noLongerRelevant, rivalBrandOnly, sourceOf, writeTypeOf, type AskedTopic, type ProposedTopic } from "./topics";
+import { composedSearches, namesOwnOnly, noLongerRelevant, rivalBrandOnly, sourceOf, type AskedTopic, type ProposedTopic } from "./topics";
 
 /** 1: a stored keyword row; 2: a row the top-up bought; 3: a question source (asked, written from prompts, composed) priced by a row. */
 export type TopUpSource = 1 | 2 | 3;
 export type TopUpTopic = ProposedTopic & { topUp: TopUpSource; band: Winnability };
-const REASONS = ["not_a_topic", "out_of_reach_gate", "unmeasured", "under_floor", "outsized", "not_needed", "low_fit"] as const;
+const REASONS = ["not_a_topic", "unmeasured", "under_floor", "outsized", "not_needed", "low_fit"] as const;
 export type TopUpReason = (typeof REASONS)[number];
 
 /** Whether it fired, the writable rows before it, each source's offers, additions and rejections, and what it bought. */
@@ -41,8 +40,6 @@ type TopUpArgs = {
   report: StoredReport;
   market: MarketConclusion | null;
   ownRanked: number;
-  /** The site's market footprint is open (`footprintOpen`). */
-  footprint: boolean;
   language: Language;
   own: readonly string[];
   rivals: readonly string[];
@@ -113,8 +110,6 @@ export function topUpTopics(a: TopUpArgs): TopUpTopic[] {
   const reasonOf = (key: string, read: { volume: number; difficulty: number | null } | undefined): TopUpReason | Exclude<Winnability, "not-yet"> => {
     const named = { market: a.market, own: a.own, rivals: a.rivals };
     if (malformedSearch(key, a.market?.rivals) !== null || rivalBrandOnly(key, named) || namesOwnOnly(key, named) || noLongerRelevant(key, named) !== null || (profile !== null && classifyIntent(key, profile) === "own_brand")) return "not_a_topic";
-    // While the footprint is closed, the kinds readiness holds out of reach cannot fill a short week.
-    if (!a.footprint && waitsForFootprint({ family: "write", type: writeTypeOf(key), targetQuery: key })) return "out_of_reach_gate";
     if (read === undefined) {
       a.unpriced?.push(key);
       return "unmeasured";
