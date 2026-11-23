@@ -39,6 +39,8 @@ export interface KnownContentGate {
   /** The closest page the site already has, where it covers this
    *  candidate's topic — `null` where the topic is net new. */
   covered: (candidate: Candidate) => KnownMatch | null;
+  /** The same answer for a search the report did not ask, read when it is needed. */
+  read?: (candidate: Candidate) => Promise<KnownMatch | null>;
   /** Whether the site's destination can publish an update of this page.
    *  The same predicate readiness applies (`canUpdateFrom`). */
   canUpdate: (url: string) => boolean;

@@ -353,7 +353,8 @@ export async function deriveOpportunities(
         if (candidate === null) continue;
         proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged));
         topUp.sources[source].added += 1;
-        lacking -= 1;
+        // A topic a live page covers waits as that page's update, so it fills none of the rows the week lacks.
+        if ((a.known?.covered(candidate) ?? (await a.known?.read?.(candidate)) ?? null) === null) lacking -= 1;
       }
       continue;
     }
