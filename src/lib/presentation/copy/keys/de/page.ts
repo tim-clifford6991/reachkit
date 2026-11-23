@@ -12,6 +12,9 @@ export const PAGE_COPY_DE = {
   // The page's own body
   "body.sources.heading": "Quellen",
   "body.sources.read": "abgerufen am {date}",
+  "body.sources.published": "veröffentlicht im {month}",
+  "body.sources.updated": "aktualisiert im {month}",
+  "body.sources.undated": "kein Datum gefunden",
   "body.table.option": "Anbieter",
   "body.table.pricing": "Preise",
   "body.table.does": "Leistung",

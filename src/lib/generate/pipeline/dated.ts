@@ -132,3 +132,15 @@ export function datesOf(from: ClaimDates): ClaimDates {
   for (const key of ["publishedAt", "modifiedAt", "datedBy", "timeliness", "ageAt"] as const) if (from[key] !== undefined) Object.assign(out, { [key]: from[key] });
   return out;
 }
+
+/** The one date a Sources line names (SPEC §7): the update where it falls in a later month than the publication. */
+export type SourceDate = { said: "published" | "updated"; at: string } | "undated";
+
+/** A source's line date: `undated` where it was looked for and none counts, `null` on one read before it was looked for. */
+export function sourceDate(source: ClaimDates): SourceDate | null {
+  if (source.datedBy === undefined && source.timeliness === undefined) return null;
+  if (source.publishedAt === undefined && source.modifiedAt !== undefined) return { said: "updated", at: source.modifiedAt };
+  if (source.publishedAt === undefined) return "undated";
+  const updated = source.modifiedAt !== undefined && source.modifiedAt.slice(0, 7) > source.publishedAt.slice(0, 7);
+  return updated ? { said: "updated", at: source.modifiedAt! } : { said: "published", at: source.publishedAt };
+}

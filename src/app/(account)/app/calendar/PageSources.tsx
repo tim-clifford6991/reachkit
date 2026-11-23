@@ -31,7 +31,7 @@ function Entry(p: { entry: SourceEntryModel; id: string; picked: boolean; onShow
             {passage}
           </blockquote>
         ))}
-        {[entry.many, entry.read, entry.used, entry.kept].map((line) => (line === null ? null : <span key={line} className="text-base-content/70">{line}</span>))}
+        {[entry.many, entry.dated, entry.read, entry.used, entry.kept].map((line) => (line === null ? null : <span key={line} className="text-base-content/70">{line}</span>))}
         {p.onShow === undefined || entry.n === null ? null : (
           <button type="button" className="btn btn-ghost btn-xs self-start" onClick={() => p.onShow!(entry.n!)}>
             {copy("calendar.sources.show-in-page")}

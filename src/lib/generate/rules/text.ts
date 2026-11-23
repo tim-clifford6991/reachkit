@@ -273,9 +273,9 @@ export function headingKey(heading: string): string {
   return heading.replace(/[?!.:]+$/, "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-/** One item of a reference list: a linked page title and a short tail —
- *  "- [Pricing — Rival](https://…), read on 3 October 2026". */
-const REFERENCE_ITEM_RE = /^[ \t]*[-*+][ \t]+\[[^\]\n]*\]\([^)\s]+\)[^\n]{0,40}$/;
+/** One item of a reference list: a linked page title and a short tail ("- [Pricing — Rival](https://…), read on 3
+ *  October 2026"), or the Sources list's own dated tail ("· published July 2025 · read on 3 Oct 2026"), which ends in a year. */
+const REFERENCE_ITEM_RE = /^[ \t]*[-*+][ \t]+\[[^\]\n]*\]\([^)\s]+\)(?:[^\n]{0,40}|(?: · [^·\n]{1,40})? · [^·\n]{1,36}\d{4})$/;
 
 /**
  * The draft with every reference list blanked: a heading whose section is
