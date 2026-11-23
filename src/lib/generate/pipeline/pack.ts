@@ -156,7 +156,7 @@ export interface ContextPack {
    *  searches are in it. Absent on a pack built before D66 and on every US
    *  English one, which is what every pack was. */
   locale?: Locale;
-  target: { question: string; searches: string[] };
+  target: { question: string; searches: string[]; promise?: string };
   business: {
     name: string | null;
     domain: string;
@@ -648,7 +648,7 @@ export function freshFirst<T extends { fact: { passage: string } }>(facts: reado
 
 export function buildPack(a: PackInputs): ContextPack {
   const searches = [...(a.opportunity.targetQuery === null ? [] : [a.opportunity.targetQuery]), ...a.opportunity.absorbedQueries];
-  const question = searches[0] ?? a.opportunity.title ?? a.opportunity.targetRef;
+  const angle = a.opportunity.evidence !== undefined && "angle" in a.opportunity.evidence ? a.opportunity.evidence.angle : null, question = (angle == null ? null : a.opportunity.title) ?? searches[0] ?? a.opportunity.title ?? a.opportunity.targetRef; // a kept angle is the page's question
   // Issue 1490: the site's own measurements only on a research page.
   const allowed = freshFirst(
     a.facts.filter((sourced) => !neverASource(sourced.fact.url) && (sourced.report !== true || reportFactsAllowed(a.type))),
@@ -704,7 +704,7 @@ export function buildPack(a: PackInputs): ContextPack {
     type: a.type, ...(a.own === undefined ? {} : { own: a.own }),
     builtAt: a.now.toISOString(),
     ...(a.locale === undefined || modelInstruction({ country: a.locale.country, language: a.locale.language }) === null ? {} : { locale: { country: a.locale.country, language: a.locale.language } }),
-    target: { question, searches },
+    target: { question, searches, ...(angle == null ? {} : { promise: angle.promise }) },
     business,
     profile: a.profile,
     neverClaim: [...a.site.doNotClaim],

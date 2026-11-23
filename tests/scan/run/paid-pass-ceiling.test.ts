@@ -1,46 +1,28 @@
-// tests/scan/run/paid-pass-ceiling.test.ts — issue 902.
-//
-// Issue 855 set `TIMING.paidPassCeilingS` so a paid pass fits inside the
-// `/api/jobs` invocation it runs in (`TIMING.jobsCeilingS`) with room to
-// compose and store its report. A paid pass is not raced — its ceiling is
-// read cooperatively, `bounds.stopNow()` between calls, exactly as its cap
-// is — and that is enough only while no single call can outlast the
-// ceiling on its own.
-//
-// Two of the pass's could. The ChatGPT scraper has no live surface, so
-// every battery ask of it is a standard-queue `task_post` and then a poll
-// that ran to `VENDOR.stdQueueDeadlineMin` — forty-five minutes, eleven
-// times the whole ceiling — and the weekly pass buys its question SERPs
-// and its AI Mode answers the same way.
-//
-// Issue 1160: those three asks used to queue behind one another, a SERP's
-// wait and then each engine's, and an engine that had not answered yet was
-// asked one question at a time (issue 869). The weekly passes of 2026-09-21
-// and 2026-09-28 spent their whole ceiling waiting and never measured AI
-// answers or rivals. A question's three asks now wait together.
+// tests/scan/run/paid-pass-ceiling.test.ts: a paid pass fits inside the
+// `/api/jobs` invocation it runs in (`TIMING.jobsCeilingS`) and inside its cap.
+// Its ceiling is read cooperatively, `bounds.stopNow()` between calls, so no
+// single call may outlast it: the standard-queue asks (the ChatGPT scraper,
+// the weekly SERPs and AI Mode answers) could each wait out
+// `VENDOR.stdQueueDeadlineMin`, so a question's three asks wait together.
 //
 // The mutations this suite exists to kill:
 //
 //  - a pass that runs past `jobsCeilingS` instead of ending on
-//    `time_ceiling` — the frozen invocation that stores no report, leaves
-//    the claimed row `running`, and has its step retried, which is where
-//    twelve questions come to buy more than twelve questions' worth;
-//  - dropping the pass's deadline on the way into any of the three calls a
-//    question costs, so the bound is declared and never applied;
+//    `time_ceiling`: the frozen invocation stores no report, leaves the
+//    claimed row `running`, and has its step retried;
+//  - dropping the pass's deadline on the way into any of a question's calls;
 //  - asking a question more times than its three columns need;
 //  - a slow engine costing the other engine's column;
-//  - a weekly pass at production's measured queue waits missing its ceiling.
+//  - a weekly pass at production's measured queue waits missing its ceiling;
+//  - a derivation call refused for budget after the stored report.
 //
-// Issue 1566: the timed passes run on a fake clock, and a module the pass
-// loads for the first time takes real time that clock does not wait for. On
-// a loaded box that real time let the clock run to `jobsCeilingS` while the
-// pass was still loading, and the weekly pass failed one run in two. Each
-// timed pass is now run once on the real clock first, so the one on the fake
-// clock loads nothing; one module here is slowed, as a loaded box slows it.
+// The timed passes run on a fake clock, and a module loaded for the first time
+// takes real time that clock does not wait for, so each timed pass runs once on
+// the real clock first; one module here is slowed, as a loaded box slows it.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb } from "./harness";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
-import { BATTERY as BATTERY_PINS, BUYER_SEARCHES, CAPS, TIMING, TYPING_RESERVE_C, VENDOR } from "../../../src/lib/config/constants";
+import { BATTERY as BATTERY_PINS, BUYER_SEARCHES, CAPS, TIMING, TOPIC_FIT, TYPING_RESERVE_C, VENDOR } from "../../../src/lib/config/constants";
 import type { CostContext } from "../../../src/lib/costs";
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { StoredReport } from "../../../src/lib/scan/report";
@@ -485,13 +467,15 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     /** Whether the topics the run held carry last week's fit, as a usual week's do. */
     heldJudged: boolean;
     after?: (cost: CostContext, report: StoredReport, market: MarketConclusion) => Promise<void>;
+    padTo?: number; // Pads the searches to this many, each padded one served its base search's top ten.
   }) {
-    const { site } = a;
+    const base = a.site.searches;
+    const site = { ...a.site, searches: Array.from({ length: Math.max(a.padTo ?? 0, base.length) }, (_, n) => (n < base.length ? base[n]! : `${base[n % base.length]} ${n}`)) };
     const evidence: { source: string; cache_key: string; payload: SerpResult[] | null }[] = JSON.parse(
       readFileSync(`scripts/panel/evidence/${site.site.domain}.json`, "utf8")
     );
     const serpOf = (keyword: string): SerpResult =>
-      evidence.find((row) => row.source === "serp/google/organic" && row.cache_key.split("|")[0] === keyword)?.payload?.[0] ??
+      evidence.find((row) => row.source === "serp/google/organic" && row.cache_key.split("|")[0] === keyword.replace(/ \d+$/, ""))?.payload?.[0] ??
       { organic: [], aiOverview: { present: false, referenceDomains: [], asynchronousAiOverview: false } };
     const fitOf = new Map((site.topics ?? []).map((topic) => [topic.query, topic.fit ?? 2]));
     const serps = site.searches.map(serpOf);
@@ -530,18 +514,20 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
       ...memoryStore(state),
       marketFor: async () => ({ market: site.market, competitors: [], prompts: site.prompts.map((p) => p.text), knowledge: KNOWN }),
     });
+    const fitSent: number[] = [];
     // The model answers every call in the shape its site asks for, and reports the tokens it was sent.
     anthropicCreate.mockImplementation(async (request: { tools?: { name: string }[]; messages: { content: string }[] }) => {
       const name = request.tools?.[0]?.name ?? "";
       const sent = request.messages[0]!.content;
       const input = JSON.parse(sent) as { searches?: { i: number; search: string }[]; derivedType?: string; derivedSlug?: string; targetQuery?: string };
       const searches = input.searches ?? [];
+      if (name === "topic-fit") fitSent.push(searches.length);
       const answers: Record<string, [unknown, number]> = {
         "topic-buyer-searches": [{ problems: phrased.slice(0, BUYER_SEARCHES.max), solutions: phrased.slice(BUYER_SEARCHES.max, 2 * BUYER_SEARCHES.max) }, 400],
         "topic-typed": [{ typed: searches.map((entry) => entry.i) }, 80],
         "topic-fit": [
-          { scores: searches.map((entry) => ({ i: entry.i, fit: fitOf.get(entry.search) ?? 2, title: entry.search, fact: 0 })), strongest: [] },
-          44 * searches.length,
+          { scores: searches.map((entry) => ({ i: entry.i, fit: fitOf.get(entry.search) ?? 2, fact: 0, angles: [] })), strongest: [] },
+          21 * searches.length + 120 * Math.ceil(searches.length * TOPIC_FIT.topShare),
         ],
         "opportunity-typing": [{ type: input.derivedType, slug: input.derivedSlug, title: input.targetQuery }, 60],
         "topic-same-question": [{ pairs: [] }, 20],
@@ -570,7 +556,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
       const line = typeof first === "string" && first.startsWith("{") ? (JSON.parse(first) as { site?: string; parseOutcome?: string }) : {};
       if (line.site !== undefined && line.parseOutcome !== undefined) asked.set(line.site, [...(asked.get(line.site) ?? []), line.parseOutcome]);
     }
-    return { asked, warned, closed };
+    return { asked, warned, closed, fitSent };
   }
 
   it("the derivation after the stored report, opened at the line, gets every call it makes and closes inside the cap", async () => {
@@ -581,6 +567,15 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
       expect(asked.get(site)!.every((outcome) => outcome === "success"), site).toBe(true);
     }
     expect(warned.filter((line) => line.includes('"cap_hit"'))).toEqual([]);
+    expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
+  });
+
+  it("a fit call over the most searches a pass judges, each with its top titles, is asked inside the reserve and the pass closes inside the cap", async () => {
+    const { asked, warned, closed, fitSent } = await deriveAtTheLine({ site: panel("2026-10-10-1374")[0]!, heldJudged: false, padTo: 2 * TOPIC_FIT.maxCandidates });
+    expect(Math.max(...fitSent)).toBe(TOPIC_FIT.maxCandidates);
+    expect(asked.get("topic-fit")).toEqual(["success"]);
+    // Typing eighty rows may meet the cap afterwards; the fit call is never the one refused.
+    expect(warned.filter((line) => line.includes('"cap_hit"') && line.includes('"topic-fit"'))).toEqual([]);
     expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
   });
 

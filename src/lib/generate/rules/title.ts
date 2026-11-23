@@ -24,7 +24,8 @@
 //   * **A specific, from the pack.** A number the pack states or the page
 //     counts out, a year aside; a price is such a number, and "free" where
 //     the pack says it; an engine's name; on a comparison, a rival the pack
-//     names; the place the business serves. A name the search itself
+//     names; the place the business serves; a word of the topic's angle's
+//     promise the search does not carry. A name the search itself
 //     carries is the search and no detail added to it. Asking a question is
 //     not one, and neither is who the page is for. A number that only counts
 //     an episode, an issue, a volume or a chapter ("ep. 16") is not one.
@@ -60,11 +61,14 @@
 //     the business's own where the title names the business too, or the
 //     page counts it. "Profound …: 12 Google searches weekly" gives the
 //     business's figure to a rival, and stops the page.
+//   * **A price lead** (SEO review §2.4): a price stands in the title only on
+//     an offering, or where the search asks a price or compares products.
 //
 // Deterministic, no I/O. A failure carries handles, never a sentence.
 import { languagePack } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { TITLE } from "@/lib/config/constants";
+import { appendsClaim, priceLed } from "@/lib/market/questions/angle";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import { figuresOf, numeralsOf, REGISTER_FLOOR, valuesStated } from "./figures";
 import { renderOf } from "./text";
@@ -90,7 +94,11 @@ export type TitleFault =
   /** Issue 1507: the description states a figure the body does not. */
   | "description_figures"
   /** A figure beside a rival's name that no owner the title names holds. */
-  | "figure_owner";
+  | "figure_owner"
+  /** A price leads a page that is no offering and answers no price or comparison search. */
+  | "promise_figure"
+  /** A list or comparison title that joins a claim about the business on after its break. */
+  | "claim";
 
 /** Who may own a figure a title states: the names it goes by and its own passages. */
 export interface FigureOwner {
@@ -116,6 +124,8 @@ export interface TitleRuleInputs {
    *  itself, what was measured — and the counts of the page's own parts: a
    *  number in the title is a specific where this holds it. */
   holds: string;
+  /** What the topic's kept angle promises the reader, where it kept one: its own words count as the title's specific. */
+  promise?: string;
   /** The current year. */
   year: number;
   /** Every title the site has published or planned. */
@@ -224,9 +234,19 @@ function heldIn(passages: string, language: Language): (stated: { figure: string
 
 const statedIn = (title: string, language: Language) => unitsOf(withoutSerials(title, language).replace(YEAR_RE, ""));
 
+/** Whether a title states its angle's promise in a word the searches do not already carry. */
+function carriesPromise(title: string, a: TitleRuleInputs): boolean {
+  const language = languageOf(a);
+  const searched = new Set(a.terms.flatMap((term) => subjectOf(term, language)));
+  const own = new Set(wordsOf(title, language));
+  return subjectOf(a.promise ?? "", language).some((word) => !searched.has(word) && own.has(word));
+}
+
 function hasSpecific(title: string, a: TitleRuleInputs): boolean {
   const language = languageOf(a);
   const stated = statedIn(title, language);
+  // Owner rulings 91–92: the angle's own element is the title's specific, so no figure need be appended.
+  if (stated.length === 0 && carriesPromise(title, a)) return true;
   // One held figure does not carry another the pack never states.
   if (stated.length > 0) return stated.every(heldIn(a.holds, language));
   const free = wordsPattern(languagePack(language).title.free, false);
@@ -331,6 +351,8 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
     clauseCut(title, a) && "clause",
     a.business !== undefined && a.business.length > 0 && !a.business.some((name) => names(title, name)) && "business",
     figureUnowned(title, a) && "figure_owner",
+    a.type !== "offering" && a.terms.length > 0 && a.terms.every((term) => priceLed(title, term)) && "promise_figure",
+    a.terms.some((term) => appendsClaim(title, term)) && "claim",
   ];
   return faults.filter((fault) => fault !== false);
 }
@@ -425,7 +447,7 @@ function carried(title: ReadonlySet<string>, text: string, language: Language): 
 
 /**
  * The writer proposes, code picks (issue 1389). Of the titles proposed, the
- * one that fails no rule and sits closest to the search and its follow-up
+ * one that fails no rule, states its angle's promise, and sits closest to the search and its follow-up
  * questions; among equals, one inside the aimed length, then a statement,
  * then the writer's own order. Where none passes, the one that fails fewest
  * of the rules that stop a page, then fewest in all — so a title that lacks
@@ -454,6 +476,7 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs, floor
       stopping(left) - stopping(right) ||
       Number(built.includes(left.title)) - Number(built.includes(right.title)) ||
       left.faults.length - right.faults.length ||
+      Number(carriesPromise(right.title, a)) - Number(carriesPromise(left.title, a)) ||
       right.closeness - left.closeness ||
       aimed(left.title) - aimed(right.title) ||
       Number(asksQuestion(left.title, language)) - Number(asksQuestion(right.title, language))
@@ -485,6 +508,8 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     heading: "heading: the H1 is the title itself",
     description: `description: write one of ${TITLE.description.min} to ${TITLE.description.max} characters, opening with the answer`,
     figure_owner: "title: a figure beside a product's name must be one that product's own pages state, or the business's own where the title names the business too; state no figure that belongs to another",
+    promise_figure: "title: a price is no promise on this page; state what the reader gets, and leave the business's price or a rival's plan to the body",
+    claim: "title: after the break it names the decision the comparison helps the reader make, never a clause joined on with \"and\", \"including\" or \"plus\" about one option",
     description_figures: `description: every figure it states is one the body states; ${descriptionFiguresMissing(a.description, markdown, figureReading(a))
       .map((figure) => `"${figure}"`)
       .join(", ")} is not in the body`,

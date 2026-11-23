@@ -114,6 +114,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
     ].join("\n"),
     year: new Date(pack.builtAt).getUTCFullYear(),
     titles: pack.pages.flatMap((each) => text(each.title)),
+    ...(pack.target.promise === undefined ? {} : { promise: pack.target.promise }),
     description: page.description,
     ...(pack.locale === undefined ? {} : { language }),
     ...(options === undefined ? { counts: sectionCounts.filter((count) => count > 1) } : { options }),
@@ -183,6 +184,8 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
   const passes = (specific: string): boolean => pickTitle([titled(specific)], rule).candidates[0]?.faults.length === 0 && promiseFigures(titled(specific), pack).length === 0;
   const names = addedNames(rule).filter(passes).slice(0, TITLE.namesTold);
   const floor = floorTitle(pack);
+  // The topic's angle, offered where its words stop nothing; a search with a figure appended is never built here.
+  const angle = pack.target.searches.includes(pack.target.question) ? [] : [pack.target.question].filter((title) => pickTitle([title], rule).candidates[0]?.faults.every((fault) => fault === "specific"));
   return {
     searches: rule.terms,
     year: dated ? rule.year : null,
@@ -191,7 +194,7 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
     // Whole sentences `pack` states a figure in, never the business's promise off the page that sells it.
     figures: figuresOf(pack).filter((sentence) => promiseFigures(sentence, pack).length === 0),
     // Titles code checked against every rule below.
-    titles: [...new Set(names.map(titled))].slice(0, TITLE.candidates).concat(floor === null ? [] : [floor]),
+    titles: [...angle, ...(floor === null ? [] : [floor])],
     // Issue 2378: the title rule's lines, from the one list every prompt renders.
     rules: briefLinesOf("title", { pack, template: TEMPLATES[pack.type], pageType: null, titleRule: rule }),
   };

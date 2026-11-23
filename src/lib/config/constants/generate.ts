@@ -234,6 +234,14 @@ export const TITLE = Object.freeze({
     "everything you need to know",
     "unlock",
     "comprehensive",
+    // Hype promises a page cannot keep (SEO review §5.3).
+    "actually",
+    "exactly",
+    "guaranteed",
+    "effortless",
+    "game-changing",
+    "revolutionary",
+    "skyrocket",
   ],
   engines: ["chatgpt", "perplexity", "claude", "gemini", "copilot", "google", "ai overview", "ai overviews", "ai mode"],
 } as const);                                                   // §7 · D51
