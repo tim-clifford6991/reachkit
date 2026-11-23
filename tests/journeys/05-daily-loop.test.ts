@@ -40,6 +40,7 @@
 // `COPY` itself is left real.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
+import { textRowOf } from "@/lib/measure/text-store";
 import { actionsFor } from "@/app/(account)/app/calendar/actions";
 import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
@@ -524,20 +525,22 @@ beforeEach(async () => {
   // the measurement ledgered for it (§8 reads the bytes already in hand
   // rather than fetching the customer's server again).
   db.seed("scans", [{ id: SCAN_ID, site_id: SITE_ID }]);
-  db.seed("fetches", [
-    {
-      scan_id: SCAN_ID,
-      source: "egress.safeFetch",
-      cost_cents: 0,
-      payload: {
-        url: `https://${SITE_DOMAIN}/pricing`,
-        status: 200,
-        html: SOURCE_HTML,
-        bytes: SOURCE_HTML.length,
-        readAt: new Date("2026-09-01T09:00:00.000Z").toISOString(),
-      },
+  const ownRead = {
+    id: "fetch-own-1",
+    scan_id: SCAN_ID,
+    source: "egress.safeFetch",
+    cost_cents: 0,
+    payload: {
+      url: `https://${SITE_DOMAIN}/pricing`,
+      status: 200,
+      html: SOURCE_HTML,
+      bytes: SOURCE_HTML.length,
+      readAt: new Date("2026-09-01T09:00:00.000Z").toISOString(),
     },
-  ]);
+  };
+  db.seed("fetches", [ownRead]);
+  // The text the measurement kept as it wrote the read, which is all §8 reads.
+  db.seed("fetch_text", [{ fetch_id: ownRead.id, scan_id: SCAN_ID, text_version: "t1", ...textRowOf(ownRead.source, ownRead.payload) }]);
 
   opportunities = opportunityDoubles.newMemoryState({
     now: EVENING,
