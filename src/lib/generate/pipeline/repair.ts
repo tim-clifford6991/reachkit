@@ -215,9 +215,8 @@ function repairNumerals(markdown: string, inputs: RepairInputs): string {
 /** A rival's figure with no fact's page beside it, linked to the page among the facts' that states it as the sentence
  *  uses it, the named rival's own first. One no page states is left for the battery; a table is left whole. */
 function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
-  const rivals = inputs.rivals ?? [];
+  const rivals = inputs.rivals ?? [], pages = factPageKeys(inputs.sources.map((source) => source.url));
   if (rivals.length === 0) return markdown;
-  const pages = factPageKeys(inputs.sources.map((source) => source.url));
   return mapSentences(markdown, (piece) => {
     const text = wordsOf(piece);
     const figure = unsourcedRivalFigure({ text, hasLink: hasLink(piece), links: linksOf(piece) }, rivals, pages);
@@ -225,7 +224,8 @@ function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
     const named = rivals.map((rival) => rival.trim().toLowerCase().split(/[.\s]/)[0] ?? "").filter((label) => label.length > 2 && text.toLowerCase().includes(label));
     const host = (url: string) => (/^[a-z]+:\/\/(?:www\.)?([^/]+)/i.exec(url)?.[1] ?? "").toLowerCase();
     const own = (url: string) => named.some((label) => host(url).includes(label));
-    const theirs = inputs.sources.filter((source) => inputs.domain === undefined || host(source.url) !== inputs.domain.toLowerCase().replace(/^www\./, ""));
+    const d = inputs.domain?.toLowerCase().replace(/^www\./, "");
+    const theirs = inputs.sources.filter((source) => d === undefined || (host(source.url) !== d && !host(source.url).endsWith(`.${d}`)));
     const url = sourceOf(figure, text, theirs.sort((a, b) => Number(own(b.url)) - Number(own(a.url))));
     return url === null ? piece : piece.replace(numeralRe(figure), `[${figure}](${url})`);
   }, true);
