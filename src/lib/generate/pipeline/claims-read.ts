@@ -35,7 +35,7 @@ export const CLAIMS_SCHEMA = z.strictObject({
 export async function readClaims(
   c: CostContext,
   pages: readonly (ReadPage & Wanted)[],
-  a: { locale: Locale; search: string; rivals: readonly string[]; today: Date; siteId?: string; page?: string; calls?: number }
+  a: { locale: Locale; search: string; market?: string; rivals: readonly string[]; today: Date; siteId?: string; page?: string; calls?: number }
 ): Promise<MarketFact[]> {
   const facts: MarketFact[] = [];
   const calls = a.calls ?? RESEARCH.calls;
@@ -44,6 +44,8 @@ export async function readClaims(
   const batches = Array.from({ length: Math.min(calls, read.length) }, (_, call) => read.filter((_, at) => at % calls === call));
   const claimsOf = async (batch: readonly (ReadPage & Wanted)[]) => {
     if (c.capHit()) return { lost: batch, because: "cap" };
+    // A study is read for what it found about the market, which a comparison's own words seldom match.
+    const market = batch.some((page) => page.kind === "study") ? a.market : undefined;
     const answer = await llm(c, {
       site: "generate.research",
       tier: "research",
@@ -64,11 +66,13 @@ export async function readClaims(
           "domain of the one of `rivals` it is about, or null. Say what each claim is `about`: " +
           "`price` where it states what the product whose page it is on costs, or how it is priced; `product` " +
           "where it says what that product does, includes or limits; `other` for anything else — a customer " +
-          "count, a slogan, a statistic about the market or about another company's product.",
+          "count, a slogan, a statistic about the market or about another company's product." +
+          (market ? " Read a page marked `study` for what it found about `market`, whether or not it names `search`." : ""),
         search: a.search,
+        ...(market ? { market } : {}),
         rivals: a.rivals,
         today: a.today.toISOString().slice(0, 10),
-        pages: batch.map((page, index) => ({ page: index + 1, url: page.url, text: page.text })),
+        pages: batch.map((page, index) => ({ page: index + 1, url: page.url, text: page.text, ...(market && page.kind === "study" ? { study: true } : {}) })),
       },
     });
     if (answer.kind === "unmeasured") return { lost: batch, because: answer.because ?? answer.reason };
