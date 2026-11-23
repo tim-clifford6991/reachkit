@@ -2,7 +2,7 @@
 // a credential is plaintext, and `withConfig` the only door: it returns the callback's value, never the config, and `R`
 // is unrelated to `T` so returning the config is a type error. No surface's select list names `config` (`store.ts`).
 import { publishDb } from "../../db";
-import { seal, SealError, unseal } from "./seal";
+import { open, seal, SealError } from "./seal";
 
 export { seal, SealError } from "./seal";
 
@@ -31,7 +31,12 @@ export async function withConfig<T, R>(
   if (error !== null || data === null) throw new NoConfigError();
   const row = data[0];
   if (row === undefined || row.config === null) throw new NoConfigError();
-  return fn(unseal(row.config) as T);
+  const { value, resealed } = open(row.config);
+  if (resealed !== null) {
+    // Only over the value just read, so a credential reconnected meanwhile is never overwritten; a failed write retries next use.
+    await publishDb().from<never>("destinations").update({ config: resealed }).eq("id", destinationId).eq("config", row.config);
+  }
+  return fn(value as T);
 }
 
 /** Destroys the credential and takes the destination out of the live set in one statement, since either write alone is

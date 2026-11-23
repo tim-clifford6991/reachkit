@@ -1,7 +1,6 @@
 // SPEC §8 — the Monday mail's stop link for a page planned but not written: signed over (site, opportunity, day), storing
 // nothing. Stopping dismisses the open row, so no draft moves and ADR-080 is not reached; a written page has its own link.
-import { timingSafeEqual } from "node:crypto";
-import { macFor } from "@/lib/crypto/keys";
+import { macFor, macMatches } from "@/lib/crypto/keys";
 import { dbAdmin } from "@/lib/db";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import { opportunityStore } from "./store";
@@ -46,9 +45,7 @@ function readToken(token: string): { siteId: string; opportunityId: string; day:
   const [encoded, mac, ...rest] = token.split(SEPARATOR);
   if (encoded === undefined || mac === undefined || rest.length > 0) return null;
   const payload = Buffer.from(encoded, "base64url").toString("utf8");
-  const given = Buffer.from(mac, "base64url");
-  const expected = macOf(payload);
-  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
+  if (!macMatches(HKDF_INFO, payload, Buffer.from(mac, "base64url"))) return null;
   const [siteId, opportunityId, day, ...more] = payload.split(":");
   if (!siteId || !opportunityId || !day || more.length > 0) return null;
   return { siteId, opportunityId, day };

@@ -1,9 +1,8 @@
 // SPEC §3 — "this browser asked for a link of this kind before this time", and nothing else.
 // A mail scanner never holds it, so a link opened in the browser that asked counts as a person's open;
 // spending still needs the mailed `token_hash`. Stateless: an HMAC keyed by HKDF from an existing secret.
-import { timingSafeEqual } from "node:crypto";
 import { EMAIL_CHANGE_TTL_H, SIGNIN_LINK_TTL_H } from "@/lib/config/constants";
-import { macFor } from "@/lib/crypto/keys";
+import { macFor, macMatches } from "@/lib/crypto/keys";
 import type { ConfirmType } from "./identity/addresses";
 
 /** `__Host-` so a subdomain cannot plant it. */
@@ -20,15 +19,15 @@ export type PendingCookie = {
   options: typeof ATTRIBUTES & { maxAge: number };
 };
 
-function macOf(purpose: ConfirmType, expiresAtMs: number): Buffer {
-  return macFor(HKDF_INFO, `signin-pending:${purpose}:${expiresAtMs}`);
+function payloadOf(purpose: ConfirmType, expiresAtMs: number): string {
+  return `signin-pending:${purpose}:${expiresAtMs}`;
 }
 
 /** The cookie to set when a link of `purpose` is asked for; it lives as long as the link does. */
 export function pendingCookieFor(purpose: ConfirmType, now = Date.now()): PendingCookie {
   const ttlMs = TTL_H[purpose] * MS_PER_HOUR;
   const expiresAtMs = now + ttlMs;
-  const value = `${purpose}.${expiresAtMs}.${macOf(purpose, expiresAtMs).toString("base64url")}`;
+  const value = `${purpose}.${expiresAtMs}.${macFor(HKDF_INFO, payloadOf(purpose, expiresAtMs)).toString("base64url")}`;
   return { name: PENDING_COOKIE, value, options: { ...ATTRIBUTES, maxAge: ttlMs / 1000 } };
 }
 
@@ -41,9 +40,7 @@ export function isPendingFor(value: string | undefined, purpose: ConfirmType, no
   if (rest.length > 0 || kind !== purpose || mac === undefined || !/^\d+$/.test(expires ?? "")) return false;
   const expiresAtMs = Number(expires);
   if (expiresAtMs <= now) return false;
-  const given = Buffer.from(mac, "base64url");
-  const expected = macOf(purpose, expiresAtMs);
-  return given.length === expected.length && timingSafeEqual(given, expected);
+  return macMatches(HKDF_INFO, payloadOf(purpose, expiresAtMs), Buffer.from(mac, "base64url"));
 }
 
 /** What says a link's GET is a person's page load: this browser asked for it, or the user activated it. */

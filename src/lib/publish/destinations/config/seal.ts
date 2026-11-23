@@ -20,3 +20,6 @@ export const seal = (config: unknown): string => destinationConfig.seal(config);
 
 /** The `config` column's value → plaintext; `withConfig` is the only caller, so it exists inside one call. */
 export const unseal = (sealed: string): unknown => destinationConfig.unseal(sealed);
+
+/** As `unseal`, with the value re-sealed under the current root where it was sealed under the previous one. */
+export const open = (sealed: string): { value: unknown; resealed: string | null } => destinationConfig.open(sealed);
