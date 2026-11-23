@@ -122,7 +122,7 @@ describe("a site whose first topics are live pages, stored queued, commits its w
       const site = panelSite(domain);
       const live = new Set(site.rows.filter((row) => row.ready).slice(0, 2).map((row) => row.id));
       const held = site.rows.map((row) => (live.has(row.id) ? { ...row, status: "queued" } : row));
-      const topTens = new Map([...storedSerps(domain)].map(([query, read]) => [query, read.rows.slice(0, 10).map((row) => canonicalUrl(row.url))]));
+      const topTens = new Map([...storedSerps(domain)].map(([query, read]) => [query, read.rows.slice(0, 10).flatMap((row) => (row.url === undefined ? [] : [canonicalUrl(row.url)]))]));
       const plan = collapse({ existing: held.map(readOpportunity), candidates: [], brandTokens: site.profile.brandTokens, topTens, market: site.market, live });
       const gone = new Set(plan.dismiss);
       const open = held.filter((row) => row.status === "open" && !gone.has(row.id));
