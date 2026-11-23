@@ -14,7 +14,7 @@ const { llmMock } = vi.hoisted(() => ({ llmMock: vi.fn() }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
 const { KNOWLEDGE_BASE, PROFILE_PROMPT_CAPS } = await import("../../src/lib/config/constants");
-const { readKnowledge, readablePages } = await import("../../src/lib/site-profile/knowledge/extract");
+const { PAGE_READING_SCHEMA, readKnowledge, readablePages } = await import("../../src/lib/site-profile/knowledge/extract");
 const { knowledgeBase } = await import("../../src/lib/site-profile/knowledge/merge");
 const { isBuyerQuestion, isSpecificAudience } = await import("../../src/lib/site-profile/knowledge/clean");
 const { readFirstRank } = await import("../../src/lib/site-profile/knowledge/priority");
@@ -145,6 +145,12 @@ describe("only what a page says is kept, with the page it was read from", () => 
       { name: "ReachKit", features: [], prices: ["€49 a month"], uses: [], source: { kind: "page", url: PRICING.url } },
     ]);
     expect(base.proof).toEqual([]);
+  });
+
+  it("a page with more features than the cap keeps its first ones instead of failing whole", () => {
+    const many = Array.from({ length: KNOWLEDGE_BASE.PAGE_ITEMS + 4 }, (_, i) => `feature ${i}`);
+    const read = PAGE_READING_SCHEMA.parse({ ...EMPTY, offerings: [{ name: "ReachKit", features: many, prices: [], uses: [] }] });
+    expect(read.offerings[0]?.features).toEqual(many.slice(0, KNOWLEDGE_BASE.PAGE_ITEMS));
   });
 
   it("a legal page is never asked about", async () => {
