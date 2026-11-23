@@ -197,13 +197,19 @@ function firstHand(claim: PackClaim, domain: string): boolean {
   return claim.product === domain || ((claim.kind === "study" || claim.kind === "primary") && claim.about === domain);
 }
 
+/** What a held comparison lacked: the rivals its versus search names that no first-hand claim is about, by domain, and how many products it holds own-page claims for. */
+export const evidenceOf = (pack: Pick<ContextPack, "target" | "business" | "claims">): { lacking: string[]; firstHand: number } => ({
+  lacking: rivalsOnlyVersus(pack).filter((rival) => !pack.claims.some((claim) => firstHand(claim, rival.domain))).map((rival) => rival.domain),
+  firstHand: new Set(pack.claims.flatMap((claim) => (claim.product === undefined ? [] : [claim.product]))).size,
+});
+
 /** The business facts a pack holds: its passages and its knowledge base's texts. */
 const factTexts = (pack: Omit<ContextPack, "missing">): string[] => [...pack.facts.map((fact) => fact.passage), ...knowledgeTexts(pack.profile?.knowledge)];
 
 function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null): boolean {
   switch (requirement.need) {
     case "rival_evidence":
-      return rivalsOnlyVersus(pack).every((rival) => pack.claims.some((claim) => firstHand(claim, rival.domain)));
+      return evidenceOf(pack).lacking.length === 0;
     case "options":
       // D47: the options are the ones code can lay a table out of — the
       // business and that many rivals, each with a fact to set beside it.

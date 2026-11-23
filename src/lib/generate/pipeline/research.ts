@@ -755,7 +755,11 @@ export async function researchMarket(
   }
 
   // 4. The claims, a few pages a call, each kept only where its page says it.
-  const facts = await readClaims(c, pages, { locale: a.locale, search: target, market: a.marketWords?.[0], rivals: rivalDomains, today: a.today, siteId: a.siteId, page: a.page });
+  const claimed = { locale: a.locale, search: target, market: a.marketWords?.[0], today: a.today, siteId: a.siteId, page: a.page };
+  const facts = await readClaims(c, pages, { ...claimed, rivals: rivalDomains });
+  // A product the search names whose own pages yielded no claim is read once more, alone, before its comparison is held for it.
+  const lacking = namedIn(target, rivalDomains.map((domain) => ({ domain, name: names.get(domain) ?? a.rivalNames?.find((rival) => rival.domain === domain)?.name ?? null }))).filter((domain) => !facts.some((fact) => fact.product === domain));
+  for (const more of await Promise.all(lacking.map((domain) => readClaims(c, pages.filter((page) => page.product === domain), { ...claimed, rivals: [domain], calls: 1 })))) facts.push(...more);
 
   // Best tier first, newest credible first and one claim a page in turn inside each, own pages leaving room; originals then read at 0¢.
   const tiers = { rivals: inForce, products: [...inForce, ...named.map((product) => product.domain)], names: [...(a.rivalNames ?? []), ...named], language: a.locale.language, pages, capped };
@@ -764,14 +768,7 @@ export async function researchMarket(
   for (const fact of ordered) if (fact.capped === true) skipped.add(registrableDomain(fact.url) ?? hostOf(fact.url));
   const minimum = compares({ target, options: a.options }) ? 1 : 2;
   const products = rivalDomains
-    .map((domain) => {
-      const name = names.get(domain);
-      return {
-        domain,
-        pages: [...new Set(ordered.filter((fact) => fact.product === domain).map((fact) => fact.url))],
-        ...(name === undefined ? {} : { name }),
-      };
-    })
+    .map((domain) => ({ domain, pages: [...new Set(ordered.filter((fact) => fact.product === domain).map((fact) => fact.url))], ...(names.has(domain) ? { name: names.get(domain)! } : {}) }))
     .filter((product) => product.pages.length > 0);
   const research: MarketResearch = {
     facts: ordered,
