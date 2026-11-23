@@ -287,24 +287,12 @@ function hostOf(reference: string): string {
   return host.startsWith("www.") ? host.slice("www.".length) : host;
 }
 
-/** A reference split into its ASCII-lowercased alphanumeric runs — the
- *  units a brand token can match as a *whole*. Substring matching would
- *  make "apple.com" a mention of the brand "app"; splitting first means a
- *  token matches only where it is the whole of a label, a path segment or
- *  a query word. */
-function tokensOf(reference: string): readonly string[] {
-  return asciiLowerCase(reference)
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((token) => token.length > 0);
-}
-
 function escapeForRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** The phrase as a whole word or phrase, case-insensitive: never inside a
- *  longer word, which is the guard `tokensOf` gives a reference ("app" is
- *  not named by "apple"). Shorter than three characters names nothing.
+ *  longer word ("app" is not named by "apple"). Shorter than three characters names nothing.
  *  Exported for the tracked prompts' rivals (`readPromptAnswer`). */
 export function says(text: string, phrase: string): boolean {
   const wanted = phrase.trim();
@@ -444,55 +432,56 @@ function pathNamesSite(url: string, siteName: string | null, own: string): boole
 }
 
 /** What an answer said beside its reference hosts, where it was kept: the
- *  addresses it cited and its text. */
+ *  addresses it cited and its text; `town` is the one place a local business serves. */
 export interface AnswerSaid {
   urls?: readonly string[];
   text?: string;
   siteName?: string | null;
+  town?: string;
 }
 
-/** BUILD §6.3: "Brand mentions/citations = string match over references."
- *  A *citation* is a reference whose host is the customer's domain or a
- *  subdomain of it — the answer points at the site. A *mention* is the
- *  answer naming the brand anywhere else (issue 1420): a reference host
- *  that carries the brand token whole, a cited address on another site
- *  whose path names it (`g2.com/products/rippling`), or the answer's own
- *  text naming it (`namesSite`). Before issue 1420 only the first counted,
- *  so a brand an answer recommended through review sites was never named.
- *  The two can both hold for one answer; a reference host is only ever one
- *  of the two.
+const compact = (phrase: string): string => asciiLowerCase(phrase).replace(/[^\p{L}\p{N}]+/gu, "");
+
+/** A local business's name, said without its town, while another cited site carries that name: possibly another business, so not counted. */
+export function possiblyAnother(a: { text?: string; hosts: readonly string[]; ownDomain: string; siteName: string | null; town?: string }): boolean {
+  // The town counts said apart from the name: "Austin Plumbery" alone does not name Austin.
+  const name = a.siteName?.trim() ?? "";
+  const rest = name === "" ? a.text : a.text?.replace(new RegExp(escapeForRegExp(name), "giu"), " ");
+  if (a.town === undefined || a.town.trim() === "" || (rest !== undefined && says(rest, a.town))) return false;
+  const own = hostOf(a.ownDomain);
+  const names = [own.split(".")[0] ?? "", a.siteName ?? ""].map(compact).filter((name) => name.length >= 4);
+  return a.hosts.some((reference) => {
+    const host = hostOf(reference);
+    return host !== own && !host.endsWith(`.${own}`) && names.some((name) => compact(host).includes(name));
+  });
+}
+
+/** BUILD §6.3. A *citation* is a reference or cited address on the site's
+ *  domain or a subdomain of it. A *mention* is the answer naming the site
+ *  elsewhere: a cited address on another site whose path names it
+ *  (`g2.com/products/rippling`), or its text naming it (`namesSite`). A
+ *  host merely containing the brand token is neither. A mention without a
+ *  citation that `possiblyAnother` reads as another business's is not one.
  *
- *  **Exported for the AI answers tab** (SPEC §6, 2026-09-20, #918), which
- *  draws *named* and *linked* as two marks and has to split them the way
- *  the score already splits them. One implementation, so a cell on that
- *  screen and the rate inside `aiPresenceOf` can never come to disagree
- *  about what being named means. It is pure and takes no clock, so the
- *  screen reads stored references with it and measures nothing. */
+ *  **Exported for the AI answers tab** (SPEC §6, 2026-09-20), which draws
+ *  *named* and *linked* as two marks: one implementation, so a cell on that
+ *  screen and the rate inside `aiPresenceOf` never disagree. Pure, no clock. */
 export function classifyReferences(
   references: readonly string[],
   ownDomain: string,
   said: AnswerSaid = {}
-): { cited: boolean; mentioned: boolean } {
+): { cited: boolean; mentioned: boolean; possiblyOther: boolean } {
   const own = hostOf(ownDomain);
-  const brandToken = own.split(".")[0] ?? own;
   const siteName = said.siteName ?? null;
-  let cited = false;
-  let mentioned = false;
-  for (const reference of references) {
+  const urls = said.urls ?? [];
+  const ownHost = (reference: string): boolean => {
     const host = hostOf(reference);
-    if (host === own || host.endsWith(`.${own}`)) {
-      cited = true;
-    } else if (brandToken.length > 0 && tokensOf(reference).includes(brandToken)) {
-      mentioned = true;
-    }
-  }
-  for (const url of said.urls ?? []) {
-    const host = hostOf(url);
-    if (host === own || host.endsWith(`.${own}`)) cited = true;
-    else if (pathNamesSite(url, siteName, own)) mentioned = true;
-  }
-  if (said.text !== undefined && namesSite(said.text, siteName, own)) mentioned = true;
-  return { cited, mentioned };
+    return host === own || host.endsWith(`.${own}`);
+  };
+  const cited = references.some(ownHost) || urls.some(ownHost);
+  const named = urls.some((url) => !ownHost(url) && pathNamesSite(url, siteName, own)) || (said.text !== undefined && namesSite(said.text, siteName, own));
+  const possiblyOther = named && !cited && possiblyAnother({ ...said, hosts: [...references, ...urls], ownDomain, siteName });
+  return { cited, mentioned: named && !possiblyOther, possiblyOther };
 }
 
 /** An AI answer counts for the site where it named it or linked it: the one
@@ -533,6 +522,7 @@ export function aiSampleOf(a: {
   ownDomain: string;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
+  town?: string;
   /** The page questions' AI Overviews, bought on the same pass (owner,
    *  2026-10-19, issue 1551): read beside the twelve, as stored. */
   pageCells?: readonly PageAnswerCell[];
@@ -555,6 +545,7 @@ export function aiSampleOf(a: {
       ...(referenceUrls === undefined ? {} : { urls: referenceUrls }),
       ...(text === undefined ? {} : { text }),
       siteName: a.siteName ?? null,
+      town: a.town,
     });
     if (namesOrLinks({ namesCustomer: cited, ...(mentioned ? { named: true as const } : {}) })) sample.hits++;
   }
@@ -590,6 +581,7 @@ export function aiPresenceOf(a: {
   ownDomain: string;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
+  town?: string;
   pageCells?: readonly PageAnswerCell[];
   at: Date;
 }): Measured<number> {

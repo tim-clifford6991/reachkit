@@ -19,7 +19,7 @@ import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { brandOf } from "@/lib/market/questions/select";
-import { citedPagesOf } from "@/lib/market/prompts/answer";
+import { citedPagesOf, countedFor } from "@/lib/market/prompts/answer";
 import { freePageChanges } from "@/lib/opportunities/free-page";
 import { statementsOf } from "@/lib/market/prompts/misstated";
 import type { PresenceCard } from "@/lib/market/rivals/presence";
@@ -196,6 +196,7 @@ function cardsAfter(
     ownDomain: r.domain,
     reach: reachOfReport(r),
     siteName: scan.siteName,
+    town: r.locale?.place?.name,
     coverage: r.aiAnswers?.coverage ?? "async_included",
   });
   const cells = cards.card.rows.map((row) => row.cell);
@@ -216,7 +217,7 @@ function cardsAfter(
               ...row,
               cell,
               engines: row.engines.map((engine) =>
-                engine.engine === "ai_overview" ? { ...engine, cell } : { ...engine, cell: engineCellAfter(engine, row.question.search, r.domain, scan, kept) }
+                engine.engine === "ai_overview" ? { ...engine, cell } : { ...engine, cell: engineCellAfter(engine, row.question.search, r.domain, scan, kept, r.locale?.place?.name) }
               ),
             };
           }),
@@ -275,7 +276,8 @@ function engineCellAfter(
   search: string,
   ownDomain: string,
   scan: Pick<RescoreScan, "siteName" | "answers">,
-  kept: string[]
+  kept: string[],
+  town?: string
 ): AnswerCell {
   const cell = engine.cell;
   if (cell.kind !== "answered" || engine.engine === "ai_overview") return cell;
@@ -289,6 +291,7 @@ function engineCellAfter(
     urls: stored.citedUrls ?? [],
     text: stored.text,
     siteName: scan.siteName,
+    town,
   });
   const rest: AnswerCell = { ...cell };
   delete rest.named;
@@ -333,7 +336,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
   if (searchPresence === null && none === undefined) kept.push("search presence: the report kept no measured search, so its stored value stands");
   // The page questions' stored AI-Overview cells count beside the twelve's, as stored; older reports have none.
   const pageCells = r.pageQuestions?.rows.map((row) => row.cell) ?? [];
-  const aiPresence = aiPresenceOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName, at });
+  const aiPresence = aiPresenceOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName, town: r.locale?.place?.name, at });
   const textless = r.serps.some(
     (serp) => serp.kind !== "unmeasured" && serp.value.aiOverview.present && serp.value.aiOverview.unread !== true && serp.value.aiOverview.text === undefined
   );
@@ -364,7 +367,7 @@ export function rescoreScan(scan: RescoreScan): Rescored {
     own_ranked_rows: outcomeOf(r.ownRanked),
     question_serps: outcomeOf(none ?? foldSerps(r.serps, at)),
   };
-  const aiSample = aiSampleOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName });
+  const aiSample = aiSampleOf({ serps: r.serps, pageCells, ownDomain: r.domain, siteName: scan.siteName, town: r.locale?.place?.name });
   const verdict = verdictOf({
     domain: r.verdict.domain,
     measuredAt: at,
@@ -412,8 +415,8 @@ function servedChanges(r: RescoreReport, scan: Pick<RescoreScan, "home">): Repor
   return [{ path: ["locale"], value: alsoServes.length === 0 ? locale : { ...locale, alsoServes } }];
 }
 
-/** Each tracked-prompt answer's statements of the business, re-read from its stored text (`readPromptAnswer`); one whose text is gone stands. */
-function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "answers" | "market">): ReportChange[] {
+/** Each tracked-prompt answer re-read from its stored text (`readPromptAnswer`): what it counts for and its statements; one whose text is gone stands. */
+function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "answers" | "market" | "measured">): ReportChange[] {
   const section = r.prompts;
   // A stored blob is not checked by its type: a section that lost a list is
   // left as stored.
@@ -432,14 +435,18 @@ function promptChanges(r: RescoreReport, scan: Pick<RescoreScan, "siteName" | "a
               each.key.startsWith(`${asked.text}|`) &&
               Number(/\|run:(\d+)$/.exec(each.key)?.[1] ?? 1) === answer.run
           );
+    const next: PromptAnswer = { ...answer };
     // The pages it cited are read again wherever they were stored.
-    const cited = stored?.citedUrls == null ? null : citedPagesOf(stored.citedUrls, r.domain);
-    if (cited !== null && !same(answer.cited ?? [], cited)) changes.push({ path: ["prompts", "answers", i, "cited"], value: cited });
+    if (stored?.citedUrls != null) next.cited = citedPagesOf(stored.citedUrls, r.domain);
     const text = stored?.whole ?? stored?.text ?? null;
-    if (text === null) return;
-    const rivals = scan.market?.rivals ?? answer.rivals.map((domain) => ({ name: brandOf(domain), domain }));
-    const states = answer.named ? statementsOf({ text, siteName: section.siteName, ownDomain: r.domain, rivals, language }) : [];
-    if (!same(answer.states ?? [], states)) changes.push({ path: ["prompts", "answers", i, "states"], value: states });
+    if (text !== null) {
+      const { possiblyOther, ...counted } = countedFor({ ...answer, named: answer.named || answer.possiblyOther === true, text, hosts: stored?.citedUrls ?? [], ownDomain: r.domain, siteName: section.siteName, town: r.locale?.place?.name, pages: scan.measured?.pages });
+      Object.assign(next, counted, possiblyOther ? { possiblyOther: true } : { possiblyOther: undefined });
+      const rivals = scan.market?.rivals ?? answer.rivals.map((domain) => ({ name: brandOf(domain), domain }));
+      next.states = next.named ? statementsOf({ text, siteName: section.siteName, ownDomain: r.domain, rivals, language }) : [];
+    }
+    const filled = (x: PromptAnswer) => ({ ...x, cited: x.cited ?? [], states: x.states ?? [], possiblyOther: x.possiblyOther ?? false });
+    if (!same(filled(answer), filled(next))) changes.push({ path: ["prompts", "answers", i], value: JSON.parse(JSON.stringify(next)) as PromptAnswer });
   });
   return changes;
 }

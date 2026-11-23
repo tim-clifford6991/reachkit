@@ -74,6 +74,8 @@ export function cardsOf(a: {
   reach?: Omit<Parameters<typeof readsLocal>[0], "serps">;
   /** The site's name, as `namesSite` reads it; `null` where none is known. */
   siteName?: string | null;
+  /** The one place a local business serves, where it serves one. */
+  town?: string;
   coverage: AiAnswersCard["coverage"];
 }): Cards {
   const readSerps: MarketSerp[] = [];
@@ -104,6 +106,7 @@ export function cardsOf(a: {
       ...(a.battery === undefined ? {} : { battery: a.battery }),
       ownDomain: a.ownDomain,
       siteName: a.siteName ?? null,
+      town: a.town,
       coverage: a.coverage,
     }),
     coherence: checkCoherence({ serps: readSerps, measuredCount: readSerps.length }),
