@@ -261,6 +261,8 @@ export function collapse(a: {
   sameQuestion?: ReadonlyMap<string, string>;
   /** The site's concluded market, whose own words join two searches. Absent joins by the words alone. */
   market?: MarketWords | null;
+  /** The rows behind the site's live pages; a `done` row reads as live too. */
+  live?: ReadonlySet<string>;
 }): CollapsePlan {
   const byKey = new Map<string, Member[]>();
   const insert: ClusteredCandidate[] = [];
@@ -286,10 +288,11 @@ export function collapse(a: {
     if (!add(key, { kind: "candidate", candidate })) insert.push({ ...candidate, clusterKey: null, absorbedQueries: [] });
   }
 
-  const groups = joinTopics(byKey, a.topTens ?? new Map(), a.sameQuestion ?? new Map(), (query) => (a.market == null ? null : clusterKey(query, a.brandTokens, a.market)));
-
   const band = (m: Member): Winnability | null =>
     m.kind === "row" && a.today !== undefined ? a.today(m.row) ?? m.row.fitBand : bandOf(m);
+  const rank = (x: Member, y: Member) => compareMembers(x, y, band);
+  const groups = joinTopics(byKey, a.topTens ?? new Map(), a.sameQuestion ?? new Map(), (query) => (a.market == null ? null : clusterKey(query, a.brandTokens, a.market)), rank);
+  const isLive = (m: Member): boolean => m.kind === "row" && (m.row.status === "done" || a.live?.has(m.row.id) === true);
 
   /** Whether this pass has superseded the row that survived `key`: it read
    *  the topic, wrote no candidate on it, and did not derive the row. */
@@ -303,14 +306,15 @@ export function collapse(a: {
   const dismiss: string[] = [];
   const update: { id: string; clusterKey: string; absorbedQueries: string[] }[] = [];
   for (const members of groups) {
-    const [first, ...others] = [...members].sort((x, y) => compareMembers(x, y, band));
+    const [first, ...others] = [...members].sort(rank);
     if (first === undefined) continue;
     // The topic takes the first member's own key, so a held survivor keeps its key and the index never sees it move.
     const key = keyOf.get(first) as string;
     const hadCandidate = members.some((member) => member.kind === "candidate");
     // A live page keeps its searches and its best other member stays as its update, unless a page of it is being written.
-    const live = first.kind === "row" && first.row.status === "done";
-    const survivor = !live ? first : others.some((m) => m.kind === "row" && m.row.status === "queued") ? undefined : others.find((m) => !hasAPage(m));
+    const survivor = !isLive(first) ? first : others.some((m) => hasAPage(m) && !isLive(m)) ? undefined : others.find((m) => !hasAPage(m));
+    // A live page takes no search, but keeps the topic's key, which an AI answer's link to it is read through.
+    if (survivor !== first && first.kind === "row" && first.row.clusterKey !== key) update.push({ id: first.row.id, clusterKey: key, absorbedQueries: [...first.row.absorbedQueries] });
     const rest = members.filter((member) => member !== first && member !== survivor);
     const own = survivor === undefined ? null : (queryOf(survivor)?.trim().toLowerCase() ?? null);
     const absorbed = new Set<string>(survivor?.kind === "row" ? survivor.row.absorbedQueries : []);
@@ -336,29 +340,22 @@ export function collapse(a: {
   return { dismiss, update, insert };
 }
 
-/** The word-key groups, joined transitively where two are one topic. Only a member that plans a new page joins this
- *  way: an Improve is already the update of a page, and folding it in would drop that page's refresh. */
+/** The word-key groups, the best one taking each group joined to it directly: a chain of joins is not one question. Only
+ *  a member that plans a new page joins: an Improve is already the update of a page, and folding it in would drop that page's refresh. */
 function joinTopics(
   byKey: ReadonlyMap<string, Member[]>,
   topTens: ReadonlyMap<string, readonly string[]>,
   sameQuestion: ReadonlyMap<string, string>,
-  marketKey: (query: string) => string | null
+  marketKey: (query: string) => string | null,
+  rank: (x: Member, y: Member) => number
 ): Member[][] {
-  const keys = [...byKey.keys()];
-  const parent = new Map(keys.map((key) => [key, key]));
-  const root = (key: string): string => {
-    let at = key;
-    while (parent.get(at) !== at) at = parent.get(at) as string;
-    return at;
-  };
-  const join = (x: string, y: string) => {
-    const [rx, ry] = [root(x), root(y)];
-    if (rx !== ry) parent.set(ry, rx);
-  };
+  const linked = new Map<string, Set<string>>();
+  const link = (from: string, to: string) => linked.set(from, (linked.get(from) ?? new Set()).add(to));
+  const join = (x: string, y: string) => link(x, y) && link(y, x);
 
   const keyOfQuery = new Map<string, string>();
-  const keyOfSerp = new Map<string, string>();
-  const keyOfMarket = new Map<string, string>();
+  const keyOfSerp = new Map<string, string[]>();
+  const keyOfMarket = new Map<string, string[]>();
   const tops: { key: string; urls: readonly string[] }[] = [];
   for (const [key, members] of byKey) {
     for (const member of members) {
@@ -370,9 +367,9 @@ function joinTopics(
       // So is one search in the market's own words: a held row keyed before them joins its twin.
       for (const [byShared, shared] of [[keyOfSerp, serp], [keyOfMarket, marketKey(query)]] as const) {
         if (shared === null) continue;
-        const sharing = byShared.get(shared);
-        if (sharing === undefined) byShared.set(shared, key);
-        else join(sharing, key);
+        const sharing = byShared.get(shared) ?? [];
+        for (const other of sharing) join(other, key);
+        byShared.set(shared, [...sharing, key]);
       }
       const urls = topTens.get(serp);
       if (urls !== undefined) tops.push({ key, urls });
@@ -398,7 +395,12 @@ function joinTopics(
     }
   }
 
-  const topics = new Map<string, Member[]>();
-  for (const [key, members] of byKey) topics.set(root(key), [...(topics.get(root(key)) ?? []), ...members]);
-  return [...topics.values()];
+  const best = new Map([...byKey].map(([key, members]) => [key, [...members].sort(rank)[0]!]));
+  const left = new Set(byKey.keys());
+  return [...left].sort((x, y) => rank(best.get(x)!, best.get(y)!)).flatMap((key) => {
+    if (!left.has(key)) return [];
+    const topic = [...new Set([key, ...linked.get(key) ?? []])].filter((other) => left.has(other));
+    for (const taken of topic) left.delete(taken);
+    return [topic.flatMap((taken) => byKey.get(taken)!)];
+  });
 }

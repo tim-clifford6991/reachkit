@@ -140,6 +140,8 @@ export interface OpportunityStore {
   clusterable(siteId: string): Promise<readonly OpportunityRow[]>;
   /** The ids of rows a draft was ever written from, published or not: the rows a pass's relevance prune never touches. */
   draftedOpportunityIds(siteId: string): Promise<ReadonlySet<string>>;
+  /** The rows behind the site's live pages, whatever their status: a published page's row may still read `queued`. */
+  liveOpportunityIds?(siteId: string): Promise<ReadonlySet<string>>;
   /** The site's drafted pages, newest date first, at most `limit`: what a brief is told is covered, and where the week starts. */
   draftedPages(siteId: string, limit: number): Promise<readonly DraftedPage[]>;
   /** Q8: every draft of the site, newest first, with its row and what its pack's research read. Optional: absent reads none. */
@@ -485,13 +487,8 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async openRankable(siteId) {
-      const { data, error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .select(COLUMNS)
-        .eq("site_id", siteId)
-        .eq("status", "open")
-        .neq("family", "fix")
-        .order("created_at", { ascending: true });
+      const { data, error } = await untyped().from<OpportunityRow>("opportunities").select(COLUMNS).eq("site_id", siteId)
+        .eq("status", "open").neq("family", "fix").order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.openRankable: ${error.message}`);
       return atCurrentHost(siteId, data ?? []);
     },
@@ -509,24 +506,23 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async clusterable(siteId) {
-      const { data, error } = await untyped()
-        .from<OpportunityRow>("opportunities")
-        .select(COLUMNS)
-        .eq("site_id", siteId)
-        .in("status", ["open", "queued", "done"])
-        .neq("family", "fix")
-        .order("created_at", { ascending: true });
+      const { data, error } = await untyped().from<OpportunityRow>("opportunities").select(COLUMNS).eq("site_id", siteId)
+        .in("status", ["open", "queued", "done"]).neq("family", "fix").order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.clusterable: ${error.message}`);
       return atCurrentHost(siteId, data ?? []);
     },
 
     async draftedOpportunityIds(siteId) {
-      const { data, error } = await untyped()
-        .from<{ opportunity_id: string | null }>("drafts")
-        .select("opportunity_id")
-        .eq("site_id", siteId);
+      const { data, error } = await untyped().from<{ opportunity_id: string | null }>("drafts").select("opportunity_id").eq("site_id", siteId);
       if (error) throw new Error(`opportunities.draftedOpportunityIds: ${error.message}`);
-      return new Set((data ?? []).flatMap((draft) => (draft.opportunity_id === null ? [] : [draft.opportunity_id])));
+      return new Set((data ?? []).flatMap((draft) => draft.opportunity_id ?? []));
+    },
+
+    async liveOpportunityIds(siteId) {
+      const { data, error } = await untyped().from<{ drafts: { opportunity_id: string | null } | null }>("publications").select("drafts(opportunity_id)")
+        .eq("site_id", siteId).not("published_at", "is", null).is("unpublished_at", null);
+      if (error) throw new Error(`opportunities.liveOpportunityIds: ${error.message}`);
+      return new Set((data ?? []).flatMap((page) => page.drafts?.opportunity_id ?? []));
     },
 
     async draftedPages(siteId, limit) {
