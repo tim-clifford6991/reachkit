@@ -14,13 +14,13 @@ const DAY_MS = 86_400_000;
 
 /** The week's one readiness check, after its verdicts and refreshes, then its ranking: a day is planned only from a
  *  ready row, and `best` is the `WEEK_RESEARCH.rowsMax` rows whose research the commit reads. */
-async function ranked(siteId: string, a: { now: Date; from?: string; record?: boolean; keepLater?: boolean }) {
+async function ranked(siteId: string, a: { now: Date; from?: string; record?: boolean; keepLater?: boolean; days?: number }) {
   // On demand, the week starts at the date being written; on Monday, at the first date with no page.
   const store = opportunityStore(), from = a.from ?? new Date(firstOpenDay(await store.draftedPages(siteId, 1), a.now) * DAY_MS).toISOString().slice(0, 10);
   await assessReadiness(siteId, { at: a.now, now: a.now, record: a.record === true, plannedFrom: from });
   await assessFixPages(siteId, { report: null, now: a.now });
   // Before the first weekly pass, the dated days stop where that Monday's pass opens the next week: a Wednesday 5, a Monday 7.
-  const days = a.keepLater ? 1 : (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days;
+  const days = a.days ?? (a.keepLater ? 1 : (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days);
   // A recommit fills its own date and the spares: the days after it stay as committed.
   const kept = a.keepLater ? (await store.plannedRows(siteId)).filter((r) => r.planned_for != null && r.planned_for > from) : [];
   const later = new Set(kept.map((r) => r.id)), top = Math.max(0, ...kept.map((r) => r.plan_place ?? 0));
@@ -35,7 +35,7 @@ export const weekCandidates = async (siteId: string, now: Date): Promise<Opportu
 
 /** Commits and returns the site's week, from `from` where it is given; what is chosen is `choose`'s. `research` is the
  *  row checks the Monday job already made; a best row it lacks is read from the cache. */
-export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean; keepLater?: boolean; research?: ReadonlyMap<string, ResearchRead | null> } = {}): Promise<readonly PlanEntry[] & { from: string; rejected: Record<string, { n: number; ids?: string[] }>; rested: { opportunityId: string; short: string[] }[] }> {
+export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean; keepLater?: boolean; days?: number; research?: ReadonlyMap<string, ResearchRead | null> } = {}): Promise<readonly PlanEntry[] & { from: string; days: number; rejected: Record<string, { n: number; ids?: string[] }>; rested: { opportunityId: string; short: string[] }[] }> {
   const now = a.now ?? new Date(), store = opportunityStore();
   const { input, order, best, later, top, from, days } = await ranked(siteId, { ...a, now });
   // The ranking's best rows are then ordered by what research the cache holds for them.
@@ -49,7 +49,7 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
   for (const r of choice.rejected) { const tally = (rejected[r.reason] ??= r.reason === "after_the_week" ? { n: 0 } : { n: 0, ids: [] }); tally.n++; tally.ids?.push(r.opportunityId); }
   await store.commitPlan(siteId, entries, a.keepLater ? from : undefined);
   console.log(JSON.stringify({ event: "week_planned", siteId, from, days: Math.min(entries.length, days), spares: Math.max(0, entries.length - days), kept: later.size, rejected }));
-  return Object.assign(entries, { from, rejected, rested });
+  return Object.assign(entries, { from, days, rejected, rested });
 }
 
 /** A new site's first week, committed when setup's pass ends so Plan shows it before the first evening, filled by the

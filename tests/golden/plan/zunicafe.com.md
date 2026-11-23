@@ -19,6 +19,6 @@ Supply: 10 of 10 committed, short 0; stored topics product 10, best_x 3.
 
 | Not chosen | Type | Fit | Volume | Reason |
 |---|---|---|---|---|
-| best new restaurants in san francisco | listed_page | 2 | 2400 | unready |
-| top restaurants in san francisco ca | listed_page | 2 | 2400 | unready |
-| best brunch place in san francisco | listed_page | 2 | 1000 | unready |
+| best new restaurants in san francisco | listed_page | 2 | 2400 | after_the_week |
+| top restaurants in san francisco ca | listed_page | 2 | 2400 | after_the_week |
+| best brunch place in san francisco | listed_page | 2 | 1000 | after_the_week |

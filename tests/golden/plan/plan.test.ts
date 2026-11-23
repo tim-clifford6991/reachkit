@@ -19,7 +19,6 @@ import { AT, panelDomains, panelSite, SITE_ID, storedSerps, type PanelSite } fro
 /** A site whose stored rows commit no page, the gate that holds them, and
  *  where the finding is filed. A hold that clears fails its case. */
 const HELD: Readonly<Record<string, string>> = {
-  "fletcherelectric.co.uk": "readiness: its only stored run (2026-10-10) has every topic ready: false, reason not stored (#1127)",
 };
 
 const FROM = AT.toISOString().slice(0, 10);

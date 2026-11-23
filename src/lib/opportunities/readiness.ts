@@ -92,11 +92,8 @@ export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason |
   if (o.family === "improve" && !ctx.canUpdate(o.targetRef)) return "destination_cannot_address";
   // An Improve row is the update of the page that covers its topic.
   if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "destination_cannot_address";
-  // A new page with no score waits for one, never read as low; an update or a fix is never held for want of one.
-  const fit = o.businessFit ?? null;
-  if (fit === null ? o.family === "write" || o.family === "earn" : o.family !== "fix" && fit < TOPIC_FIT.gate) return fit === null ? "fit_unscored" : "low_fit";
-  // A new topic with no `fitFact` key was judged before the call named one, and keeps its fit until judged again.
-  if ((o.evidence.family === "write" || o.evidence.family === "earn") && o.evidence.fitFact === null) return "low_fit";
+  // Fit ranks a row; only a search the business does not sell is held, and an unscored one ranks as a 2.
+  if (o.family !== "fix" && (o.businessFit ?? TOPIC_FIT.gate) < TOPIC_FIT.gate) return "low_fit";
   if (!ctx.footprint && waitsForFootprint(o) && o.id !== ctx.allowed && (ctx.reachedBy?.(o) ?? null) === null) return "out_of_reach";
   return null;
 }

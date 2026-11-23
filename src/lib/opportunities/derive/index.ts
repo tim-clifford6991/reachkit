@@ -338,7 +338,7 @@ export async function deriveOpportunities(
     await store.setBusinessFit(row.id, judged.fit, source, pageTypeOf({ ...row, source }));
     if (isNewPage(row)) await store.setEvidence(row.id, withFact(row, judged).evidence);
   }
-  // A proposal is a write target only at the top fit, as only its fit speaks for it; one the fit call left unanswered is kept unscored for the next pass, but an asked question, which the asked supply guards.
+  // Fit ranks a proposal and gates only what the business does not sell; one the fit call left unanswered is kept unscored for the next pass, but an asked question, which the asked supply guards.
   const proposed: Candidate[] = [];
   // What buyers were seen asking below the top fit is still written; what was judged off the business never is.
   const spare: AskedSupply[] = [];
@@ -370,7 +370,7 @@ export async function deriveOpportunities(
       if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact, angle: judged.angle });
       else refused.push(topic.query);
     }
-    if (judged === undefined ? topic.asked !== undefined : judged.fit < TOPIC_FIT.writeAt) continue;
+    if (judged === undefined ? topic.asked !== undefined : judged.fit < (topic.asked === undefined ? TOPIC_FIT.gate : TOPIC_FIT.writeAt)) continue;
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
     if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, title: judged.title }, judged));
   }

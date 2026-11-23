@@ -40,9 +40,9 @@ export async function postFirstWeek(a: { siteId: string; scanId: string; now: Da
 
 /** Commits the week from the checks, then records once per site and week what it was short of (SPEC §7). */
 export async function commitWeek(a: { siteId: string; scanId?: string; weekStart: string; now: Date; rows: readonly WeekRow[]; checks: Checks }): Promise<void> {
-  const week = await planWeek(a.siteId, { now: a.now, record: true, research: new Map(a.checks) });
-  // An early pass supplies every date from its first to the claimed week's Sunday.
-  await recordWeek(a, week, week.rested, { from: week.from, days: (Date.parse(a.weekStart) - Date.parse(week.from)) / 86_400_000 + 7 });
+  // The pass plans a full week from its first unwritten date, and records the span it planned.
+  const week = await planWeek(a.siteId, { now: a.now, record: true, days: WEEK_PLAN.days, research: new Map(a.checks) });
+  await recordWeek(a, week, week.rested, { from: week.from, days: week.days });
 }
 
 /** The first week's record, from the rows committed, whichever commit made it: the first draft's from its own date, or

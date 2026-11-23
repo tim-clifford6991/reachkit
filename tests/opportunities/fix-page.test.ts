@@ -79,10 +79,10 @@ describe("readiness — only where the destination can make the update", () => {
       expect(fixPageReadiness(fix, delivery), fix.pageUrl).toBe("destination_cannot_address");
     }
   });
-  it("a new page the fit call never scored is held unscored, and one scored low is low fit", () => {
+  it("fit ranks a new page: an unscored or fit-1 one is ready, and only one the business does not sell is low fit", () => {
     const ctx = { now: new Date(AT), suppression: { retiredUrls: new Set() }, canUpdate: () => true, coveredBy: () => null, footprint: true } as unknown as ReadinessContext;
     const row = (businessFit: number | null) => ({ family: "write", businessFit, targetRef: PRICING, evidence: { family: "write", fitFact: "x" } }) as unknown as Opportunity;
-    expect([eligible(row(null), ctx), eligible(row(1), ctx)]).toEqual(["fit_unscored", "low_fit"]);
+    expect([eligible(row(null), ctx), eligible(row(1), ctx), eligible(row(0), ctx)]).toEqual([null, null, "low_fit"]);
   });
 });
 
