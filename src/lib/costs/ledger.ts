@@ -1,6 +1,7 @@
 // BUILD §6.5 — the ledger write — every vendor call recorded before it is answered.
 // One row for every call that reached the vendor, a parse failure included; this module writes the two figures it is given.
 import { dbAdmin } from "@/lib/db";
+import type { TextClient } from "@/lib/measure/text-store";
 
 /** One `fetches` row, declared here because the generated types do not hold
  *  the table. `payload` is `unknown`; each caller knows its own shape.
@@ -82,8 +83,9 @@ export async function writeFetchRow(row: {
   activity?: "draft" | "topup" | "weekly";
   draftId?: string;
 }): Promise<void> {
+  const id = row.id ?? crypto.randomUUID();
   const base = {
-    ...(row.id === undefined ? {} : { id: row.id }),
+    id,
     scan_id: row.scanId,
     source: row.source,
     cache_key: row.cacheKey,
@@ -107,6 +109,11 @@ export async function writeFetchRow(row: {
   }
   if (error) {
     throw new Error(`ledger.ts: insert into fetches failed: ${error.message}`);
+  }
+  const textVersion = process.env.RK_TEXT_VERSION;
+  if (textVersion) {
+    const { keepText } = await import("@/lib/measure/text-store");
+    await keepText(dbAdmin() as unknown as TextClient, { id, scan_id: row.scanId, source: row.source }, row.payload, textVersion);
   }
 }
 

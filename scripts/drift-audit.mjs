@@ -18,9 +18,9 @@ const strict = process.argv.includes("--strict");
 const read = (p) => (existsSync(path.join(ROOT, p)) ? readFileSync(path.join(ROOT, p), "utf8") : null);
 const spec = read("docs/SPEC.md") ?? "";
 // Owner 2026-10-18, #1525: a dated ruling is its own file. Every reader of
-// the spec reads SPEC.md and those files as one text, each named by its file.
+// the spec reads SPEC.md and those files as one text, each named by its file; DESIGN.md holds the screen rules SPEC moved there.
 const decisions = readDecisions(ROOT);
-const sources = [{ file: "docs/SPEC.md", text: spec }, ...decisions.map((d) => ({ file: d.file, text: d.body }))];
+const sources = [{ file: "docs/SPEC.md", text: spec }, { file: "docs/DESIGN.md", text: read("docs/DESIGN.md") ?? "" }, ...decisions.map((d) => ({ file: d.file, text: d.body }))];
 
 function walk(dir, pred, out = []) {
   const abs = path.join(ROOT, dir);

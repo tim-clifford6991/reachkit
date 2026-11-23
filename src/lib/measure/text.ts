@@ -6,8 +6,8 @@
 // second read of the customer's own server at draft time, and without a
 // second copy of the text anywhere.
 //
-// **It fetches nothing.** No `safeFetch`, no vendor call; its one write is
-// the derived text a deployment keeps in `fetch_text` (`text-store.ts`).
+// **It fetches nothing and writes nothing.** No `safeFetch`, no vendor call,
+// no payload: it reads the text kept in `fetch_text` (`text-store.ts`).
 // A site that serves an empty JavaScript shell has its pages' rendered reads
 // beside the shells (SPEC §6, issue 1374), marked `rendered`. The extractor
 // is `prose.ts`'s `prose`: the document the measurement scored, without its
@@ -27,7 +27,7 @@
 import { SITE_PROFILE } from "@/lib/config/constants/scan";
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "./own-fetch";
-import { measuredTextOf, storedText, textRowOf, type FetchRead, type TextClient } from "./text-store";
+import { storedText, type FetchRead, type TextClient } from "./text-store";
 
 export interface MeasuredText {
   url: string;
@@ -174,17 +174,10 @@ async function textOfScans(scanIds: readonly string[], cap?: number): Promise<Me
     const query = client.from<T>("fetches").select(columns).in("source", [OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE]).in("scan_id", scanIds);
     return cap === undefined ? query : query.order("created_at", { ascending: false }).limit(cap);
   };
-  // Dev and production share one database, so only production keeps rows at its text version.
-  const version = process.env.RK_TEXT_VERSION;
-  if (version && process.env.VERCEL_ENV === "production") {
-    const reads = fetchRows(await list<FetchRead>("id, scan_id, source"));
-    const stored = await storedText(client as unknown as TextClient, reads, version);
-    return [...stored.values()].filter((text) => text !== null).sort(compareMeasuredText);
-  }
-  // A `null` payload is a ledgered failed read (`own-fetch.ts`) — no text was
-  // measured, so none is returned. Any other shape is skipped the same way.
-  const rows = fetchRows(await list<FetchRead & { payload: unknown }>("id, scan_id, source, payload"));
-  return rows.map((row) => measuredTextOf(textRowOf(row.source, row.payload))).filter((text) => text !== null).sort(compareMeasuredText);
+  // Payload-free: the listing walks `idx_fetches_scan_id` and the text is the kept row (`text-store.ts`).
+  const reads = fetchRows(await list<FetchRead>("id, scan_id, source"));
+  const stored = await storedText(client as unknown as TextClient, reads);
+  return [...stored.values()].filter((text) => text !== null).sort(compareMeasuredText);
 }
 
 function fetchRows<T>(result: QueryResult<T>): T[] {

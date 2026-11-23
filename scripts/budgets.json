@@ -1,5 +1,6 @@
 {
   "citations": 3725,
+  "specRows": 208,
   "lines": {
     "fileMax": 600,
     "areas": { "src/lib/opportunities": 9000 },
