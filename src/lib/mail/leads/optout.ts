@@ -3,8 +3,7 @@
 // No expiry, so a mail found a year later can still be switched off.
 // Applied on arrival, not by a button: a prefetch that over-stops follow-up costs nothing (`first-page` is unstoppable), a button can cost the only way out.
 // The key is `keyFor` a label no other token uses.
-import { timingSafeEqual } from "node:crypto";
-import { macFor } from "@/lib/crypto/keys";
+import { macFor, macMatches } from "@/lib/crypto/keys";
 import { normaliseAddress, suppressAddress } from "./suppress";
 
 const HKDF_INFO = "reachkit/opt-out-token/v1";
@@ -39,8 +38,7 @@ export function readOptOutToken(token: string): { email: string } | { error: "in
     return { error: "invalid" };
   }
 
-  const expected = macOf(payload);
-  if (mac.length !== expected.length || !timingSafeEqual(mac, expected)) return { error: "invalid" };
+  if (!macMatches(HKDF_INFO, payload, mac)) return { error: "invalid" };
   if (payload === "") return { error: "invalid" };
   return { email: payload };
 }

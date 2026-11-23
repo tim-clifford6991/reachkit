@@ -3,8 +3,7 @@
 // No expiry, so a link never stops working. Reading is pure, so a scanner's prefetch switches nothing off; `applyUnsubscribeToken`,
 // reached by the page's button and RFC 8058's POST, is the only writer and is idempotent.
 // The key is `keyFor` a label no other token uses.
-import { timingSafeEqual } from "node:crypto";
-import { macFor } from "@/lib/crypto/keys";
+import { macFor, macMatches } from "@/lib/crypto/keys";
 import { TOGGLABLE_KINDS, setNotifyPref, type NotifyKind } from "./index";
 
 const HKDF_INFO = "reachkit/unsubscribe-token/v1";
@@ -49,8 +48,7 @@ export function readUnsubscribeToken(
     return { error: "invalid" };
   }
 
-  const expected = macOf(payload);
-  if (mac.length !== expected.length || !timingSafeEqual(mac, expected)) return { error: "invalid" };
+  if (!macMatches(HKDF_INFO, payload, mac)) return { error: "invalid" };
 
   const separator = payload.lastIndexOf(":");
   if (separator <= 0) return { error: "invalid" };

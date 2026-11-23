@@ -62,6 +62,8 @@ const schema = z.object({
   INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   INNGEST_EVENT_KEY: z.string().min(1).optional(),
   IP_HASH_SALT: z.string().min(1),
+  // The root before the last rotation: it only opens and verifies what was sealed or signed under it.
+  IP_HASH_SALT_PREVIOUS: z.string().min(1).optional(),
   // Boolean-ish.
   KILL_SWITCH: z.stringbool(),
   // A comma-separated list.
@@ -145,6 +147,7 @@ const SERVER_ONLY_KEYS = [
   "ANTHROPIC_API_KEY",
   "NANO_API_KEY",
   "IP_HASH_SALT",
+  "IP_HASH_SALT_PREVIOUS",
   // A signing key proves a request to `/api/jobs` came from the platform and
   // an event key puts work on the queue.
   "INNGEST_SIGNING_KEY",

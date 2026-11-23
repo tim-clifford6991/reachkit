@@ -570,7 +570,7 @@ const RAW_SITE_NAME = {
 // One place derives every key, so rotating the root secret has one place to change.
 const ROOT_SECRET_READERS = ["src/lib/crypto/**", "src/lib/config/env.ts"];
 const ROOT_SECRET = {
-  selector: "Identifier[name='IP_HASH_SALT'], Literal[value='IP_HASH_SALT']",
+  selector: "Identifier[name=/^IP_HASH_SALT/], Literal[value=/^IP_HASH_SALT/]",
   message: "Derive a key with keyFor or macFor (src/lib/crypto/keys.ts); only src/lib/crypto/ reads the root secret.",
 };
 
