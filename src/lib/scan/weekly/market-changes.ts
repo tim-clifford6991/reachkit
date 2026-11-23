@@ -7,7 +7,7 @@ import { withCostContext, type CostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
 import { readClaims } from "@/lib/generate/pipeline/claims-read";
 import { newsFit } from "@/lib/generate/pipeline/news-fit";
-import { publishedOf } from "@/lib/generate/pipeline/original";
+import { datedOf } from "@/lib/generate/pipeline/dated";
 import { fetchPage, type MarketFact, type ReadPage } from "@/lib/generate/pipeline/research";
 import { similarity } from "@/lib/generate/rules/similarity";
 import { siteWritingMarket, type WritingMarket } from "@/lib/generate/voice/market";
@@ -83,7 +83,7 @@ export async function buyMarketChanges(
     const reads = await Promise.all(story.map((row) => fetchPage(row.url)));
     const held: Report[] = [];
     reads.forEach((read, at) => {
-      const row = story[at]!, publisher = publisherOf(row), publishedAt = read === null ? "" : (publishedOf(read.html) ?? row.publishedAt);
+      const row = story[at]!, publisher = publisherOf(row), publishedAt = read === null ? "" : (datedOf(read.html, { url: row.url, readAt: new Date() }).publishedAt ?? row.publishedAt);
       if (read === null || !inWindow(publishedAt) || held.some((h) => h.publisher === publisher || similarity(h.text, read.page.text) >= MARKET_CHANGES.sameText)) return;
       held.push({ ...read.page, publisher, source: row.source, publishedAt });
     });
