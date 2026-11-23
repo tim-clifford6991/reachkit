@@ -755,11 +755,9 @@ export async function researchMarket(
   }
 
   // 4. The claims, a few pages a call, each kept only where its page says it.
-  const claimed = { locale: a.locale, search: target, market: a.marketWords?.[0], today: a.today, siteId: a.siteId, page: a.page };
-  const facts = await readClaims(c, pages, { ...claimed, rivals: rivalDomains });
-  // A product the search names whose own pages yielded no claim is read once more, alone, before its comparison is held for it.
-  const lacking = namedIn(target, rivalDomains.map((domain) => ({ domain, name: names.get(domain) ?? a.rivalNames?.find((rival) => rival.domain === domain)?.name ?? null }))).filter((domain) => !facts.some((fact) => fact.product === domain));
-  for (const more of await Promise.all(lacking.map((domain) => readClaims(c, pages.filter((page) => page.product === domain), { ...claimed, rivals: [domain], calls: 1 })))) facts.push(...more);
+  //    The products the search names lead, each one's own pages dealt to both calls, so a comparison is never held for a page cut off.
+  const lead = namedIn(target, rivalDomains.map((domain) => ({ domain, name: names.get(domain) ?? a.rivalNames?.find((rival) => rival.domain === domain)?.name ?? null })));
+  const facts = await readClaims(c, [...lead.flatMap((domain) => pages.filter((page) => page.product === domain)), ...pages.filter((page) => page.product === undefined || !lead.includes(page.product))], { locale: a.locale, search: target, market: a.marketWords?.[0], rivals: rivalDomains, today: a.today, siteId: a.siteId, page: a.page });
 
   // Best tier first, newest credible first and one claim a page in turn inside each, own pages leaving room; originals then read at 0¢.
   const tiers = { rivals: inForce, products: [...inForce, ...named.map((product) => product.domain)], names: [...(a.rivalNames ?? []), ...named], language: a.locale.language, pages, capped };
