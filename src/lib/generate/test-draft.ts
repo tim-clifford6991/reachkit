@@ -43,9 +43,11 @@ async function write(a: { siteId: string; publishDate: string; now: Date }, test
 async function end(draftId: string): Promise<string> {
   const [{ generateStore }, { transition }] = await Promise.all([import("./store"), import("@/lib/publish/machine")]);
   const row = await generateStore().draftById(draftId);
-  if (row === null || row.state !== "generating") return row?.state ?? "no_draft";
-  const via = row.hard_rules_passed === true ? "in_review" : "needs_attention";
-  const into = await transition(draftId, via, BY);
+  if (row === null) return "no_draft";
+  // A retried step finds the row already moved on, and ends it from there.
+  const via = row.state === "generating" ? (row.hard_rules_passed === true ? "in_review" : "needs_attention") : row.state;
+  if (via !== "in_review" && via !== "needs_attention") return via;
+  const into = row.state === "generating" ? await transition(draftId, via, BY) : { ok: true as const };
   const ended = into.ok ? await transition(draftId, "skipped", BY, { reason: "test" }) : into;
   if (!ended.ok) throw new Error(`draft/test: ${draftId} not ended from ${row.state}: ${ended.refused}`);
   return via;
