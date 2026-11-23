@@ -33,7 +33,7 @@ import { voiceRules } from "../voice/register";
 import type { ContextPack } from "./pack";
 import type { FixNote } from "./repair";
 import { comparisonTable } from "./table";
-import { titleBrief } from "./title";
+import { plannedTitle, titleBrief } from "./title";
 
 /** One buyer question and its answer, as `drafts.meta.faq` holds it. */
 export interface FaqEntry {
@@ -201,7 +201,7 @@ const HOUSE_RULES = [
   "Link a page in `pack.links` once, with its url exactly as given, inside the sentence that speaks to what that page holds; link at least three of them, and no other page on the business's domain except a fact's own source.",
   "A link's text is words of the sentence that name what the reader finds at the other end — the page's `label` or a plain description of it. Never a bare number, never an address, never \"here\", \"click here\" or \"read more\", and never the page's slogan.",
   "Print no label, index or id for a fact — link text is the source's name. Write no sentence of legal, removal or refund terms.",
-  "Write titles and headings in sentence case.",
+  "Write the title in Title Case; write headings in sentence case.",
   "Write only to the reader. Never write about `pack`, this brief, the sources or facts you were given, held or available, or what this page can or cannot state: where `pack` holds nothing on a point, say nothing of it.",
   "State one opinion of the business's own, once: its judgement on a fact of its own in `pack` (that a number is low, which step it would take first, what it would not bother with), in the paragraph that states that fact and in plain words, without labelling it an opinion. It is never a claim about what most people, businesses or sites do or get wrong: `pack` holds no such fact.",
   "Do not sum the page up at its end, and do not announce what a section is about to say: the last section ends on its last fact or instruction.",
@@ -335,8 +335,8 @@ function taskFor(a: WriteInputs): string {
   return [
     "Write one page for `pack.target.question`, doing what `template.for` says the page is for.",
     "`template.sections` are the page's sections, in order: return each as one entry of `sections` with its `key` exactly as the template spells it, in that order — a section with `repeat` between `min` and `max` times, one after another — each under its own `heading` and doing what its `task` says.",
-    a.pack.type === "update"
-      ? "`titles` is one entry: `pack.live.title`."
+    plannedTitle(a.pack) !== null
+      ? "`titles` is one entry: `titleRules.title`."
       : `\`titles\` is ${TITLE.candidates} different titles for the page, each one you would publish: the page's \`<title>\` and its H1 are the one of them that best holds \`titleRules\`, chosen in code. Each is the form a searcher types, follows one of \`template.titles\` and holds every rule in \`titleRules\`; make them differ in the specific they carry or in how they lead, not in a word.`,
     `\`description\` is the meta description: ${TITLE.description.min} to ${TITLE.description.max} characters, counted — write about 140 — in whole sentences, and its first sentence answers the target.`,
     lengthTask(a),
