@@ -171,7 +171,35 @@ even with `VERCEL_TEAM_ID` set. `IP_HASH_SALT` is a fresh random value per envir
    vendor's dashboard shows the send. Supabase: any signed-in page. DataForSEO and Anthropic: one
    free scan.
 6. **Revoke the old value at the vendor**, and only then. A wrong `SUPABASE_SERVICE_ROLE_KEY` takes
-   the whole product down, and changing `IP_HASH_SALT` resets every free-scan rate limit at once.
+   the whole product down. `IP_HASH_SALT` has its own steps, below.
+
+### Rotating the root secret
+
+`IP_HASH_SALT` is the root every server key is derived from (`src/lib/crypto/keys.ts`). It seals the
+WordPress credentials in `destinations.config` and signs every mailed link. `IP_HASH_SALT_PREVIOUS`
+only opens and verifies; nothing new is sealed or signed under it. The owner does every step.
+Production and preview (dev) each have their own root over **one shared database**, so
+`destinations.config` holds rows sealed under both. Rotate **one target at a time**, every step with
+that target's own pair; one value shared by both targets strands the other target's rows.
+
+1. **On the target you rotate, set `IP_HASH_SALT_PREVIOUS` to that target's current root, and
+   `IP_HASH_SALT` to a fresh random value for that target**, then redeploy that target. Its stored
+   credentials still open, and each one is re-sealed the first time it publishes. Links in mail
+   already sent still work. Free-scan rate limits start fresh.
+2. **Dry run the re-seal, once per target**, from your shell, with that target's bindings (its own
+   two roots) in a file: `node --env-file=<file> scripts/reseal-destinations.mjs`. It prints counts
+   and writes nothing: `current` (already under the new root), `previous` (to re-seal), `unopenable`
+   (under neither of this target's roots; it exits 2). On the shared database, a row `unopenable`
+   under one target is a row the other target sealed, which is expected. A row is a problem only if
+   it is `unopenable` under **both** targets' bindings: `current + previous` of the two runs should
+   add up to all non-null configs. If they fall short, stop and look before you go on.
+3. **Re-seal, per target:** the same command with `--write`. Each row is written only if it is
+   unchanged since it was read. Run the dry run again; `previous` must be 0.
+4. **Drop that target's `IP_HASH_SALT_PREVIOUS` after the longest link lifetime**, then redeploy that
+   target. Sign-in links last hours and planned-page links end on their day, but unsubscribe and
+   opt-out links never expire. The law gives an unsubscribe link 30 days after the mail was sent,
+   so wait 30 days. After a leak, drop it as soon as step 3 reads 0 for that target; links mailed
+   earlier then answer "invalid".
 
 ---
 
