@@ -8,7 +8,7 @@ import { publishDb } from "@/lib/publish/db";
 export type VisitsWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["visits"]>;
 
 /** A robot reading the page, never a visit; every other kind found is listed, so a new one needs no change here. */
-const FETCHES: ReadonlySet<string> = new Set(["answer_fetch", "index_fetch", "crawl"]);
+const FETCHES: ReadonlySet<string> = new Set(["answer_fetch", "own_fetch", "index_fetch", "crawl"]);
 const AI: ReadonlySet<string> = new Set(AI_BLOG_ENGINES);
 
 /** The source a stored row counts under: Google search, AI apps, or the engine or kind the row names. */
