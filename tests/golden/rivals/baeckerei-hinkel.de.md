@@ -28,3 +28,11 @@ From `scripts/panel/evidence/baeckerei-hinkel.de.json`: 16 stored searches, 5 ri
 | bäcker düsseldorf | — | — |
 | glutenfreier bäcker düsseldorf | — | — |
 | glutenfreie backwaren düsseldorf | — | — |
+
+| Absent from | Who's first |
+|---|---|
+| bäckerei düsseldorf in der nähe | baeckerbote-duesseldorf.de |
+| glutenfrei bäckerei düsseldorf | backbrueder-glutenfrei.de |
+| beste bäckerei düsseldorf | marktaktuell.com |
+| bäcker in düsseldorf | xn--bckerei-dsseldorf-qqb87b.de |
+| sauerteigbrot düsseldorf | oehme24.de |

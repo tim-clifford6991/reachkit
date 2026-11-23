@@ -24,3 +24,11 @@ From `scripts/panel/evidence/pdxsmiledesign.com.json`: 12 stored searches, 5 riv
 | best dentist portland | — | — |
 | cosmetic dentist in portland oregon | — | — |
 | best dentist portland oregon | — | — |
+
+| Absent from | Who's first |
+|---|---|
+| dentist portland | deltadental.com |
+| dentist portland oregon | deltadental.com |
+| dental implants portland oregon | implant-dentistry-portland.com |
+| best dentist portland | sleepdentistry.com |
+| best dentist portland oregon | deltadental.com |

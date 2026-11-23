@@ -12,6 +12,7 @@ import { missingPagesOf } from "@/app/(public)/scan/[domain]/_problems/model";
 import { businessOf, marketOfKey, panelDomains, storedEvidence, storedPayloads } from "../plan/panel";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import { panelReport } from "./panel";
+import { buildPresenceCard } from "@/lib/market/rivals/presence";
 
 function holders(domain: string) {
   const { report, rivals } = panelReport(domain);
@@ -23,11 +24,11 @@ function holders(domain: string) {
     const evidence = candidate?.evidence;
     return { search: search.keyword, type: candidate?.type ?? null, holder: evidence?.family === "write" ? (evidence.rival?.domain ?? null) : null };
   });
-  return { rivals, searches };
+  return { rivals, searches, presence: buildPresenceCard({ serps: report.serps, selected: questions.map(({ search }) => search), ...sourceReadingOf(report), ownDomain: domain, rivals }) };
 }
 
 function render(domain: string): string {
-  const { rivals, searches } = holders(domain);
+  const { rivals, searches, presence } = holders(domain);
   return [
     `# ${domain}`,
     "",
@@ -40,6 +41,9 @@ function render(domain: string): string {
     "| Search | Type | Holder |",
     "|---|---|---|",
     ...searches.map((row) => `| ${row.search} | ${row.type ?? "—"} | ${row.holder ?? "—"} |`),
+    "",
+    "| Absent from | Who's first |\n|---|---|",
+    ...presence.absentFrom.map((row) => `| ${row.keyword} | ${row.topHolder ?? "—"} |`),
     "",
   ].join("\n");
 }

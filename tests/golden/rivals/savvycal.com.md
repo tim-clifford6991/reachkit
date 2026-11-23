@@ -36,3 +36,11 @@ From `scripts/panel/evidence/savvycal.com.json`: 24 stored searches, 5 rivals.
 | automated scheduling software | — | — |
 | meeting scheduler tool | — | — |
 | meeting scheduler app | — | — |
+
+| Absent from | Who's first |
+|---|---|
+| online scheduling tool | youcanbook.me |
+| appointment scheduling online software | appointy.com |
+| meeting scheduler | cometly.com |
+| online appointment booking software | schedly.io |
+| appointment scheduling software | youcanbook.me |
