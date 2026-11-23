@@ -152,6 +152,8 @@ export interface AiAnswer {
   retrievedUrls?: readonly string[];
   /** ChatGPT only: the vendor's model id, where it returned one. */
   model?: string;
+  /** ChatGPT only: which parser read it, so a stored answer an older parser cut short is bought again. */
+  parser?: number;
 }
 
 /**

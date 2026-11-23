@@ -73,6 +73,12 @@ function searchedAndRead(item: Record<string, unknown>): Pick<AiAnswer, "fanOuts
   return { ...(fanOuts ? { fanOuts } : {}), ...(retrievedUrls ? { retrievedUrls } : {}) };
 }
 
+/** Raised with any change to what `parseLlmScraper` reads: a cached answer is the parsed rows, never the raw result. */
+const LLM_SCRAPER_PARSER = 2;
+
+/** A stored ChatGPT answer an older parser read: kept in the ledger, never served. */
+const olderParse = (payload: unknown): boolean => Array.isArray(payload) && payload.some((row) => isRecord(row) && row.parser !== LLM_SCRAPER_PARSER);
+
 /** The ChatGPT scraper's result: the answer is every item in order (a heading, its list, a table), and what counts as a
  *  citation is `sources` — "the sources the model actually cited or relied on in its final answer" — on the result and on
  *  each item; `search_results` (what it retrieved, cited or not) never does, and is kept apart as `retrievedUrls`. */
@@ -91,7 +97,7 @@ export function parseLlmScraper(result: unknown): AiAnswer[] | undefined {
   const model = asString(result.model);
   // The vendor documents its searches on the result, not the item.
   const searched = items.find((item) => Array.isArray(item.fan_out_queries) || Array.isArray(item.search_results)) ?? result;
-  return [{ answered: true, text, citedDomains: cited, citedUrls: referenceUrls(sources), ...searchedAndRead(searched), ...(model ? { model } : {}) }];
+  return [{ answered: true, text, citedDomains: cited, citedUrls: referenceUrls(sources), ...searchedAndRead(searched), ...(model ? { model } : {}), parser: LLM_SCRAPER_PARSER }];
 }
 
 export { AI_ANSWER_SOURCES };
@@ -197,6 +203,7 @@ export async function llmScraper(
     costCents: PRICE_BOOK.CHATGPT_SCRAPE_STD_C,
     fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, a.locale, { keyword: a.query }, undefined, a.untilMs),
     parse: parseLlmScraper,
+    unusable: olderParse,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });
   return mapMeasured(rows, (r) => r[0] ?? NO_ANSWER);

@@ -474,6 +474,8 @@ describe("BUILD §6.2 — the paid battery's two engines and their pinned prices
     if (result.kind !== "measured") throw new Error("unreachable");
     expect(result.value.citedDomains).toEqual(["cited-one.com", "cited-two.com"]);
     expect(result.value.citedDomains).not.toContain("retrieved-not-cited.com");
+    const { unusable } = calls[0] as { unusable?: (payload: unknown) => boolean };
+    expect([unusable?.([{ answered: true, text: "cut short by the parser before", citedDomains: [] }]), unusable?.([result.value])]).toEqual([true, false]);
   });
 
   it("parseLlmScraper keeps every item's text and `sources`, the distinct fan-outs and every retrieved page, and cites only `sources`", () => {
