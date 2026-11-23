@@ -86,7 +86,7 @@ export interface LeadStore {
 
   leadsForAddress(email: string): Promise<{ ok: true; leads: readonly LeadRow[] } | { ok: false }>;
 
-  isSuppressed(email: string): Promise<{ ok: true; suppressed: boolean } | { ok: false }>;
+  isSuppressed(email: string): Promise<{ ok: true; suppressed: boolean; cause?: SuppressionCause } | { ok: false }>;
 
   /** Idempotent on the primary key: a second opt-out writes nothing and succeeds. */
   addSuppression(
@@ -239,12 +239,13 @@ export function supabaseLeadStore(): LeadStore {
 
     async isSuppressed(email) {
       const { data, error } = await untyped()
-        .from<{ email: string }>("email_suppressions")
-        .select("email")
+        .from<{ email: string; cause: SuppressionCause }>("email_suppressions")
+        .select("email, cause")
         .eq("email", email)
         .limit(1);
       if (error) return { ok: false };
-      return { ok: true, suppressed: (data?.length ?? 0) > 0 };
+      const row = data?.[0];
+      return row === undefined ? { ok: true, suppressed: false } : { ok: true, suppressed: true, cause: row.cause };
     },
 
     async addSuppression(email, cause) {

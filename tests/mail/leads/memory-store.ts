@@ -145,7 +145,7 @@ export function memoryStore(state: MemoryState): LeadStore {
 
     async isSuppressed(email) {
       if (state.failSuppressionRead) return { ok: false };
-      return { ok: true, suppressed: state.suppressions.has(email.toLowerCase()) };
+      return { ok: true, suppressed: state.suppressions.has(email.toLowerCase()), cause: state.suppressions.get(email.toLowerCase()) };
     },
 
     async addSuppression(email, cause) {

@@ -84,8 +84,8 @@ async function consultOneStore(m: SendInput): Promise<Stopped | "send"> {
 
   if (stoppable === "opt-out") {
     // Imported at the call so no entry point has to wire the store first; a store that cannot be read answers "unreadable" and fails closed.
-    const { suppressionState } = await import("./leads/suppress");
-    const answer = await suppressionState(m.to);
+    const { suppressionState, EVERY_CAUSE, NOT_SUBSCRIBED } = await import("./leads/suppress");
+    const answer = await suppressionState(m.to, m.kind === "nurture" ? EVERY_CAUSE : NOT_SUBSCRIBED);
     if (answer === "suppressed") return { sent: false, reason: "suppressed" };
     if (answer === "unreadable") return { sent: false, reason: "suppression-unreadable" };
     return "send";

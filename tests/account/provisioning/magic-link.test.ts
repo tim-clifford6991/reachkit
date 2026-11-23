@@ -145,6 +145,14 @@ describe('REQ-076 c5 / REQ-020 c4 — a lapsed customer is still sent a link and
   });
 });
 
+it("a subscriber is sent the sign-in link; only a bounced address is told its mail was refused", async () => {
+  const [{ setLeadStore }, { memoryStore, newMemoryState }] = await Promise.all([import("@/lib/mail/leads/store"), import("../../mail/leads/memory-store")]);
+  const leads = newMemoryState(); setLeadStore(memoryStore(leads));
+  for (const [email, cause] of [["paid@a.example", "subscribed"], ["gone@a.example", "bounced"]] as const) { leads.suppressions.set(email, cause); await openAccount(email); }
+  await expect(requestMagicLink("gone@a.example", NETWORK)).resolves.toEqual({ answered: true, stopped: true });
+  await expect(requestMagicLink("paid@a.example", NETWORK)).resolves.toEqual({ answered: true });
+  expect(sendCalls.map((c) => c.to)).toEqual(["paid@a.example"]);
+});
 describe('REQ-020 c5 — nothing is said about any address until one is given', () => {
   it("the function takes the address and the network it is counted against, and nothing else", () => {
     expect(requestMagicLink.length).toBe(2);
