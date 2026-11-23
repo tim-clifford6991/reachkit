@@ -127,7 +127,7 @@ function liveWeek(domain: string, absorbed: readonly number[] = []) {
   const topTens = new Map([...storedSerps(domain)].map(([query, read]) => [query, read.rows.slice(0, 10).flatMap((row) => (row.url === undefined ? [] : [canonicalUrl(row.url)]))]));
   const plan = collapse({ existing: held.map(readOpportunity), candidates: [], brandTokens: site.profile.brandTokens, topTens, market: site.market, live });
   const gone = new Set(plan.dismiss);
-  const after = held.map((row) => ({ ...row, absorbed_queries: plan.update.find((u) => u.id === row.id)?.absorbedQueries ?? row.absorbed_queries }));
+  const after: OpportunityRow[] = held.map((row) => ({ ...row, absorbed_queries: [...(plan.update.find((u) => u.id === row.id)?.absorbedQueries ?? row.absorbed_queries)] }));
   const open = after.filter((row) => row.status === "open" && !gone.has(row.id));
   const pages = after.filter((row) => live.has(row.id)).map((row) => ({ url: `https://${domain}/${row.id}`, publishedAt: new Date(AT.getTime() - 5 * 86_400_000), row: readOpportunity(row), declined: false }) as unknown as OwnLivePage);
   const choice = choose({ rows: open, fixRows: [], profile: site.profile, market: site.market, cited: [], topTens, linkedClusters: [], live: pages, at: AT, from: FROM });
