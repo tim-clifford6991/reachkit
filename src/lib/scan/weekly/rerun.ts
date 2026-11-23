@@ -17,7 +17,7 @@ export async function dayRefused(siteId: string, now: Date): Promise<boolean> {
   return site === null || day === null || daily.siteCeilingReached(site) || daily.ceilingReached(day, ceiling);
 }
 
-/** One ops row per re-run, under its own key: what came of it and every cent its row's ledger carries. */
+/** One ops row per re-run, coded by its week since a code holds 40 characters, its key in the read: what came of it and every cent its row's ledger carries. */
 export async function recordRerun(a: { siteId: string; weekStart: string; key: string; outcome: WeeklyOutcome }): Promise<null> {
   const scanId = a.outcome.ran ? a.outcome.scanId : null;
   let cents = 0;
@@ -27,6 +27,6 @@ export async function recordRerun(a: { siteId: string; weekStart: string; key: s
     cents = (data ?? []).reduce((sum, row) => sum + Number(row.cost_cents), 0);
   }
   const outcome = a.outcome.ran ? a.outcome.status : a.outcome.because;
-  await recordOpsEvent("weekly_rerun", JSON.stringify({ weekStart: a.weekStart, scanId, cents, outcome }), a.key, a.siteId);
+  await recordOpsEvent("weekly_rerun", JSON.stringify({ key: a.key, weekStart: a.weekStart, scanId, cents, outcome }), a.weekStart, a.siteId);
   return null;
 }

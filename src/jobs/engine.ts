@@ -196,7 +196,7 @@ export async function startWeeklyScan(
     for (let n = 1; left > 0 && n <= TIMING.weeklyCollectRounds; n++) left = await step(`research-collect-${a.siteId}-${n}`, () => askWeekResearch({ ...week, rows, waitMs: COLLECT.stepMs }));
     const checks: Awaited<ReturnType<typeof checkWeekResearch>> = [];
     for (let n = 0; at(n).length > 0; n++) checks.push(...(await step(`research-check-${a.siteId}-${n}`, () => checkWeekResearch({ ...week, rows: at(n) }))));
-    await step(`commit-${a.siteId}`, () => commitWeek({ ...week, rows, checks }));
+    await step(`commit-${a.siteId}`, () => commitWeek({ ...week, rows, checks, again: a.rerun !== undefined }));
   }
   const told = await step(`tell-${a.siteId}`, () => tellWeek(a, outcome));
   if (a.rerun !== undefined) await recorded(a.rerun);
