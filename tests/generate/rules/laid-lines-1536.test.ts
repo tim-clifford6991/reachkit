@@ -3,7 +3,7 @@
 // Claims as stored with that draft; the business is not reachkit.app.
 import "../env";
 import { describe, expect, it } from "vitest";
-import { fixNotes, repairMechanical } from "../../../src/lib/generate/pipeline/repair";
+import { fixNotes, repairMechanical, repairRecorded } from "../../../src/lib/generate/pipeline/repair";
 import { comparisonTable } from "../../../src/lib/generate/pipeline/table";
 import { checkTraceableNumerals } from "../../../src/lib/generate/rules/brief";
 import { pack } from "../fixtures";
@@ -41,4 +41,12 @@ describe("issue 1536: a line code lays in from the pack is not the writer's figu
     const notes = fixNotes(stopped, [{ rule: "traceable_numerals" }], brief(true));
     expect(notes[0]?.sentences).toEqual(["Otterly tracks 23 engines."]);
   });
+});
+
+// Issue 3352: the rival repairs deleted a listicle's laid table, leaving "The table compares…" with no table.
+it("the rival repairs keep every line of the laid table", () => {
+  const page = `The table compares them.\n\n${table?.markdown}\n\n${table?.checked}\n\nOtterly is worse than Peec AI and costs 99 dollars.`;
+  const out = repairRecorded(page, ["rival_source", "rival_negative"], { brief: brief(true), sources: [], rivals: ["otterly.ai", "peec.ai"] }).markdown;
+  // Only the one row that breaches alone (peec's "every plan", out of its claim's scope) goes; the block stays a table.
+  expect([table!.markdown.split("\n").filter((line) => !out.includes(line)), out.includes("worse than")]).toEqual([[table!.markdown.split("\n")[4]], false]);
 });

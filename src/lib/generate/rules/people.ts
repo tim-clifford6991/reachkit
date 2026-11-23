@@ -105,13 +105,15 @@ function squash(text: string): string {
   return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").trim();
 }
 
+const LINK_RE = /\[([^\]\n]*)\]\([^)\s]+\)/g;
+
 /** A block quote's own words: its links (the source line) and the dash or
- *  quotation marks around the remark set aside. */
+ *  quotation marks around the remark set aside. A quote linked as a whole
+ *  leaves no words that way, so it is read on its link's own words. */
 function quotedWords(raw: string): string {
-  return squash(renderOf(raw.replace(/\[[^\]\n]*\]\([^)\s]+\)/g, " ")))
-    .replace(/[\s—–-]+$/, "")
-    .replace(/^["']+|["']+$/g, "")
-    .trim();
+  const words = (text: string) => squash(renderOf(text)).replace(/[\s—–-]+$/, "").replace(/^["']+|["']+$/g, "").trim();
+  const unlinked = words(raw.replace(LINK_RE, " "));
+  return unlinked.length >= REMARK_MIN_CHARS ? unlinked : words(raw.replace(LINK_RE, "$1"));
 }
 
 /** Word for word from a passage the page was handed: the quote holds a
