@@ -131,7 +131,7 @@ describe("a site whose first topics are live pages, stored queued, commits its w
       const lines = [`Live, stored queued: ${held.filter((row) => live.has(row.id)).map((row) => row.target_query).join("; ")}.`, `Absorbed: ${updates.join("; ") || "none"}.`, `Dismissed: ${held.filter((row) => gone.has(row.id)).map((row) => row.target_query).join("; ") || "none"}.`, "", ...week({ ...site, rows: open }, choice)];
       await expect(lines.join("\n")).toMatchFileSnapshot(`./results/live/${domain}.md`);
       // A search joined to a live page is held by an open update of it, never absorbed into the page and dismissed.
-      expect(plan.update.filter((u) => live.has(u.id) && u.absorbedQueries.length > 0)).toEqual([]);
+      expect(plan.update.filter((u) => live.has(u.id))).toEqual([]);
     });
   }
 });

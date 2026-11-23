@@ -313,8 +313,6 @@ export function collapse(a: {
     const hadCandidate = members.some((member) => member.kind === "candidate");
     // A live page keeps its searches and its best other member stays as its update, unless a page of it is being written.
     const survivor = !isLive(first) ? first : others.some((m) => hasAPage(m) && !isLive(m)) ? undefined : others.find((m) => !hasAPage(m));
-    // A live page takes no search, but keeps the topic's key, which an AI answer's link to it is read through.
-    if (survivor !== first && first.kind === "row" && first.row.clusterKey !== key) update.push({ id: first.row.id, clusterKey: key, absorbedQueries: [...first.row.absorbedQueries] });
     const rest = members.filter((member) => member !== first && member !== survivor);
     const own = survivor === undefined ? null : (queryOf(survivor)?.trim().toLowerCase() ?? null);
     const absorbed = new Set<string>(survivor?.kind === "row" ? survivor.row.absorbedQueries : []);
