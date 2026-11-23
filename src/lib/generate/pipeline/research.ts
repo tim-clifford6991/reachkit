@@ -709,13 +709,13 @@ export async function researchMarket(
         studyRows.push(row);
       }
     }
-    // A primary source leads, in the search's own order otherwise.
+    // A primary source leads, then a page that says how it found what it found (a survey, a sample), in the search's order otherwise.
     const primary = (url: string): boolean => a.guidance === true && primaryAddress(url, rivalDomains);
-    const ordered = [...studyRows.filter((row) => primary(row.url)), ...studyRows.filter((row) => !primary(row.url))];
-    const studyReads = await Promise.all(ordered.map((row) => fetchPage(row.url, row.publishedAt)));
+    const rank = (page: ReadPage): number => (primary(page.url) ? 2 : 0) + (languagePack(a.locale.language).studyMethod.test(page.text) ? 1 : 0);
+    const studyReads = (await Promise.all(studyRows.map((row) => fetchPage(row.url, row.publishedAt)))).filter((read) => read !== null);
     found.push(
       ...studyReads
-        .filter((read) => read !== null)
+        .sort((x, y) => rank(y.page) - rank(x.page))
         .slice(0, RESEARCH.studies)
         .map((read) => ({ ...read.page, kind: primary(read.page.url) ? ("primary" as const) : ("study" as const) }))
     );
@@ -755,7 +755,7 @@ export async function researchMarket(
   }
 
   // 4. The claims, a few pages a call, each kept only where its page says it.
-  const facts = await readClaims(c, pages, { locale: a.locale, search: target, rivals: rivalDomains, today: a.today, siteId: a.siteId, page: a.page });
+  const facts = await readClaims(c, pages, { locale: a.locale, search: target, market: a.marketWords?.[0], rivals: rivalDomains, today: a.today, siteId: a.siteId, page: a.page });
 
   // Best tier first, newest credible first and one claim a page in turn inside each, own pages leaving room; originals then read at 0¢.
   const tiers = { rivals: inForce, products: [...inForce, ...named.map((product) => product.domain)], names: [...(a.rivalNames ?? []), ...named], language: a.locale.language, pages, capped };
