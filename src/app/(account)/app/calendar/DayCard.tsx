@@ -2,10 +2,6 @@
 // Plan's week rows (`WeekGrid`) and Overview's week (`ThisWeek`): the page a
 // stage filter leaves, the two words an empty day says, the New or Update
 // chip and the state badge.
-//
-// The clamped title carries `rk-cal-label` and the two-word reason
-// `rk-cal-empty` — the truncations this screen declared to the layout sweep
-// in #354.
 import type React from "react";
 import { Calendar, CircleCheck, CircleStop, Clock, PencilLine, Plus, RefreshCw, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";

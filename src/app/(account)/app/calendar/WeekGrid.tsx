@@ -49,7 +49,7 @@ function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey)
             {card.title}
           </span>
         )}
-        {card.titleLabel === undefined ? null : <span className="min-w-0 text-xs text-base-content/70" data-testid="cell-title-label">{card.titleLabel}</span>}
+        {card.titleLabel === undefined ? null : <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="cell-title-label">{card.titleLabel}</span>}
         {card.lines.length === 0 ? null : (
           <span className="min-w-0 text-sm text-base-content/70 wrap-anywhere" data-testid="cell-lines">
             {card.lines.join(" · ")}
