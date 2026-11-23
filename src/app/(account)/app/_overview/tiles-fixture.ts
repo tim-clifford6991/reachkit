@@ -11,6 +11,7 @@ import type { Visits } from "@/lib/publish/reads/visits";
 export const FIXTURE_VISITS: Visits = {
   n: 46,
   bySource: { google: 31, ai: 6, other: 9 },
+  pages: {},
   direct: 12,
   clicks: 5,
   aiRead: [],

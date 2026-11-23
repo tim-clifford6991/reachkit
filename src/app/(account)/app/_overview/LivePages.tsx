@@ -1,5 +1,5 @@
-// SPEC §4 *Pages Live detail* (plate O2) — every page the Pages Live tile counts, newest first: when it went
-// live, its place on Google, its AI mark over the window, and a link to its own screen. Every row is the tile's.
+// DESIGN *Pages Live detail* (plate O2) — every page the Pages Live tile counts, newest first: when it went
+// live, its place on Google, its AI mark over the window, its visits and label, and a link to its own screen. Every row is the tile's.
 import type React from "react";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -15,6 +15,9 @@ import { googleWords } from "./place-words";
 import { ShowAll } from "./ShowAll";
 import type { TilesView } from "./tiles-build";
 import { AI_WINDOW_WEEKS } from "@/lib/measure/results";
+import type { Label } from "@/lib/opportunities/verdicts/types";
+import { verdict } from "@/lib/opportunities/verdicts/verdict";
+import { LabelBadge } from "../_shell/verdict";
 
 const INK = "text-base-content/70";
 
@@ -23,6 +26,10 @@ interface LiveRow {
   href: string | null;
   google: string;
   mark: AiMark;
+  /** Its visits over 28 days; `null` where they are not counted (a WordPress page), never 0. */
+  visits: number | null;
+  /** `null` for a page with no reading: no badge is drawn. */
+  label: Label | null;
 }
 
 /** The tile's own rows; a page no question was asked for in the window is "Not checked", never "none". Its Google line is the On Google list's. */
@@ -51,6 +58,8 @@ export function liveRowsOf(view: TilesView, due: Date, timeZone: string): LiveRo
       href: page.draftId === undefined ? null : `/app/draft/${page.draftId}`,
       google: words,
       mark: (page.url === null ? undefined : marks.get(addressOf(page.url))) ?? "unchecked",
+      visits: typeof view.visits === "object" && view.visits !== null && page.wordpress !== true ? (view.visits.pages[page.id] ?? 0) : null,
+      label: reading === null ? null : verdict(reading, view.now),
     };
   });
 }
@@ -61,12 +70,13 @@ export function checkedOf(view: TilesView): Date | null {
   return at.length === 0 ? null : new Date(Math.max(...at));
 }
 
-function Title(p: { page: PublishedPage }): React.JSX.Element {
+function Title(p: { page: PublishedPage; label: Label | null }): React.JSX.Element {
   return (
     <>
       <span className="line-clamp-2 font-semibold" title={p.page.title}>
         {p.page.title}
       </span>
+      {p.label === null ? null : <LabelBadge label={p.label} className="badge-sm w-fit" />}
       {p.page.url === null ? null : <span className={`font-mono text-sm break-all ${INK}`}>{p.page.url}</span>}
     </>
   );
@@ -101,6 +111,7 @@ export function LivePages(p: { rows: readonly LiveRow[]; all: boolean; timeZone:
               <th scope="col">{copy("overview.pages.col.live")}</th>
               <th scope="col">{copy("overview.pages.col.google")}</th>
               <th scope="col">{copy("overview.pages.col.ai", { weeks: formatCount(AI_WINDOW_WEEKS) })}</th>
+              <th scope="col" className="text-end">{copy("pages.visits.col")}</th>
               <th scope="col">
                 <span className="sr-only">{copy("overview.pages.open")}</span>
               </th>
@@ -111,7 +122,7 @@ export function LivePages(p: { rows: readonly LiveRow[]; all: boolean; timeZone:
               <tr key={row.page.id} className={rowClass(i, all, true)} data-testid="live-page">
                 <td>
                   <span className="flex min-w-0 flex-col">
-                    <Title page={row.page} />
+                    <Title page={row.page} label={row.label} />
                   </span>
                 </td>
                 <td className="font-mono whitespace-nowrap">{formatDate(row.page.publishedAt, timeZone)}</td>
@@ -119,6 +130,7 @@ export function LivePages(p: { rows: readonly LiveRow[]; all: boolean; timeZone:
                 <td>
                   <Mark mark={row.mark} />
                 </td>
+                <td className="num text-end">{row.visits === null ? "—" : formatCount(row.visits)}</td>
                 <td>
                   {row.href === null ? null : (
                     <Link
@@ -139,10 +151,11 @@ export function LivePages(p: { rows: readonly LiveRow[]; all: boolean; timeZone:
       <ul className="list min-w-0 md:hidden" aria-label={copy("overview.pages.caption")}>
         {rows.map((row, i) => (
           <PhoneRow key={row.page.id} href={row.href} className={rowClass(i, all)} testId="live-page-card">
-            <Title page={row.page} />
+            <Title page={row.page} label={row.label} />
             <span className="text-sm">
               {copy("overview.pages.live", { date: formatDate(row.page.publishedAt, timeZone), place: row.google })}
             </span>
+            {row.visits === null ? null : <span className="text-sm">{row.visits === 1 ? copy("pages.visits.n.one") : copy("pages.visits.n", { n: formatCount(row.visits) })}</span>}
             <Mark mark={row.mark} />
           </PhoneRow>
         ))}

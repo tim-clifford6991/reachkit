@@ -7,7 +7,7 @@
 // is.
 //
 // **One map rather than one per surface** — the same argument
-// `src/lib/presentation/bands.ts` makes for `PAGE_VERDICTS`: the report's
+// `src/lib/presentation/bands.ts` makes for `SCORE_BANDS`: the report's
 // verdict head (§4.1) and Overview's score tile (§4.5, UI-SPEC S12) speak
 // the same four bands, and two maps are how two screens come to draw one
 // band two colours. Issue #353 gave the score its second surface and the

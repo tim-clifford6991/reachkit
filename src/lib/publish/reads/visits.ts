@@ -2,7 +2,7 @@
 // source, with the clicks through beneath; Overview's Visits tile and the Monday mail both read it. Stored rows only.
 // The headline is Google, AI apps and other sites; "opened directly" is returned apart and never added to it.
 import { AI_BLOG_ENGINES, ONWARD_CLICKS_COUNTED } from "@/lib/config/constants";
-import { publishDb } from "../db";
+import { publishDb, type PublishQuery } from "../db";
 import { windowStartDay } from "./model";
 
 /** The window the figure is read over: its own constant, never the retention's, which also sets three other windows. */
@@ -19,6 +19,8 @@ export interface Visits {
   /** Google, AI apps and other sites over the window. */
   n: number;
   bySource: { google: number; ai: number; other: number };
+  /** Each page's Google, AI apps and other sites, by publication id; a page with no row is absent. */
+  pages: Readonly<Record<string, number>>;
   /** Opened directly: never in `n`. */
   direct: number;
   /** Clicks through to the business, each page capped at its own views, direct included; `null` while clicks are off. */
@@ -44,6 +46,7 @@ const isVisit = (engine: string): boolean => engine === "google" || engine === "
 export function visitsOf(a: { reads: readonly ReadRow[]; weeks: readonly { week_start: string; counts: Record<string, number> }[]; now: Date; start: string }): Visits {
   const bySource = { google: 0, ai: 0, other: 0 };
   let direct = 0;
+  const pages: Record<string, number> = {};
   const views = new Map<string, number>();
   const clicks = new Map<string, number>();
   const aiRead = new Set<string>();
@@ -52,6 +55,7 @@ export function visitsOf(a: { reads: readonly ReadRow[]; weeks: readonly { week_
     if (row.kind === "outbound") clicks.set(row.publication_id, (clicks.get(row.publication_id) ?? 0) + row.hits);
     if (row.kind !== "referral") continue;
     views.set(row.publication_id, (views.get(row.publication_id) ?? 0) + row.hits);
+    if (isVisit(row.engine)) pages[row.publication_id] = (pages[row.publication_id] ?? 0) + row.hits;
     if (row.engine === "none") direct += row.hits;
     else if (row.engine === "google" || row.engine === "other") bySource[row.engine] += row.hits;
     else if (AI.has(row.engine)) bySource.ai += row.hits;
@@ -68,6 +72,7 @@ export function visitsOf(a: { reads: readonly ReadRow[]; weeks: readonly { week_
   return {
     n: bySource.google + bySource.ai + bySource.other,
     bySource,
+    pages,
     direct,
     clicks: ONWARD_CLICKS_COUNTED ? capped : null,
     aiRead: [...aiRead],
@@ -76,21 +81,23 @@ export function visitsOf(a: { reads: readonly ReadRow[]; weeks: readonly { week_
   };
 }
 
-/** The site's visits; `firstLive` is its first page's go-live. `null` where the rows could not be read, never zeros. */
-export async function readVisits(a: { siteId: string; now: Date; firstLive: Date | null }): Promise<Visits | null> {
+/** The site's visits, or one page's where `publicationId` is set; `firstLive` is its first page's go-live. `null` where the rows could not be read, never zeros. */
+export async function readVisits(a: { siteId: string; now: Date; firstLive: Date | null; publicationId?: string }): Promise<Visits | null> {
   const db = publishDb();
   const live = a.firstLive === null ? VISITS_COUNTED_FROM : a.firstLive.toISOString().slice(0, 10);
   const start = live > VISITS_COUNTED_FROM ? live : VISITS_COUNTED_FROM;
   const window = windowStartDay(a.now, VISITS_WINDOW_D);
   // Rows before the counting start were stored under older rules, so the window never reaches past it.
   const from = start > window ? start : window;
+  const own = <T,>(query: PublishQuery<T>): PublishQuery<T> => (a.publicationId === undefined ? query : query.eq("publication_id", a.publicationId));
   const [reads, weeks] = await Promise.all([
-    db.from<ReadRow>("publication_reads").select("publication_id, engine, kind, hits").eq("site_id", a.siteId).gte("day", from),
-    db
-      .from<{ week_start: string; counts: Record<string, number> }>("publication_weeks")
-      .select("week_start, counts")
-      .eq("site_id", a.siteId)
-      .gte("week_start", windowStartDay(a.now, (VISIT_WEEKS + 1) * 7)),
+    own(db.from<ReadRow>("publication_reads").select("publication_id, engine, kind, hits").eq("site_id", a.siteId)).gte("day", from),
+    own(
+      db
+        .from<{ week_start: string; counts: Record<string, number> }>("publication_weeks")
+        .select("week_start, counts")
+        .eq("site_id", a.siteId)
+    ).gte("week_start", windowStartDay(a.now, (VISIT_WEEKS + 1) * 7)),
   ]);
   if (reads.error !== null || weeks.error !== null) return null;
   return visitsOf({ reads: reads.data ?? [], weeks: weeks.data ?? [], now: a.now, start });
