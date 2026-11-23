@@ -8,10 +8,20 @@ import { leadStore, type SuppressionCause } from "./store";
 /** Three answers, not a boolean: a boolean would call an unreadable store "not suppressed" and mail someone who opted out. */
 export type SuppressionAnswer = "send" | "suppressed" | "unreadable";
 
-export async function suppressionState(email: string): Promise<SuppressionAnswer> {
+/** Lead mail stops for every cause; `subscribed` exists only to stop it, so no other mail counts it. */
+export const EVERY_CAUSE: readonly SuppressionCause[] = ["opt_out", "subscribed", "bounced", "complained"];
+export const NOT_SUBSCRIBED: readonly SuppressionCause[] = ["opt_out", "bounced", "complained"];
+/** Only a refused delivery stops a transactional mail such as the sign-in link. */
+export const MAIL_REFUSED: readonly SuppressionCause[] = ["bounced", "complained"];
+
+export async function suppressionState(
+  email: string,
+  stops: readonly SuppressionCause[] = EVERY_CAUSE
+): Promise<SuppressionAnswer> {
   const read = await leadStore().isSuppressed(normaliseAddress(email));
   if (!read.ok) return "unreadable";
-  return read.suppressed ? "suppressed" : "send";
+  // A row read without its cause stops the mail: failing closed never mails someone who opted out.
+  return read.suppressed && (read.cause === undefined || stops.includes(read.cause)) ? "suppressed" : "send";
 }
 
 /** One address, one identity. Every read and every write in this feature goes through here, so a mixed-case address can never become a second, unsuppressed person. */
