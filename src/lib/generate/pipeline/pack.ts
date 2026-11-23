@@ -670,22 +670,19 @@ export function buildPack(a: PackInputs): ContextPack {
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
   const fit = a.opportunity.evidence?.family === "write" || a.opportunity.evidence?.family === "earn" ? a.opportunity.evidence.fitFact : null;
   const business = { name: a.site.businessName, domain: a.site.domain, category: a.category, byline: a.byline, voice: a.voice, market: a.market ?? null, rivals: [...a.site.rivals] };
-  const questions =
-    a.type !== "update"
-      ? buyerQuestions({
-          report: a.report,
-          asked: a.research.asked,
-          target: [question, ...searches].join(" "),
-          market: a.writingFor ?? null,
-          rivals: a.site.rivals,
-          facts: packFacts(allowed),
-          claims,
-          knowledge: a.profile?.knowledge,
-          language: a.locale?.language ?? "en",
-          reserved: a.sitePages.flatMap((page) => (page.question === null ? [] : [page.question])),
-          headed: a.type === "qa" ? (a.research.topResults ?? []) : [],
-        })
-      : [];
+  const questions = buyerQuestions({
+    report: a.report,
+    asked: a.research.asked,
+    target: [question, ...searches].join(" "),
+    market: a.writingFor ?? null,
+    rivals: a.site.rivals,
+    facts: packFacts(allowed),
+    claims,
+    knowledge: a.profile?.knowledge,
+    language: a.locale?.language ?? "en",
+    reserved: a.sitePages.flatMap((page) => (page.question === null ? [] : [page.question])),
+    headed: a.type === "qa" ? (a.research.topResults ?? []) : [],
+  });
   // A passage on the target or its questions, the fit fact, or the business's own product, pricing or about page; never a page about something
   // else, nor a demo widget's readout ("▲ 128 1 · 12 2 · 31"), mostly tokens with no letter: data on show, not the business speaking.
   const topic = new Set([...ownTopicWords({ target: { question, searches }, business }), ...questions.flatMap((text) => [...topicWords(text)])]);

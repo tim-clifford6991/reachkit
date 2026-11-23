@@ -21,3 +21,8 @@ it("keeps the how-to's research and sources need on the documentation page it fa
   expect(missing).toContain("outside_sources");
   expect(meetsStandard({ pack: { ...fallen, missing } }).met).toBe(false);
 });
+
+it("holds a refresh of a how-to to the how-to's outside sources", () => {
+  const live = { url: "https://shop.example/guide", title: "Guide", markdown: "# Guide\n\nThe old text.", why: null, type: "how_to" };
+  expect(missingFrom(pack({ type: "update", claims: [], questions: [], live }))).toContain("outside_sources");
+});

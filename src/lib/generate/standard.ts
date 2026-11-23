@@ -60,7 +60,7 @@ export function incomplete(failure: RuleFailure): boolean {
 const mark = (part: Part, have: number, need: number, short: boolean, pending = false): PartMark => ({ part, have: short && pending ? null : have, need, state: !short ? "met" : pending ? "pending" : "short" });
 
 /** What the research half reads: the pack, whether its research is still queued, and the room for the type's floor. */
-interface ResearchHalf { pack: Pick<ContextPack, "type" | "missing" | "own">; pending?: boolean; words?: { have: number; need: number; short: boolean } | null }
+interface ResearchHalf { pack: Pick<ContextPack, "type" | "missing" | "own" | "live">; pending?: boolean; words?: { have: number; need: number; short: boolean } | null }
 /** What a row's cached research holds: on-topic readable results (`R`) and their addresses, the buyer questions they
  *  answer (`Q`), the results stating a recent figure (`F`), the results laid out in three or more steps, its
  *  "People also ask", its first organic results (`top`), the site's own facts on its topic (`facts`), and on a rival-only
@@ -106,7 +106,7 @@ export function meetsStandard(a: ResearchHalf | PageHalf | ReadHalf): Standard {
       ...((a.notes ?? 0) > 0 ? [mark("style", 0, 1, true)] : []),
     ];
   } else {
-    const asked = mustHold(a.pack.type, a.pack.own);
+    const asked = mustHold(a.pack);
     const missing = a.pack.missing;
     parts = (["sections", "sources", "figures"] as const).flatMap((part) => {
       const need = asked.filter((requirement) => NEED_PART[requirement.need] === part).length;
@@ -182,9 +182,11 @@ export function packNeeds(type: ContentType, own?: ContentType): readonly PackRe
 /** The type whose research a page buys: its own, else its query's own type's where the ladder fell from a researched one. */
 export const researchedAs = (type: ContentType, own?: ContentType): ContentType => (TEMPLATES[type].research || own === undefined ? type : own);
 
-/** What a type's pack must hold. R31: every page but an update, whatever its template, is held to first-hand rival evidence. */
-function mustHold(type: ContentType, own?: ContentType): PackRequirement[] {
-  return [...packNeeds(type, own), ...(type === "update" ? [] : [{ need: "rival_evidence" as const }])];
+/** What a pack must hold. R31: every page but an update is held to first-hand rival evidence; an update keeps its live type's sources and questions. */
+function mustHold(pack: Pick<ContextPack, "type" | "own" | "live">): PackRequirement[] {
+  const type = pack.type === "update" ? pack.live?.type : undefined;
+  const live = type !== undefined && type !== "update" && Object.hasOwn(TEMPLATES, type) ? (type as ContentType) : undefined;
+  return [...packNeeds(pack.type, pack.own ?? live), ...(pack.type === "update" ? [] : [{ need: "rival_evidence" as const }])];
 }
 
 /** A claim about a rival read first-hand: off its own site, or off a study
@@ -268,7 +270,7 @@ export function writtenAnyway(pack: ContextPack, missing: readonly PackNeed[], a
 
 /** What the template asks of the pack that it does not hold, by handle. */
 export function missingFrom(pack: Omit<ContextPack, "missing">, previousResearch: PackMeasurements | null = null): PackNeed[] {
-  const held = mustHold(pack.type, pack.own);
+  const held = mustHold(pack);
   return held.filter((requirement) => !holds(requirement, pack, previousResearch)).map((requirement) => (requirement.need === "facts_on_topic" && factTexts(pack).length < requirement.min ? "facts_few" : requirement.need));
 }
 
