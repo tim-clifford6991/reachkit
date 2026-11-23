@@ -68,8 +68,8 @@ export function budgetFindings({ budgets, base, files, decided = false }) {
   return findings;
 }
 
-// The names of the `block` rows of each section's `name | block/warn | outcome protected | ruling` table.
-export function blockRules(spec) {
+// The names of the `block` rows, or with `kind` every row, of each section's `name | block/warn | outcome protected | ruling` table.
+export function blockRules(spec, kind = /^block$/) {
   const out = new Map();
   let at = null;
   for (const line of spec.split("\n")) {
@@ -79,9 +79,17 @@ export function blockRules(spec) {
       continue;
     }
     const cells = line.startsWith("|") ? line.split("|").slice(1, -1).map((c) => c.trim()) : [];
-    if (at && cells.length === 4 && cells[1].replace(/`/g, "") === "block") out.get(at).push(cells[0]);
+    if (at && cells.length === 4 && kind.test(cells[1].replace(/`/g, ""))) out.get(at).push(cells[0]);
   }
   return out;
+}
+
+// SPEC's rows only fall: the count equals `specRows`, so a pull request that removes a row lowers the budget with it.
+export function specRowFindings({ budget, spec }) {
+  const rows = [...blockRules(spec, /^(?:block|warn)$/).values()].flat().length;
+  if (typeof budget !== "number") return ["scripts/budgets.json has no specRows count"];
+  if (rows === budget) return [];
+  return [rows > budget ? `docs/SPEC.md has ${rows} rule rows, over specRows ${budget} in scripts/budgets.json; the count only goes down` : `docs/SPEC.md has ${rows} rule rows; lower specRows in scripts/budgets.json from ${budget} to ${rows}`];
 }
 
 // Only the owner makes a rule block: a section's count equals its budget, and rises only beside a new decision file that names each new row.
