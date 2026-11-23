@@ -72,12 +72,14 @@ export function pageWeeks(a: {
 }
 
 /** Writes the weeks not yet on file, then trims the site's weeks past 57; never on a request. `again` writes the newest week over what is
- *  on file too, since only it carries this pass's reading: an older week's reading cannot be measured again. */
-export async function keepWeeks(a: { siteId: string; rows: readonly WeekRow[]; now: Date; again?: boolean }): Promise<void> {
+ *  on file too, since only it carries this pass's reading: an older week's reading cannot be measured again. `superseded` names an older
+ *  version live at a newer one's address with the newer one's `published_at`: its weeks from then on are the newer one's. */
+export async function keepWeeks(a: { siteId: string; rows: readonly WeekRow[]; now: Date; again?: boolean; superseded?: readonly { id: string; until: string }[] }): Promise<void> {
   const db = publishDb(), upsert = (rows: WeekRow[], over: boolean) => db.from("publication_weeks").upsert(rows, { onConflict: "publication_id,week_start", ignoreDuplicates: !over });
   const newest = a.rows.filter((row) => a.again === true && row.reading !== null), rest = a.rows.filter((row) => !newest.includes(row));
   const kept = newest.length > 0 ? await upsert(newest, true) : { error: null };
   const added = rest.length > 0 ? await upsert(rest, false) : { error: null };
   const trimmed = await db.from("publication_weeks").delete().eq("site_id", a.siteId).lt("week_start", weeksKeptFrom(a.now));
-  for (const { error } of [kept, added, trimmed]) if (error !== null) console.log(JSON.stringify({ event: "publication_weeks_unwritten", siteId: a.siteId, message: error.message }));
+  const dropped = await Promise.all((a.superseded ?? []).map((page) => db.from("publication_weeks").delete().eq("publication_id", page.id).gt("week_start", dayOf(Date.parse(page.until) - WEEK_MS))));
+  for (const { error } of [kept, added, trimmed, ...dropped]) if (error !== null) console.log(JSON.stringify({ event: "publication_weeks_unwritten", siteId: a.siteId, message: error.message }));
 }

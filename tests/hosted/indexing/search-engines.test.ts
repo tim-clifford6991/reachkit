@@ -192,6 +192,13 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     expect(week("2026-10-12")?.reading).not.toBeNull();
   });
 
+  it("an older version live at the newest's address keeps only its weeks from before the newest went live", async () => {
+    db.seed("publications", db.rows("publications").map((row) => ({ ...row, live_url: OLD })));
+    db.seed("publication_weeks", ["2026-09-28", "2026-10-05", "2026-10-12"].map((week_start) => ({ publication_id: "pub-old", site_id: "s1", week_start, counts: {}, reading: null })));
+    await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [], announce: async () => ok({}) } });
+    expect(db.rows("publication_weeks").map((row) => `${row.publication_id} ${row.week_start}`).sort()).toEqual(["pub-new 2026-10-12", "pub-old 2026-09-28", "pub-old 2026-10-05"]);
+  });
+
   it("issue 1538's seen state reads URL Inspection: a page Google calls indexed is seen", async () => {
     await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [ACCOUNT], gscSend: google, announce: async () => ok({}) } });
     const seen = await verdictStore().seenUrls?.("s1");
