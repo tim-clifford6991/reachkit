@@ -1,7 +1,7 @@
 // src/lib/measure/text-store.ts — one stored page read's text, derived once
-// from its payload and kept in `fetch_text` at the deployed text version, so
-// a reader downloads only the payloads that have none there yet.
-import { holdsHtml, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
+// from its payload as the read is written and kept in `fetch_text`, so a
+// reader never downloads a payload.
+import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE, renderedDocumentOf, siteDocumentOf } from "./own-fetch";
 import { prose } from "./prose";
 import type { MeasuredText } from "./text";
 
@@ -37,7 +37,7 @@ export function measuredTextOf(row: TextRow): MeasuredText | null {
   };
 }
 
-// `fetches` and `fetch_text` are outside the generated `Database` type; this is the cast boundary.
+// `fetch_text` is outside the generated `Database` type; this is the cast boundary.
 interface Result<T> {
   data: T[] | null;
   error: { message: string } | null;
@@ -46,15 +46,10 @@ interface Query<T> extends PromiseLike<Result<T>> {
   select(columns: string): Query<T>;
   eq(column: string, value: string): Query<T>;
   in(column: string, values: readonly string[]): Query<T>;
-  upsert(rows: readonly Record<string, unknown>[], options: { onConflict: string }): Query<T>;
+  upsert(rows: readonly Record<string, unknown>[], options: { onConflict: string; ignoreDuplicates?: boolean }): Query<T>;
 }
 export interface TextClient {
   from<T>(table: string): Query<T>;
-}
-
-function rows<T>(result: Result<T>, table: string): T[] {
-  if (result.error) throw new Error(`text.ts: read from ${table} failed: ${result.error.message}`);
-  return result.data ?? [];
 }
 
 // Ids per `in` filter, so a long read history never outgrows a request's address.
@@ -67,49 +62,34 @@ export interface FetchRead {
   source: string;
 }
 
-type KeptRow = TextRow & { fetch_id: string; text_version: string };
-
-async function keptRows(client: TextClient, ids: readonly string[]): Promise<KeptRow[]> {
-  const kept = await client
-    .from<KeptRow>("fetch_text")
-    .select("fetch_id, text_version, url, read_at, rendered, document, text, examples, questions")
-    .in("fetch_id", ids);
-  return rows(kept, "fetch_text");
-}
-
-/** The text of reads with none kept at `version`: their payloads are downloaded, derived and kept. A read whose html was pruned keeps the text it had. */
-async function derive(client: TextClient, reads: readonly FetchRead[], version: string, older: ReadonlyMap<string, TextRow>): Promise<(TextRow & { fetch_id: string })[]> {
-  const fetched = await client
-    .from<{ id: string; payload: unknown }>("fetches")
-    .select("id, payload")
-    .in("id", reads.map((read) => read.id));
-  const payloads = new Map(rows(fetched, "fetches").map((row) => [row.id, row.payload]));
-  const pruned = (id: string) => older.has(id) && !holdsHtml(payloads.get(id));
-  const had = reads.filter((read) => payloads.has(read.id) && pruned(read.id)).map((read) => ({ ...older.get(read.id)!, fetch_id: read.id }));
-  const derived = reads.filter((read) => payloads.has(read.id) && !pruned(read.id)).map((r) => ({ fetch_id: r.id, scan_id: r.scan_id, text_version: version, ...textRowOf(r.source, payloads.get(r.id)) }));
-  if (derived.length > 0) {
-    // A row Postgres refuses is derived again next time; the text read now is the same.
-    const wrote = await client.from("fetch_text").upsert(derived.map((row) => ({ ...row, computed_at: new Date().toISOString() })), { onConflict: "fetch_id" });
-    if (wrote.error) console.warn(`text.ts: write to fetch_text failed: ${wrote.error.message}`);
+/** Keeps the text of one own or rendered page read as it is written, so no reader ever downloads its payload.
+ *  Never throws: the `fetches` row is the ledger and stands either way. */
+export async function keepText(client: TextClient, read: FetchRead, payload: unknown, version: string): Promise<void> {
+  if (read.source !== OWN_FETCH_SOURCE && read.source !== RENDERED_FETCH_SOURCE) return;
+  try {
+    const row = { fetch_id: read.id, scan_id: read.scan_id, text_version: version, computed_at: new Date().toISOString(), ...textRowOf(read.source, payload) };
+    const wrote = await client.from("fetch_text").upsert([row], { onConflict: "fetch_id", ignoreDuplicates: true });
+    if (wrote.error) throw new Error(wrote.error.message);
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "fetch_text_unkept", fetchId: read.id, message: error instanceof Error ? error.message : String(error) }));
   }
-  return [...had, ...derived];
 }
 
-function batches<T>(items: readonly T[]): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += IDS) out.push(items.slice(i, i + IDS));
-  return out;
-}
-
-/** The measured text of each read by fetch id, in the order given, null for
- *  a read that holds no document. A failed `fetch_text` read throws, as every
- *  other read here does: a request never downloads payloads it already kept. */
-export async function storedText(client: TextClient, reads: readonly FetchRead[], version: string): Promise<Map<string, MeasuredText | null>> {
+/** The measured text of each read by fetch id, in the order given, null for a read that holds no document or has
+ *  no text kept. Only `fetch_text` is read, by key and at most `IDS` keys a request: a payload is never selected. */
+export async function storedText(client: TextClient, reads: readonly FetchRead[]): Promise<Map<string, MeasuredText | null>> {
   const byId = new Map<string, TextRow>();
-  const older = new Map<string, TextRow>();
-  for (const batch of await Promise.all(batches(reads).map((batch) => keptRows(client, batch.map((read) => read.id))))) for (const { text_version, ...row } of batch) (text_version === version ? byId : older).set(row.fetch_id, row);
-  const missing = reads.filter((read) => !byId.has(read.id));
-  for (const batch of await Promise.all(batches(missing).map((batch) => derive(client, batch, version, older)))) for (const row of batch) byId.set(row.fetch_id, row);
+  const ask = async (ids: readonly string[]) => {
+    const kept = await client.from<TextRow & { fetch_id: string }>("fetch_text").select("fetch_id, url, read_at, rendered, document, text, examples, questions").in("fetch_id", ids);
+    if (kept.error) throw new Error(`text.ts: read from fetch_text failed: ${kept.error.message}`);
+    return kept.data ?? [];
+  };
+  const ids = reads.map((read) => read.id);
+  const asks: Promise<(TextRow & { fetch_id: string })[]>[] = [];
+  for (let i = 0; i < ids.length; i += IDS) asks.push(ask(ids.slice(i, i + IDS)));
+  for (const batch of await Promise.all(asks)) for (const row of batch) byId.set(row.fetch_id, row);
+  // A read written before its text was kept is left out until the html prune keeps it.
+  if (byId.size < reads.length) console.warn(JSON.stringify({ event: "measured_text_unkept", reads: reads.length, unkept: reads.length - byId.size }));
   const out = new Map<string, MeasuredText | null>();
   for (const read of reads) {
     const row = byId.get(read.id);
