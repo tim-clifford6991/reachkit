@@ -2,8 +2,12 @@
 // changes the weekly passes stored. Pure but for `storedChanges`.
 import { createHash } from "node:crypto";
 import { registrableDomain } from "@/lib/market/rivals/domains";
-import type { MarketChange } from "@/lib/scan/weekly/market-changes";
+import type { MarketFact } from "@/lib/generate/pipeline/research";
+import { topicWords } from "@/lib/opportunities/intent";
+import type { Opportunity } from "@/lib/opportunities/types";
+import { sameTopic, type MarketChange } from "@/lib/scan/weekly/market-changes";
 import { readMarketChanges } from "@/lib/scan/weekly/store";
+import { factOf, hotFacts } from "./facts";
 
 /** The owner's guards (rulings 90 and 91): two independent reports dated within 14 days, and an event cut at a word to 60 characters. */
 export const HOT = Object.freeze({ sources: 2, days: 14, eventChars: 60 });
@@ -69,3 +73,16 @@ export const readHotEvents = async (siteId: string, day: string): Promise<HotEve
 
 /** What a timely page's reason stores: its event's measured slots, and the Monday it was offered on. */
 export type HotReason = Pick<HotEvent, "signal" | "event" | "date" | "a" | "b" | "key"> & { detectedOn: string };
+
+/** The page's own event's reports, then the reports of `HOT.days` before `day` of each stored change that is its topic by
+ *  the rule two changes are one story by, newest first and each address once. Pure. */
+export function recentFacts(o: Pick<Opportunity, "targetQuery" | "absorbedQueries" | "title"> & { evidence?: Opportunity["evidence"] }, changes: readonly Partial<MarketChange>[], day: string): MarketFact[] {
+  const topic = topicWords([o.targetQuery ?? "", ...o.absorbedQueries, o.title ?? ""].join(" "));
+  const since = new Date(Date.parse(`${day}T00:00:00Z`) - HOT.days * 86_400_000).toISOString().slice(0, 10);
+  const own = hotFacts(o), seen = new Set(own.map((fact) => fact.url));
+  const shared = changes.flatMap((change) =>
+    !Array.isArray(change.words) || !Array.isArray(change.claims) || !sameTopic(new Set(change.words), topic) ? [] : change.claims.map((claim) => ({ ...claim, ...(change.lastSeen === undefined ? {} : { readOn: change.lastSeen }) }))
+  );
+  const fresh = shared.filter((claim) => typeof claim?.publishedAt === "string" && claim.publishedAt >= since && claim.publishedAt <= day && !seen.has(claim.url) && seen.add(claim.url));
+  return [...own, ...fresh.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).map(factOf)];
+}

@@ -63,8 +63,7 @@ import type { MarketResearch } from "./pipeline/research";
 import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 import { inTest } from "./test-draft";
-import { storedChanges } from "@/lib/hot/detect";
-import { recentFacts } from "@/lib/hot/facts";
+import { recentFacts, storedChanges } from "@/lib/hot/detect";
 import { recordWrittenAnyway } from "@/lib/ops/events";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
