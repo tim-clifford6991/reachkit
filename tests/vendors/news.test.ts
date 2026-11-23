@@ -63,10 +63,11 @@ describe("the news search returns dated results, in order, with who published th
     expect(news.parseNews("not a result")).toBeUndefined();
   });
 
-  it("a result behind a Google redirect is read at the address it carries, and one carrying none is skipped alone", () => {
-    const at = (url: string) => ({ type: "news_search", domain: "news.google.com", title: "t", url, timestamp: "2026-11-20 08:00:00 +00:00" });
-    const [real, bare] = news.parseNews({ items: [at("https://news.google.com/url?url=https://www.reuters.com/x"), at("https://www.google.com/url?sa=t")] })!;
-    expect(real).toMatchObject({ url: "https://www.reuters.com/x", domain: "reuters.com", source: "reuters.com" });
-    expect(news.unwrappedNews(bare!)).toBeNull();
+  it("a read that asks for Google's goto links resolved says so to the vendor, and is cached apart from one that did not", async () => {
+    const stub = stubVendorFetch(() => envelope(RESULT));
+    const fake = fakeCostContext("DRAFT");
+    await news.serpNews(fake.ctx, { locale: { country: "US", language: "en" }, query: "q", scope: { site: "site-1" }, freshnessDays: 1, resolveRedirects: true });
+    expect(stub.tasks[0]).toMatchObject({ keyword: "q", resolve_goto_urls: true });
+    expect(fake.calls[0]?.cacheKey).toMatch(/\|goto$/);
   });
 });

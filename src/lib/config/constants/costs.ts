@@ -354,6 +354,9 @@ export const VENDOR = Object.freeze({
    *  answer in 6–10 s and a share of them pass the 10 s bound, each billed.
    *  A free scan keeps `requestAbortMs`. */
   paidSerpAbortMs: 30_000,
+  /** A news read whose Google `goto` links the vendor resolves: that adds at least 40 s, up to 260 s. Held under the job
+   *  step's 300 s with room for the pages and judgement after it. */
+  resolvedNewsAbortMs: 150_000,
   // No shorter free-path bound: these calls take longer than five seconds, and an aborted call is still billed.
   /** The shape of the payload `ranked_keywords` caches, as a number that is
    *  part of that call's cache key. Version 2 carries the vendor's own

@@ -5,11 +5,10 @@
 // Live only: a page is written inside one invocation, shorter than the standard queue's wait. A wrapped answer is reported.
 // Cached like the organic SERP, on query, locale and whose purchase it is; the window is the caller's.
 import type { CostContext } from "@/lib/costs";
-import { PRICE_BOOK } from "@/lib/config/constants";
+import { PRICE_BOOK, VENDOR } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
 import { localeCacheKey } from "./transport";
 import type { Measured } from "@/lib/measure/measured";
-import { unwrappedUrl } from "@/lib/market/rivals/domains";
 import { asArray, asString, callEndpoint, isRecord, ledgered, type EndpointPaths } from "./envelope";
 import { reportUnreadable, wrappedCount } from "./serp";
 import { scopeKey, type CacheScope, type NewsRow } from "./types";
@@ -37,17 +36,7 @@ function rowOf(item: Record<string, unknown>): NewsRow | null {
     }
   }
   domain = domain.replace(/^www\./, "");
-  const row = { url, domain, title: asString(item.title) ?? "", source: asString(item.source) ?? domain, publishedAt };
-  // One whose redirect carries no address stays, so the wrapped report still counts it.
-  return unwrappedNews(row) ?? row;
-}
-
-/** A result at its own address, read from a Google redirect's own parameter; `null` where the redirect names none. */
-export function unwrappedNews(row: NewsRow): NewsRow | null {
-  const url = unwrappedUrl(row.url);
-  if (url === null || url === row.url) return url === null ? null : row;
-  const domain = URL.canParse(url) ? new URL(url).hostname.toLowerCase().replace(/^www\./, "") : "";
-  return domain === "" ? null : { ...row, url, domain, source: row.source === row.domain ? domain : row.source };
+  return { url, domain, title: asString(item.title) ?? "", source: asString(item.source) ?? domain, publishedAt };
 }
 
 /** The dated results, in the search's own order, each address once. A
@@ -82,17 +71,24 @@ export async function serpNews(
     scope: CacheScope;
     /** The caller's window: `CACHE_WINDOWS_D.news`. */
     freshnessDays: number;
+    /** The vendor follows Google's `goto` links to the publisher's address (`resolve_goto_urls`), for a caller that can
+     *  wait `VENDOR.resolvedNewsAbortMs`; a link it cannot follow comes back wrapped. */
+    resolveRedirects?: true;
   }
 ): Promise<Measured<NewsRow[]>> {
   let reused = false;
-  const cacheKey = `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}`;
+  const cacheKey = `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${a.resolveRedirects ? "|goto" : ""}`;
   const rows = await ledgered<NewsRow>(c, {
     source: SOURCE,
     cacheKey,
     freshnessDays: a.freshnessDays,
     costCents: PRICE_BOOK.NEWS_LIVE_C,
-    // eslint-disable-next-line local/serp-normal-queue -- no stored news read since 31 Oct shows a wrapped link, and a page is written inside one invocation.
-    fetch: () => callEndpoint(PATHS, "live", a.locale, { keyword: a.query }),
+    fetch: () =>
+      a.resolveRedirects
+        ? // eslint-disable-next-line local/serp-normal-queue -- the job step holds one invocation; the vendor resolves the links on the live read.
+          callEndpoint(PATHS, "live", a.locale, { keyword: a.query, resolve_goto_urls: true }, VENDOR.resolvedNewsAbortMs)
+        : // eslint-disable-next-line local/serp-normal-queue -- a page is written inside one invocation.
+          callEndpoint(PATHS, "live", a.locale, { keyword: a.query }),
     parse: parseNews,
     onReused: () => {
       reused = true;
