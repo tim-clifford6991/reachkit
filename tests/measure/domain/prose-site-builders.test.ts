@@ -6,7 +6,7 @@
 // example widget — so the whole page was dropped as an example. The class
 // strings below are the two sites' own.
 import { describe, expect, it } from "vitest";
-import { prose } from "@/lib/measure/prose";
+import { pageTextWithoutExamples, prose } from "@/lib/measure/prose";
 
 const SQUARESPACE = "tweak-site-width-option-full-width tweak-header-search-placeholder-show tweak-header-cart-style-text";
 const JIMDO = "body cc-page cc-page-index j-has-shop j-m-gallery-styles j-m-dummy-styles j-m-search-styles";
@@ -36,6 +36,14 @@ describe("a site builder's theme class on the page is not an example", () => {
     expect(read.text).not.toContain("Harbour Bikes");
     expect(read.examples).toContain("Harbour Bikes ranks third.");
   });
+});
+
+it("the profile reads the page, header and button kept, without a demo's businesses", () => {
+  const text = pageTextWithoutExamples(
+    page("", `<header><h1>AI search visibility for small businesses</h1><button>Demo</button></header><main><p>We write the pages buyers ask AI for.</p><div data-demo><ul><li>bookwell.example</li></ul><p>Many small teams use Bookwell or Slotly.</p></div></main>`)
+  );
+  expect(text).toContain("AI search visibility for small businesses Demo We write the pages buyers ask AI for.");
+  expect(text).not.toMatch(/Bookwell|Slotly/);
 });
 
 describe("the questions a page itself asks are read from its markup", () => {
