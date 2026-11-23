@@ -233,6 +233,8 @@ export interface SiteRuleInputs {
   doNotClaim: string[];
   /** The rival domains and names recorded for the site. */
   rivals: string[];
+  /** `sites.timezone`, the zone a page's Sources list writes its read dates in. Absent reads as UTC. */
+  timeZone?: string | null;
   /** What an incomplete page meets, so every verdict on it is one answer. Absent, the product's own (`completenessFor`). */
   completeness?: Completeness;
 }

@@ -349,7 +349,12 @@ export async function readSearchEngines(a: { siteId: string; now: Date; deps?: S
       await db.from("publications").update({ search_reading: stamped }).eq("id", page.id);
       if (counted && newestAt.get(page.live_url) === page.id) weeks.push(...pageWeeks({ siteId: a.siteId, page, reads: reads ?? [], reading, now: a.now }));
     }
-    await keepWeeks({ siteId: a.siteId, rows: weeks, now: a.now, again: a.again === true });
+    // So one address counts once, an older live version gives up the weeks its address's newest, counted version holds.
+    const superseded = pages.flatMap((page) => {
+      const top = pages.find((other) => other.id === newestAt.get(page.live_url));
+      return top === undefined || top === page || top.destination !== "hosted" || readsError !== null || top.published_at === null ? [] : [{ id: page.id, until: top.published_at }];
+    });
+    await keepWeeks({ siteId: a.siteId, rows: weeks, now: a.now, again: a.again === true, superseded });
   } catch (error) {
     log("search_engines_failed", { siteId: a.siteId, message: String(error) });
   }

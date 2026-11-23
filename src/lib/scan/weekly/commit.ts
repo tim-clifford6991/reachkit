@@ -7,7 +7,7 @@ import { judgeWeek, planRefreshes, planWeek } from "@/lib/opportunities";
 import { weekCandidates } from "@/lib/opportunities/plan";
 import { opportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
 import type { PlanReason } from "@/lib/opportunities/types";
-import { claimOpsEvent, opsEventRead } from "@/lib/ops/events";
+import { claimOpsEvent, opsEventRead, replaceOpsEvent } from "@/lib/ops/events";
 import type { TopUpRecord } from "@/lib/opportunities/derive/top-up";
 
 const weekRows = (rows: readonly OpportunityRow[]): WeekRow[] => rows.map((row) => ({ id: row.id, target_query: row.target_query }));
@@ -38,8 +38,8 @@ export async function postFirstWeek(a: { siteId: string; scanId: string; now: Da
   return rows;
 }
 
-/** Commits the week from the checks, then records once per site and week what it was short of (SPEC §7). */
-export async function commitWeek(a: { siteId: string; scanId?: string; weekStart: string; now: Date; rows: readonly WeekRow[]; checks: Checks }): Promise<void> {
+/** Commits the week from the checks, then records once per site and week what it was short of (SPEC §7); a re-run's commit holds the week, so its record replaces the one held. */
+export async function commitWeek(a: { siteId: string; scanId?: string; weekStart: string; now: Date; rows: readonly WeekRow[]; checks: Checks; again?: boolean }): Promise<void> {
   // The pass plans a full week from its first unwritten date, and records the span it planned.
   const week = await planWeek(a.siteId, { now: a.now, record: true, days: WEEK_PLAN.days, research: new Map(a.checks) });
   await recordWeek(a, week, week.rested, { from: week.from, days: week.days });
@@ -58,7 +58,7 @@ export async function recordFirstWeek(a: { siteId: string; now: Date; rows: read
   await recordWeek({ ...a, weekStart: a.now.toISOString().slice(0, 10) }, week, rested, { from: first ?? a.now.toISOString().slice(0, 10), days });
 }
 
-async function recordWeek(a: { siteId: string; scanId?: string; weekStart: string; rows: readonly WeekRow[]; checks: Checks }, week: readonly { opportunityId: string; plannedFor: string | null; reason: Pick<PlanReason, "research"> }[], rested: readonly { opportunityId: string; short: string[] }[], span: { from: string; days: number }): Promise<void> {
+async function recordWeek(a: { siteId: string; scanId?: string; weekStart: string; again?: boolean; rows: readonly WeekRow[]; checks: Checks }, week: readonly { opportunityId: string; plannedFor: string | null; reason: Pick<PlanReason, "research"> }[], rested: readonly { opportunityId: string; short: string[] }[], span: { from: string; days: number }): Promise<void> {
   const marks = [...week.flatMap((entry) => entry.reason.research ?? []), ...rested.map((r) => ({ state: "short" as const, short: r.short }))];
   const count = (state: string) => marks.filter((mark) => mark.state === state).length;
   const short: Record<string, number> = {};
@@ -80,5 +80,5 @@ async function recordWeek(a: { siteId: string; scanId?: string; weekStart: strin
     uncovered: Array.from({ length: Math.max(0, span.days) }, (_, n) => new Date(Date.parse(span.from) + n * 86_400_000).toISOString().slice(0, 10)).filter((date) => !week.some((entry) => entry.plannedFor === date)).length,
   };
   // The record never holds the week's telling: a write that fails is only logged.
-  await claimOpsEvent("week_research", a.siteId, a.weekStart, JSON.stringify(read)).catch((error: unknown) => console.warn(JSON.stringify({ event: "week_research_unrecorded", siteId: a.siteId, error: String(error).slice(0, 200) })));
+  await (a.again === true ? replaceOpsEvent : claimOpsEvent)("week_research", a.siteId, a.weekStart, JSON.stringify(read)).catch((error: unknown) => console.warn(JSON.stringify({ event: "week_research_unrecorded", siteId: a.siteId, error: String(error).slice(0, 200) })));
 }

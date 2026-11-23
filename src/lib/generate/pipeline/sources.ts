@@ -4,7 +4,7 @@
 // **The sources list is written by code, never by the model.** A market fact
 // is cited inline, as a link beside the sentence that uses it; the page then
 // ends with a *Sources* list naming every such page, with the date it was
-// read. It is built from the links the body carries and the facts the brief
+// read and, where it was found, the source's own date. It is built from the links the body carries and the facts the brief
 // chose, so it cannot name a page the body does not cite or miss one it does.
 //
 // **A table never ships with an empty cell** (owner, 2026-10-02, round 1:
@@ -20,19 +20,30 @@
 //
 // Both are pure passes over the body's Markdown, in the grammar the one
 // renderer parses.
+import type { Language } from "@/lib/locale/locales";
 import { copy } from "@/lib/presentation/copy";
+import { copyIn } from "@/lib/presentation/copy/translated";
+import { writePageDate } from "@/lib/publish/render/byline";
+import { isSourcesHeading } from "@/lib/publish/render/made";
 import { urlKey } from "../links/select";
 import { isPlaceholderCell } from "../rules/cells";
+import { whenSaid } from "../rules/prose";
 import { linksOf, renderOf } from "../rules/text";
+import { sourceDate, type ClaimDates } from "./dated";
 
 export { isPlaceholderCell };
 
-const DAY = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-
-export interface CitedSource {
+export interface CitedSource extends ClaimDates {
   url: string;
   title: string;
   readAt: Date;
+}
+
+/** How the list is written: the page's language, its date tag and its publisher's zone, as its byline is. */
+export interface SourcesAs {
+  language: Language;
+  tag: string;
+  timeZone: string | null;
 }
 
 function safeLabel(label: string): string {
@@ -47,10 +58,9 @@ function safeHref(url: string): string {
 const HEADING_RE = /^[ \t]*#{1,6}[ \t]+(.*?)[ \t]*#*[ \t]*$/;
 
 /** The body without a sources section — the model's, or an earlier call's. */
-function withoutSources(markdown: string): string {
-  const heading = copy("body.sources.heading").toLowerCase();
+function withoutSources(markdown: string, say: typeof copy): string {
   const lines = markdown.split("\n");
-  const at = lines.findIndex((line) => HEADING_RE.exec(line)?.[1]?.trim().toLowerCase() === heading);
+  const at = lines.findIndex((line) => isSourcesHeading(HEADING_RE.exec(line)?.[1] ?? "\n", say));
   if (at === -1) return markdown;
   const next = lines.findIndex((line, index) => index > at && HEADING_RE.test(line));
   return [...lines.slice(0, at), ...(next === -1 ? [] : lines.slice(next))].join("\n");
@@ -62,8 +72,9 @@ function withoutSources(markdown: string): string {
  * can be re-run after a repair moved a citation. A body that cites no market
  * page gets no list.
  */
-export function withSources(markdown: string, sources: readonly CitedSource[]): string {
-  const body = withoutSources(markdown).replace(/\s+$/, "");
+export function withSources(markdown: string, sources: readonly CitedSource[], as: SourcesAs): string {
+  const say: typeof copy = (key, vars) => copyIn(as.language, key, vars);
+  const body = withoutSources(markdown, say).replace(/\s+$/, "");
   const linked = new Set(linksOf(body).map(urlKey));
   const cited: CitedSource[] = [];
   for (const source of sources) {
@@ -72,11 +83,13 @@ export function withSources(markdown: string, sources: readonly CitedSource[]): 
     cited.push(source);
   }
   if (cited.length === 0) return body === markdown.replace(/\s+$/, "") ? markdown : `${body}\n`;
-  const items = cited.map(
-    (source) =>
-      `- [${safeLabel(source.title)}](${safeHref(source.url)}), ${copy("body.sources.read", { date: DAY.format(source.readAt) })}`
-  );
-  return `${body}\n\n## ${copy("body.sources.heading")}\n\n${items.join("\n")}\n`;
+  const items = cited.map((source) => {
+    const dated = sourceDate(source);
+    const own = dated === null ? [] : [dated === "undated" ? say("body.sources.undated") : say(`body.sources.${dated.said}`, { month: whenSaid(dated.at, as.language) })];
+    const read = say("body.sources.read", { date: writePageDate(source.readAt, as.timeZone, as.tag) });
+    return `- ${[`[${safeLabel(source.title)}](${safeHref(source.url)})`, ...own, read].join(" · ")}`;
+  });
+  return `${body}\n\n## ${say("body.sources.heading")}\n\n${items.join("\n")}\n`;
 }
 
 // ── Tables ──────────────────────────────────────────────────────────────
