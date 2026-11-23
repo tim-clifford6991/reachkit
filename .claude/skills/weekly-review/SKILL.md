@@ -1,24 +1,24 @@
 ---
 name: weekly-review
-description: ReachKit's one scheduled weekly review (PROCESS.md rule 3, C7). Reports the six ideas as measured outcomes, reads code, CI and production read-only through five lenses (bloat, production health, SEO, dependencies, flaky tests), classifies each finding under Coherence, files at most five unready issues (at most one of them a deletion), and republishes the pinned "ReachKit this week" page. Use when the rk-weekly timer starts a run, or when asked for the weekly review or its dry run.
+description: ReachKit's one scheduled weekly review (PROCESS.md rule 3, C7). Reports the six ideas as measured outcomes, reads code, CI and production read-only through five lenses (bloat, production health, SEO, dependencies, flaky tests), classifies each finding under Coherence in its report to the owner, files no issues, and republishes the pinned "ReachKit this week" page. Use when the rk-weekly timer starts a run, or when asked for the weekly review or its dry run.
 ---
 
 # Weekly review
 
-One run a week. It measures, it reads, it classifies, it files at most five issues, it republishes one page. Then it stops.
+One run a week. It measures, it reads, it classifies, it reports to the owner, it republishes one page. Then it stops.
 
 ## Rules (each one ends the run if it would be broken)
 
 - **Read-only.** Never edit, commit, push, merge or deploy. Never run a migration, `redeploy.sh`, `smoke.sh`, or a command that writes to production. The only file written is under `.review/weekly/` (ignored by git).
 - **0¢.** No paid vendor or model API call. Never run `npm run panel` (other than `--recheck`), `scripts/page.mjs`, `pass.mjs`, `free-scan.mjs`, `eval-content.mjs`, `d19-cost.mjs`, `market-inference.mjs`, or `npm run costs` without `--stored`. Do not use DataForSEO, Anthropic, Resend or Stripe. The run's own model use is the box's Claude subscription; `ANTHROPIC_API_KEY` is unset by the wrapper (README).
-- **At most five issues**, every one labelled `from-weekly` and none Ready. At most one of them is a deletion issue (§0). The product manager classifies them; this run never starts an engineer.
+- **No issues.** The run never files or comments on an issue; its findings go to the owner in its report (owner, 2026-11-23, #2722 ruling 99). This run never starts an engineer.
 - **Not measured is never shown as 0.** A source that cannot be read is written as not read, with why.
 - **Every customer.** A finding is a general condition that holds for SaaS and local sites alike, never a tune for reachkit.app.
 
 ## Modes
 
-- `dry-run` (the argument): do every read, write the report and the page to `.review/weekly/`, and run no `gh issue create`, `comment`, `edit`, `pin` or `label` command. The report lists what a live run would file. The wrapper gives a dry run no tool that writes to GitHub.
-- live (the timer): as above, then file, comment and republish.
+- `dry-run` (the argument): do every read, write the report and the page to `.review/weekly/`, and run no `gh issue edit` command. The wrapper gives a dry run no tool that writes to GitHub.
+- live (the timer): as above, then republish.
 
 Read `date -u +%F` (DAY) and `date -u -d '7 days ago' +%F` (SINCE) once and write both as literal dates in every later command: the wrapper allows each command only exactly as this page writes it, with no other option, shell expansion or redirection. Write files with the Write tool. Work from `/root/projects/reachkit` after `git fetch -q origin`; read `origin/main`, never change the checkout.
 
@@ -26,7 +26,7 @@ Read `date -u +%F` (DAY) and `date -u -d '7 days ago' +%F` (SINCE) once and writ
 
 `node scripts/outcomes.mjs --since SINCE --day DAY` prints the six outcomes over SINCE to DAY, each from one fixed SELECT in that script: free scans finished and report mails sent, checkout → setup, setup → first page in 24 h, days delivered per paid site, sign-in → app, and CPU per site per day. It takes no SQL and opens a read-only session as the read-only role (`READONLY_DATABASE_URL`). The Supabase connector is not given to the run. Copy its table into the report as printed: a `not measured` row stays not measured, never 0.
 
-Its last line names the worst measured rate and its SPEC section. Give that line to an `architect` subagent: it names the rule row in that section most tied to the outcome, and the lines its deletion would remove. That is the week's one deletion candidate, filed with `--label from-weekly --label simplify`; the architect owns deletion, and it is never Ready. It counts within the five. `Worst: none` files no deletion issue.
+Its last line names the worst measured rate and its SPEC section. Give that line to an `architect` subagent: it names the rule row in that section most tied to the outcome, and the lines its deletion would remove. That is the week's one deletion candidate, written in the report; the architect owns deletion. `Worst: none` names no candidate.
 
 ## 1. Five lenses
 
@@ -42,45 +42,22 @@ Run the commands in the table yourself, one plain command each, then give each l
 
 ## 2. Classify under Coherence first
 
-`docs/PROCESS.md` › Coherence decides where each finding goes, in this order:
+`docs/PROCESS.md` › Coherence decides where each finding would go, in this order; the report says which, and the owner decides:
 
-1. **Already filed?** `gh issue list --state open --search "<key words>"`. If an open issue covers it, it is a comment on that issue, not a new one.
-2. **An example of a registry parent** (#1454 scan, #1127 content, #1457 app, #1458 public): a comment on that parent. Never a new issue, never `Closes`.
-3. **A word, a label or a screen** against the strategy in `docs/DESIGN.md`: an issue that extends `tests/ui/design/strategy.test.ts` or the layout gate.
-4. **A new condition**: an issue with Conditions, Invariants, Surfaces and Overlaps filled.
-5. **A production failure on the paying path**: an issue labelled `P0`.
+1. **Already filed?** `gh issue list --state open --search "<key words>"`. If an open issue covers it, the report names that issue.
+2. **An example of a registry parent** (#1454 scan, #1127 content, #1457 app, #1458 public): the report names that parent.
+3. **A word, a label or a screen** against the strategy in `docs/DESIGN.md`: a proposed issue that extends `tests/ui/design/strategy.test.ts` or the layout gate.
+4. **A new condition**: a proposed issue with Conditions, Invariants, Surfaces and Overlaps filled.
+5. **A production failure on the paying path**: a proposed issue labelled `P0`.
 
-Rank the issues by harm to a paying customer, then by lines removed. Keep the top five. The rest go in the report only.
-
-Issue body:
-
-```markdown
-**From the weekly review, <DAY>.** Not Ready: the product manager classifies it.
-
-## Conditions
-1. <what is true afterwards>. **Fails →** <the check that fails when it breaks>.
-
-## Invariants
-- 0¢. Never tuned to reachkit.app. Not measured is never shown as 0.
-
-## Surfaces
-<surface or none>
-
-## Overlaps
-<open issues and PRs read against, the SPEC section, what was left alone>
-
-## Evidence
-<command and the output line>
-```
-
-Live: `gh label create from-weekly --color BFD4F2 --description "Filed by the weekly review" 2>/dev/null || true`, then `gh issue create --label from-weekly --title "<plain sentence>" --body-file <file>`, and `gh issue comment` for the comments.
+Rank the findings by harm to a paying customer, then by lines removed. Each carries its Conditions, Surfaces, Overlaps and evidence.
 
 ## 3. Republish "ReachKit this week"
 
 `node scripts/this-week.mjs`, and write its output with the Write tool to `.review/weekly/this-week-DAY.md`.
 
-Run it after filing, so Found holds this week's issues. Live: the page is the pinned issue titled `ReachKit this week`. Find it with `gh issue list --state open --search '"ReachKit this week" in:title' --json number`; if there is none, `gh issue create --title "ReachKit this week" --body-file …` and `gh issue pin <n>`. Otherwise `gh issue edit <n> --body-file .review/weekly/this-week-DAY.md`. It is the only issue the run edits.
+Live: the page is the pinned issue titled `ReachKit this week`. Find it with `gh issue list --state open --search '"ReachKit this week" in:title' --json number`, then `gh issue edit <n> --body-file .review/weekly/this-week-DAY.md`; if there is none, the report says so. It is the only issue the run edits.
 
 ## 4. Report
 
-Write `.review/weekly/DAY.md`: the mode, the six outcomes and the deletion candidate (or none), each lens's findings with evidence (or "not read: why"), the classification of each, what was filed or commented (live) or would be (dry run), and what was left out over the cap. Print its path and stop.
+Write `.review/weekly/DAY.md`: the mode, the six outcomes and the deletion candidate (or none), each lens's findings with evidence (or "not read: why"), and the classification of each, ranked. Print its path and stop.

@@ -232,14 +232,14 @@ function resultBlocks(r: WeeklyResults): readonly MailBlock[] {
   const f: TileFormat = { count: String, date: (at) => formatMailDayMonth(localDay(at, r.zone)), day: (at) => formatMailDayMonth(at.toISOString().slice(0, 10)) };
   const dates = { due: new Date(`${r.due}T12:00:00Z`), goLive: r.goLive === null ? null : new Date(`${r.goLive}T12:00:00Z`) };
   const row = (tile: Tile): StatRow => {
-    const of = ofWords(tile, f.count);
+    const of = ofWords(tile, f);
     const change = tile.change === null ? null : changeWords(tile.key, tile.change, dates, f);
     const detail = change === null ? {} : { detail: change };
     // Not counted yet is the tile's dash: its of line stands where the figure would.
     if (tile.n === null) return { label: TILE_NAME[tile.key], value: unmeasured("not_attempted", r.at), format: "integer", unmeasuredLine: of.text, ...(of.vars === undefined ? {} : { unmeasuredVars: of.vars }), ...detail };
     return { label: TILE_NAME[tile.key], value: measured(tile.n, r.at), format: "integer", note: of, ...detail };
   };
-  const items = r.tiles.filter((tile) => tile.key !== "rivals").map(row);
+  const items = r.tiles.filter((tile) => tile.key !== "visits").map(row);
   return items.length === 0 ? [] : [{ block: "heading", level: 2, text: RESULTS }, { block: "stats", shape: "tiles", items }];
 }
 

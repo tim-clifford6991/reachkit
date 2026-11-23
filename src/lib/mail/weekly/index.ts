@@ -230,7 +230,7 @@ async function measuredWeek(a: {
   };
   const firstDay = next.kind === "unmeasured" ? undefined : next.value[0]?.day;
   if (rows === null || published === null) return { did, next };
-  const results = resultsOf({ published: { pages: published, now }, passes: rows.passes, rows: rows.pages, rivals: null, gsc: rows.gsc, week, domain: a.domain, coming: 0, goLive: firstDay !== undefined });
+  const results = resultsOf({ published: { pages: published, now }, passes: rows.passes, rows: rows.pages, gsc: rows.gsc, week, domain: a.domain, coming: 0, goLive: firstDay !== undefined });
   if (results === null) return { did, next };
   // Told once: readings are written by the weekly pass, so the site's first page-1 date falls inside this week's pass only once.
   const reached = published.flatMap((page) => (page.reading?.reached.firstPage === undefined ? [] : [Date.parse(page.reading.reached.firstPage)]));

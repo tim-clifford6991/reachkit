@@ -18,7 +18,7 @@ const TILES = [
   { key: "pages", name: "overview.tile.pages.name", of: "overview.tile.pages.of" },
   { key: "google", name: "overview.tile.google.name", of: "overview.tile.google.of" },
   { key: "ai", name: "overview.tile.ai.name", of: "overview.tile.ai.of" },
-  { key: "rivals", name: "overview.tile.rivals.name", of: "overview.tile.rivals.of" },
+  { key: "visits", name: "overview.tile.visits.name", of: "overview.tile.visits.of" },
 ] as const;
 
 const STATE: Readonly<Record<PlannedDay["state"], CopyKey>> = {
@@ -62,13 +62,14 @@ export function AppPicture(): React.JSX.Element {
           <ul className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4">
             {TILES.map(({ key, name, of }) => {
               const tile = EXAMPLE_TILES[key];
-              const m = String(tile.of);
+              const m = "of" in tile ? String(tile.of) : "";
               return (
                 <li key={key} className="card card-border bg-base-100 min-w-0">
                   <span className="card-body min-w-0 gap-1.5 p-3">
                     <span className="min-w-0 text-sm font-semibold">{copy(name)}</span>
                     <span className="text-3xl leading-snug font-semibold tabular-nums">{tile.n}</span>
                     <span className="text-base-content/70 text-sm">{key === "pages" ? copy(of, { total: m }) : copy(of, key === "ai" ? { n: m, weeks: String(AI_WINDOW_WEEKS) } : { m })}</span>
+                    {"clicks" in tile ? <span className="text-base-content/70 text-sm">{copy("overview.tile.visits.clicks", { c: String(tile.clicks) })}</span> : null}
                     <span className={`text-sm ${tile.up > 0 ? "text-success" : "text-base-content/70"}`}>
                       {tile.up > 0 ? copy("overview.tile.change.up", { n: String(tile.up) }) : copy("overview.tile.change.same")}
                     </span>

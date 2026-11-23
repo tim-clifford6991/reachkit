@@ -3,7 +3,7 @@
 // phone) above a detail. Each tile is one link to the rows it counts.
 import type React from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, CircleCheck, Search, Sparkles, Users, type LucideIcon } from "lucide-react";
+import { ArrowRight, ChevronRight, CircleCheck, MousePointerClick, Search, Sparkles, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { GrowthWeek } from "@/ui/charts/GrowthLine";
 import { TileTrend } from "./TileTrend";
@@ -18,20 +18,21 @@ export const TILE_HREF: Readonly<Record<TileKey, string>> = {
   pages: "/app/pages",
   google: "/app/search",
   ai: "/app/ai-answers",
-  rivals: "/app/rivals",
+  visits: "/app/pages?from=visits",
 };
 
-const ICON: Readonly<Record<TileKey, LucideIcon>> = { pages: CircleCheck, google: Search, ai: Sparkles, rivals: Users };
+const ICON: Readonly<Record<TileKey, LucideIcon>> = { pages: CircleCheck, google: Search, ai: Sparkles, visits: MousePointerClick };
 const SHORT: Readonly<Record<TileKey, CopyKey>> = {
   pages: "overview.tile.short.pages",
   google: "overview.tile.short.google",
   ai: "overview.tile.short.ai",
-  rivals: "overview.tile.short.rivals",
+  visits: "overview.tile.short.visits",
 };
 const INK = "text-sm text-base-content/70";
 
+// Visits' only date is a UTC day held at noon, the same day in every zone.
 const ofLine = (tile: Tile): string => {
-  const of = ofWords(tile, formatCount);
+  const of = ofWords(tile, { count: formatCount, date: (at) => formatShortDay(at, "UTC") });
   return copy(of.text, of.vars);
 };
 
@@ -66,16 +67,20 @@ function shownLine(tile: Tile, d: TileDates): string | null {
   return date === null ? copy("overview.tile.google.visited.not-in", { c }) : copy("overview.tile.google.visited", { c, date });
 }
 
+/** Visits' clicks through, and the AI tile's pages read: the line beneath the of-line. */
+function underLine(tile: Tile): string | null {
+  if (tile.read !== undefined) return tile.read === 0 ? copy("overview.tile.ai.read.none") : tile.read === 1 ? copy("overview.tile.ai.read.one") : copy("overview.tile.ai.read", { x: formatCount(tile.read) });
+  const c = tile.clicks;
+  if (c == null || !tile.n) return null;
+  return c === 0 ? copy("overview.tile.visits.clicks.none") : c === 1 ? copy("overview.tile.visits.clicks.one") : copy("overview.tile.visits.clicks", { c: formatCount(c) });
+}
+
 function changeLine(key: TileKey, change: TileChange, d: TileDates): string | null {
   const said = changeWords(key, change, d, { count: formatCount, date: (at) => formatDate(at, d.timeZone), day: (at) => formatShortDay(at, d.timeZone) });
   return said === null ? null : copy(said.text, said.vars);
 }
 
-function Trend(p: { tile: Tile; bars: TilesModel["bars"] }): React.JSX.Element | null {
-  if (p.tile.key === "rivals") {
-    if (p.bars === null) return null;
-    return <TileTrend you={{ name: copy("report.you"), value: p.bars.you }} rivals={p.bars.rivals} measured={p.bars.of} label={copy("overview.tile.rivals.name")} />;
-  }
+function Trend(p: { tile: Tile }): React.JSX.Element | null {
   const series = p.tile.series;
   if (series === null || series.every((v) => v === null)) return null;
   const unread = copy("overview.tile.change.unread", { what: copy(TILE_UNREAD[p.tile.key]) });
@@ -97,7 +102,7 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
         {p.model.tiles.map((tile) => {
           const Icon = ICON[tile.key];
           const change = tile.change === null ? null : changeLine(tile.key, tile.change, p.dates);
-          const shown = shownLine(tile, p.dates);
+          const shown = shownLine(tile, p.dates) ?? underLine(tile);
           return (
             <li key={tile.key} className="flex min-w-0">
               <Link className={`${CARD} ${LIFT}`} href={TILE_HREF[tile.key]} prefetch={true} data-testid={`overview-tile-${tile.key}`}>
@@ -113,7 +118,7 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
                   {change === null ? null : (
                     <span className={`text-sm ${tile.change?.kind === "up" ? "text-success" : "text-base-content/70"}`}>{change}</span>
                   )}
-                  <Trend tile={tile} bars={p.model.bars} />
+                  <Trend tile={tile} />
                   <span className="mt-auto flex items-center gap-1 pt-2 text-sm font-semibold text-primary">
                     {copy("overview.tile.see")}
                     <ArrowRight className={`size-4 ${ARROW_NUDGE}`} aria-hidden />
@@ -130,6 +135,7 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
 
 /** Above a detail: *Back to Overview*, then the compact row at `lg` and a strip below it. */
 export function DetailTiles(p: { model: TilesModel | null; tab: TileKey }): React.JSX.Element {
+
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <BackToOverview />
@@ -194,7 +200,7 @@ export function DetailTilesSkeleton(): React.JSX.Element {
 }
 
 /** The closed account of what each tile counts. */
-export function TilesHow(p: { noConsole: boolean }): React.JSX.Element {
+export function TilesHow(p: { noConsole: boolean; read: boolean }): React.JSX.Element {
   return (
     <details className="collapse collapse-arrow card-border min-w-0 bg-base-100" data-testid="overview-tiles-how">
       <summary className="collapse-title font-semibold">{copy("overview.tiles.how.title")}</summary>
@@ -203,7 +209,9 @@ export function TilesHow(p: { noConsole: boolean }): React.JSX.Element {
         <p>{copy("overview.tiles.how.google")}</p>
         {p.noConsole ? <p>{copy("overview.tiles.how.google.no-console")}</p> : null}
         <p>{copy("overview.tiles.how.ai", { weeks: formatCount(AI_WINDOW_WEEKS) })}</p>
-        <p>{copy("overview.tiles.how.rivals")}</p>
+        {p.read ? <p>{copy("overview.tiles.how.ai.read")}</p> : null}
+        <p>{copy("overview.tiles.how.visits")}</p>
+        <p>{copy("overview.tiles.how.visits.floor")}</p>
         <p>{copy("overview.tiles.how.change")}</p>
       </div>
     </details>
