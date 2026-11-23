@@ -640,9 +640,9 @@ export async function researchMarket(
   const topTen = [...new Set([...stored, ...(short ? (beside?.organic ?? []) : [])])].filter(notOurs);
   // The own pages read, only of the rivals the page is about: eight products on a listicle (owner), four on any other page.
   const bound = a.options === true ? RESEARCH.options : RESEARCH.rivals;
-  // A product the search names is read from its own site, listed rival or not: the result whose address spells its name.
+  // On a page that compares, a product the search names is read from its own site, listed or not: the result spelling its name.
   const sites = [...topTen, ...(beside?.organic ?? [])].map(registrableDomain).filter((domain): domain is string => domain !== null && !isPlatformDomain(domain) && !sameSite(domain, own));
-  const first = [...new Set([...rivalsInScope(inForce, a), ...namedIn(target, sites.filter((domain) => !inForce.some((rival) => same(domain, rival))).map((domain) => ({ domain })))])].slice(0, bound);
+  const first = [...new Set([...rivalsInScope(inForce, a), ...(compares({ target, options: a.options }) ? namedIn(target, sites.filter((domain) => !inForce.some((rival) => same(domain, rival))).map((domain) => ({ domain }))) : [])])].slice(0, bound);
   // The week's other pages, read at 0¢: a site cited on enough of them ranks last here (`a.page` ends in its date).
   const capped = a.page === undefined ? new Set<string>() : await cappedSites(a.siteId, own, /\d{4}-\d{2}-\d{2}$/.exec(a.page)?.[0] ?? a.today.toISOString().slice(0, 10));
   const [topReads, firstReads] = await Promise.all([Promise.all(topTen.map((url) => fetchPage(url))), Promise.all(first.map(readRival))]);
