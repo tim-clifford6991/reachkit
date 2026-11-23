@@ -41,9 +41,10 @@ export function ledgerSourceOf(topic: {
   return topic.source ?? "category";
 }
 
-/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor that readiness does not hold. */
-export function writable(row: Pick<Opportunity, "family" | "status" | "businessFit"> & Partial<Pick<Opportunity, "ready">>): boolean {
-  return (row.family === "write" || row.family === "earn") && row.status === "open" && (row.businessFit ?? TOPIC_FIT.gate) >= TOPIC_FIT.gate && row.ready !== false;
+/** A row a day may be written from: an open Write or Earn at or above readiness's fit floor that readiness, once it has run, does not hold. */
+export function writable(row: Pick<Opportunity, "family" | "status" | "businessFit"> & Partial<Pick<Opportunity, "ready" | "unreadyReason">>): boolean {
+  const held = row.ready === false && row.unreadyReason !== "not_assessed";
+  return (row.family === "write" || row.family === "earn") && row.status === "open" && (row.businessFit ?? TOPIC_FIT.gate) >= TOPIC_FIT.gate && !held;
 }
 
 /** The ledger with `have` and `short` read again from rows readiness has just assessed. */

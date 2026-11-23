@@ -36,7 +36,7 @@ describe("supplyLedger", () => {
   });
 
   it("a row readiness holds, as one a live page covers, is not supply", () => {
-    const held = { ...open(1)[0]!, ready: false };
+    const held = { ...open(1)[0]!, ready: false, unreadyReason: "destination_cannot_address" as const };
     expect(supplyLedger({ stages: {}, rows: [...open(PLAN_DEPTH - 1), held] }).short).toBe(1);
   });
 
