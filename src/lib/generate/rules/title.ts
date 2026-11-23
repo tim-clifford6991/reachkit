@@ -459,8 +459,6 @@ export interface TitleCandidate {
    *  of the nearest search's words it carries, plus the mean share of each
    *  follow-up question's. */
   closeness: number;
-  /** On the title that went on without its specific, after the fix call. */
-  specific_unmet?: true;
 }
 
 /** The share of a text's subject words the title carries. */
