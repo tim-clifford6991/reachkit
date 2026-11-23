@@ -160,7 +160,7 @@ export async function startWeeklyScan(
   const step: StepRunner = a.step ?? ((_name, body) => body());
   const { siteId, domain, zone, now, weekStart } = a;
   const outcome = await step(`measure-${a.siteId}`, () =>
-    runWeekly({ siteId, domain, zone, now, ...(a.early === true ? { early: true, weekStart } : {}), ...(a.rerun === undefined ? {} : { rerun: true, weekStart }) })
+    runWeekly({ siteId, domain, zone, now, ...(a.early === true ? { early: true, weekStart } : {}), ...(a.rerun === undefined ? {} : { rerun: { mail: a.rerun.mail }, weekStart }) })
   );
   // A refused re-run touches nothing further; every re-run records what it cost.
   const recorded = (rerun: Rerun) => step(`rerun-${siteId}`, async () => (await import("@/lib/scan/weekly/rerun")).recordRerun({ siteId, weekStart, key: rerun.key, outcome }));

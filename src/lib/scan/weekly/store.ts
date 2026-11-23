@@ -153,11 +153,20 @@ export async function claimRerun(a: { siteId: string; domain: string }): Promise
   return { claimed: true, scanId };
 }
 
-/** A finished re-run takes the week: the standing row leaves it, kept for its ledger, and the re-run's row is stamped with it. */
-export async function supersedeWeek(a: { siteId: string; weekStart: string; scanId: string }): Promise<void> {
-  const left = await untyped().from<WeekRow>("scans").update({ week_start: null }).eq("site_id", a.siteId).eq("tier", "weekly").eq("week_start", a.weekStart);
+/** A finished re-run takes the week: the standing row leaves it, kept for its ledger, and the re-run's row is stamped with it. The owner's
+ *  market digest stays sent, and so does the Monday mail unless the re-run sends it again. */
+export async function supersedeWeek(a: { siteId: string; weekStart: string; scanId: string; mail: boolean }): Promise<void> {
+  const left = await untyped()
+    .from<{ market_digest_at: string | null; digest_sent_at: string | null }>("scans")
+    .update({ week_start: null })
+    .eq("site_id", a.siteId)
+    .eq("tier", "weekly")
+    .eq("week_start", a.weekStart)
+    .select("market_digest_at, digest_sent_at");
   if (left.error) throw new Error(`weekly: could not supersede the week: ${left.error.message}`);
-  const took = await untyped().from<WeekRow>("scans").update({ week_start: a.weekStart }).eq("id", a.scanId);
+  const standing = left.data?.[0];
+  const told = standing === undefined ? {} : { market_digest_at: standing.market_digest_at, ...(a.mail ? {} : { digest_sent_at: standing.digest_sent_at }) };
+  const took = await untyped().from<WeekRow>("scans").update({ week_start: a.weekStart, ...told }).eq("id", a.scanId);
   if (took.error) throw new Error(`weekly: could not supersede the week: ${took.error.message}`);
 }
 

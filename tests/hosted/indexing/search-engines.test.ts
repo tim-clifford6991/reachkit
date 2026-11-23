@@ -184,6 +184,14 @@ describe("issue 1553 — a live hosted host is verified, and each page's way to 
     expect(first.find((row) => row.publication_id === "pub-new")).toMatchObject({ counts: { "crawl:google": 2 }, reading: { indexed: null, linkedBy: ["ai_overview"] } });
   });
 
+  it("a re-run writes the newest week's reading again and keeps an older week's stored reading", async () => {
+    db.seed("publication_weeks", [{ publication_id: "pub-old", site_id: "s1", week_start: "2026-10-05", counts: {}, reading: { indexed: true, impressions: 9, clicks: 1, place: null, linkedBy: [] } }]);
+    await readSearchEngines({ siteId: "s1", now: NOW, again: true, deps: { accounts: [], announce: async () => ok({}) } });
+    const week = (start: string) => db.rows("publication_weeks").find((row) => row.publication_id === "pub-old" && row.week_start === start);
+    expect(week("2026-10-05")?.reading).toEqual({ indexed: true, impressions: 9, clicks: 1, place: null, linkedBy: [] });
+    expect(week("2026-10-12")?.reading).not.toBeNull();
+  });
+
   it("issue 1538's seen state reads URL Inspection: a page Google calls indexed is seen", async () => {
     await readSearchEngines({ siteId: "s1", now: NOW, deps: { accounts: [ACCOUNT], gscSend: google, announce: async () => ok({}) } });
     const seen = await verdictStore().seenUrls?.("s1");
