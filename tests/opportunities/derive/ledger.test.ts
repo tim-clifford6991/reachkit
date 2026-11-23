@@ -35,6 +35,11 @@ describe("supplyLedger", () => {
     expect(ledger.have).toBe(2);
   });
 
+  it("a row readiness holds, as one a live page covers, is not supply", () => {
+    const held = { ...open(1)[0]!, ready: false };
+    expect(supplyLedger({ stages: {}, rows: [...open(PLAN_DEPTH - 1), held] }).short).toBe(1);
+  });
+
   it("a site holding a week and its spares is short of nothing, and its dry sources are still named", () => {
     const ledger = supplyLedger({ stages: { added: ["category"] }, rows: open(PLAN_DEPTH + 2) });
     expect(ledger.short).toBe(0);
