@@ -49,7 +49,8 @@ export function partsOf(failure: RuleFailure): Part[] {
   const detail = failure.detail;
   if (detail?.rule !== "required_blocks") return [];
   const parts: Part[] = [...(SECTION_BLOCKS.has(detail.block) ? ["sections" as const] : []), ...(LINK_BLOCKS.has(detail.block) ? ["links" as const] : [])];
-  return detail.block === "length" || detail.length === true ? [...parts, "words"] : parts;
+  // A page over its ceiling is not short of words: a warning, never the fix call on that ground.
+  return (detail.block === "length" || detail.length === true) && detail.over !== true ? [...parts, "words"] : parts;
 }
 
 /** Whether a failure is a page missing its sections, sources or words: what earns the one fix call. */

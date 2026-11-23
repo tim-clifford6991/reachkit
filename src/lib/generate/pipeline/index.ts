@@ -120,8 +120,8 @@ export type GenerateOutcome =
       step: PipelineStep;
       /** On `pack`: what the template asks that the pack lacks. */
       missing?: readonly PackNeed[];
-      /** On `write`: the writer answered and its answer was refused, so buying it again would fail the same way. */
-      answered?: true;
+      /** On `write`: the writer answered and its answer was refused, so buying it again would fail the same way; `cut_off`, it ran past its output cap and is asked again only for a shorter page. */
+      answered?: true | "cut_off";
       /** On `fix`: the step had no room left for the page's one fix call; the row holds the write, and the run's next step makes it. */
       owed?: true;
     };
@@ -174,6 +174,7 @@ export interface GenerateInputs {
   fixStep?: "owe" | "owed";
   /** The day's last step, written anyway (SPEC §7): a short pack at the minimum is written short, adding too little noted. */
   completeness?: "warn";
+  /** The last write ran past its output cap: this one is asked for a shorter page, never the same input again. */ shorter?: true;
 }
 
 interface Finished {
@@ -278,7 +279,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     pageType,
     // An update with no live page to measure against never reaches here: its pack is short. The fallback keeps the type total.
     length: length ?? { floor: 0, target: 0, ceiling: Number.MAX_SAFE_INTEGER },
-    ...(a.tier === undefined ? {} : { tier: a.tier }),
+    ...(a.tier === undefined ? {} : { tier: a.tier }), ...(a.shorter === true ? { shorter: true as const } : {}),
     ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }),
     ...(competitorOf(a.opportunity) === null ? {} : { competitor: competitorOf(a.opportunity)! }),
   };
@@ -286,7 +287,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   // 3. Write: one call, whose start the fix call's time runs from.
   const writtenAt = Date.now();
   const written = owed ?? (await writePage(c, writing));
-  if (written.kind === "unmeasured") return stepFailed(a.siteId, "write", a.draftId, written.because === "list_unread");
+  if (written.kind === "unmeasured") return stepFailed(a.siteId, "write", a.draftId, written.because === "cut_off" ? "cut_off" : written.because === "list_unread");
 
   const tidy = {
     // Both pools: a quotation stands where it is either's exact words.
@@ -551,9 +552,9 @@ async function lostFact(siteId: string, row: DraftRow): Promise<GenerateOutcome>
 
 /** A step that did not run. On a rewrite the date's row already exists, and
  *  the failure names it so the caller can rest it (#813). */
-function stepFailed(siteId: string, step: PipelineStep, draftId: string | undefined, answered = false): GenerateOutcome {
+function stepFailed(siteId: string, step: PipelineStep, draftId: string | undefined, answered: boolean | "cut_off" = false): GenerateOutcome {
   logRun({ siteId, step, outcome: "step_failed" });
-  return { ok: false, reason: "step_failed", draftId: draftId ?? null, step, ...(answered ? { answered } : {}) };
+  return { ok: false, reason: "step_failed", draftId: draftId ?? null, step, ...(answered === false ? {} : { answered }) };
 }
 
 /** The rules whose note names the sentences that broke them, word for word

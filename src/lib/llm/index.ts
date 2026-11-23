@@ -611,5 +611,5 @@ export async function llm<T>(
   // "unparseable" and "unavailable" both degrade the caller into the
   // same `UnmeasuredReason` — see file header for why this is
   // `undeterminable`, not the `unparseable` BP-009's prose names.
-  return unmeasured("undeterminable", at, outcome.failure);
+  return unmeasured("undeterminable", at, outcome.diagnosis?.parseFailure === "cut_off" ? "cut_off" : outcome.failure);
 }
