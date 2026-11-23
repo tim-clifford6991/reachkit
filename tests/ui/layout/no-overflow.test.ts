@@ -6,19 +6,11 @@
 // those widths and fails on either; `@axe-core/playwright` runs in the same
 // pass."
 //
-// **What this is, next to the sweep beside it.** `layout.test.ts` walks the
-// same route tree and runs checks 1-5 at one width in one theme; that is a
-// property sweep of the band ladder and it stays what it is. This file is
-// the customer's three screens in both themes, with axe on the same page.
-// The difference is not pedantry: every defect design review found on
-// 2026-09-20 — step labels running out of their column, charts cut off by
-// their card — was invisible to the sweep that was already green, because
-// the labels only overflow at 390 and the charts do not exist until React
-// has measured their boxes.
+// **The one layout check.** It also holds the screen root's own container
+// (check 5) and the one-root, no-broken-href read, so no second sweep walks
+// the same tree for the same property.
 //
-// Both of them block merge now (owner, 2026-09-21, closing #910 and #976),
-// and both measure a hydrated page: `settleForMeasurement` below was this
-// file's own and is `browser.ts`'s since #976, so every navigation in this
+// It blocks merge and measures a hydrated page: every navigation in this
 // project waits for the client runtime, the webfont and the charts.
 //
 // **No screenshot, no baseline, no PNG.** `docs/DESIGN.md` forbids a pixel
@@ -36,11 +28,15 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Page } from "playwright";
+import { BAND_MIN } from "@/ui/layout/bands";
 import {
   checkContainment,
   checkNoClippingOrTruncation,
   checkNoHorizontalScroll,
+  checkSurfaceContainer,
+  CONTENT_MEASURE_PX,
   MONO_FONT_FAMILY,
+  SURFACE_GUTTER_PX,
   type Offender,
 } from "./checks";
 import { getAccountCookie, getBaseURL, getSetupAccountCookie, withPage } from "./browser";
@@ -86,7 +82,7 @@ console.log(
  *  each. `withPage` launches its own Chromium per call — `browser.ts`'s
  *  header says why it cannot share one — so the wall clock here is browser
  *  startup plus two cold route compiles, not the assertions. Per-`it` and
- *  generous, the same shape `layout.test.ts`'s `PER_ROUTE_BROWSER_MS` has. */
+ *  generous. */
 const PER_ROUTE_BROWSER_MS = 180_000;
 
 function urlFor(route: EnumeratedRoute): string {
@@ -111,12 +107,8 @@ function urlFor(route: EnumeratedRoute): string {
  * `checkFixedBoxesFitViewport` is the screen a fixed box is held to once
  * #942 has excused it from its parent.
  *
- * Checks 4 and 5 — the type floor and the screen root's container — are
- * deliberately *not* here: they are the band ladder's properties,
- * `layout.test.ts` runs them at the widths that ladder is defined at, and a
- * merge gate that also re-ran them would make every type-scale question a
- * blocking one. This gate is the two sentences the ruling wrote: nothing
- * wider than its container, no text clipped by its card.
+ * Check 5, the screen root's container, rides the same page; the type floor
+ * (check 4) is not a merge gate.
  */
 async function layoutOffenders(page: Page): Promise<Offender[]> {
   const results = [
@@ -137,8 +129,24 @@ async function layoutOffenders(page: Page): Promise<Offender[]> {
     // a fixed box is held to the screen rather than to its parent, so the
     // screen is where it has to fit.
     await page.evaluate(checkFixedBoxesFitViewport, { epsilon: EDGE_EPSILON_PX }),
+    await page.evaluate(checkSurfaceContainer, {
+      bandMin: { medium: BAND_MIN.medium, wide: BAND_MIN.wide },
+      gutterPx: SURFACE_GUTTER_PX,
+      measurePx: CONTENT_MEASURE_PX,
+    }),
+    await page.evaluate(checkOneRootNoBrokenHref),
   ];
   return results.flat();
+}
+
+/** Exactly one `[data-surface]` root, and no href printed from a server function or error. Closure-free for `page.evaluate`. */
+function checkOneRootNoBrokenHref(): Offender[] {
+  const roots = document.querySelectorAll("[data-surface]").length;
+  const broken = [...document.querySelectorAll("[href]")].map((el) => el.getAttribute("href") ?? "").filter((href) => href.includes("function(") || href.includes("Error("));
+  return [
+    ...(roots === 1 ? [] : [{ check: "one-surface-root", element: `${roots} [data-surface] roots` }]),
+    ...broken.map((href) => ({ check: "broken-href", element: `[href="${href.slice(0, 80)}"]` })),
+  ];
 }
 
 /**

@@ -457,7 +457,7 @@ export const CONTENT_MEASURE_PX = { read: 704, wide: 1216 } as const;
  *  One object argument, closure-free, for the same reason as checks 2-4:
  *  this source text is serialised into a Chromium tab by `page.evaluate`.
  *  The numbers come from `BAND_MIN` and `design/tokens.md` through the
- *  caller (`layout.test.ts`), so this file mints none of them. */
+ *  caller (`no-overflow.test.ts`), so this file mints none of them. */
 export function checkSurfaceContainer(opts: {
   /** `BAND_MIN` — the two boundaries that pick the band, in CSS px. */
   bandMin: { medium: number; wide: number };
