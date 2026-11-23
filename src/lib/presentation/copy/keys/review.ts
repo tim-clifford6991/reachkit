@@ -57,6 +57,7 @@ export const REVIEW_COPY = Object.freeze({
   "review.part.near_page_one": "near page one",
   "review.part.linked_by_ai": "linked by AI",
   "review.part.not_moving": "not moving",
+  "review.part.shown_no_visits": "shown, no visits",
   "review.part.new_site": "new site",
   "review.part.outsized": "too big for now",
   "review.part.no_demand": "nobody searches",

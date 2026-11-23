@@ -203,6 +203,8 @@ export const UNSEEN_LINK_EVERY_DAYS = 30 as const;
 export const INTENT_UNMET_WEEKS = 8 as const;                 // §6
 /** Weekly readings in a row Google keeps a page out of the index ("Crawled" or "Discovered – currently not indexed") before it is refreshed. */
 export const NOT_INDEXED_WEEKS = 4 as const;
+/** Google impressions over 28 days, with no click and no counted visit, from which a hosted page's title and description are rewritten (owner ruling 75). */
+export const SNIPPET_REFRESH_IMPRESSIONS = 100 as const;
 
 /** What a brief and the supply checks read of the site's own pages. The week
  *  itself keeps no mix: it takes the highest-value topics (owner 2026-11-08). */

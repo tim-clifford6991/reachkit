@@ -4,7 +4,7 @@
 import { CLOSE_PAGE_POSITION_BAND, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { measuredVolume } from "../intent";
-import { OUTSIZED, type Opportunity, type PlanReason, type PointPart, type Shortfall } from "../types";
+import { OUTSIZED, type Opportunity, type PlanReason, type Shortfall } from "../types";
 
 /** The points each part is worth (owner ruling of 2026-10-19, "all as
  *  recommended"). A part that does not apply is not stored. */
@@ -82,7 +82,7 @@ function notMoving(o: Scorable): boolean {
 
 /** The row's points and the parts they sum from, in a fixed order. */
 export function pointsOf(o: Scorable, seen: Seen): Omit<PlanReason, "rule"> {
-  const parts: { part: PointPart; n: number }[] = [];
+  const parts: PlanReason["parts"] = [];
   const fit = POINTS.fit[fitOf(o)] ?? 0;
   if (fit > 0) parts.push({ part: "fit", n: fit });
   const demand = demandOf(o);
@@ -93,6 +93,8 @@ export function pointsOf(o: Scorable, seen: Seen): Omit<PlanReason, "rule"> {
   if (linkedByAi(o, seen)) parts.push({ part: "linked_by_ai", n: POINTS.linkedByAi });
   // Stored though it adds nothing: it is why the refresh is in the list.
   if (notMoving(o)) parts.push({ part: "not_moving", n: POINTS.notMoving });
+  const due = improveOf(o)?.shortfall;
+  if (due?.kind === "due" && due.cause === "snippet" && typeof due.shown === "number") parts.push({ part: "shown_no_visits", n: 0, shown: due.shown });
   // Too big for the site today ranks lower, and is still written when nothing ranks above it.
   if (o.fitBand === OUTSIZED) parts.push({ part: "outsized", n: POINTS.outsized });
   return { points: parts.reduce((sum, part) => sum + part.n, 0), parts };

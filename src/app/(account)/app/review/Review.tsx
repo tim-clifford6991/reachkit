@@ -67,6 +67,7 @@ const PART: Record<PointPart, CopyKey> = {
   near_page_one: "review.part.near_page_one",
   linked_by_ai: "review.part.linked_by_ai",
   not_moving: "review.part.not_moving",
+  shown_no_visits: "review.part.shown_no_visits",
   new_site: "review.part.new_site",
   outsized: "review.part.outsized",
   no_demand: "review.part.no_demand",
