@@ -85,7 +85,7 @@ export function batteryBasis(a: {
   const names = [site.businessName ?? "", site.domain.split(".")[0] ?? "", ...site.rivals];
   const passages = [...pack.facts.map((fact) => fact.passage), ...packStatements(pack), ...(pack.fitFact === undefined ? [] : [pack.fitFact.passage])];
   const cited = pack.claims.map((claim) => ({ ...claim, readAt: new Date(claim.readAt) }));
-  const sourced = (markdown: string): string => withSources(markdown, cited, { language: pack.locale?.language ?? "en", tag: pack.locale === undefined ? PAGE_LOCALE : localeTag(pack.locale), timeZone: site.timeZone ?? null });
+  const withList = (markdown: string): string => withSources(markdown, cited, { language: pack.locale?.language ?? "en", tag: pack.locale === undefined ? PAGE_LOCALE : localeTag(pack.locale), timeZone: site.timeZone ?? null });
   const brief = {
     facts: passages,
     queries: searches,
@@ -105,7 +105,7 @@ export function batteryBasis(a: {
   };
   /** What `cites_market` holds the page to: the template's own count, as the writer is told it. */
   const citesMin = citesMinOf(template);
-  return { ...a, template, length, noRoomFor, short, room, pageType, table, searches, names, passages, sourced, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
+  return { ...a, template, length, noRoomFor, short, room, pageType, table, searches, names, passages, withList, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
 }
 
 export type BatteryBasis = ReturnType<typeof batteryBasis>;
@@ -227,7 +227,7 @@ export async function checkPage(
         // Issue 2375: the sentences the fit check named.
         ...(named.state === "failed" ? { fit: named.sentences } : {}),
       });
-    const repaired = b.sourced(mended.markdown);
+    const repaired = b.withList(mended.markdown);
     // The verdict stands for the sentences the repaired page still asks about; no fit call is bought again.
     const fit = stillAsked(outcome.fit, reading(repaired));
     const again = repaired === markdown ? null : await runHardRules(c, batteryInputs(b, page, repaired, at.comparison, settled, fit));

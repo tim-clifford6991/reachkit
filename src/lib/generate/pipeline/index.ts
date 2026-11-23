@@ -255,7 +255,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   // 2b. A pack short of what its template asks, or a new page short of what it must add, writes nothing, and on a new
   //     day no row: the caller rests the topic and goes to the next. A rewrite keeps its row, and the row its pack.
   const basis = batteryBasis({ pack, opportunity: a.opportunity, site: a.site, facts: a.facts, grounding, ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }) });
-  const { template, length, pageType, table, searches, names, passages, sourced, brief: briefRead } = basis;
+  const { template, length, pageType, table, searches, names, passages, withList, brief: briefRead } = basis;
   // No room for the type's floor: a short pack where an incomplete page stops, and elsewhere a page written short.
   const standard = meetsStandard({ pack, words: basis.room });
   const anyway = a.completeness === "warn";
@@ -333,7 +333,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const tidied = renumberSteps(withoutBrokenLinks(laid.body.bodyMarkdown));
     const written = silent.length === 0 ? tidied : withoutBusiness(tidied, a.site).markdown;
     const body = table === null ? written : withTable(written, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
-    const markdown = sourced(
+    const markdown = withList(
       withClosing(
         completeTables(applyLinks(body, { ...linking, appendUnder: own })),
         applyLinks(laid.closing, { ...linking, appendMissing: false }),
