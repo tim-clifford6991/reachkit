@@ -203,8 +203,8 @@ export interface RuleFailure {
     /** The page's own sentence that denies a rival something. */
     | { rule: "rival_negative"; sentence: string }
     | { rule: "traceable_numerals"; figure: string }
-    /** Which block the page lacks — a handle, never a sentence. */
-    | { rule: "required_blocks"; block: RequiredBlock; length?: true }
+    /** Which block the page lacks — a handle, never a sentence; `over`, its length is past the ceiling rather than under the floor. */
+    | { rule: "required_blocks"; block: RequiredBlock; length?: true; over?: true }
     /** The cell's words, as the page has them. */
     | { rule: "no_placeholder_cell"; cell: string }
     /** The page's own sentence that is a demo or menu phrase. */

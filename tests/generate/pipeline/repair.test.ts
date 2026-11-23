@@ -47,6 +47,14 @@ describe("repairMechanical", () => {
     expect(checkFirstBlockAnswers({ markdown: split })).toBeNull();
     expect(split.replace(/\s+/g, " ")).toBe(long);
   });
+
+  it("links a rival's figure only to a page stating it as the sentence does, the rival's own first", () => {
+    const sources = [{ url: "https://reachkit.app/compare/moz", text: "Moz shows 14 of 20 rows, 2 seats, and costs 3 credits." }, { url: "https://otterly.ai/pricing", text: "Lite: 4 of 7 AI engines. SOC 2 Type II. Each Claude answer counts as 3 credits." }];
+    const markdown = `${OPENING}\n\n## Otterly\n\nOtterly's Lite plan covers 4 of 7 AI engines. Otterly holds SOC 2 Type II. On Otterly each Claude answer counts as 3 credits.`;
+    const repaired = repairMechanical(markdown, ["rival_source"], { brief: BRIEF, sources, rivals: ["otterly.ai"] });
+    expect(repaired).toContain("covers [4](https://otterly.ai/pricing) of 7 AI engines");
+    expect(repaired).not.toContain("reachkit.app");
+  });
 });
 
 describe("fixNotes", () => {

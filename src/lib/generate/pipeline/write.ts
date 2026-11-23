@@ -299,6 +299,8 @@ export interface WriteInputs {
   demoPhrases?: readonly string[];
   /** The competitor this page's question was found winning (`competitorOf`). */
   competitor?: string;
+  /** The last answer ran past its output cap and was cut off. */
+  shorter?: true;
 }
 
 /** What the writer is told about the page's shape: the template, as data. */
@@ -325,7 +327,7 @@ function lengthTask(a: WriteInputs): string {
   const each = a.length.each ?? (floor > 0 ? Math.round(target / sections) : Math.round((AIM * ceiling) / sectionBounds(a.template).max));
   const range = floor > 0 ? `between ${floor} and ${ceiling}` : `at most ${ceiling}`;
   const least = floor > 0 ? `, and no section under ${Math.ceil((floor * 1.15) / sections)}` : "";
-  return `${counted} must be ${range} words, counted. Write about ${target} words — about ${each} a section${least}: a page ${floor > 0 ? `under ${floor} or ` : ""}over ${ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.`;
+  return `${counted} must be ${range} words, counted. Write about ${target} words — about ${each} a section${least}: a page ${floor > 0 ? `under ${floor} or ` : ""}over ${ceiling} is stopped. Give every paragraph something the reader can use — detail, an example, a comparison or a consequence drawn from \`pack\` — and never pad or restate a point to reach the length.${a.shorter === true ? ` The last answer to this ran past the room an answer has and was cut off: keep to about ${target} words, each section to its share, and stop there.` : ""}`;
 }
 
 function taskFor(a: WriteInputs): string {

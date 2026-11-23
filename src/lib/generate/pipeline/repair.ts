@@ -182,9 +182,9 @@ function sourceOf(raw: string, words: string, sources: RepairInputs["sources"]):
   const before = /(\p{L}+)\s*$/u.exec(words.slice(0, at.index))?.[1];
   const needle =
     after === "%" ? `${raw}%` : after !== undefined ? `${raw} ${after}` : before !== undefined ? `${before} ${raw}` : null;
-  if (needle === null) return null;
-  const wanted = needle.toLowerCase();
-  return sources.find((source) => collapse(source.text).toLowerCase().includes(wanted))?.url ?? null;
+  // On number boundaries, so "4 of" is never read off "14 of".
+  const states = needle === null ? null : new RegExp(`(?<![\\p{L}\\d.,])${escaped(needle.toLowerCase())}(?![\\p{L}\\d])`, "u");
+  return states === null ? null : (sources.find((source) => states.test(collapse(source.text).toLowerCase()))?.url ?? null);
 }
 
 function repairNumerals(markdown: string, inputs: RepairInputs): string {
@@ -212,22 +212,20 @@ function repairNumerals(markdown: string, inputs: RepairInputs): string {
   });
 }
 
-/** A rival's figure with no fact's page beside it, linked to the page among
- *  the facts' that states that figure. One no page states is left for the
- *  next attempt to be told about; a table, which rejoined pieces would undo, is left whole. */
+/** A rival's figure with no fact's page beside it, linked to the page among the facts' that states it as the sentence
+ *  uses it, the named rival's own first. One no page states is left for the battery; a table is left whole. */
 function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
   const rivals = inputs.rivals ?? [];
   if (rivals.length === 0) return markdown;
   const pages = factPageKeys(inputs.sources.map((source) => source.url));
   return mapSentences(markdown, (piece) => {
-    const figure = unsourcedRivalFigure(
-      { text: wordsOf(piece), hasLink: hasLink(piece), links: linksOf(piece) },
-      rivals,
-      pages
-    );
-    if (figure === null || !piece.includes(figure)) return piece;
-    const url = inputs.sources.find((source) => collapse(source.text).includes(figure))?.url;
-    return url === undefined ? piece : piece.replace(figure, `[${figure}](${url})`);
+    const text = wordsOf(piece);
+    const figure = unsourcedRivalFigure({ text, hasLink: hasLink(piece), links: linksOf(piece) }, rivals, pages);
+    if (figure === null) return piece;
+    const named = rivals.map((rival) => rival.trim().toLowerCase().split(/[.\s]/)[0] ?? "").filter((label) => label.length > 2 && text.toLowerCase().includes(label));
+    const own = (url: string) => named.some((label) => (/^[a-z]+:\/\/([^/]+)/i.exec(url)?.[1] ?? "").toLowerCase().includes(label));
+    const url = sourceOf(figure, text, [...inputs.sources].sort((a, b) => Number(own(b.url)) - Number(own(a.url))));
+    return url === null ? piece : piece.replace(numeralRe(figure), `[${figure}](${url})`);
   }, true);
 }
 

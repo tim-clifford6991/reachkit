@@ -471,14 +471,14 @@ export function missingBlock(a: { markdown: string; title: string; blocks: Block
   const last = [...sourceBlocksOf(markdown)].reverse().find(isParagraph);
   if (last === undefined || !hasLink(last.raw)) return "closing";
 
-  return outOfRange(markdown, blocks) ? "length" : null;
+  return outOfRange(markdown, blocks) !== null ? "length" : null;
 }
 
-/** Whether the body is outside its length, in words counted on the page as laid out; an update is measured as its live page was, by the words under its headings. */
-function outOfRange(markdown: string, blocks: BlockRuleInputs): boolean {
-  if (blocks.length === null) return false;
+/** Which side of its length the body is on, in words counted on the page as laid out; an update is measured as its live page was, by the words under its headings. */
+function outOfRange(markdown: string, blocks: BlockRuleInputs): "under" | "over" | null {
+  if (blocks.length === null) return null;
   const words = blocks.template.type === "update" ? sectionWords(markdown) : bodyWords(markdown);
-  return words < blocks.length.floor || words > blocks.length.ceiling;
+  return words < blocks.length.floor ? "under" : words > blocks.length.ceiling ? "over" : null;
 }
 
 export function checkRequiredBlocks(a: {
@@ -491,6 +491,7 @@ export function checkRequiredBlocks(a: {
   const block = missingBlock({ markdown: a.markdown, title: a.title, blocks: a.blocks });
   if (block === null) return null;
   // The first block hides the ones after it, and a page out of its length is always told so.
-  const length = block !== "length" && outOfRange(a.markdown, a.blocks);
-  return { rule: "required_blocks", detail: { rule: "required_blocks", block, ...(length ? { length: true as const } : {}) } };
+  const side = outOfRange(a.markdown, a.blocks);
+  const length = block !== "length" && side !== null;
+  return { rule: "required_blocks", detail: { rule: "required_blocks", block, ...(length ? { length: true as const } : {}), ...(side === "over" ? { over: true as const } : {}) } };
 }

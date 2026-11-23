@@ -516,6 +516,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
   // The pack is built once for an opportunity: a write call tried again
   // (#813) is written from the pack the first one was.
   const packs = new Map<string, Awaited<ReturnType<typeof packFor>>>();
+  let shorter = false;
   for (let attempt = 1; ; attempt++) {
     const key = `${opportunity.id}:${opportunity.type}`;
     if (!packs.has(key)) packs.set(key, await packFor(opportunity));
@@ -536,7 +537,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
       demoPhrases,
       intent: intentFor({ query: opportunity.targetQuery, volume: opportunity.volume }, site.prompts ?? []),
       startedAt,
-      ...(draftId === undefined ? {} : { draftId }), ...(a.completeness === undefined ? {} : { completeness: a.completeness }), ...(a.fixStep === undefined ? {} : { fixStep: a.fixStep }),
+      ...(draftId === undefined ? {} : { draftId }), ...(a.completeness === undefined ? {} : { completeness: a.completeness }), ...(a.fixStep === undefined ? {} : { fixStep: a.fixStep }), ...(shorter ? { shorter: true as const } : {}),
     });
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
@@ -558,10 +559,12 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
         continue;
       }
     }
-    // #813: a write call that did not answer is tried once more — a model
-    // that did not answer may answer now; a refused answer is not. The ceiling
-    // would stop that attempt too, and a job out of time must not start it.
-    if (last.step === "write" && last.answered !== true && attempt < a.attempts && !cost.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs) continue;
+    // A write call that did not answer is tried once more, and one cut off at its cap is asked for a shorter page,
+    // never the same input again; a refused answer is not. The ceiling and the job's clock would stop it too.
+    if (last.step === "write" && last.answered !== true && attempt < a.attempts && !cost.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs) {
+      shorter = last.answered === "cut_off";
+      continue;
+    }
     // A step that did not run before any row was written leaves nothing to
     // rest: the opportunity stays open for the next evening.
     return {
