@@ -23,7 +23,7 @@ export {
   type VendorFailure,
 } from "./refusal";
 
-export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT" | "TOPUP" | "WEEK_RESEARCH";
+export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT" | "TOPUP" | "WEEK_RESEARCH" | "WEEK_NEWS";
 
 /** Each cap's figure: what a context refuses a call against, and what `remainingCents()` reads. */
 export const CAP_VALUES: Readonly<Record<CapName, number>> = {
@@ -33,6 +33,7 @@ export const CAP_VALUES: Readonly<Record<CapName, number>> = {
   DRAFT: CAPS.DRAFT_C,
   TOPUP: CAPS.TOPUP_C,
   WEEK_RESEARCH: CAPS.WEEK_RESEARCH_C,
+  WEEK_NEWS: CAPS.WEEK_NEWS_C,
 };
 
 /** Why a call was refused. All three refuse alike (`{ skipped: "cap" }`,
