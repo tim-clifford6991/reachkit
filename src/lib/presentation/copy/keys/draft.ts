@@ -345,6 +345,9 @@ export const DRAFT_COPY = Object.freeze({
   // page meets them. Drafted; the owner corrects the wording.
   "body.sources.heading": "Sources",
   "body.sources.read": "read on {date}",
+  "body.sources.published": "published {month}",
+  "body.sources.updated": "updated {month}",
+  "body.sources.undated": "no date found",
   // The comparison table code lays out on a listicle (SPEC §7, owner, D47;
   // issue 1258): the header over the options, the two criteria, and the
   // header of the one column a table has where an option's own page does not

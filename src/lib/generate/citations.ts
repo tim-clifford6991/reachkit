@@ -6,10 +6,12 @@
 // version's pack where an update kept the link. Any other link is a plain link.
 //
 // Pure: no read, no fetch, no model call.
-import { copy } from "@/lib/presentation/copy";
+import { LANGUAGES, type Language } from "@/lib/locale/locales";
+import { copyIn } from "@/lib/presentation/copy/translated";
 import { inlineText, parseMarkdown, type Block, type Inline } from "@/lib/publish/render/markdown";
 import { readRecordedFact } from "./fact";
 import { urlKey } from "./links/select";
+import { sourceDate, type ClaimDates, type SourceDate } from "./pipeline/dated";
 import { readPack, type ContextPack } from "./pipeline/pack";
 
 export interface CitationEntry {
@@ -22,6 +24,8 @@ export interface CitationEntry {
   /** How many claims the pack read off this address, where more than one. */
   many: number;
   readAt: string | null;
+  /** A public page's own date as its Sources line names it; absent where it was never looked for. */
+  dated?: SourceDate;
   used: number;
   /** The date of the earlier version whose pack holds this source. */
   keptFrom: string | null;
@@ -82,11 +86,12 @@ const sentencesIn = (run: readonly Inline[]): Inline[][] => segmentsOf(run).filt
 
 /** The runs that hold sentences, in reading order, each with where it sits in the blocks. */
 function runsOf(blocks: readonly Block[]): { block: number; item: number | null; run: readonly Inline[] }[] {
-  const sources = copy("body.sources.heading").toLowerCase();
+  // The list is in the page's language, which a stored body does not name.
+  const sources = new Set(Object.keys(LANGUAGES).map((language) => copyIn(language as Language, "body.sources.heading").toLowerCase()));
   const out: { block: number; item: number | null; run: readonly Inline[] }[] = [];
   let inSources = false;
   blocks.forEach((block, at) => {
-    if (block.kind === "heading") inSources = squash(inlineText(block.children)).toLowerCase() === sources;
+    if (block.kind === "heading") inSources = sources.has(squash(inlineText(block.children)).toLowerCase());
     else if (inSources) return;
     else if (block.kind === "paragraph" || block.kind === "quote") out.push({ block: at, item: null, run: block.children });
     else if (block.kind === "list") block.items.forEach((item, i) => out.push({ block: at, item: i, run: item }));
@@ -104,21 +109,22 @@ interface Known {
   title: string | null;
   passages: { passage: string; readAt: string }[];
   keptFrom: string | null;
+  dated: SourceDate | null;
 }
 
 function knownOf(pack: ContextPack | null, earlier: readonly EarlierPack[], saved: SavedSources | null): Map<string, Known> {
   const known = new Map<string, Known>();
-  const add = (kind: Known["kind"], url: string, passage: string, readAt: string, title: string | null, keptFrom: string | null): void => {
+  const add = (kind: Known["kind"], url: string, passage: string, readAt: string, title: string | null, keptFrom: string | null, dates: ClaimDates = {}): void => {
     const key = urlKey(url);
     if (key === null) return;
     const held = known.get(key);
-    if (held === undefined) known.set(key, { kind, url, title, passages: [{ passage, readAt }], keptFrom });
+    if (held === undefined) known.set(key, { kind, url, title, passages: [{ passage, readAt }], keptFrom, dated: sourceDate(dates) });
     else if (held.keptFrom === keptFrom && !held.passages.some((p) => p.passage === passage)) held.passages.push({ passage, readAt });
   };
   for (const { pack: from, at } of [...(pack === null ? [] : [{ pack, at: null }]), ...earlier]) {
     // A report measurement is not a page of the site's.
     for (const fact of from.facts) if (fact.report !== true) add("site", fact.url, fact.passage, fact.readAt, null, at);
-    for (const claim of from.claims) add("public", claim.url, claim.passage, claim.readAt, claim.title, at);
+    for (const claim of from.claims) add("public", claim.url, claim.passage, claim.readAt, claim.title, at, claim);
   }
   if (saved?.fact != null) add("site", saved.fact.url, saved.fact.passage, saved.fact.readAt ?? "", null, null);
   return known;
@@ -146,7 +152,7 @@ export function citationsOf(bodyMd: string, pack: ContextPack | null, earlier: r
       let entry = entries.get(key);
       if (entry === undefined) {
         const first = source.passages[0]!;
-        entry = { n: entries.size + 1, kind: source.kind, url: source.url, title: source.title, passages: [], many: 0, readAt: first.readAt || null, used: 0, keptFrom: source.keptFrom, matched: new Set() };
+        entry = { n: entries.size + 1, kind: source.kind, url: source.url, title: source.title, passages: [], many: 0, readAt: first.readAt || null, used: 0, keptFrom: source.keptFrom, ...(source.dated === null ? {} : { dated: source.dated }), matched: new Set() };
         entries.set(key, entry);
       }
       entry.used += 1;

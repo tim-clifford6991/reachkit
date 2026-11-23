@@ -15,6 +15,8 @@ import { renderOf } from "../rules/text";
 import type { ComparisonSet, Completeness, HardRule, SiteRuleInputs } from "../rules/types";
 import type { SiteFacts } from "../store";
 import type { StoredReport } from "@/lib/scan/report";
+import { localeTag } from "@/lib/locale/locales";
+import { PAGE_LOCALE } from "@/lib/publish/render/byline";
 import { voiceLength } from "../voice/register";
 import type { LaidSection } from "./compose";
 import { closeElsewhere } from "./elsewhere";
@@ -27,15 +29,16 @@ import { repairable, repairRecorded, withoutBusiness, type RepairRecord } from "
 import { completenessFor, stops } from "../record";
 import { reportFactsAllowed } from "./report-scope";
 import { withSources } from "./sources";
+import { datesOf } from "./dated";
 import { comparisonTable } from "./table";
 import { titleRuleFor } from "./title";
 import type { FaqEntry } from "./write";
 
 /** The site as the rules read it. The one name the product holds for the business is the brand the profile measured
  *  off their own home page: what the site calls itself. */
-export function siteRulesOf(site: Pick<SiteFacts, "domain" | "doNotClaim" | "rivals">, report: StoredReport, completeness?: Completeness): SiteRuleInputs {
+export function siteRulesOf(site: Pick<SiteFacts, "domain" | "doNotClaim" | "rivals" | "timeZone">, report: StoredReport, completeness?: Completeness): SiteRuleInputs {
   const businessName = report.market.kind === "unmeasured" ? null : (report.market.value.profile.brandTokens[0] ?? null);
-  return { businessName, domain: site.domain, doNotClaim: site.doNotClaim, rivals: site.rivals, ...(completeness === undefined ? {} : { completeness }) };
+  return { businessName, domain: site.domain, doNotClaim: site.doNotClaim, rivals: site.rivals, timeZone: site.timeZone ?? null, ...(completeness === undefined ? {} : { completeness }) };
 }
 
 /** What one page's checks read that its words do not change: its pack, its type and the customer's own sets. */
@@ -82,6 +85,7 @@ export function batteryBasis(a: {
   const names = [site.businessName ?? "", site.domain.split(".")[0] ?? "", ...site.rivals];
   const passages = [...pack.facts.map((fact) => fact.passage), ...packStatements(pack), ...(pack.fitFact === undefined ? [] : [pack.fitFact.passage])];
   const cited = pack.claims.map((claim) => ({ ...claim, readAt: new Date(claim.readAt) }));
+  const sourced = (markdown: string): string => withSources(markdown, cited, { language: pack.locale?.language ?? "en", tag: pack.locale === undefined ? PAGE_LOCALE : localeTag(pack.locale), timeZone: site.timeZone ?? null });
   const brief = {
     facts: passages,
     queries: searches,
@@ -101,7 +105,7 @@ export function batteryBasis(a: {
   };
   /** What `cites_market` holds the page to: the template's own count, as the writer is told it. */
   const citesMin = citesMinOf(template);
-  return { ...a, template, length, noRoomFor, short, room, pageType, table, searches, names, passages, cited, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
+  return { ...a, template, length, noRoomFor, short, room, pageType, table, searches, names, passages, sourced, brief, citesMin, rivalsNamed: namedRivals(site.rivals, pack.business.market) };
 }
 
 export type BatteryBasis = ReturnType<typeof batteryBasis>;
@@ -223,7 +227,7 @@ export async function checkPage(
         // Issue 2375: the sentences the fit check named.
         ...(named.state === "failed" ? { fit: named.sentences } : {}),
       });
-    const repaired = withSources(mended.markdown, b.cited);
+    const repaired = b.sourced(mended.markdown);
     // The verdict stands for the sentences the repaired page still asks about; no fit call is bought again.
     const fit = stillAsked(outcome.fit, reading(repaired));
     const again = repaired === markdown ? null : await runHardRules(c, batteryInputs(b, page, repaired, at.comparison, settled, fit));
@@ -255,3 +259,6 @@ export function scopeOf(claim: PackClaim): { kind: string; product?: string; abo
     ...(claim.plan === undefined ? {} : { plan: claim.plan }),
   };
 }
+
+/** A market fact as the page's row keeps it: its words, page, scope and the source's own dates. */
+export const storedClaim = (claim: PackClaim) => ({ passage: claim.passage, url: claim.url, title: claim.title, readAt: claim.readAt, ...scopeOf(claim), ...datesOf(claim) });

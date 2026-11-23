@@ -10,6 +10,7 @@ import { nextPublishStatement, stoppedWorkStatement } from "@/lib/presentation/s
 import type { PublishedPage, PublishedRead } from "@/lib/measure/published";
 import type { AnswerEngine } from "@/lib/opportunities/types";
 import type { CitationEntry, PageCitations } from "@/lib/generate/citations";
+import { whenSaid } from "@/lib/generate/rules/prose";
 import { formatCount, formatDate, formatDateTime, formatShortDay, formatTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
@@ -78,6 +79,8 @@ export interface SourceEntryModel {
   url: string;
   passages: string[];
   many: string | null;
+  /** The source's own date, where it was looked for. */
+  dated: string | null;
   read: string | null;
   used: string | null;
   kept: string | null;
@@ -271,6 +274,7 @@ function entryOf(entry: CitationEntry, timeZone: string): SourceEntryModel {
     url: entry.url,
     passages: entry.passages,
     many: entry.many > 1 ? copy("calendar.sources.many", { k: formatCount(entry.many) }) : null,
+    dated: entry.dated === undefined ? null : entry.dated === "undated" ? copy("calendar.sources.undated") : copy(`calendar.sources.${entry.dated.said}`, { month: whenSaid(entry.dated.at, "en") }),
     read: read === null ? null : copy("calendar.sources.read", { date: read }),
     used: entry.n === null ? null : entry.used === 1 ? copy("calendar.sources.used.one") : copy("calendar.sources.used", { n: formatCount(entry.used) }),
     kept: kept === null ? null : copy("calendar.sources.kept", { date: kept }),

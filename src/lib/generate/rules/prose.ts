@@ -339,7 +339,7 @@ export function proseNotes(faults: readonly ProseFault[]): string[] {
       case "tell_phrases":
         return `stock phrasing: ${fault.count} turns of phrase a reader knows a generated page by — ${quoted(fault.found)}. Rewrite each as a plain statement of what is so.`;
       case "dated_claim":
-        return `undated source: ${fault.count} sentences cite a source over six months old without saying when — ${quoted(fault.found)}. Say in each of those sentences, in its own words, the month and year its source is dated (as given in brackets: "Pew's July 2025 study"), and change nothing else.`;
+        return `undated source: ${fault.count} sentences cite a source over six months old without saying when — ${quoted(fault.found)}. Say in each of those sentences, in its own words, the month and year its source is dated (as given in brackets), before the noun: "in a July 2025 study by Pew", "Pew's July 2025 study". Never call an outside source "recent", "new" or "latest", nor date it "this year" or "last year". Change nothing else.`;
     }
   });
 }

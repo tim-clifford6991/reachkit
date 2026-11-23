@@ -65,11 +65,11 @@ import { buildComparisonSet, ownVersions } from "./comparison";
 import { layoutPage, withClosing, type LaidPage } from "./compose";
 import type { SourcedFact } from "./grounding";
 import { packStatements, type ContextPack } from "./pack";
-import { batteryBasis, checkPage, scopeOf } from "./battery";
+import { batteryBasis, checkPage, storedClaim } from "./battery";
 import { FIX_OWED, owedParts, tryFix, type FixStop } from "./fix-call";
 import { fixNotes, withFitFact, withoutBusiness, withoutWriterNotes, type FixNote, type RepairRecord } from "./repair";
 import { languagePack } from "@/lib/locale/language";
-import { completeTables, withSources } from "./sources";
+import { completeTables } from "./sources";
 import { withTable } from "./table";
 import { pickCased, titleRuleFor, unclaimedSuperlatives } from "./title";
 import { competitorOf, fixPage, writePage, type PageParts } from "./write";
@@ -255,7 +255,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   // 2b. A pack short of what its template asks, or a new page short of what it must add, writes nothing, and on a new
   //     day no row: the caller rests the topic and goes to the next. A rewrite keeps its row, and the row its pack.
   const basis = batteryBasis({ pack, opportunity: a.opportunity, site: a.site, facts: a.facts, grounding, ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }) });
-  const { template, length, pageType, table, searches, names, passages, cited, brief: briefRead } = basis;
+  const { template, length, pageType, table, searches, names, passages, sourced, brief: briefRead } = basis;
   // No room for the type's floor: a short pack where an incomplete page stops, and elsewhere a page written short.
   const standard = meetsStandard({ pack, words: basis.room });
   const anyway = a.completeness === "warn";
@@ -333,13 +333,12 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const tidied = renumberSteps(withoutBrokenLinks(laid.body.bodyMarkdown));
     const written = silent.length === 0 ? tidied : withoutBusiness(tidied, a.site).markdown;
     const body = table === null ? written : withTable(written, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
-    const markdown = withSources(
+    const markdown = sourced(
       withClosing(
         completeTables(applyLinks(body, { ...linking, appendUnder: own })),
         applyLinks(laid.closing, { ...linking, appendMissing: false }),
         a.links[0]?.url ?? `https://${a.site.domain}/`
-      ),
-      cited
+      )
     );
     return { laid, markdown, titles, notes: notes.dropped };
   };
@@ -371,7 +370,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // Issue 1135: the market facts the page was handed.
       // Issue 1485: with the rival it is from or about and the plan it is
       // true of, so a live page can be re-checked from its own row.
-      marketFacts: pack.claims.map((claim) => ({ passage: claim.passage, url: claim.url, title: claim.title, readAt: claim.readAt, ...scopeOf(claim) })),
+      marketFacts: pack.claims.map(storedClaim),
       // Issue 1397: how many rules stage 4 holds this page to, as the list
       // stood when it was written. The published page states the number.
       rulesChecked: HARD_RULES.length,

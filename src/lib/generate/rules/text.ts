@@ -274,8 +274,8 @@ export function headingKey(heading: string): string {
 }
 
 /** One item of a reference list: a linked page title and a short tail —
- *  "- [Pricing — Rival](https://…), read on 3 October 2026". */
-const REFERENCE_ITEM_RE = /^[ \t]*[-*+][ \t]+\[[^\]\n]*\]\([^)\s]+\)[^\n]{0,40}$/;
+ *  "- [Pricing — Rival](https://…) · published July 2025 · read on 3 Oct 2026". */
+const REFERENCE_ITEM_RE = /^[ \t]*[-*+][ \t]+\[[^\]\n]*\]\([^)\s]+\)[^\n]{0,90}$/;
 
 /**
  * The draft with every reference list blanked: a heading whose section is
