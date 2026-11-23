@@ -91,3 +91,10 @@ describe("words that are not a testimonial, and a dash that is not an attributio
     expect(checkInventedPeople({ markdown, businessName: "Acme" })).toBeNull();
   });
 });
+
+// Issue 3351: the business's own passage, quoted word for word and linked as a whole, stopped a page.
+it.each(["> [P](https://acme.example/how)", "> P [How it works](https://acme.example/how)"])("a handed passage quoted as %j passes", (shape) => {
+  const markdown = shape.replace("P", "Acme writes each page from what your own site says.");
+  const [handed, without] = [["Acme writes each page from what your own site says."], []].map((quotable) => checkUnsourcedTestimonial({ markdown, quotable }));
+  expect([handed, without]).toEqual([null, { rule: "no_unsourced_testimonial" }]);
+});

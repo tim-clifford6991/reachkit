@@ -26,6 +26,7 @@ import {
   isLaid,
   isPhraseBreach,
   pageTraceableNumerals,
+  poolPassages,
   untraceableIn,
   withheldMeasurements,
   type BriefRuleInputs,
@@ -213,7 +214,7 @@ function repairNumerals(markdown: string, inputs: RepairInputs): string {
 
 /** A rival's figure with no fact's page beside it, linked to the page among
  *  the facts' that states that figure. One no page states is left for the
- *  next attempt to be told about. */
+ *  next attempt to be told about; a table, which rejoined pieces would undo, is left whole. */
 function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
   const rivals = inputs.rivals ?? [];
   if (rivals.length === 0) return markdown;
@@ -227,17 +228,20 @@ function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
     if (figure === null || !piece.includes(figure)) return piece;
     const url = inputs.sources.find((source) => collapse(source.text).includes(figure))?.url;
     return url === undefined ? piece : piece.replace(figure, `[${figure}](${url})`);
-  });
+  }, true);
 }
 
 /** The page without each sentence `rival_source` still fails when handed it alone. */
 function withoutUnsourcedRivals(markdown: string, inputs: RepairInputs): string {
   const rivals = inputs.rivals ?? [];
   const named = inputs.rivalsNamed ?? namedRivals(rivals, null);
-  const factPages = inputs.sources.map((source) => source.url);
-  return mapSentences(markdown, (piece) =>
-    checkRivalSource({ markdown: piece, rivals: [...rivals], factPages }) !== null || checkRivalScope({ markdown: piece, rivals: named, facts: inputs.brief.marketFacts }) !== null ? null : piece
-  );
+  const factPages = [...inputs.sources.map((source) => source.url), ...(inputs.brief.marketFacts ?? []).map((fact) => fact.url)];
+  return withoutRivalBreaches(markdown, (piece) => checkRivalSource({ markdown: piece, rivals: [...rivals], factPages }) !== null || checkRivalScope({ markdown: piece, rivals: named, facts: inputs.brief.marketFacts }) !== null);
+}
+
+/** The page without each sentence a rival rule still fails handed alone; a table keeps its block and loses only such a row. */
+function withoutRivalBreaches(markdown: string, fails: (piece: string) => boolean): string {
+  return mapSentences(withoutRows(markdown, (_, raw) => fails(raw)).markdown, (piece) => (fails(piece) ? null : piece), true);
 }
 
 function fits(paragraph: string): boolean {
@@ -365,10 +369,7 @@ export function repairRecorded(
       out = withoutUnsourcedRivals(repairRivalFigures(out, inputs), inputs);
     } else if (rule === "rival_negative") {
       const rivals = inputs.rivalsNamed ?? namedRivals(inputs.rivals ?? [], null);
-      // The rule decides which: a sentence it still fails handed alone goes.
-      out = mapSentences(out, (piece) =>
-        deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null ? null : piece
-      );
+      out = withoutRivalBreaches(out, (piece) => deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null);
     } else if (rule === "fit_claim") {
       const unfit = withoutUnfit(out, inputs.fit ?? []);
       out = unfit.markdown;
@@ -451,11 +452,11 @@ export function withoutUnfit(markdown: string, sentences: readonly string[]): { 
 }
 
 /** The page without each table row, never its header, whose rendered words `drops` takes, and those rows. */
-function withoutRows(markdown: string, drops: (row: string) => boolean): { markdown: string; dropped: string[] } {
+function withoutRows(markdown: string, drops: (row: string, raw: string) => boolean): { markdown: string; dropped: string[] } {
   const dropped: string[] = [];
   const lines = markdown.split("\n");
   const kept = lines.filter((line, n) => {
-    if (!TABLE_ROW_RE.test(line) || TABLE_RULE_RE.test(line) || TABLE_RULE_RE.test(lines[n + 1] ?? "") || !drops(wordsOf(line))) return true;
+    if (!TABLE_ROW_RE.test(line) || TABLE_RULE_RE.test(line) || TABLE_RULE_RE.test(lines[n + 1] ?? "") || !drops(wordsOf(line), line)) return true;
     dropped.push(wordsOf(line));
     return false;
   });
@@ -487,7 +488,7 @@ function sentencesFor(
         .map((block) => block.text);
     case "no_unsourced_testimonial":
       return blocksOf(markdown)
-        .filter((_, index) => checkUnsourcedTestimonial({ markdown: sourceBlocksOf(markdown)[index]!.raw }) !== null)
+        .filter((_, index) => checkUnsourcedTestimonial({ markdown: sourceBlocksOf(markdown)[index]!.raw, ...(brief.marketFacts === undefined ? {} : { quotable: poolPassages(brief) }) }) !== null)
         .map((block) => block.text);
     case "no_invented_test":
       return sentences.filter((s) => isPhraseBreach(s, INVENTED_TEST_RES, brief)).map((s) => s.text);
