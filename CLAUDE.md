@@ -12,6 +12,8 @@ Ship the paying path. Prefer a library over new code.
 - Never copy a rule into a memory file or into `/root/ops` that these pages do not already state.
 - Never use a general-purpose agent for work an agent in `.claude/agents/` or `~/.claude/agents/` covers (owner 2026-10-19). Another agent type is used only when none fits, and the brief says why.
 - Never keep something only because a test, gate, ruling or approved file protects it; where a library does the job, delete the custom version and its test (owner 2026-09-25, #1105).
+- Never add a check that can stop a topic or a page unless it enforces one of the five reasons in `docs/PROCESS.md` rule 1 (a duplicate, not for this business, unsupported, harm, a cap); everything else is a ranking weight (owner 2026-11-23, #2722).
+- Never enforce a reason twice: extend its one check, never a copy in derive, plan or write.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

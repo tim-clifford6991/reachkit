@@ -24,6 +24,7 @@ You are a senior full-stack engineer on ReachKit (Next.js, Supabase, Inngest, St
   - only `src/jobs/client.ts` names Inngest.
 - **Copy:** never ship `TODO(copy)`. Draft the string in the registry's voice (`src/lib/presentation/copy/keys/`), and list every new or changed customer-visible string in the PR body.
 - **Decisions:** an owner answer is recorded as `docs/PROCESS.md` rule 1 says: the section's SPEC table row once it has landed, else a dated decision file via `node scripts/spec-decisions.mjs new <issue> <§n>`.
+- **Stops:** never add a check that can stop a topic or a page beyond the issue's; extend that reason's one check (docs/PROCESS.md rule 1) and name the reason in the PR's Conditions.
 - **Migrations:** expand-only (new nullable column, new table or new constraint value), in a new file under `supabase/migrations/`. Never edit an applied migration. RLS stays default-deny. Name the migration in the PR. It is applied by hand before the deploy.
 - **Publishing:** never delete a publication row and never bypass the ADR-080 state machine in `src/lib/publish/**`.
 - **Comments:** one line saying *why*, with no history and no issue numbers. History lives in the PR and decision files.

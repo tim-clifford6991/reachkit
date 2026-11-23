@@ -65,6 +65,11 @@ A new dated ruling is its own file under `docs/spec/decisions/`, headed by the s
 | Branch protection not strict | warn | Branch protection stays `strict: false`. Release QA's GO needs a green `typecheck · lint · unit` run on the current `origin/main` head for a pull request whose changes show `ui=true` or `unit=full`. | owner R7, 2026-10-22, #1785 |
 | Weekly review timer | warn | `rk-weekly.timer` runs the weekly review on Mondays at 07:00 UTC. | owner R8, 2026-10-22, #1631 |
 | Every SPEC section is rewritten | warn | A section's rewrite folds its dated lines and decision files into one table of rules with the columns name, block/warn, outcome protected and ruling, and the decision file that records the rewrite lists the files it replaces. Only the owner makes a rule `block`; `blockRules` in `scripts/budgets.json` holds each section's count. | owner C7, 2026-11-08, #2527, #2513 |
+| Stop: duplicate | block | A live or already-planned page answers the same question (one URL per question). | owner, 2026-11-23, #2722 rulings 97–98 |
+| Stop: not for this business | block | It is not a buyer's search for what the business sells. This covers fit 0, another market, a job seeker, a rival's name alone (navigational), and a string that is not a search. | owner, 2026-11-23, #2722 rulings 97–98 |
+| Stop: unsupported | block | It states a claim, name or figure that no stored source supports. | owner, 2026-11-23, #2722 rulings 97–98 |
+| Stop: harm | block | The law, a platform's terms (hidden text, text addressed to a machine), a sensitive event, or the customer's no (stop, dismiss, do-not-claim, take-down). | owner, 2026-11-23, #2722 rulings 97–98 |
+| Stop: cap | block | A spend or volume cap: the week's 7 + 3, the cost ledgers, one publish a day. | owner, 2026-11-23, #2722 rulings 97–98 |
 
 ## §1 Landing and marketing
 
