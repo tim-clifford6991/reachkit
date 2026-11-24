@@ -460,7 +460,7 @@ export async function generateDraft(a: {
   readonly again?: boolean; // decided again against a newer week: a page the system stopped gives up the date first
 }): Promise<EngineResult> {
   const step: StepRunner = a.step ?? ((_name, body) => body());
-  const [{ decideDayPage, generateDayPage, refreshForDay }, { setAside }] = await Promise.all([import("@/lib/generate"), import("@/lib/generate/day-refresh")]);
+  const { decideDayPage, generateDayPage, refreshForDay } = await import("@/lib/generate");
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now, since: a.since ?? a.now };
   // Before the plan is read: deciding a day's page writes the week's plan.
   const { startDay } = await import("@/lib/publish/daily");
@@ -486,10 +486,7 @@ export async function generateDraft(a: {
   for (let round = 1; a.step !== undefined && left > 0 && round <= COLLECT.rounds; round++) left = await step(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   // The write never waits on the queue: research still out is no page today and no rest, and the next tick asks again.
   if (left > 0) return instead("generate:research_pending", "select", null, `;topic:${decided.opportunityId}`);
-  let outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
-  // A committed cosmetic page never keeps the day: it is set aside undated, and the day takes a spare as after a stop.
-  const aside = outcome.ok ? outcome.draftId : null;
-  if (aside !== null && (await step("cosmetic", () => setAside(aside)))) outcome = await step("spare", () => generateDayPage({ ...day, updatesTried: true }));
+  const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
   const reviewed = await step("review", () => reviewWritten(outcome, a.now, day.since));
   return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null, `;topic:${decided.opportunityId}`);

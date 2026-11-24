@@ -20,8 +20,8 @@
 //
 //   * a draft the checks stopped rests in `needs_attention` (#788) and its
 //     topic rests until the site's next weekly commit;
-//   * a stopped draft does not cost its day (D26): the same run writes the
-//     week's next spare (`pageForDay`), at most once more, in the one context;
+//   * a stopped draft, a customer's stop or an update that adds nothing over its live page does not cost its day (D26):
+//     the one loop writes the week's next spare (`pageForDay`), at most once more, in the one context;
 //   * a short pack writes the planned page with what it holds; only a
 //     comparison with no first-hand evidence for a product it names, or an
 //     update with no live page, writes no row and rests its topic, and the day
@@ -49,7 +49,7 @@ import { readRecordedRules } from "./record";
 import { COLLECT, askDayResearch, dayTypes, researchFor } from "./research-queue";
 import { dayInputs, linkBackOf } from "./day-inputs";
 import { repairStructure } from "./rules/structure";
-import { dayTopic, mendPage, mendable, snippetOnly } from "./day-refresh";
+import { addsOverLive, mendPage, mendable, plannedTopic, rivalsAnswer, snippetOnly } from "./day-refresh";
 import { writtenFor } from "./fix-step";
 import { urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
@@ -136,12 +136,17 @@ async function dayReady(siteId: string, publishDate: string): Promise<NoPage | {
   return { ok: true, site, report };
 }
 
-/** D41's decide stage alone, at 0¢: the topic the day's page is written on,
- *  or why the day has none. */
+/** D41's decide stage alone, at 0¢: the topic the day's page is written on, or why the day has none. A topic whose rival
+ *  check fails is rested and the next taken here, at most `DAY_TOPICS_MAX` times, so the research asked next is the written topic's. */
 export async function decideDayPage(a: { siteId: string; publishDate: string; now: Date }): Promise<NoPage | { ok: true; opportunityId: string }> {
   const ready = await dayReady(a.siteId, a.publishDate);
   if (!ready.ok) return ready;
-  const first = await dayTopic({ siteId: a.siteId, ...ready }, a.publishDate, a.now);
+  let first = inTest() ? await plannedTopic(a.siteId, a.publishDate) : await pageForDay(a.siteId, a.publishDate, a.now);
+  if (inTest()) return first === null ? { ok: false, because: "no_opportunity" } : { ok: true, opportunityId: first.id };
+  for (let tries = 0; first !== null && tries < DAY_TOPICS_MAX && !(await rivalsAnswer(ready, first)); tries++) {
+    await restTopic(first.id, a.now, { zone: ready.site.timeZone });
+    first = await pageForDay(a.siteId, a.publishDate, a.now);
+  }
   return first === null ? { ok: false, because: "no_opportunity" } : { ok: true, opportunityId: first.id };
 }
 
@@ -189,18 +194,20 @@ export async function generateDayPage(a: {
               ? await fixPage(page, own)
               : mendable(opportunity) || snippetOnly(opportunity)
                 ? await mendPage(page, own)
-                : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now(), ...(inTest() ? {} : { fixStep: "owe" as const }) }, own);
+                : // A topic this loop picked meets the select's 0¢ rival check before its research is bought.
+                  (topic > 1 || a.opportunityId === undefined) && !(await rivalsAnswer(page, opportunity))
+                  ? { ok: false, because: "step_failed", draftId: null, step: "pack:rival_evidence" }
+                  : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now(), ...(inTest() ? {} : { fixStep: "owe" as const }) }, own);
         } catch (error) {
-          // The customer stopped this page while it was written: nothing was saved, and the day takes the week's next spare.
+          // The customer stopped this page while it was written: nothing was saved, and the day takes its next topic.
           if (!(error instanceof PageStopped)) throw error;
-          const spare = cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs ? null : await pageForDay(a.siteId, a.publishDate, now);
-          if (spare === null || spare.id === opportunity.id) return { ok: false, because: "no_opportunity" };
-          opportunity = spare;
-          continue;
+          outcome = { ok: false, because: "no_opportunity" };
         }
         // A test draft is one page that moves no topic: its row is ended by `writeTestDraft`.
         if (inTest()) return outcome;
         await settle(outcome, opportunity.id, now, site);
+        // A committed page that adds nothing over its live version is set aside, and the day moves on as from a stop.
+        if (outcome.ok && !(await addsOverLive(outcome.draftId))) outcome = { ok: false, because: "step_failed", draftId: outcome.draftId, step: "adds" };
 
         // SPEC §7 (D26, issue 1179): a stopped draft does not cost its day.
         // Only a row that was written and stopped is moved on from — a run
@@ -209,8 +216,8 @@ export async function generateDayPage(a: {
         // Issue 1477: a page stopped before writing cost its pack alone, so it does not use up D26's one more topic.
         const short = unwritten(outcome);
         if (!short) written += 1;
-        // Issue 1536: its topic is one its pack cannot fill, so it rests as a stopped one does.
-        if (short && stopped === null) await restTopic(opportunity.id, now, { zone: site.timeZone });
+        // Its topic is one its pack cannot fill, so it rests as a stopped one does; a customer's stop is theirs.
+        if (short && stopped === null && "step" in outcome) await restTopic(opportunity.id, now, { zone: site.timeZone });
         // And only while the job's invocation has the time for a second page.
         if ((stopped === null && !short) || written >= DAY_TOPICS_MAX || cost.capHit() || !roomForFix(cost) || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return outcome;
         // The stopped topic rests by now, so the date's page is the week's next spare.
@@ -235,9 +242,9 @@ function stoppedRow(outcome: DayPageOutcome): string | null {
   return outcome.because === "rules" || outcome.because === "step_failed" ? outcome.draftId : null;
 }
 
-/** No page written: the pack lacked rival evidence or a live page, or a mend had nothing it may check. */
+/** No page written: the customer stopped it, the pack lacked rival evidence or a live page, or a mend had nothing it may check. */
 function unwritten(outcome: DayPageOutcome): boolean {
-  return !outcome.ok && outcome.because === "step_failed" && (outcome.step.startsWith("pack") || (outcome.step === "mend" && outcome.draftId === null));
+  return !outcome.ok && (outcome.because === "no_opportunity" || (outcome.because === "step_failed" && (outcome.step.startsWith("pack") || (outcome.step === "mend" && outcome.draftId === null))));
 }
 
 /** The day's cost context as one page sees it: the same ceiling, and a spend counted from here. */
@@ -518,7 +525,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
   // The pack is built once for an opportunity: a write call tried again
   // (#813) is written from the pack the first one was.
   const packs = new Map<string, Awaited<ReturnType<typeof packFor>>>();
-  let shorter = false;
+  let retry: { shorter?: true } = {};
   for (let attempt = 1; ; attempt++) {
     const key = `${opportunity.id}:${opportunity.type}`;
     if (!packs.has(key)) packs.set(key, await packFor(opportunity));
@@ -539,7 +546,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
       demoPhrases,
       intent: intentFor({ query: opportunity.targetQuery, volume: opportunity.volume }, site.prompts ?? []),
       startedAt,
-      ...(draftId === undefined ? {} : { draftId }), ...(a.fixStep === undefined ? {} : { fixStep: a.fixStep }), ...(shorter ? { shorter: true as const } : {}),
+      ...(draftId === undefined ? {} : { draftId }), ...(a.fixStep === undefined ? {} : { fixStep: a.fixStep }), ...retry,
     });
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
@@ -547,10 +554,10 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     if (last.reason === "rules") {
       return { ok: false, because: "rules", draftId: draftId ?? null, attempts: last.attempt, ...(last.fix === undefined ? {} : { stopped: last.fix }), ...(last.stop === undefined ? {} : { stop: last.stop }) };
     }
-    // A write call that did not answer is tried once more, and one cut off at its cap is asked for a shorter page,
+    // A write call that did not answer is tried once more, its one flag asking a page cut off at its cap for a shorter one,
     // never the same input again; a refused answer is not. The ceiling and the job's clock would stop it too.
     if (last.step === "write" && last.answered !== true && attempt < a.attempts && !cost.capHit() && Date.now() - startedAt < PIPELINE.fixBeforeMs) {
-      shorter = last.answered === "cut_off";
+      retry = last.answered === "cut_off" ? { shorter: true } : {};
       continue;
     }
     // A step that did not run before any row was written leaves nothing to
