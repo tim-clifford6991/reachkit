@@ -25,8 +25,8 @@ import type { PublishingState, ShellModel } from "./model";
 export function publishingStatement(shell: ShellModel): { line: string; title: string | null } {
   const { publishing, timeZone } = shell;
   const stopped = publishing.next === null && publishing.because === "reachkit_stopped";
-  const held = "because" in publishing && publishing.because !== null;
-  const upcoming = held || stopped ? null : publishing.upcoming;
+  // A held or stopped state carries no upcoming event, so it names no page.
+  const upcoming = "upcoming" in publishing ? publishing.upcoming : null;
 
   // Through `nextPublishStatement`, REQ-092 c7's one home: while ReachKit has
   // stopped its own work, the statement names the stop and ignores `otherwise`

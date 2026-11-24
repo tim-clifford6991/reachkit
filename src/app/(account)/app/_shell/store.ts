@@ -274,13 +274,13 @@ async function plannedTopics(siteId: string, today: string): Promise<ComingDay[]
     const { committedWeek } = await import("@/lib/opportunities");
     const [week, drafts, days, site] = await Promise.all([
       committedWeek(siteId),
-      client().from<{ language: string | null }>("sites").select("language").eq("id", siteId).limit(1),
       client().from<{ scheduled_for: string | null }>("drafts").select("scheduled_for").eq("site_id", siteId).gte("scheduled_for", today),
       client()
         .from<{ publish_date: string; outcome: string | null }>("draft_days")
         .select("publish_date, outcome")
         .eq("site_id", siteId)
         .gte("publish_date", today),
+      client().from<{ language: string | null }>("sites").select("language").eq("id", siteId).limit(1),
     ]);
     if (drafts.error !== null || days.error !== null) return [];
     const taken = new Set<string | null>([
