@@ -1,9 +1,9 @@
-// BUILD §12 — the register of mail kinds: `MailKind` is its keys, so a mail on any other occasion does not compile, and there is no marketing row.
-// `stoppable` is the dispatch (ADR-042), one store per send: 'opt-out' asks the address-wide suppression store (§4.2, `leads/`),
+// BUILD §12 — the register of mail kinds: `MailKind` is its keys, so a mail on any other occasion does not compile.
+// `stoppable` is the dispatch (ADR-042), one store per send: 'opt-out' asks the address-wide opt-out (§4.2, `leads/`), and only a marketing kind may,
 // 'toggle' asks the customer's three switches on `users.notify` (BUILD §4.7, `notifications/`), and false asks neither.
 // The stores never merge: an address-wide unsubscribe reaching `magic-link` would lock a paying customer out.
 // ADR-040: each kind's template is `src/lib/mail/templates/<kind>/`, held to the kind's name by `tests/mail/kinds/template-directories.test.ts`.
-// The product sends no marketing, newsletter or promotional mail at all — there is no row for one, and adding one is a change to this file, read by the owner, not a call-site argument.
+// The only marketing kinds are `nurture` and `win-back`; there is no newsletter, and another is a change to this file, read by the owner, not a call-site argument.
 // This module holds no template, no shell and no vendor knowledge.
 
 /** What a row says. `occasionsFrom` cites the BUILD.md sections stating the occasion, checked by `tests/mail/kinds/register-legality.test.ts`. */
@@ -35,8 +35,8 @@ export const MAIL_KINDS = Object.freeze({
   "payment-failed": { occasionsFrom: "SPEC §8", stoppable: false },
   cancellation: { occasionsFrom: "SPEC §8", stoppable: false },
   "win-back": { occasionsFrom: "SPEC §8", stoppable: "opt-out" },
-  // SPEC §5: a signed-in buyer sends it to a typed address, so an address that bounced, complained or opted out is not mailed again.
-  "web-person": { occasionsFrom: "SPEC §5", stoppable: "opt-out" },
+  // SPEC §5: the buyer's own setup steps, sent at their request to a typed address; not marketing, so an opt-out does not stop it.
+  "web-person": { occasionsFrom: "SPEC §5", stoppable: false },
 } as const satisfies Readonly<Record<string, KindRow>>);
 
 export type MailKind = keyof typeof MAIL_KINDS;
