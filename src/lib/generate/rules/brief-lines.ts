@@ -99,7 +99,10 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
   ],
   cites_market: (a) => {
     const need = sourcesNeed(a.pack.type, a.pack.own);
-    return `Link at least ${need} different ${need === 1 ? "page" : "pages"} that \`pack.claims\` were read from, each in the sentence that states what it says.`;
+    const pages = `${need} different ${need === 1 ? "page" : "pages"}`;
+    return a.pack.type === "listicle"
+      ? `Link at least ${pages} of \`pack.claims\` that ${need === 1 ? "is not one" : "are not"} of the compared products' own pages, each in the sentence that states what it says.`
+      : `Link at least ${pages} that \`pack.claims\` were read from, each in the sentence that states what it says.`;
   },
   standalone_lead: (a) =>
     `Open each section's \`body\` with a sentence that answers its heading on its own, in the heading's words: never open on ${quoted(languagePack(a.pack.locale?.language ?? "en").backReferences)} or any other word that leans on an earlier sentence.`,

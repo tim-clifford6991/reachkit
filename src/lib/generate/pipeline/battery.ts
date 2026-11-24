@@ -166,7 +166,8 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
     distinctHeadings: pack.type === "qa",
     // Issue 1486: a how-to or a Q&A links the outside pages it is built
     // from.
-    ...(b.citesMin > 0 ? { cites: { claimUrls: sourcingUrls(pack.claims), min: b.citesMin } } : {}),
+    // A list or comparison's number counts only pages that are not a compared product's own.
+    ...(b.citesMin > 0 ? { cites: { claimUrls: sourcingUrls(pack.type === "listicle" ? pack.claims.filter((claim) => claim.product === undefined && claim.tier !== "vendor" && claim.tier !== "wire") : pack.claims), min: b.citesMin } } : {}),
     heading: page.heading,
     rivalsNamed: b.rivalsNamed,
     ...(b.demoPhrases === undefined ? {} : { demoPhrases: b.demoPhrases }),
