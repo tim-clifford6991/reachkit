@@ -34,7 +34,7 @@ export function WaitingCard(p: {
       // be ignored and all three would land in one cell on top of each
       // other. `justify-items-start` and `text-start` undo that modifier's
       // centring, which this card does not want.
-      className="alert alert-warning alert-soft alert-vertical w-full justify-items-start gap-1 text-start"
+      className="alert alert-warning alert-soft alert-vertical w-full justify-items-start gap-1 px-3 text-start"
       data-testid="shell-waiting"
     >
       <span className="flex w-full min-w-0 items-center gap-2 text-xs font-semibold uppercase tracking-wide">

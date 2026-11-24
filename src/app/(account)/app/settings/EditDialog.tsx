@@ -119,7 +119,7 @@ export function EditDialog(p: {
             {/* Discards, as Cancel does. */}
             <button
               type="button"
-              className="btn btn-ghost btn-square min-h-11 shrink-0"
+              className="btn btn-ghost btn-square -my-2.5 size-11 shrink-0"
               aria-label={copy("settings.close")}
               onClick={() => dialog.current?.close()}
             >
@@ -208,7 +208,7 @@ export function StagedList(p: {
       )}
       <div className="flex min-w-0 gap-2">
         <input
-          className="input min-w-0 grow"
+          className="input min-h-11 min-w-0 grow"
           name={p.name}
           aria-label={p.addLabel}
           placeholder={p.placeholder ?? copy("settings.dialog.add.placeholder")}

@@ -13,7 +13,7 @@ export function ShowList(p: { label: string; testId: string; rows: readonly { ke
     <EditDialog label={p.label} testId={p.testId} show>
       <ul className="list min-w-0 overflow-y-auto">
         {p.rows.map((row) => (
-          <li key={row.key} className="list-row min-w-0 flex-col items-start gap-1 px-0">
+          <li key={row.key} className="list-row flex min-w-0 flex-col items-start gap-1 px-0">
             <span className="min-w-0 font-mono text-sm break-all">{row.text}</span>
             {row.line === undefined ? null : <span className="text-xs text-base-content/70 wrap-anywhere">{row.line}</span>}
           </li>

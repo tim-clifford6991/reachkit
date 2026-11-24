@@ -47,7 +47,7 @@ function WritingChoice(p: { chosen: WritingVoice | null; business: string }): Re
           >
             <input
               type="radio"
-              className="radio radio-primary mt-0.5"
+              className="radio radio-primary"
               name={WRITING_VOICE_FIELD}
               value={choice.voice}
               checked={chosen}

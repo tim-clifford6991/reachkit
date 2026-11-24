@@ -223,7 +223,7 @@ export default async function AppLayout({
                 scroller that tooltip hung 69px past the edge and gave the
                 panel a sideways scroll at every desktop width. Out here
                 nothing clips it and nothing scrolls. */}
-            <div className="hidden min-w-0 shrink-0 items-center gap-2 lg:is-drawer-close:flex">
+            <div className="hidden min-w-0 shrink-0 items-center gap-2 ps-3 lg:is-drawer-close:flex">
               <Brand href="/app" testId="shell-brand" />
               <label
                 htmlFor={DRAWER_TOGGLE_ID}

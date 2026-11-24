@@ -76,7 +76,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
                 kind: "node",
                 text: (
                   <span className="flex min-w-0 flex-wrap items-center gap-2">
-                    <span className={badge === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"} data-testid="billing-state">
+                    <span className={badge === "active" ? "badge badge-success badge-soft badge-sm" : "badge badge-ghost badge-sm"} data-testid="billing-state">
                       {badge === "active" ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
                       {copy(`settings.billing.${badge}`)}
                     </span>

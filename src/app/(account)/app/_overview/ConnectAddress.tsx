@@ -35,7 +35,7 @@ function Step(p: { marker: React.ReactNode; tone: string; title: string; line: s
   return (
     <li className={`flex min-w-0 items-start gap-2.5 p-3.5 ${INNER}`} data-testid="connect-step">
       <span className={`${MARKER} ${p.tone}`}>{p.marker}</span>
-      <span className="min-w-0 text-sm">
+      <span className="min-w-0 pt-1 text-sm">
         <strong>{p.title}</strong>
         {p.line === null ? null : (
           <>

@@ -176,7 +176,7 @@ function Option(p: {
       <input
         type="radio"
         name={RADIO_NAME}
-        className="radio radio-primary radio-sm mt-0.5 shrink-0"
+        className="radio radio-primary radio-sm mt-1.5 shrink-0"
         checked={p.chosen}
         onChange={p.onChoose}
       />
@@ -184,7 +184,7 @@ function Option(p: {
         <p.icon size={16} strokeWidth={1.75} />
       </span>
       <span className="flex min-w-0 flex-col">
-        <strong className="text-(length:--t-body)">{p.title}</strong>
+        <strong className="text-(length:--t-body) leading-8">{p.title}</strong>
         {p.detail === null ? null : <span className="font-mono text-(length:--t-sm) break-all">{p.detail}</span>}
         <span className={QUIET} data-testid="setup-option-line">
           {p.line}
