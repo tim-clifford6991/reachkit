@@ -7,13 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
 import { createHash } from "node:crypto";
 import { z, type ZodType } from "zod";
-import {
-  INFERENCE_ATTEMPTS,
-  INFERENCE_INPUT_RESERVE,
-  INFERENCE_MAX_OUTPUT_TOKENS,
-  INFERENCE_MAX_RETRIES,
-  INFERENCE_TEMPERATURE,
-} from "@/lib/config/constants";
+import { INFERENCE_ATTEMPTS, INFERENCE_INPUT_RESERVE, INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_MAX_RETRIES, INFERENCE_TEMPERATURE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { costCentsFor, tierBinding, type Tier, type TierBinding } from "./tiers";

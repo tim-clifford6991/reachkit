@@ -286,14 +286,11 @@ export interface WriteInputs {
   pack: ContextPack;
   /** How the business appears on a page of this type (issue 1136). */
   pageType: PageType | null;
-  /** The words of body text the page is held to, and aims for where a
-   *  target is given. */
+  /** The words of body text the page is held to, and aims for where a target is given. */
   length: Pick<LengthRange, "floor" | "ceiling" | "each"> & { target?: number };
-  /** The customer's page on the writer tier; a tier is named only by a
-   *  caller with another ceiling. */
+  /** The customer's page on the writer tier; a tier is named only by a caller with another ceiling. */
   tier?: Tier;
-  /** The lead's free page (SPEC §2), whose one call is sized to fit
-   *  `CAPS.FREE_C`. */
+  /** The lead's free page (SPEC §2), whose one call is sized to fit `CAPS.FREE_C`. */
   free?: boolean;
   /** The site's demo phrases (issue 1249): the phrases `no_demo_text` reads, named to the writer (issue 2378). */
   demoPhrases?: readonly string[];
@@ -321,13 +318,11 @@ function templateFor(a: WriteInputs): Record<string, unknown> {
 /** What the writer is told of the page's length: its range, its target, and each section's share of it. */
 function lengthTask(a: WriteInputs): string {
   const { floor, ceiling } = a.length;
-  // Asked for what one call's output holds, so the first write is never cut off.
+  // Asked for what one call's output holds, so the first write is never cut off, in shares of the sections the page will have.
   const target = Math.max(floor, Math.min(a.length.target ?? Math.round((floor + ceiling) / 2), a.free === true ? ceiling : WRITE_AIM_MAX_WORDS));
   const counted = a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —";
-  // A section's share is of the sections the page will have: one `option` for each of `options`, so the shares sum to the target.
   const table = tableOf(a);
-  const slots = (slot: Template["sections"][number]): number => (table === null ? (slot.repeat?.min ?? 1) : slot.key === "option" ? table.options.length : slot.key === "baseline" ? Number(table.baseline !== null) : (slot.repeat?.min ?? 1));
-  const sections = Math.max(1, a.template.sections.reduce((sum, slot) => sum + slots(slot), 0));
+  const sections = Math.max(1, a.template.sections.reduce((sum, slot) => sum + (table !== null && slot.key === "option" ? table.options.length : table !== null && slot.key === "baseline" ? Number(table.baseline !== null) : (slot.repeat?.min ?? 1)), 0));
   const each = a.length.each ?? (floor > 0 ? Math.round(target / sections) : Math.round((AIM * ceiling) / sectionBounds(a.template).max));
   const range = floor > 0 ? `between ${floor} and ${ceiling}` : `at most ${ceiling}`;
   const least = floor > 0 ? `, and no section under ${Math.ceil((floor * 1.15) / sections)}` : "";
@@ -366,10 +361,7 @@ function taskFor(a: WriteInputs): string {
   ].join(" ");
 }
 
-function tableOf(a: WriteInputs): ReturnType<typeof comparisonTable> {
-  return a.template.blocks.table === undefined || a.pack.type !== "listicle" ? null : comparisonTable(a.pack, a.template.blocks.table.rivals);
-}
-
+const tableOf = (a: WriteInputs) => (a.template.blocks.table === undefined || a.pack.type !== "listicle" ? null : comparisonTable(a.pack, a.template.blocks.table.rivals));
 function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<string, unknown> {
   const table = tableOf(a);
   const unpriced = unpricedProducts(a.pack);
