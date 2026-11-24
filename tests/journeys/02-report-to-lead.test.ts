@@ -18,8 +18,6 @@
 //                                the ledger claim below can be made
 //   · §8's draft pipeline      → the declared `DraftWriter` port
 //
-// Three of those need a word.
-//
 // **The copy registry is a fixture here.** Every sentence §4.2 speaks is
 // owner-owed and empty, and `copy()` refuses an owner-owed key rather than
 // rendering a blank line — so against the real registry every mail on this
@@ -30,18 +28,8 @@
 // journey can assert *which* sentence each mail carries and in which slot
 // — the part that stops being true when the path breaks.
 //
-// **The nurture job is wired; nothing emits its event yet.** Since issue
-// #176 `src/jobs/lead-nurture.ts`'s engine seam (`advanceSequence`) is
-// built, and step 10 below drives the **first touch through the job
-// itself** — the event's `(leadId, touchIndex)`, the seam, the sequence
-// module, the compose shell and the send seam — rather than through the
-// sweep. The remaining touches go through `advanceSequences`, which is the
-// same body reached the other way.
-//
-// Since #787 the hourly `lead/nurture` tick also delivers the due first
-// pages (`tests/archive/mail/leads/free-page-delivery.test.ts` drove that path
-// through the job and the real page writer). This journey still drives the
-// giveaway's two entry points directly, at the clock it names.
+// Step 10 drives the first touch through `src/jobs/lead-nurture.ts` itself
+// and the rest through `advanceSequences`; the giveaway is driven directly.
 //
 // **The ledger claim is a claim about zero.** §4.2 spends nothing on the
 // visitor's request: no model call, no vendor round trip, no queue. The
@@ -51,12 +39,15 @@
 // which is the promise §4.2 makes about the visitor's request.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { createHmac } from "node:crypto";
 import { ENV_FIXTURE, fakeDb } from "../scan/run/harness";
 import { memoryStore, newMemoryState, type MemoryState } from "../mail/leads/memory-store";
 import { memoryAccountStore, newMemoryAccounts, type MemoryAccounts } from "../account/memory-store";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
+const HOOK_KEY = Buffer.from("journey-02-mail-webhook");
+process.env.RESEND_WEBHOOK_SECRET = `whsec_${HOOK_KEY.toString("base64")}`;
 
 // Every key resolves to itself, slots substituted — see the header. The
 // registry itself is untouched: `COPY_META` and the key
@@ -98,6 +89,7 @@ const { dueFirstPageDeliveries, deliverFirstPage } = await import(
 const { advanceSequences } = await import("../../src/lib/mail/leads/sequence");
 const { leadNurture } = await import("../../src/jobs/lead-nurture");
 const { readOptOutToken } = await import("../../src/lib/mail/leads/optout");
+const { handleMailWebhook } = await import("../../src/lib/mail/leads/bounce");
 const { convertLead } = await import("../../src/lib/account/provisioning/lead-conversion");
 const { POST } = await import("../../src/app/api/lead/route");
 
@@ -479,9 +471,6 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     leads.suppressions.set(NORMALISED, "bounced"); // an older row of a cause no longer read never outranks the opt-out
     await expect(applyOptOutToken(token)).resolves.toEqual({ email: NORMALISED });
     expect(leads.suppressions.get(NORMALISED)).toBe("opt_out");
-    // Every 'opt-out' kind asks the store itself, with no wiring call: the web-person mail skips this address too.
-    const web = { kind: "web-person", to: ADDRESS, event: "e", subject: "mail.firstPage.subject" } as const;
-    await expect(sendEmail({ ...web, blocks: [{ block: "heading", text: web.subject }] })).resolves.toEqual({ sent: false, reason: "suppressed" });
 
     // Nothing further is sent about this domain, or any other.
     expect((await advanceSequences(atTouch(startedAt, 0))).sent).toBe(0);
@@ -499,6 +488,17 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     expect(mailsOfKind("mail.firstPage.subject")).toHaveLength(2);
     // Suppressed, so that second page starts no sequence of its own.
     expect(leads.leads[1]?.sequence_state).toBeNull();
+  });
+
+  it("a spam complaint is the address's opt-out: no marketing mail, and its sign-in link and a billing mail still arrive", async () => {
+    const payload = JSON.stringify({ type: "email.complained", created_at: SUBMITTED_AT.toISOString(), data: { email_id: "e", to: [ADDRESS] } });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = `v1,${createHmac("sha256", HOOK_KEY).update(`hook.${timestamp}.${payload}`).digest("base64")}`;
+    await expect(handleMailWebhook(payload, { id: "hook", timestamp, signature })).resolves.toEqual({ handled: true });
+    expect(leads.suppressions.get(NORMALISED)).toBe("opt_out");
+    const mail = { to: ADDRESS, event: "e", subject: "mail.firstPage.subject", blocks: [{ block: "heading", text: "mail.firstPage.subject" }] } as const;
+    await expect(sendEmail({ ...mail, kind: "nurture" })).resolves.toEqual({ sent: false, reason: "suppressed" });
+    for (const kind of ["magic-link", "payment-failed"] as const) await expect(sendEmail({ ...mail, kind })).resolves.toMatchObject({ sent: true });
   });
 
   it("the whole path spends nothing: no vendor call, no model call, no ledger row", async () => {

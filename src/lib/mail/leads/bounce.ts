@@ -1,12 +1,13 @@
 // The mail vendor's webhook: the vendor keeps its own list of refused addresses and refuses them at send time,
-// so a hard bounce, a complaint or a vendor suppression writes nothing here; the owner hears only when the address is a paying account's.
+// so a hard bounce or a vendor suppression writes nothing here; a spam complaint is also the address's opt-out of marketing, kept here
+// so it outlives the vendor's list. The owner hears only when the address is a paying account's.
 // The signature is the whole trust boundary and is checked by the vendor's SDK over the bytes received; nothing is read before it.
 import { Resend, type WebhookEventPayload } from "resend";
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 import { sitesWithActiveAccess } from "@/lib/account/billing";
 import { claimOwnerMail, releaseOwnerMail, reportIncident } from "../ops";
-import { normaliseAddress } from "./suppress";
+import { normaliseAddress, suppressAddress } from "./suppress";
 
 export interface WebhookHeaders {
   id: string;
@@ -16,7 +17,7 @@ export interface WebhookHeaders {
 
 type Stop = { address: string; cause: "bounced" | "complained" };
 
-/** `handled: false` is a refused signature, which the vendor retries. */
+/** `handled: false` is a refused signature or an opt-out not yet recorded, which the vendor retries. */
 export async function handleMailWebhook(payload: string, headers: WebhookHeaders): Promise<{ handled: boolean }> {
   const secret = env.RESEND_WEBHOOK_SECRET;
   if (secret === undefined) return { handled: false };
@@ -29,7 +30,11 @@ export async function handleMailWebhook(payload: string, headers: WebhookHeaders
   }
 
   const stops = stopsOf(event);
-  for (const stop of stops) await tellOwnerIfPaying(stop.address, stop.cause);
+  for (const stop of stops) {
+    // The opt-out write is an idempotent upsert, so a redelivery after a failed write records it once.
+    if (stop.cause === "complained" && !(await suppressAddress(stop.address)).suppressed) return { handled: false };
+    await tellOwnerIfPaying(stop.address, stop.cause);
+  }
   console.log(JSON.stringify({ event: "mail_webhook", type: event.type, stops: stops.length }));
   return { handled: true };
 }
