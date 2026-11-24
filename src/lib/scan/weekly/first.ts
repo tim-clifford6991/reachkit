@@ -1,8 +1,8 @@
-// BUILD §4.3: the deep pass is `runScan` at `tier: 'deep'`, with no stages, ceiling or cost arithmetic of its own.
+// BUILD §4.3: a site's first pass is `runScan` at the weekly tier with `first`, with no stages, ceiling or cost arithmetic of its own.
 // It adds what onboarding needs: the founder's stage on `sites.setup_stage`, because the job and the progress route run in different processes, and the release latch.
 // A failed stage write is swallowed: the paid pass matters more than a briefly stale step.
 // The pass's measurements become supply here (`deriveForPass`), not in the tier-blind pipeline, under the same `DEEP` cap and row cost. Zero proposals is legal, never faked.
-import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
+import { FIRST_DRAFT_STAGE, type OnboardingStage } from "../deep/progress";
 import { WEEK_RESEARCH } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { sendOnboardingMails } from "@/lib/mail/onboarding";
@@ -11,7 +11,7 @@ import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
 import { passRunning } from "../pass/row";
 import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
-import { releaseToApp, type ReleaseReason } from "./release";
+import { releaseToApp, type ReleaseReason } from "../deep/release";
 
 /** The pass's end state, as a release reason. Three of the latch's four
  *  triggers are exactly this map; the fourth (`deadline`) is the read
@@ -69,7 +69,7 @@ const inline: PassStep = (_name, body) => body();
 /** Runs one founder's onboarding pass and releases them, in three job steps (the pass, its opportunities, the first draft and release),
  *  so none must fit the whole onboarding and a later retry does not re-buy the pass.
  *  The release is written whatever the pass ended as; if the deadline latched first, the first writer wins. */
-export async function runDeepPass(a: {
+export async function runFirstPass(a: {
   siteId: string;
   domain: string;
   /** Onboarding work after the scan and before the release (the first draft): the release clears the side panel, so it waits for the first page. A throw never holds the release. */
@@ -87,7 +87,7 @@ export async function runDeepPass(a: {
   // The pages the pass read become the knowledge base, one small call a page, on the pass's money; a failed read costs the base, never the pass.
   await step("knowledge-base", async () => {
     try {
-      await spendOnStoredReport({ scanId: result.scanId, tier: "deep" }, async ({ cost }) => {
+      await spendOnStoredReport({ scanId: result.scanId, tier: "weekly", first: true }, async ({ cost }) => {
         const { buildKnowledge } = await import("@/lib/site-profile/knowledge/build");
         await buildKnowledge(cost, { siteId: a.siteId, domain: a.domain });
       });
@@ -107,7 +107,7 @@ export async function runDeepPass(a: {
   // under its own cap, from the report the first step stored. A derivation
   // that throws is logged: zero proposals is legal, never faked (§4.3).
   await step("opportunities", async () => {
-    await afterDeepReport({ scanId: result.scanId, siteId: a.siteId, domain: a.domain, remeasure: a.remeasure === true });
+    await afterFirstReport({ scanId: result.scanId, siteId: a.siteId, domain: a.domain, remeasure: a.remeasure === true });
     return null;
   });
 
@@ -115,7 +115,7 @@ export async function runDeepPass(a: {
   // and the first draft hide the queue's minutes; a row still queued at the commit is committed queued, never short.
   // Research never holds the release: a step that fails is logged and the week is committed from what is held.
   const week = { siteId: a.siteId, scanId: result.scanId }, held = <T>(body: () => Promise<T[]>) => body().catch((error: unknown) => (console.warn(JSON.stringify({ event: "first_week_research_failed", siteId: a.siteId, detail: String(error) })), []));
-  const rows = await step("first-week-research", () => held(async () => (await import("../weekly/commit")).postFirstWeek({ ...week, now: new Date() })));
+  const rows = await step("first-week-research", () => held(async () => (await import("./commit")).postFirstWeek({ ...week, now: new Date() })));
 
   await step("voice", async () => {
     // Seed the customer's voice from the pass's paid voice so the first draft is written in it; never over the founder's own edit, and a failure costs a voice, never the release.
@@ -145,8 +145,8 @@ export async function runDeepPass(a: {
     // so Plan has a week before the first evening either way. Never holds the release.
     try {
       await planFirstWeek(a.siteId, new Date(), new Map(checks));
-      await (await import("../weekly/titles")).titleWeek(a.siteId, result.scanId);
-      await (await import("../weekly/commit")).recordFirstWeek({ siteId: a.siteId, now: new Date(), rows, checks });
+      await (await import("./titles")).titleWeek(a.siteId, result.scanId);
+      await (await import("./commit")).recordFirstWeek({ siteId: a.siteId, now: new Date(), rows, checks });
     } catch (error) {
       console.warn(JSON.stringify({ event: "first_week_not_planned", siteId: a.siteId, detail: String(error) }));
     }
@@ -169,7 +169,7 @@ export async function runDeepPass(a: {
   // A first pass a ceiling stopped or that failed is measured again once, so its plan does not wait for Monday; a failure here never fails the pass.
   if (a.remeasure !== true) {
     await step("re-measure", async () => {
-      const { remeasureCutShort } = await import("./remeasure");
+      const { remeasureCutShort } = await import("../deep/remeasure");
       const start = await remeasureCutShort({ siteId: a.siteId, domain: a.domain, scanId: result.scanId }).catch((error: unknown) => String(error));
       if (start !== null) console.log(JSON.stringify({ event: "first_pass_remeasured", siteId: a.siteId, start }));
       return null;
@@ -179,16 +179,16 @@ export async function runDeepPass(a: {
   return { scanId: result.scanId, status: result.status, reason };
 }
 
-/** What a deep pass does with its stored report, on its own money: rivals re-checked, topics derived and pruned, health recorded last.
+/** What a first pass does with its stored report, on its own money: rivals re-checked, topics derived and pruned, health recorded last.
  *  One function, so `npm run pass -- --replay` runs the same steps in the same order. Never throws. */
-export async function afterDeepReport(a: {
+export async function afterFirstReport(a: {
   scanId: string;
   siteId: string;
   domain: string;
   remeasure: boolean;
 }): Promise<void> {
   try {
-    await spendOnStoredReport({ scanId: a.scanId, tier: "deep" }, async ({ report, cost }) => {
+    await spendOnStoredReport({ scanId: a.scanId, tier: "weekly", first: true }, async ({ report, cost }) => {
       // The rivals, re-checked from this pass's own answers before anything is derived against them.
       const { recheckRivalsOf } = await import("../market-conclusion");
       await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report, at: new Date() });
@@ -240,7 +240,8 @@ async function measure(a: {
   return runScan({
     domain: a.domain,
     siteId: a.siteId,
-    tier: "deep",
+    tier: "weekly",
+    first: true,
     ...(category === undefined ? {} : { category }),
     concludesMarket: true,
     // A re-measure also asks the site's tracked buyer prompts, so the mention rate does not wait for Monday.

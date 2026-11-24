@@ -27,11 +27,11 @@ export interface TierParameters {
   ceilingS: number;
   /** How many of the twelve are bought at once: one wave at every tier, since a queued read costs its wait whether one task is posted or twelve. */
   serpFanout: number;
-  /** A free scan is never started outside admission control: it adopts the claimed row and never inserts a second. The deep pass adopts the row setup
+  /** A free scan is never started outside admission control: it adopts the claimed row and never inserts a second. A first pass adopts the row setup
    *  claimed on accepting the address (`claimOnboardingPass`), so the rival suggestion it spends has a row to ledger against. */
   adoptsClaim: boolean;
   /** §6.4: "A free re-scan of the same domain within 7 days serves the stored report". Free only: the weekly pass must replace a five-day-old report,
-   *  and the deep pass reuses a fresh free scan through §6.4's cache windows instead, which spends nothing and still measures. */
+   *  and a first pass reuses a fresh free scan through §6.4's cache windows instead, which spends nothing and still measures. */
   servesStoredReport: boolean;
   /** §6.4 never pulls per-rival `ranked_keywords` on the free path; §6.3's paid list buys `ranked_keywords`@100 ×rivals monthly.
    *  The monthly cadence is the cache window's (`CACHE_WINDOWS_D.rival`), not a second schedule: a weekly pass inside it spends nothing. */
@@ -54,7 +54,7 @@ export interface TierParameters {
   /** When the seed ladder stops buying. `twelve`: twelve questions at the first volume step. `questions`: the free path stops once it has
    *  `SELECTION.freeLadderMinQuestions` at any step, so its 12¢ goes to the report a visitor reads rather than a fuller twelve. */
   ladderStopsAt: "twelve" | "questions";
-  /** How the owner hears of a pass that found too little market: `immediate` mails at once (a site's first, deep pass), `digest` joins the Monday digest
+  /** How the owner hears of a pass that found too little market: `immediate` mails at once (a site's first pass), `digest` joins the Monday digest
    *  (`./weekly/market-digest`), `none` has no site to speak of. */
   marketTooSmallAlert: "immediate" | "digest" | "none";
   /** Whether the number of questions is decided by the money left: true on the free path, whose ladder and twelve share one purse,
@@ -68,9 +68,9 @@ export interface TierParameters {
   pageQuestions: boolean;
   /** How long before the ceiling this tier's asks stop waiting, so a slow queue costs one engine's cell and never the pass's scoring. */
   askReserveS: number;
-  /** How many of the market's buyer prompts this tier asks AI Mode beside the twelve: the deep pass's, which concludes a new market's rivals at once. */
+  /** How many of the market's buyer prompts this tier asks AI Mode beside the twelve: a first pass's, which concludes a new market's rivals at once. */
   marketPrompts: number;
-  /** Whether the pass asks §6.2's two engines for each of the twelve: the deep pass does; the weekly pass's AI measure is the tracked prompts,
+  /** Whether the pass asks §6.2's two engines for each of the twelve: a first pass does; the weekly pass's AI measure is the tracked prompts,
    *  its twelve keeping their Google searches and AI Overviews. A page's own question still asks both engines. */
   batteryOnTheTwelve: boolean;
   /** Whether the pass asks the site's tracked buyer prompts (`TRACKED_PROMPTS.ENGINES` × `RUNS`): the weekly pass alone, since the measure is a weekly rate. */
@@ -85,7 +85,10 @@ export interface TierParameters {
   afterC: number;
 }
 
-export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
+/** The tiers a pass runs at: a site's first pass is the weekly pass with `first`, so the stored `deep` label names no parameters. */
+export type PassTier = Exclude<Tier, "deep">;
+
+export const TIER_PARAMETERS: Readonly<Record<PassTier, TierParameters>> = Object.freeze({
   free: Object.freeze({
     cap: "FREE",
     // eslint-disable-next-line local/serp-normal-queue -- the free report answers inside its 50 s ceiling.
@@ -117,38 +120,6 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     finishesReads: true,
     measuresStatedPlace: true,
     typingReserveC: 0,
-    afterC: 0,
-  }),
-  deep: Object.freeze({
-    cap: "DEEP",
-    // eslint-disable-next-line local/serp-normal-queue -- AI Mode: none of 149 live answers since 31 Oct cites a wrapped link.
-    serpMode: "live",
-    serpPriority: "normal",
-    serpPollMs: VENDOR.stdQueuePollIntervalS * 1000,
-    asyncAiOverview: true,
-    deadlineApplies: false,
-    ceilingS: TIMING.paidPassCeilingS,
-    serpFanout: PAID_SERP_FANOUT,
-    adoptsClaim: true,
-    servesStoredReport: false,
-    sizesRivals: true,
-    rivalResizes: null,
-    battery: true,
-    stageBudgets: false,
-    serpWindowDays: CACHE_WINDOWS_D.serp,
-    extraSeeds: SELECTION.maxExtraSeeds,
-    ladderStopsAt: "twelve",
-    marketTooSmallAlert: "immediate",
-    questionsFitThePurse: false,
-    serpAbortMs: VENDOR.paidSerpAbortMs,
-    pageQuestions: false,
-    askReserveS: TIMING.paidPassAskReserveS,
-    marketPrompts: BATTERY.MARKET_PROMPTS,
-    batteryOnTheTwelve: true,
-    trackedPrompts: false,
-    finishesReads: false,
-    measuresStatedPlace: false,
-    typingReserveC: TYPING_RESERVE_C,
     afterC: 0,
   }),
   weekly: Object.freeze({
@@ -183,3 +154,25 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     afterC: WEEK_AFTER_C,
   }),
 } as const);
+
+/** Where a site's first weekly pass differs from Monday's: no pages or panel yet, so the twelve and the market's prompts are asked of both engines, live,
+ *  on the purse setup's claimed row spends against, and too little market is told at once. */
+const FIRST_PASS: Readonly<Partial<TierParameters>> = Object.freeze({
+  cap: "DEEP",
+  // eslint-disable-next-line local/serp-normal-queue -- AI Mode: none of 149 live answers since 31 Oct cites a wrapped link.
+  serpMode: "live",
+  adoptsClaim: true,
+  rivalResizes: null,
+  serpWindowDays: CACHE_WINDOWS_D.serp,
+  marketTooSmallAlert: "immediate",
+  pageQuestions: false,
+  marketPrompts: BATTERY.MARKET_PROMPTS,
+  batteryOnTheTwelve: true,
+  trackedPrompts: false,
+  afterC: 0,
+});
+
+/** The parameters one pass runs with: its tier's, and a first pass's differences over the weekly row. */
+export function passParameters(tier: PassTier, first = false): TierParameters {
+  return first && tier === "weekly" ? { ...TIER_PARAMETERS.weekly, ...FIRST_PASS } : TIER_PARAMETERS[tier];
+}

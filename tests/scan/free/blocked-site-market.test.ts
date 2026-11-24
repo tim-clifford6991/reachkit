@@ -537,7 +537,7 @@ describe("a paying site whose home was not read never stores a guessed market (S
     await runScan({
       domain,
       siteId: "site-1797",
-      tier: "deep",
+      tier: "weekly", first: true,
       // The write is made as the site is read; nothing after it is this suite's.
       onStage: (stage) => {
         if (!whole && stage === "reading_access_rules") throw new Error("stop after reading the site");

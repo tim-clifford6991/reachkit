@@ -22,7 +22,7 @@
 // is stopped at its own door, inside `runWeekly`, before any spend.
 //
 // A site's first pass is a subject event too, sent once by setup with `first: true` under `first:{site}`: it measures as onboarding needs,
-// plans the first week and releases the founder, and sends no Monday mail.
+// plans the first week and releases the founder, and sends no Monday mail. *Measure again* sends it once more with `again: true`.
 import { startFirstPass, startWeeklyScan, weeklyDueSites } from "@/jobs/engine";
 import { JOB_SUBJECT_CONCURRENCY, LLM_RUN_THROTTLE } from "@/lib/config/constants";
 import { parseDomain } from "@/lib/scan/domain";
@@ -64,7 +64,7 @@ async function firstPass(input: JobInput): Promise<Outcome> {
   if (killSwitchEngaged()) return { outcome: "stopped", subjectId: siteId, by: "kill-switch" };
   // A retry reads the same public-suffix list, so an unlisted domain stops here once instead of dead-lettering.
   if (!parseDomain(domain).ok) return { outcome: "stopped", subjectId: siteId, by: "domain_unlisted" };
-  const result = await startFirstPass({ siteId, domain, ...(input.step === undefined ? {} : { step: input.step }) });
+  const result = await startFirstPass({ siteId, domain, remeasure: input.data.again === true, ...(input.step === undefined ? {} : { step: input.step }) });
   return "degraded" in result ? { outcome: "degraded", subjectId: siteId, step: result.degraded } : { outcome: "ran", subjectId: siteId };
 }
 
@@ -72,6 +72,12 @@ async function firstPass(input: JobInput): Promise<Outcome> {
 export async function sendFirstPass(a: { siteId: string; domain: string }): Promise<void> {
   const { sendSubjectEvents } = await import("./client");
   await sendSubjectEvents("weekly/refresh", [{ key: `first:${a.siteId}`, data: { siteId: a.siteId, domain: a.domain, first: true } }]);
+}
+
+/** *Measure again*: the first pass once more, on the row its request claimed, under that row's key, so each allowed press starts exactly one pass. */
+export async function sendAgain(a: { scanId: string; siteId: string; domain: string; at?: Date }): Promise<void> {
+  const { sendSubjectEvents } = await import("./client");
+  await sendSubjectEvents("weekly/refresh", [{ key: `again:${a.siteId}:${a.scanId}`, data: { siteId: a.siteId, domain: a.domain, first: true, again: true }, ...(a.at === undefined ? {} : { at: a.at }) }]);
 }
 
 export const weeklyRefresh: JobDefinition = {

@@ -3,28 +3,19 @@
 // The seam between the seven job definitions and the engine. Every
 // function here is the interface a job calls.
 //
-// **Every engine behind them is built** as of issue #229 — the last
-// `TODO(engine)` was `scan/run`'s free arm, and it went not because an
-// engine landed but because it was never an engine: the free tier does not
-// come through this job at all (see `runScan` below). `EngineNotBuilt` and
-// its `TODO(engine)` convention stay for the next engine that is genuinely
-// owed; `tests/jobs/definitions.test.ts` asserts the list of unbuilt ids is
-// empty, so one regressing to a stub puts its id back there and fails.
+// **Every engine behind them is built.** `EngineNotBuilt` and its
+// `TODO(engine)` convention stay for the next engine that is genuinely owed.
 //
 // **Nothing here fakes work.** A stub does not return a plausible empty
-// list and it does not swallow the call: it throws, loudly and
-// non-retriably in effect, so a deployment that triggers a job before its
-// engine exists fails visibly instead of reporting a quiet success. The
-// same rule covers a delivery that should not exist — see `NotAJobPath`,
-// which is a different failure with a different name, because "this engine
-// is missing" and "this event should never have been sent" are different
-// things for whoever reads the dead-letter.
+// list and it does not swallow the call: it throws, so a deployment that
+// triggers a job before its engine exists fails visibly instead of
+// reporting a quiet success.
 //
 // This module reaches no database and no vendor of its own: where an
 // engine exists it is imported and called. It is a declaration of what the
 // engine exposes, never a second implementation of it — every body below is
 // one call into a module that owns the rule, or a named refusal.
-import { runDeepPass } from "@/lib/scan/deep/run";
+import { runFirstPass } from "@/lib/scan/weekly/first";
 import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
 import { TIMING, WEEK_RESEARCH } from "@/lib/config/constants";
 import { dueSites, refreshWeeklyKnowledge, runWeekly, type DueSite, type WeeklyOutcome } from "@/lib/scan/weekly";
@@ -36,8 +27,6 @@ export interface SiteClock {
   readonly siteId: string;
   readonly timeZone: string;
 }
-
-export type ScanTier = "free" | "deep" | "weekly";
 
 /** `draft/generate`'s selection, as the engine hands it over. The type is
  *  the daily module's own — a second copy here would be one more place the
@@ -223,84 +212,7 @@ async function tellWeek(a: DueSite & { readonly now: Date; readonly rerun?: Reru
   return { done: true };
 }
 
-// ── The scan pipeline — BP-012, and the deep tier wired here (issue #36)
-//
-// The one pipeline, tier a parameter. `scanId` is the delivery's own
-// idempotency handle, not an instruction to the pipeline: a free pass
-// adopts the row admission already claimed and a paid one mints its own,
-// both inside `runScan` itself. Nothing about a tier is decided here.
-//
-// **`scan/run` is the deep tier's job and no other's**, and it carries only a
-// re-measure: setup's first pass is `weekly/refresh`'s event. Both other tiers
-// reach the same pipeline, and neither reaches it through here:
-//
-//   - **Free runs inline, on the request.** `POST /api/scan` imports
-//     `@/lib/scan/run` and calls `runScan({ domain, tier: 'free' })`
-//     directly, because §6.4 puts the free report at "≈60s live" with a
-//     human waiting for it — an event queued for a worker is the one shape
-//     that cannot keep that promise. Nothing anywhere sends a `scan/run`
-//     event for a free tier, and `tests/jobs/definitions.test.ts` sweeps
-//     `src/**` to keep it that way.
-//
-//   - **Weekly has its own trigger.** `weekly/refresh` is an hourly tick
-//     gated on each site's own local Monday (ADR-060), and its claim on
-//     `(site_id, week_start)` is what makes the measurement happen once a
-//     week. A second door into the same pass — through an event keyed on
-//     `scanId`, which that claim does not cover — would be a way around it.
-//
-// So the two arms are not unbuilt and never will be: they are **not job
-// paths**, and they say so. `notAJobPath` throws rather than returning a
-// degraded result, for the reason every stub in this file throws: a
-// delivery that should not exist must fail visibly, not report a pass
-// nobody ran. It is a different failure from `EngineNotBuilt` and carries
-// a different name, so an operator reading a dead-letter can tell "this
-// engine is missing" from "this event should never have been sent".
-//
-// A deep pass takes `runDeepPass`, which writes the founder's stage and the release latch around one `runScan` call.
-
-/** The tier this job runs, and the only one. */
-export const SCAN_RUN_TIER = "deep" as const satisfies ScanTier;
-
-/** A delivery for a tier that does not come through this job. Named apart
- *  from `EngineNotBuilt` because it is not a missing engine and no future
- *  issue closes it — see the block above for where each other tier runs. */
-export class NotAJobPath extends Error {
-  readonly tier: ScanTier;
-  constructor(tier: ScanTier, where: string) {
-    super(
-      `src/jobs/engine.ts: not_a_job_path — the ${tier} tier does not run through ` +
-        `the scan/run job (${where}). Free runs inline on POST /api/scan; weekly ` +
-        "runs on the weekly/refresh tick, whose own claim makes it once a week."
-    );
-    this.name = "NotAJobPath";
-    this.tier = tier;
-  }
-}
-
-export async function runScan(a: {
-  readonly scanId: string;
-  readonly domain: string;
-  readonly tier: ScanTier;
-  readonly siteId?: string;
-  /** The job's durable steps, where it has them (issue 798). */
-  readonly step?: StepRunner;
-  /** A pass measured again now, on the row its request claimed (issue 837). */
-  readonly remeasure?: boolean;
-}): Promise<EngineResult> {
-  if (a.tier !== SCAN_RUN_TIER) throw new NotAJobPath(a.tier, `runScan(${a.scanId})`);
-  if (a.siteId === undefined) {
-    // A deep event with no site is a malformed delivery, not an unbuilt
-    // engine: a re-measure is a pass *for a site*, and its only sender
-    // (`scan/deep/remeasure.ts`) always names one.
-    throw new Error(
-      `src/jobs/engine.ts: runScan(${a.scanId}) is a deep pass with no siteId — ` +
-        "the onboarding pass belongs to a site and the event must name it."
-    );
-  }
-  return startFirstPass({ ...a, siteId: a.siteId });
-}
-
-/** A site's first pass (setup's `weekly/refresh` event, `first: true`), and a re-measure through `scan/run`: the same deep steps. */
+/** A site's first pass (`weekly/refresh` with `first: true`): setup's, and each *Measure again* on the row its request claimed. */
 export async function startFirstPass(a: {
   readonly siteId: string;
   readonly domain: string;
@@ -308,7 +220,7 @@ export async function startFirstPass(a: {
   readonly remeasure?: boolean;
 }): Promise<EngineResult> {
   const { siteId } = a;
-  const deep = await runDeepPass({
+  const pass = await runFirstPass({
     ...a,
     // SPEC §5: setup reaches `/app` with a first draft, started before the release; its outcome is logged, since a site not yet draftable is no degraded pass.
     beforeRelease: async () => {
@@ -316,7 +228,7 @@ export async function startFirstPass(a: {
       console.log(JSON.stringify({ event: "first_draft", siteId, outcome: first }));
     },
   });
-  return deep.status === "degraded" ? { degraded: "deep-pass" } : { done: true };
+  return pass.status === "degraded" ? { degraded: "deep-pass" } : { done: true };
 }
 
 /**
@@ -331,7 +243,7 @@ export async function startFirstPass(a: {
  *
  * Never a throw: the onboarding pass already ran and released its founder,
  * and a job that re-ran it because a first page could not be written would
- * spend a second deep pass.
+ * spend a second paid pass.
  */
 export async function kickOffFirstDraft(a: { readonly siteId: string; readonly now: Date }): Promise<EngineResult> {
   try {

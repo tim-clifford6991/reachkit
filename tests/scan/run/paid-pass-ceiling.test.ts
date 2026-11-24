@@ -254,7 +254,7 @@ afterEach(() => {
 
 describe("a paid pass whose engine is slower than its ceiling (issue 902)", () => {
   it("stops waiting before its ceiling and ends `complete`, the slow engine's cells unmeasured (#1195)", async () => {
-    await loadedOnce({ domain: DOMAIN, siteId: "site-902", tier: "deep" });
+    await loadedOnce({ domain: DOMAIN, siteId: "site-902", tier: "weekly", first: true });
     llmScraper.mockImplementation(
       stillQueueing((failure) => {
         const onFailure = (llmScraper.mock.calls.at(-1) as unknown as [unknown, { onFailure?: (f: unknown) => void }])[1]
@@ -270,7 +270,7 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
       // run forward: what is being asserted is when it ended, and
       // `advanceTimersByTimeAsync` moves the clock whether it ended or not.
       let settledMs = -1;
-      const pass = runScan({ domain: DOMAIN, siteId: "site-902", tier: "deep" }).then((result) => {
+      const pass = runScan({ domain: DOMAIN, siteId: "site-902", tier: "weekly", first: true }).then((result) => {
         settledMs = Date.now();
         return result;
       });
@@ -294,12 +294,12 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
   });
 
   it("a slow engine never costs the other engine its column: AI Mode answers every question", async () => {
-    await loadedOnce({ domain: DOMAIN, siteId: "site-902", tier: "deep" });
+    await loadedOnce({ domain: DOMAIN, siteId: "site-902", tier: "weekly", first: true });
     llmScraper.mockImplementation(stillQueueing());
 
     vi.useFakeTimers();
     try {
-      const pass = runScan({ domain: DOMAIN, siteId: "site-902", tier: "deep" });
+      const pass = runScan({ domain: DOMAIN, siteId: "site-902", tier: "weekly", first: true });
       await vi.advanceTimersByTimeAsync(TIMING.jobsCeilingS * 1000);
       await pass;
 
@@ -315,7 +315,7 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
   });
 
   it("hands its own remaining time to every call that can wait inside itself", async () => {
-    await runScan({ domain: DOMAIN, siteId: "site-902", tier: "deep" });
+    await runScan({ domain: DOMAIN, siteId: "site-902", tier: "weekly", first: true });
 
     const startedAtMost = Date.now() + CEILING_MS;
     const deadlines = [...serpOrganic.mock.calls, ...aiMode.mock.calls, ...llmScraper.mock.calls].map(
@@ -331,7 +331,7 @@ describe("a paid pass whose engine is slower than its ceiling (issue 902)", () =
 
 describe("what a twelve-question pass costs when nothing goes wrong", () => {
   it("asks each question once on each engine — three calls a question, never a second round", async () => {
-    await runScan({ domain: DOMAIN, siteId: "site-902", tier: "deep" });
+    await runScan({ domain: DOMAIN, siteId: "site-902", tier: "weekly", first: true });
 
     expect(serpOrganic).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
     expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
@@ -598,13 +598,13 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
 describe("Measure again now asks the tracked prompts too (owner, 2026-10-03, issue 1162)", () => {
   it("a re-measure stores the full set's answers, each day its own sample; the onboarding pass asks none", async () => {
     db.rows.set("sites", [SITE_WITH_A_MARKET]);
-    await runScan({ domain: DOMAIN, siteId: "site-1162", tier: "deep", asksTrackedPrompts: true });
+    await runScan({ domain: DOMAIN, siteId: "site-1162", tier: "weekly", first: true, asksTrackedPrompts: true });
 
     const report = storedReport();
     expect(report.stoppedReason).toBe("complete");
     expect(report.prompts?.asked).toHaveLength(BATTERY_PINS.QUESTIONS);
     expect(report.prompts?.answers).toHaveLength(2 * BATTERY_PINS.QUESTIONS);
-    // The deep pass's own battery on the twelve, and the panel beside it.
+    // A first pass's own battery on the twelve, and the panel beside it.
     expect(llmScraper).toHaveBeenCalledTimes(2 * BATTERY_PINS.QUESTIONS);
     const tracked = (aiMode.mock.calls as unknown as [unknown, { asOf?: string; mode: string }][])
       .map((call) => call[1])
@@ -619,7 +619,7 @@ describe("Measure again now asks the tracked prompts too (owner, 2026-10-03, iss
       scanId: a.report.scanId,
       status: "done" as const,
     }));
-    await runScan({ domain: DOMAIN, siteId: "site-1162", tier: "deep" });
+    await runScan({ domain: DOMAIN, siteId: "site-1162", tier: "weekly", first: true });
     expect(storedReport().prompts).toBeUndefined();
     expect(llmScraper).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
   });
@@ -628,7 +628,7 @@ describe("Measure again now asks the tracked prompts too (owner, 2026-10-03, iss
 describe("a pass with a period of its own is served nothing read before it (issue 1170)", () => {
   it("narrows the own reads and the twelve's SERPs to the time since the period began", async () => {
     const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-    await runScan({ domain: DOMAIN, siteId: "site-1170", tier: "deep", measuredSince: sixHoursAgo });
+    await runScan({ domain: DOMAIN, siteId: "site-1170", tier: "weekly", first: true, measuredSince: sixHoursAgo });
 
     const own = (measureDomain.mock.calls[0] as unknown as [unknown, { ownWindowDays?: number }])[1].ownWindowDays;
     expect(own).toBeGreaterThan(0.24);
@@ -641,7 +641,7 @@ describe("a pass with a period of its own is served nothing read before it (issu
   });
 
   it("a pass with no period keeps its tier's windows", async () => {
-    await runScan({ domain: DOMAIN, siteId: "site-1170", tier: "deep" });
+    await runScan({ domain: DOMAIN, siteId: "site-1170", tier: "weekly", first: true });
     expect((measureDomain.mock.calls[0] as unknown as [unknown, object])[1]).not.toHaveProperty("ownWindowDays");
   });
 });

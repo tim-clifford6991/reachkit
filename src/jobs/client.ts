@@ -90,7 +90,7 @@ export function subjectEventName(jobId: JobDefinition["id"]): string {
 /** A tick's subjects as platform events: the key is the event's id, so a
  *  second send of it inside the platform's window is dropped. */
 export function subjectEvents(jobId: JobDefinition["id"], events: readonly SubjectEvent[]) {
-  return events.map((event) => ({ id: event.key, name: subjectEventName(jobId), data: { ...event.data, key: event.key } }));
+  return events.map((event) => ({ id: event.key, name: subjectEventName(jobId), data: { ...event.data, key: event.key }, ...(event.at === undefined ? {} : { ts: event.at.getTime() }) }));
 }
 
 /** The neutral bounds as the platform's options. The platform takes at

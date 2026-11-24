@@ -38,7 +38,7 @@ describe("/api/health loads no job definition", () => {
   }, ESLINT_BOOT_MS);
 
   it("refuses the registry, the engine, the client and a job file in the route", async () => {
-    for (const spec of ["@/jobs", "@/jobs/engine", "@/jobs/client", "@/jobs/scan-run"]) {
+    for (const spec of ["@/jobs", "@/jobs/engine", "@/jobs/client"]) {
       const messages = await fenced(`import { x } from "${spec}";\nexport const y = x;\n`, ROUTE);
       expect(messages).toHaveLength(1);
       expect(messages[0]).toContain(ROUTE);

@@ -33,7 +33,7 @@ You test an alert, a switch or a runbook by tracing it end to end, not by readin
   - `draft_days` records why a site had no page on a date.
   - Dead letters: `reportDeadLettered` (`src/jobs/run.ts`), wired as `onFailure` in `src/jobs/client.ts`.
 - **Kill switch** (`src/jobs/kill-switch.ts`).
-  - **Scope:** `scan/run`, `scan/finish-reads`, `draft/generate`, `publish/execute` and `publish/retry`. It is also read at free-scan admission, by the weekly run and by the publish state machine.
+  - **Scope:** `scan/finish-reads`, `draft/generate`, `publish/execute` and `publish/retry`. It is also read at free-scan admission, by the weekly run (a first pass and *Measure again* included) and by the publish state machine.
   - **A flip is an env change plus a redeploy**, because env is parsed at module load. It writes no row.
 - **Spend.**
   - The `fetches` table is the ledger: `cost_cents`, `billed_cents`, `site_id`, `activity`, `draft_id`. Its views are `cost_site_day` and `vendor_days`. The owner page is `/app/costs`, and the Monday digest carries the cost section.

@@ -15,8 +15,8 @@ let db: FakeDb = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const { claimOnboardingPass } = await import("../../../src/lib/scan/run");
-const { runJob } = await import("@/jobs/run");
-const { scanRun } = await import("@/jobs/scan-run");
+const { weeklyRefresh } = await import("@/jobs/weekly-refresh");
+const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -61,12 +61,18 @@ describe("claimOnboardingPass — one onboarding row per site", () => {
     expect(db.tables.scans).toHaveLength(0);
   });
 
-  it("a deep pass for a domain with no public suffix stops once: it resolves, so the queue never retries it", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    const outcome = await runJob(scanRun, { data: { scanId: "setup-s", domain: "x.example", tier: "deep", siteId: "s" }, now: new Date(), attempt: 0 });
-    expect(outcome).toEqual({ outcome: "stopped", subjectId: "setup-s", by: "domain_unlisted" });
-    expect(log.mock.calls.map(([line]) => JSON.parse(String(line)))).toContainEqual(expect.objectContaining({ jobId: "scan/run", outcome: "stopped", step: "domain_unlisted" }));
+  it("a first pass for a domain with no public suffix stops once: it resolves, so the queue never retries it", async () => {
+    const outcome = await weeklyRefresh.perSubject!({ data: { siteId: "s", domain: "x.example", first: true, again: true }, now: new Date(), attempt: 0 });
+    expect(outcome).toEqual({ outcome: "stopped", subjectId: "s", by: "domain_unlisted" });
     expect(db.tables.scans).toHaveLength(0);
-    log.mockRestore();
+  });
+
+  it("a fourth Measure again inside a day is refused, and claims no row, so nothing is sent or spent", async () => {
+    const now = new Date("2026-11-24T12:00:00Z"), hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000).toISOString();
+    const site = { id: "site-1", category: "plumbing", setup_stage: null };
+    db = fakeDb({ scans: [1, 5, 20].map((h) => ({ id: `p${h}`, domain: "founder.com", tier: "deep", status: "done", site_id: "site-1", created_at: hoursAgo(h) })), sites: [site] });
+    expect(await startRemeasure({ siteId: "site-1", domain: "founder.com", category: "roofing", now })).toEqual({ started: false, because: "daily_limit", nextAt: new Date(now.getTime() + 4 * 3_600_000) });
+    expect(db.tables.scans).toHaveLength(3);
+    expect(db.tables.sites).toEqual([{ id: "site-1", category: "plumbing", setup_stage: null }]);
   });
 });

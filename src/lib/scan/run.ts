@@ -20,7 +20,7 @@ import { readCurrentReport, readScanReport, type StoppedReason, type StoredRepor
 import { emitEnding, type StageName } from "./stages";
 import { storeCurrentReport, type ScanStatus } from "./store";
 import { finishingOf } from "./finish-reads";
-import { TIER_PARAMETERS } from "./pass/tier";
+import { passParameters, type PassTier } from "./pass/tier";
 import { freshSections } from "./pass/sections";
 import { adoptClaimedRow, claimPassRow, closeWithoutSpending } from "./pass/row";
 import { runStages } from "./pass/sequence";
@@ -40,7 +40,9 @@ function wholeDaysBetween(from: Date, to: Date): number {
 export interface RunScanArgs {
   domain: string;
   siteId?: string;
-  tier: Tier;
+  tier: PassTier;
+  /** A site's first weekly pass (`passParameters` names its differences): setup's, and each *Measure again*. */
+  first?: boolean;
   /** The row this pass writes to, where the caller claimed one: the weekly `(site_id, week_start)` row is the once-a-week guarantee,
    *  so the report goes into it rather than a second row. Absent, a paid pass generates its own id. */
   scanId?: string;
@@ -74,12 +76,14 @@ export interface RunScanArgs {
 }
 
 export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus; fundsRefused?: true }> {
-  const parameters = TIER_PARAMETERS[a.tier];
+  const parameters = passParameters(a.tier, a.first === true);
+  // A first pass keeps the stored `deep` label on its row, report and reads, so new rows and stored ones read alike.
+  const tier: Tier = a.first === true ? "deep" : a.tier;
   const startedAt = new Date();
 
   const parsed = parseDomain(a.domain);
   if (!parsed.ok) {
-    logPass({ scanId: "", tier: a.tier, stoppedReason: "failed", status: "failed", because: parsed.problem });
+    logPass({ scanId: "", tier, stoppedReason: "failed", status: "failed", because: parsed.problem });
     return { scanId: "", status: "failed" };
   }
   const domain = parsed.domain;
@@ -92,11 +96,11 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   if (parameters.adoptsClaim && a.correctionOf === undefined && a.retryOf === undefined) {
     const claimed = await adoptClaimedRow({
       domain,
-      tier: a.tier,
+      tier,
       ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
     });
     if (claimed === null) {
-      logPass({ scanId: "", tier: a.tier, stoppedReason: "failed", status: "failed", because: "no_claimed_slot" });
+      logPass({ scanId: "", tier, stoppedReason: "failed", status: "failed", because: "no_claimed_slot" });
       return { scanId: "", status: "failed" };
     }
     scanId = claimed.id;
@@ -112,14 +116,14 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     const { claimed } = await claimPassRow({
       scanId,
       domain,
-      tier: a.tier,
+      tier,
       ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
     });
     if (!claimed) throw new Error(`runScan: the scan row ${scanId} already exists`);
   }
 
   // One of the product events, as the pass begins: not awaited, since no analytics vendor gets a second of the free ceiling. The subject is hashed in the seam.
-  captureInBackground("scan_started", { subject: domain, tier: a.tier });
+  captureInBackground("scan_started", { subject: domain, tier });
 
   // 2. §6.4's seven-day window — the free path's, per `servesStoredReport`.
   if (a.correctionOf === undefined && a.retryOf === undefined && parameters.servesStoredReport) {
@@ -133,7 +137,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       if (parameters.adoptsClaim) await closeWithoutSpending(scanId);
       logPass({
         scanId: stored.scanId,
-        tier: a.tier,
+        tier,
         stoppedReason: "complete",
         status: "done",
         because: "served_stored_report",
@@ -156,7 +160,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     await carrySpentCents(scanId, priorCents);
     retried = await readScanReport(a.retryOf.scanId);
     if (retried === null) {
-      logPass({ scanId, tier: a.tier, stoppedReason: "failed", status: "failed", because: "retry_report_unreadable" });
+      logPass({ scanId, tier, stoppedReason: "failed", status: "failed", because: "retry_report_unreadable" });
       return { scanId, status: "failed" };
     }
   }
@@ -187,7 +191,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           bounds,
           cost,
           domain,
-          tier: a.tier,
+          tier,
           parameters,
           correction: a.correctionOf !== undefined,
           sections,
@@ -223,7 +227,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   const composed = composeReport({
     scanId,
     domain,
-    tier: a.tier,
+    tier,
     ...(measuredUnder === undefined ? {} : { category: measuredUnder }),
     stoppedReason,
     fromIncompleteRescan,
@@ -261,13 +265,13 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     await advanceCorrectionState({ scanId: a.correctionOf, from: correctionBefore, to: correctionState });
   }
 
-  // 7. What the pass measured, turned into supply — the deep and weekly
+  // 7. What the pass measured, turned into supply — the paid
   //    passes' own step, supplied by their callers rather than decided
   //    here (this file branches on no tier). A hook that throws does not
   //    take the report down with it.
   if (a.afterReport !== undefined) {
     try {
-      await spendOnStoredReport({ scanId, tier: a.tier, report: composed.report }, a.afterReport);
+      await spendOnStoredReport({ scanId, tier: a.tier, first: a.first === true, report: composed.report }, a.afterReport);
     } catch (error) {
       console.log(
         JSON.stringify({
@@ -281,7 +285,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
 
   logPass({
     scanId,
-    tier: a.tier,
+    tier,
     stoppedReason,
     status: stored.status,
     // How much of the battery this pass measured, so "ten of twelve" is a fact in the log.
@@ -305,7 +309,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // Imported at the call; `reportIncident` never throws.
   if (composed.marketTooSmall && a.siteId !== undefined && parameters.marketTooSmallAlert === "immediate") {
     const { reportIncident } = await import("@/lib/mail/ops");
-    await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
+    await reportIncident({ occasion: "market-too-small", scanId, tier });
   }
   // A pass the vendor refused for credit measured nothing it can stand on; its caller decides what that leaves.
   return spend.fundsRefused ? { ...stored, fundsRefused: true } : stored;
@@ -330,12 +334,13 @@ async function sendFinishingReads(scanId: string): Promise<void> {
 /** The work a paid pass does with its stored report, on its own money: a context under the tier's cap opening on the row's `cost_cents`.
  *  The onboarding pass calls it as its own step and reads the report back; a row with none opens nothing. */
 export async function spendOnStoredReport(
-  a: { scanId: string; tier: Tier; report?: StoredReport },
+  a: { scanId: string; tier: PassTier; first?: boolean; report?: StoredReport },
   body: (a: { report: StoredReport; cost: CostContext }) => Promise<void>
 ): Promise<void> {
   const report = a.report ?? (await readScanReport(a.scanId));
   if (report === null) return;
-  await withStoredPassSpend({ scanId: a.scanId, cap: TIER_PARAMETERS[a.tier].cap, holdBackCents: TIER_PARAMETERS[a.tier].afterC }, (cost) =>
+  const { cap, afterC } = passParameters(a.tier, a.first === true);
+  await withStoredPassSpend({ scanId: a.scanId, cap, holdBackCents: afterC }, (cost) =>
     body({ report, cost })
   );
 }

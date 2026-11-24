@@ -6,7 +6,7 @@
 // # What it runs
 //
 // For each site of `docs/walk/panel/sites.json`, a paying site's first pass
-// — the product's own `runDeepPass`, with nothing of it rewritten here: the
+// — the product's own `runFirstPass`, with nothing of it rewritten here: the
 // site is read, its market concluded with its terms (D49), the searches
 // seeded and asked, the knowledge base built, the rivals concluded with
 // their demand (D50) and the topics derived. Two of the pass's steps are not
@@ -41,7 +41,7 @@ import path from "node:path";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
 import { verdictOf } from "@/lib/market/rivals/verify";
 import { OWN_FETCH_SOURCE, RENDERED_FETCH_SOURCE } from "@/lib/measure/own-fetch";
-import { runDeepPass, type PassStep } from "@/lib/scan/deep/run";
+import { runFirstPass, type PassStep } from "@/lib/scan/weekly/first";
 import { parseHealth } from "@/lib/scan/health";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { askedOfReport } from "@/lib/opportunities/derive/topics";
@@ -239,7 +239,7 @@ async function runSite(o: Options, site: PanelSite, watch: Watch, quiet: (lines:
   const lines: Row[] = [];
   const loud = quiet(lines);
   try {
-    await runDeepPass({ siteId, domain: site.domain, step: panelStep(siteId) });
+    await runFirstPass({ siteId, domain: site.domain, step: panelStep(siteId) });
   } catch (error) {
     lines.push({ event: "panel_pass_threw", because: error instanceof Error ? error.message : String(error) });
   } finally {
