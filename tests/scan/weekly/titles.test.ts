@@ -1,4 +1,4 @@
-// The commit's title call: one call and one re-ask for the week's untitled pages, inside `CAPS.WEEKLY_C`; none on a re-run; no page left untitled.
+// The commit's title call: one call and one re-ask for the week's untitled pages and those titled by older rules, inside `CAPS.WEEKLY_C`; none on a re-run; no page left untitled.
 import "../../opportunities/env";
 import { expect, it, vi } from "vitest";
 import { fakeDb } from "../run/harness";
@@ -38,4 +38,15 @@ it("titles every untitled page in one call and one re-ask inside the weekly cap,
   expect(lines.filter((line) => line.event === "week_title_rejected").map((line) => [line.search, line.angles])).toEqual([["can chatgpt do seo", [{ pattern: "P2", gates: ["banned"] }]]]);
   const spent = lines.flatMap((line) => (line.site === "topic-title" ? [line.costCents as number] : []));
   expect(spent.length === 2 && spent.every((cents) => cents > 0 && cents < CAPS.WEEKLY_C)).toBe(true);
+});
+
+it("asks again for a page whose stored title fails today's checks, and leaves a passing one unasked", async () => {
+  create.mockClear();
+  const topic = (query: string, n: number, title: string) => ({ ...rowOf("example.com", { query, type: "answer_page", status: "open", volume: null } as unknown as StoredTopic, n), site_id: SITE_ID, title, plan_place: n });
+  const state = newMemoryState({ rows: [topic("generative engine optimization", 0, "Why Generative Engine Optimization Matters When Ai Hides You"), topic("what is ai search visibility", 1, "What Is AI Search Visibility: How Founders Measure It")], market: { buyer: "founders", job: "be found", category: "ai search visibility", synonyms: [], differentiators: [], notOurMarket: [], rivals: [] } as unknown as MarketConclusion });
+  setOpportunityStore(memoryStore(state));
+  create.mockResolvedValueOnce(toolUseMessage({ titles: [{ i: 0, angles: [{ pattern: "P2", title: "Generative Engine Optimization: How to Get Your Pages Cited", promise: "get your pages cited", fact: 0 }] }] }, 5000, 1300, "topic-title"));
+  expect(await titleWeek(SITE_ID)).toBe(1);
+  expect(state.rows.map((row) => row.title)).toEqual(["Generative Engine Optimization: How to Get Your Pages Cited", "What Is AI Search Visibility: How Founders Measure It"]);
+  expect([await titleWeek(SITE_ID), create.mock.calls.length]).toEqual([0, 1]);
 });

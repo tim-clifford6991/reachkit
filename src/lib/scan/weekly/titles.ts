@@ -1,5 +1,5 @@
 // SPEC §6 *Every topic is an angle*: every page a committed week holds has a title. A new page the fit call gave no
-// angle (a fit of 2, a top-up, a row held from an earlier pass) is asked in one batched call on the fit call's tier,
+// angle (a fit of 2, a top-up, a row held from an earlier pass), or whose stored title fails today's checks, is asked in one batched call on the fit call's tier,
 // in a context of its own under `CAPS.WEEKLY_C`, since the pass itself ends near its cap, beside the titles the
 // commit's research already read for each search, at 0¢; an update shows its live page's own title, at 0¢. A search
 // whose every angle fails is asked once more with its failed gates named, then its angles repaired, then titled as its
@@ -13,7 +13,9 @@ import { siteLocale } from "@/lib/locale/site";
 import { researchSerps } from "@/lib/generate/pipeline/research";
 import type { Locale } from "@/lib/locale/locales";
 import { ANGLE_ASK, ANGLE_PATTERNS, angleGates, casedTitle, pickAngle, repairedAngle, type AngleContext, type ProposedAngle } from "@/lib/market/questions/angle";
+import { plannedTitleFaults } from "@/lib/generate/rules/title";
 import { canonicalUrl } from "@/lib/measure/page-reading";
+import { pageTitle } from "@/lib/presentation/page-title";
 import { queryKey, topTenRowsOf } from "@/lib/opportunities/cluster";
 import { addressKey, ownLivePages } from "@/lib/opportunities/refresh";
 import { opportunityStore, readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
@@ -35,17 +37,18 @@ const RETRY = [
   "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; fact, its passage was not shown. Give new angles that pass them.",
 ].join(" ");
 
-/** Titles the open rows of the site's committed week that have none, from `scanId`'s report (else its latest paid
- *  pass's); how many it titled. Never throws. */
+/** Titles the open rows of the site's committed week that have none, or a new page's that fails today's title checks,
+ *  from `scanId`'s report (else its latest paid pass's); how many it titled. Never throws. */
 export async function titleWeek(siteId: string, scanId?: string): Promise<number> {
   try {
     const store = opportunityStore();
-    const rows = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && (row.title ?? "").trim() === "");
+    // A new page's stored title is read again in `angleTitles`: a title planned by older rules would be published as it stands.
+    const rows = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && ((row.title ?? "").trim() === "" || row.family === "write" || row.family === "earn"));
     if (rows.length === 0) return 0;
     const at = scanId ?? (await latestPass(siteId));
     const report = at === null ? null : await readScanReport(at);
     if (at === null || report === null) return 0;
-    let titled = await liveTitles(siteId, report.domain, rows.filter((row) => row.family === "improve"));
+    let titled = await liveTitles(siteId, report.domain, rows.filter((row) => row.family === "improve" && (row.title ?? "").trim() === ""));
     const pages = rows.filter((row) => row.family === "write" || row.family === "earn");
     const spend = { scanId: at, cap: "WEEKLY", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" } as const;
     if (pages.length > 0) titled += await withCostContext(spend, (c) => angleTitles(c, siteId, pages, report));
@@ -73,15 +76,16 @@ async function liveTitles(siteId: string, domain: string, rows: readonly Opportu
   return titled;
 }
 
-/** One call for the week's untitled new pages, and one more for the searches it kept no angle for; each keeps the angle
- *  `pickAngle` keeps, stored as the fit call's is, else a repaired one, else its search in Title Case. */
+/** One call for the week's new pages untitled or titled by older rules (`staleTitle`), and one more for the searches it
+ *  kept no angle for; each keeps the angle `pickAngle` keeps, stored as the fit call's is, else a repaired one, else its
+ *  search in Title Case. */
 async function angleTitles(c: CostContext, siteId: string, rows: readonly OpportunityRow[], report: StoredReport): Promise<number> {
   const store = opportunityStore();
   const [{ market, knowledge }, locale] = await Promise.all([store.marketFor(siteId), siteLocale(siteId)]);
   const profile = report.market.kind === "unmeasured" ? null : report.market.value.profile;
   if (market === null && profile === null) return 0;
   const ranked = topTenRowsOf(report);
-  const searches = await Promise.all(
+  const all = await Promise.all(
     rows.map(async (row) => {
       const query = row.target_query ?? "";
       const stored = (ranked.get(queryKey(query))?.rows ?? []).map((top) => top.title);
@@ -90,7 +94,9 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
   );
   const rivals = market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [];
   const sources = [...(knowledge ?? []).map((passage) => passage.text), report.domain, ...rivals];
-  const context = (search: (typeof searches)[number]): AngleContext => ({ search: search.query, sources, ranks: search.ranks, rivals, language: locale.language, ...(knowledge == null ? {} : { passages: knowledge.length }) });
+  const context = (search: (typeof all)[number]): AngleContext => ({ search: search.query, sources, ranks: search.ranks, rivals, language: locale.language, ...(knowledge == null ? {} : { passages: knowledge.length }) });
+  const searches = all.filter((search) => staleTitle(search.row.title ?? "", context(search)));
+  if (searches.length === 0) return 0;
   const ask = (task: string, list: readonly Record<string, unknown>[]) =>
     llm(c, {
       site: "topic-title",
@@ -136,6 +142,15 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
     titled += 1;
   }
   return titled;
+}
+
+/** A stored title to ask again: none, or one that fails the writer's wording rules or misspells a name the sources
+ *  write in its own casing ("Ai" for AI). Its search in Title Case, the last fallback, is never asked again. */
+export function staleTitle(stored: string, a: AngleContext): boolean {
+  const title = stored.trim();
+  if (title === "") return true;
+  if (title === casedTitle(a.search, a)) return false;
+  return plannedTitleFaults(title, a.search, a.language).length > 0 || casedTitle(title, a) !== pageTitle(title, a.language ?? "en");
 }
 
 /** The titles of the search's top results as the commit's research read them, at 0¢; none where none is held. */
