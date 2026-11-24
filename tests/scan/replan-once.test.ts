@@ -25,7 +25,7 @@ beforeEach(async () => {
   vi.stubEnv("RK_PLANNER", "0fa1");
   vi.spyOn(console, "log").mockImplementation(() => {});
   __setVendorTransportForTesting(async (payload) => (mails.push(JSON.stringify(payload)), { status: 200, headers: {}, body: '{"id":"m"}' }));
-  [db.reset(), cut = 0];
+  db.reset(); cut = 0;
   db.seed("sites", [{ id: SITE_ID, domain: "savvycal.com" }]);
   const site = panelSite("savvycal.com");
   state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows, weeklyCommit: "2026-10-19" });
