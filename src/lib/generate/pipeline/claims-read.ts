@@ -63,7 +63,8 @@ export async function readClaims(
           "of the plan, tier or trial it belongs to, copied as the page writes it (\"Free trial\", \"Starter\", " +
           "\"Enterprise\"), or null only where it is true of every plan. On a pricing page a limit, an engine " +
           "list or an allowance listed under one plan belongs to that plan. Give each claim's `rival`: the " +
-          "domain of the one of `rivals` it is about, or null. Say what each claim is `about`: " +
+          "domain of the one of `rivals` it is about, or null. For each of `rivals` whose own site a page here is on, give at " +
+          "least one claim from that page about it where the page states its price or what it does. Say what each claim is `about`: " +
           "`price` where it states what the product whose page it is on costs, or how it is priced; `product` " +
           "where it says what that product does, includes or limits; `other` for anything else — a customer " +
           "count, a slogan, a statistic about the market or about another company's product." +

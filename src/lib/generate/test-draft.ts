@@ -13,7 +13,7 @@ export const inTest = (): boolean => scope.getStore() === true;
 type Step = <T>(name: string, body: () => Promise<T>) => Promise<T>;
 
 /** One owner-sent test write: refused at 0¢ off the list or at a full day, else the date's page as a test draft, and one ops row. */
-export async function writeTestDraft(a: { siteId: string; publishDate: string; key: string; now: Date; step: Step }): Promise<{ outcome: string; draftId: string | null }> {
+export async function writeTestDraft(a: { siteId: string; publishDate: string; key: string; now: Date; step: Step }): Promise<{ outcome: string; draftId: string | null; step?: string }> {
   const { isTestSite, dayRefused } = await import("@/lib/scan/weekly/rerun");
   const testing = <T>(name: string, body: () => Promise<T>) => a.step(name, () => scope.run(true, body));
   const ran = !isTestSite(a.siteId) ? { outcome: "not_a_test_site", draftId: null } : (await a.step("ceiling", () => dayRefused(a.siteId, a.now))) ? { outcome: "spend_ceiling", draftId: null } : await write(a, testing);
@@ -23,7 +23,7 @@ export async function writeTestDraft(a: { siteId: string; publishDate: string; k
   return ran;
 }
 
-async function write(a: { siteId: string; publishDate: string; now: Date }, testing: Step): Promise<{ outcome: string; draftId: string | null }> {
+async function write(a: { siteId: string; publishDate: string; now: Date }, testing: Step): Promise<{ outcome: string; draftId: string | null; step?: string }> {
   const { decideDayPage, generateDayPage } = await import(".");
   const { askDayResearch, COLLECT } = await import("./research-queue");
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now, since: a.now };
@@ -35,7 +35,9 @@ async function write(a: { siteId: string; publishDate: string; now: Date }, test
   if (left > 0) return { outcome: "research_pending", draftId: null };
   const written = await testing("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   const draftId = "draftId" in written ? written.draftId : null;
-  if (draftId === null) return { outcome: written.ok ? "in_review" : written.because, draftId };
+  // A short pack reads as one, with the step that names what it lacked, never as a failed step.
+  const step = "step" in written ? written.step : undefined;
+  if (draftId === null) return { outcome: written.ok ? "in_review" : step?.startsWith("pack:") ? "pack:short" : written.because, draftId, ...(step === undefined ? {} : { step }) };
   return { outcome: await testing("end", () => end(draftId)), draftId };
 }
 

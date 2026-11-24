@@ -49,7 +49,7 @@ import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
 import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
-import { deployedStandard, incomplete, meetsStandard, writtenAnyway } from "../standard";
+import { deployedStandard, incomplete, evidenceOf, meetsStandard, writtenAnyway } from "../standard";
 import { batteryCleared, type BatteryOutcome } from "../rules";
 import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
@@ -128,7 +128,7 @@ export type GenerateOutcome =
 
 /** Observability: per-step outcome, which rules failed, the attempt number.
  *  **Never** the prompt, the voice text, the draft body or a passage. */
-function logRun(detail: Record<string, string | number | boolean | null>): void {
+function logRun(detail: Record<string, string | number | boolean | null | string[]>): void {
   console.log(JSON.stringify({ event: "draft_generated", ...detail }));
 }
 
@@ -262,14 +262,14 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const anyway = a.completeness === "warn";
   const missing: PackNeed[] = writtenAnyway(pack, basis.room?.short === true && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing, anyway);
   if ((anyway ? missing.length > 0 : !standard.met) && existing === null) {
-    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, step: "pack", outcome: "short", type: pack.type, missing: missing.join(",") });
+    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, step: "pack", outcome: "short", type: pack.type, missing: missing.join(","), ...evidenceOf(pack) });
     return { ok: false, reason: "step_failed", draftId: null, step: "pack", missing };
   }
   if (missing.length > 0 || (pack.adds.short && !anyway)) {
     const draftId = await writeRow({ title: existing?.title ?? a.opportunity.title ?? null, body_md: existing?.body_md ?? null, meta: baseMeta });
     await store.patchDraft(draftId, { hard_rules_passed: false });
     const step: PipelineStep = missing.length > 0 ? "pack" : "adds";
-    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, draftId, step, outcome: "short", type: pack.type, missing: missing.join(",") });
+    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, draftId, step, outcome: "short", type: pack.type, missing: missing.join(","), ...evidenceOf(pack) });
     return { ok: false, reason: "step_failed", draftId, step, ...(step === "pack" ? { missing } : {}) };
   }
 
