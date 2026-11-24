@@ -25,6 +25,7 @@
 // plans the first week and releases the founder, and sends no Monday mail. *Measure again* sends it once more with `again: true`.
 import { startFirstPass, startWeeklyScan, weeklyDueSites } from "@/jobs/engine";
 import { JOB_SUBJECT_CONCURRENCY, LLM_RUN_THROTTLE } from "@/lib/config/constants";
+import { withDbLane } from "@/lib/db/rest";
 import { parseDomain } from "@/lib/scan/domain";
 import { killSwitchEngaged } from "./kill-switch";
 import { sendSubjects, settle } from "./fan-out";
@@ -35,8 +36,18 @@ import type { JobDefinition, JobInput, Outcome } from "./types";
  *  inside the run. */
 export const WEEKLY_TICK_CRON = "41 * * * *";
 
+/** A pass's admin database requests in flight at once: the database API's pool is small and people share it. */
+const PASS_DB_LANES = 4;
+
+/** One site's pass, its body and each step in a bounded database lane: a step body may run outside the body's context. */
+function weeklySite(input: JobInput): Promise<Outcome> {
+  const step = input.step;
+  const laned = step === undefined ? input : { ...input, step: <T>(name: string, body: () => Promise<T>) => step(name, () => withDbLane(PASS_DB_LANES, body)) };
+  return withDbLane(PASS_DB_LANES, () => sitePass(laned));
+}
+
 /** One site's week, measured and told, in its own steps. */
-async function weeklySite(input: JobInput): Promise<Outcome> {
+async function sitePass(input: JobInput): Promise<Outcome> {
   const { siteId, domain, zone, weekStart, at } = input.data;
   if (input.data.first === true) return firstPass(input);
   if ([siteId, domain, zone, weekStart, at].some((field) => typeof field !== "string")) {

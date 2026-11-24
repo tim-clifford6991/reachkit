@@ -22,7 +22,7 @@
 // the separate, independent guard on `dbAdmin()` itself.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/config/env";
-import { buildReadOptions } from "./rest";
+import { buildReadOptions, lanedFetch } from "./rest";
 import type { Database } from "./types.generated";
 
 export type { Database } from "./types.generated";
@@ -59,9 +59,11 @@ export function dbAdmin(): SupabaseClient<Database> {
     );
   }
   if (!adminClient) {
+    const build = buildReadOptions();
     adminClient = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
-      ...atBuild(),
+      global: { fetch: lanedFetch(build?.fetch) },
+      ...(build && { db: { retry: build.retry } }),
     });
   }
   return adminClient;
