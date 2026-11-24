@@ -16,7 +16,7 @@
 // the response is ever logged. The ceiling is read before each call; a call
 // the page cannot afford is `not_attempted`, never a rule that failed.
 import { z } from "zod";
-import { HEADING_GAPS, RESEARCH, RIVAL_PRICE_MAX_AGE_D, TITLE, VOICE } from "@/lib/config/constants";
+import { HEADING_GAPS, RESEARCH, RIVAL_PRICE_MAX_AGE_D, TITLE, VOICE, WRITE_AIM_MAX_WORDS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
@@ -321,9 +321,13 @@ function templateFor(a: WriteInputs): Record<string, unknown> {
 /** What the writer is told of the page's length: its range, its target, and each section's share of it. */
 function lengthTask(a: WriteInputs): string {
   const { floor, ceiling } = a.length;
-  const target = a.length.target ?? Math.round((floor + ceiling) / 2);
+  // Asked for what one call's output holds, so the first write is never cut off.
+  const target = Math.max(floor, Math.min(a.length.target ?? Math.round((floor + ceiling) / 2), a.free === true ? ceiling : WRITE_AIM_MAX_WORDS));
   const counted = a.pack.type === "update" ? "The page's sections together — the short answer and the takeaways are not counted —" : "The page's body — the short answer, the takeaways and every section together —";
-  const sections = Math.max(1, a.template.sections.reduce((sum, slot) => sum + (slot.repeat?.min ?? 1), 0));
+  // A section's share is of the sections the page will have: one `option` for each of `options`, so the shares sum to the target.
+  const table = tableOf(a);
+  const slots = (slot: Template["sections"][number]): number => (table === null ? (slot.repeat?.min ?? 1) : slot.key === "option" ? table.options.length : slot.key === "baseline" ? Number(table.baseline !== null) : (slot.repeat?.min ?? 1));
+  const sections = Math.max(1, a.template.sections.reduce((sum, slot) => sum + slots(slot), 0));
   const each = a.length.each ?? (floor > 0 ? Math.round(target / sections) : Math.round((AIM * ceiling) / sectionBounds(a.template).max));
   const range = floor > 0 ? `between ${floor} and ${ceiling}` : `at most ${ceiling}`;
   const least = floor > 0 ? `, and no section under ${Math.ceil((floor * 1.15) / sections)}` : "";
@@ -362,8 +366,12 @@ function taskFor(a: WriteInputs): string {
   ].join(" ");
 }
 
+function tableOf(a: WriteInputs): ReturnType<typeof comparisonTable> {
+  return a.template.blocks.table === undefined || a.pack.type !== "listicle" ? null : comparisonTable(a.pack, a.template.blocks.table.rivals);
+}
+
 function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<string, unknown> {
-  const table = a.template.blocks.table === undefined || a.pack.type !== "listicle" ? null : comparisonTable(a.pack, a.template.blocks.table.rivals);
+  const table = tableOf(a);
   const unpriced = unpricedProducts(a.pack);
   return {
     task: taskFor(a),

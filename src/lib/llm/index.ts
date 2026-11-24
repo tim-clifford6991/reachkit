@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { z, type ZodType } from "zod";
 import {
   INFERENCE_ATTEMPTS,
+  INFERENCE_INPUT_RESERVE,
   INFERENCE_MAX_OUTPUT_TOKENS,
   INFERENCE_MAX_RETRIES,
   INFERENCE_TEMPERATURE,
@@ -559,7 +560,7 @@ export async function llm<T>(
   const tool = answerToolFor(call.site, call.schema);
   const cacheKey = createHash("sha256").update(`${call.site}:${call.tier}:${inputText}`).digest("hex");
   const attempts = INFERENCE_ATTEMPTS[call.site] ?? MAX_ATTEMPTS;
-  const attemptCents = costCentsFor(call.tier, estimateTokens(inputText), maxOutputTokens);
+  const attemptCents = costCentsFor(call.tier, estimateTokens(inputText) * (INFERENCE_INPUT_RESERVE[call.site] ?? 1), maxOutputTokens);
 
   const result = await c.recordFetch<AttemptOutcome>({
     source: call.site,
