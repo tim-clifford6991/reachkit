@@ -22,10 +22,11 @@
 //     topic rests until the site's next weekly commit;
 //   * a stopped draft does not cost its day (D26): the same run writes the
 //     week's next spare (`pageForDay`), at most once more, in the one context;
-//   * a short pack writes no row and rests its topic (issue 1536), and the day
+//   * a short pack writes the planned page with what it holds; only a
+//     comparison with no first-hand evidence for a product it names, or an
+//     update with no live page, writes no row and rests its topic, and the day
 //     goes on without using up D26's one more (issue 1477); once no spare is
-//     left, the day's fallback updates a page or writes its topic anyway
-//     (`refreshForDay`). A page that adds too little rests named.
+//     left, the day's fallback updates a page (`refreshForDay`).
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the next draft tick rewrites the row for its date.
 import { answeredQueries } from "@/lib/measure/page-reading";
@@ -35,7 +36,6 @@ import {
   pageForDay,
   queueForDraft,
   restTopic,
-  updateInstead,
   type Opportunity,
 } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
@@ -64,7 +64,6 @@ import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 import { inTest } from "./test-draft";
 import { recentFacts, storedChanges } from "@/lib/hot/detect";
-import { recordWrittenAnyway } from "@/lib/ops/events";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 
@@ -207,8 +206,8 @@ export async function generateDayPage(a: {
         // Only a row that was written and stopped is moved on from — a run
         // that wrote none rested nothing, and its topic is still the head.
         const stopped = stoppedRow(outcome);
-        // Issue 1477: a short pack wrote nothing and cost its pack alone, so it does not use up D26's one more topic.
-        const short = packShort(outcome);
+        // Issue 1477: a page stopped before writing cost its pack alone, so it does not use up D26's one more topic.
+        const short = unwritten(outcome);
         if (!short) written += 1;
         // Issue 1536: its topic is one its pack cannot fill, so it rests as a stopped one does.
         if (short && stopped === null) await restTopic(opportunity.id, now, { zone: site.timeZone });
@@ -236,8 +235,8 @@ function stoppedRow(outcome: DayPageOutcome): string | null {
   return outcome.because === "rules" || outcome.because === "step_failed" ? outcome.draftId : null;
 }
 
-/** No page written: the pack was short of what its template asks (D41), or a mend had nothing it may check. */
-function packShort(outcome: DayPageOutcome): boolean {
+/** No page written: the pack lacked rival evidence or a live page, or a mend had nothing it may check. */
+function unwritten(outcome: DayPageOutcome): boolean {
   return !outcome.ok && outcome.because === "step_failed" && (outcome.step.startsWith("pack") || (outcome.step === "mend" && outcome.draftId === null));
 }
 
@@ -288,10 +287,10 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   return outcome;
 }
 
-/** A page the day's fallback writes in its one cost context (SPEC §7): an update from the day's research, or the last
- *  step's page written anyway (`completeness`). Its one fix call is the pipeline's own. `now` is the run's due hour. */
-export async function writeFallback(page: PageInput & { publishDate: string }, now: Date, day?: CostContext, completeness?: "warn", since = now): Promise<DayPageOutcome> {
-  const write = (cost: CostContext) => writePage({ ...page, attempts: 1, ...(completeness === undefined ? {} : { completeness }) }, cost);
+/** A page the day's fallback writes in its one cost context (SPEC §7): an update from the day's research, or a row's
+ *  owed fix. Its one fix call is the pipeline's own. `now` is the run's due hour. */
+export async function writeFallback(page: PageInput & { publishDate: string }, now: Date, day?: CostContext, since = now): Promise<DayPageOutcome> {
+  const write = (cost: CostContext) => writePage({ ...page, attempts: 1 }, cost);
   const outcome = day === undefined ? await openDayCost({ scanId: page.report.scanId, siteId: page.siteId, since }, write) : await write(day);
   await settle(outcome, page.opportunity.id, now, page.site);
   return outcome;
@@ -461,10 +460,10 @@ async function livePageOf(
   };
 }
 
-async function writePage(a: PageInput & { attempts: number; startedAt?: number; completeness?: "warn" }, cost: CostContext): Promise<DayPageOutcome> {
+async function writePage(a: PageInput & { attempts: number; startedAt?: number }, cost: CostContext): Promise<DayPageOutcome> {
   const { site, report } = a;
   const startedAt = a.startedAt ?? Date.now();
-  let opportunity = a.opportunity;
+  const opportunity = a.opportunity;
 
   const { ruleInputs, confirmed, locale, writingVoice, writingFor, category, known, linksFor, sitePages, facts, demoPhrases, livePages } = await dayInputs(a);
 
@@ -516,7 +515,6 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
 
   // #788: one row for the date across every attempt.
   let draftId = a.draftId;
-  let becameUpdate = false;
   // The pack is built once for an opportunity: a write call tried again
   // (#813) is written from the pack the first one was.
   const packs = new Map<string, Awaited<ReturnType<typeof packFor>>>();
@@ -541,31 +539,13 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
       demoPhrases,
       intent: intentFor({ query: opportunity.targetQuery, volume: opportunity.volume }, site.prompts ?? []),
       startedAt,
-      ...(draftId === undefined ? {} : { draftId }), ...(a.completeness === undefined ? {} : { completeness: a.completeness }), ...(a.fixStep === undefined ? {} : { fixStep: a.fixStep }), ...(shorter ? { shorter: true as const } : {}),
+      ...(draftId === undefined ? {} : { draftId }), ...(a.fixStep === undefined ? {} : { fixStep: a.fixStep }), ...(shorter ? { shorter: true as const } : {}),
     });
     if (last.draftId !== null) draftId = last.draftId;
-    if (last.ok) {
-      // A list or comparison with no independent source is written anyway, never stopped, and says so; the last step says its own.
-      if (built.pack.type === "listicle" && built.pack.mix?.independent === 0 && a.completeness === undefined) await recordWrittenAnyway(a.siteId, last.draftId, "outside_sources");
-      return { ok: true, draftId: last.draftId };
-    }
+    if (last.ok) return { ok: true, draftId: last.draftId };
     if ("owed" in last && last.draftId !== null) return { ok: false, because: "fix_owed", draftId: last.draftId };
     if (last.reason === "rules") {
       return { ok: false, because: "rules", draftId: draftId ?? null, attempts: last.attempt, ...(last.fix === undefined ? {} : { stopped: last.fix }), ...(last.stop === undefined ? {} : { stop: last.stop }) };
-    }
-    // SPEC §7 (D12, issue 1143): a new page whose pack adds too little is not
-    // written. Where the site has a close page the destination can update,
-    // the day becomes an update of it — on the same row, once, and held to no
-    // bar of its own; otherwise the row rests and the draft asks the founder
-    // for the missing fact.
-    if (last.step === "adds" && !becameUpdate && !cost.capHit() && !inTest()) {
-      const update = await updateInstead(opportunity, known, new Date());
-      if (update !== null) {
-        console.log(JSON.stringify({ event: "draft_became_update", siteId: a.siteId, draftId: draftId ?? null, page: update.targetRef }));
-        opportunity = update;
-        becameUpdate = true;
-        continue;
-      }
     }
     // A write call that did not answer is tried once more, and one cut off at its cap is asked for a shorter page,
     // never the same input again; a refused answer is not. The ceiling and the job's clock would stop it too.
@@ -579,7 +559,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
       ok: false,
       because: "step_failed",
       draftId: draftId ?? null,
-      // A short pack names what is missing (D41).
+      // A stop before writing names which of its two needs is missing.
       step: last.step === "pack" && last.missing !== undefined ? `pack:${last.missing.join(",")}` : last.step,
     };
   }

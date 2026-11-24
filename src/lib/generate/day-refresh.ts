@@ -1,19 +1,17 @@
 // SPEC §7 *Every day has new or updated content* (owner, 2026-11-05, 2026-11-17 and 2026-11-18) — a day whose topics
 // and spares ended without a page takes, in the same run, the writer's update of the live page furthest below the
-// standard, kept only where it adds real substance; else its last step, the committed topic written anyway. It ends
-// empty only behind a harm stop, or where nothing can be sourced.
+// standard, kept only where it adds real substance. A short pack writes its own planned page, so no topic is written
+// anyway here.
 import { z } from "zod";
-import { DAY_TOPICS_MAX, PIPELINE, REFRESH_MIN_AGE_DAYS, RESEARCH, SITE_PROFILE, TITLE } from "@/lib/config/constants";
+import { DAY_TOPICS_MAX, REFRESH_MIN_AGE_DAYS, RESEARCH, SITE_PROFILE, TITLE } from "@/lib/config/constants";
 import { googleRead, readingOf } from "@/lib/measure/page-reading";
 import { siteLocale } from "@/lib/locale/site";
-import { committedWeek, opportunityById, pageForDay, restTopic, type Opportunity } from "@/lib/opportunities";
+import { opportunityById, pageForDay, restTopic, type Opportunity } from "@/lib/opportunities";
 import { addressKey, persistAssessed, refreshOfPage, stoppedRefreshes, type OwnLivePage } from "@/lib/opportunities/refresh";
 import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
-import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { isResting } from "@/lib/opportunities/types";
 import { serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import type { CostContext } from "@/lib/costs";
-import { recordWrittenAnyway } from "@/lib/ops/events";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DayPageOutcome } from ".";
 import { openDayCost, roomForFix } from "./cost";
@@ -193,11 +191,8 @@ async function plannedTopic(siteId: string, date: string): Promise<Opportunity |
   return row === undefined ? null : row.plan_write_as == null ? readOpportunity(row) : { ...readOpportunity(row), writeAs: row.plan_write_as };
 }
 
-/** A day the fallback kept no page for: each update candidate's gate, and `harm_stop` where a harm rule ended it. */
+/** A day the fallback kept no page for: each update candidate's gate. */
 type Passed = { ok: false; because: "passed"; why: string };
-const HARM_STOP = { ok: false, because: "harm_stop" } as const;
-// A last step that tried no topic, which the reason keeps apart from one whose topics all failed.
-const NO_TOPIC = { ok: false, because: "no_topic" } as const;
 
 type Day = { siteId: string; site: SiteFacts; report: StoredReport; publishDate: string };
 type Candidate = { page: OwnLivePage; standard: { parts: PartMark[]; met: boolean } | null; early: boolean };
@@ -319,52 +314,9 @@ function tally(passed: readonly string[]): string {
   return counts.size === 0 ? "no_candidate" : `update:${[...counts].map(([why, n]) => (n > 1 ? `${why}×${n}` : why)).join(",")}`;
 }
 
-/** The topics a day's last step may write: its own date's first, an update too since it was committed for the date,
- *  then the spares that are new topics. Never a fix. */
-async function weekTopics(siteId: string, date: string): Promise<Opportunity[]> {
-  const { days, spares } = await committedWeek(siteId);
-  const own = days.filter((day) => day.date === date).map((day) => day.opportunity);
-  const writable = (o: Opportunity) => o.type !== "fix_page" && !mendable(o) && !snippetOnly(o) && contentTypeOf(o) !== null;
-  return [...own.filter(writable), ...spares.filter((o) => writable(o) && contentTypeOf(o) !== "update")];
-}
-
-/**
- * The day's last step (SPEC §7, owner 2026-11-18, rulings 1, 11, 13 and 16). A page a harm rule stopped ends the day
- * empty. Otherwise the topic is written anyway, as its type where its research holds the minimum, else as documentation from the
- * site's own facts; a topic neither can source costs no write, and the week's next short topic is tried. One write.
- */
-async function lastStep(day: Day, a: { trigger: string; stopped: string | null; giveUp: () => Promise<void> }, now: Date, cost: CostContext): Promise<DayPageOutcome | typeof HARM_STOP | typeof NO_TOPIC> {
-  const store = generateStore();
-  const row = a.stopped === null ? null : await store.draftById(a.stopped);
-  const failures = readRecordedRules(row?.rule_failures) ?? [];
-  if (failures.some(stops)) return HARM_STOP;
-  await a.giveUp();
-  const { writeFallback } = await import(".");
-  const startedAt = Date.now();
-  let ended: DayPageOutcome | typeof NO_TOPIC = NO_TOPIC;
-  for (const topic of await weekTopics(day.siteId, day.publishDate)) {
-    // An update is its live page's new version, never a new page beside it.
-    for (const opportunity of contentTypeOf(topic) === "documentation" || contentTypeOf(topic) === "update" ? [topic] : [topic, { ...topic, writeAs: "documentation" as const }]) {
-      if (cost.capHit() || Date.now() - startedAt > PIPELINE.nextTopicBeforeMs) return ended;
-      const outcome = await writeFallback({ ...day, opportunity }, now, cost, "warn");
-      const draftId = outcome.ok ? outcome.draftId : "draftId" in outcome ? outcome.draftId : null;
-      if (draftId === null) {
-        ended = outcome;
-        // A documentation page reads no rival, so a topic short of rival evidence gives its turn to the next spare.
-        if (!outcome.ok && outcome.because === "step_failed" && outcome.step.includes("rival_evidence")) break;
-        continue;
-      }
-      await store.patchDraft(draftId, { meta: { ...metaOf((await store.draftById(draftId))?.meta), fallbackFor: a.trigger, anyway: true } });
-      await recordWrittenAnyway(day.siteId, draftId, a.trigger);
-      return outcome;
-    }
-  }
-  return ended;
-}
-
 /** The day's page, where its own and its spares did not pass: the writer's update of the live page furthest below the
- *  standard, else the last step. Where neither kept it, `passed` names each update candidate's gate, the last step's
- *  failure and `harm_stop` behind a harm stop. `stopped` is the row that holds the date, which gives it up only to a page written for it. */
+ *  standard. Where none kept it, `passed` names each update candidate's gate, a recommit's failure and `harm_stop` behind
+ *  a harm stop. `stopped` is the row that holds the date, which gives it up only to a page written for it. */
 export async function refreshForDay(a: {
   siteId: string;
   publishDate: string;
@@ -394,20 +346,20 @@ export async function refreshForDay(a: {
       throw error;
     });
   const passed: string[] = [];
-  const ended = (outcome: DayPageOutcome | typeof HARM_STOP | typeof NO_TOPIC | null) => {
+  const ended = (outcome: DayPageOutcome | null) => {
     if (outcome !== null && (outcome.ok || outcome.because === "already_drafted")) return outcome;
-    const last = outcome === null ? "" : outcome.because === "harm_stop" ? ";harm_stop" : `;last:${outcome.because}${"step" in outcome ? `:${outcome.step}` : ""}`;
+    const last = outcome === null ? "" : `;last:${outcome.because}${"step" in outcome ? `:${outcome.step}` : ""}`;
     return { ok: false, because: "passed", why: `${tally(passed)}${last}` } as const;
   };
   const updated = await inDay((cost) => dayUpdate(day, a.trigger, now, cost, giveUp, passed));
   if (updated !== null) return updated;
-  // A day whose select found no topic has spent nothing, so it recommits before its last step.
+  // A day whose select found no topic has spent nothing, so it recommits once.
   if (a.trigger === "generate:no_opportunity" && a.from === "select") {
     const { generateDayPage } = await import(".");
     const page = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate, updatesTried: true, now, since: a.since });
     if (page.ok || page.because !== "no_opportunity") return ended(page);
   }
-  // A topic whose research is still on the queue is not short: the next tick writes it.
-  if (a.trigger === "generate:research_pending") return ended(null);
-  return ended(await inDay((cost) => lastStep(day, { trigger: a.trigger, stopped: holds ? a.stopped : null, giveUp }, now, cost)));
+  // A day a harm rule ended is marked so, and is never re-sent.
+  const harm = holds && (readRecordedRules((await store.draftById(a.stopped!))?.rule_failures) ?? []).some(stops);
+  return harm ? { ok: false, because: "passed", why: `${tally(passed)};harm_stop` } : ended(null);
 }

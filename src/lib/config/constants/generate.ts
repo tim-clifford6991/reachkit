@@ -336,11 +336,8 @@ export const HEADING_GAPS = Object.freeze({
  *  `min` is the ruling's: at least three claims found neither in the
  *  target's top results nor on the customer's pages; a page without a
  *  business fact stands on research alone. The rest are drafted bounds: how much of the
- *  customer's own pages the listing is shown, how many claims it may return,
- *  and how close an existing page has to be before a page short of the bar
- *  becomes an update of it rather than waiting — half of
- *  `KNOWN_CONTENT.COVERED_MIN`, at and above which the topic was already an
- *  update before it was ever written. */
+ *  customer's own pages the listing is shown, and how many claims it may
+ *  return. */
 export const ADDS = Object.freeze({
   min: 3,
   maxClaims: 12,
@@ -348,7 +345,6 @@ export const ADDS = Object.freeze({
    *  of them together. The code check reads every page whole. */
   sitePageWords: 600,
   siteWords: 3000,
-  updateMin: 0.3,
 } as const);
 
 /** SPEC §7 (drafted default the owner may correct): a how-to or a Q&A is
