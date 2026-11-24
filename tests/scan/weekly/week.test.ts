@@ -175,3 +175,15 @@ it("the news read searches what moves the market while the pass's watch waits on
   const { newsQueries } = await import("@/lib/scan/weekly/market-changes");
   expect(newsQueries({ current: null, pending: { watch: ["ChatGPT"] } } as never, "geo")).toEqual(["ChatGPT", "geo"]);
 });
+
+it("two results of one watch search are one story only where their titles share words beyond the search's own", async () => {
+  const { storiesOf } = await import("@/lib/scan/weekly/market-changes");
+  const row = (url: string, title: string) => ({ url, domain: new URL(url).hostname, title, source: "", publishedAt: "2026-11-20", query: "Google AI Overviews" });
+  const stories = storiesOf([
+    row("https://nbclosangeles.com/a", "LAUSD disables Google AI Overviews, reviews Google search"),
+    row("https://seroundtable.com/b", "Google AI Overviews with unfaded citations"),
+    row("https://techpolicy.press/c", "AI Overviews cut clicks 40% in randomized study"),
+    row("https://superpowerdaily.com/d", "Study: Google AI Overviews cut outbound clicks 40%"),
+  ]);
+  expect(stories.map((story) => story.map((r) => new URL(r.url).hostname))).toEqual([["techpolicy.press", "superpowerdaily.com"]]);
+});

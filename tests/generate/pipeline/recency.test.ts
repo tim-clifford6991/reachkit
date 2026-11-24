@@ -1,7 +1,7 @@
 // SPEC §7 *Two pools of facts*: a page published 2026-11-21 cited a Pew page its own markup dates 2025-07-22 as if
 // undated, beside newer claims on the same subject. The page is dated from its markup, and the old claim gives way.
 import { describe, expect, it } from "vitest";
-import { agesOf, newestCredible } from "../../../src/lib/generate/pipeline/claims";
+import { admittedClaims, agesOf, newestCredible } from "../../../src/lib/generate/pipeline/claims";
 import { datedOf } from "../../../src/lib/generate/pipeline/dated";
 import { withSources } from "../../../src/lib/generate/pipeline/sources";
 
@@ -22,5 +22,12 @@ describe("the newest credible source on a subject is cited first", () => {
     const claims = [{ ...base, secondHand: true as const, passage: "Over 75% of Google searches could feature AI summaries by 2028." }, ...[23, 24].map((at) => ({ ...base, publishedAt: "2025-10-29", datedBy: "jsonld" as const, passage: `AI share of voice is ${at}% of answers.` }))];
     expect(withSources(`See [it](${url}).`, claims, { language: "en", tag: "en-GB", timeZone: "UTC" })).toMatch(/· published October 2025 ·/);
     expect(agesOf(newestCredible(claims, now), now).oldest).toEqual({ url, days: 388 });
+  });
+  it("ages a 2023 'after 2021' claim (production, 24 Nov) by its published day, not a 2026 modified one, and dates its line so", () => {
+    const url = "https://digimor.in/chatgpt-seo/", quote = "ChatGPT loses its ability to give information about events after 2021.";
+    const page = { url, title: "ChatGPT for SEO", text: quote, readAt: now.toISOString(), kind: "top_result" as const, publishedAt: "2023-04-28", modifiedAt: "2026-11-20", datedBy: "jsonld" as const };
+    const [claim] = admittedClaims([{ page: 1, quote, year: null, about: "other" as const, plan: null, rival: null }], [page], now);
+    expect(claim).toMatchObject({ timeliness: "dated", ageAt: "2023-04-28" });
+    expect(withSources(`See [it](${url}).`, [claim!], { language: "en", tag: "en-GB", timeZone: "UTC" })).toMatch(/· published April 2023 · read on/);
   });
 });

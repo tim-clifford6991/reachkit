@@ -51,10 +51,20 @@ export const pressWire = (url: string, text = ""): boolean => WIRE_RE.test(url) 
 
 // General publications and analysts, then review platforms, that a bot can read: an outside page here is independent by its host.
 const PUBLICATIONS = ["searchengineland.com", "searchenginejournal.com", "digiday.com", "techcrunch.com", "theverge.com", "axios.com", "bbc.co.uk", "pewresearch.org", "forrester.com", "gartner.com"], REVIEWS = ["g2.com", "capterra.com", "trustradius.com", "omr.com"];
+// A sponsor's paid post on a publication or review host, by its address or a line near the top: its sponsor's word.
+const SPONSORED_PATH_RE = /\/(?:sponsored|sponsored-content|partner|partner-content|brandvoice)(?:\/|$)|-spa(?:\/|$)/i;
+const SPONSORED_TEXT_RE = /\b(?:sponsored by|in partnership with)\b/i;
+const sponsored = (url: string, text = ""): boolean => {
+  const host = hostOf(url);
+  if (![...PUBLICATIONS, ...REVIEWS].some((each) => sameSite(host, each))) return false;
+  return SPONSORED_PATH_RE.test(new URL(url).pathname) || SPONSORED_TEXT_RE.test(text.slice(0, 1_000));
+};
+
 /** The tier an address alone gives a page's first-hand claims, or none where only its words can say. */
 export function addressTier(url: string, language: Language, rivals: readonly string[] = []): SourceTier | undefined {
   const host = hostOf(url), on = (hosts: readonly string[]): boolean => hosts.some((each) => sameSite(host, each));
   if (on(rivals) || pressWire(url)) return on(rivals) ? "vendor" : "wire";
+  if (sponsored(url)) return undefined;
   return primaryAddress(url) || languagePack(language).officialHosts.test(host) ? "primary" : on(PUBLICATIONS) ? "publication" : on(REVIEWS) ? "review" : undefined;
 }
 
@@ -108,6 +118,7 @@ export function tiered(facts: readonly MarketFact[], a: { rivals: readonly strin
   const wire = new Set(a.pages.filter((page) => pressWire(page.url, page.text)).map((page) => page.url));
   const products = [...a.products.map((domain) => ({ domain })), ...(a.names ?? [])];
   const review = new Set(a.pages.filter((page) => new Set(namedIn(page.text, products)).size >= 2).map((page) => page.url));
+  const paid = new Map(a.pages.filter((page) => sponsored(page.url, page.text)).map((page) => [page.url, namedIn(page.text, products).length > 0 ? "vendor" : "other"] as const));
   // A site two or more other sites cite as their original is a publisher.
   const citers = new Map<string, Set<string>>();
   for (const fact of facts) if (fact.via !== undefined) citers.set(siteOf(fact.url), (citers.get(siteOf(fact.url)) ?? new Set()).add(siteOf(fact.via)));
@@ -115,6 +126,7 @@ export function tiered(facts: readonly MarketFact[], a: { rivals: readonly strin
     const host = hostOf(fact.url), byAddress = addressTier(fact.url, a.language, a.rivals);
     if (fact.product !== undefined || byAddress === "vendor") return "vendor";
     if (wire.has(fact.url) || byAddress === "wire") return "wire";
+    if (paid.has(fact.url)) return paid.get(fact.url)!;
     if (fact.kind === "primary" || byAddress === "primary") return "primary";
     if (fact.via !== undefined) return "original";
     if (a.products.some((product) => sameSite(host, product))) return "vendor";

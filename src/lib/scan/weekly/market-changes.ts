@@ -32,7 +32,7 @@ export interface MarketChange {
   reportedOn: string;
   words: string[];
   claims: { url: string; publisher: string; publishedAt: string; quote: string }[];
-  /** The site-local Mondays the change was first and last recorded on. */
+  /** The days the change was first and last read on. */
   firstSeen: string;
   lastSeen: string;
 }
@@ -48,11 +48,12 @@ export function sameTopic(a: ReadonlySet<string>, b: ReadonlySet<string>): boole
 
 const publisherOf = (row: Pick<NewsRow, "url" | "domain">): string => registrableDomain(row.url) ?? row.domain;
 
-/** News results grouped into stories, each story led by its first result's title. */
-export function storiesOf(rows: readonly NewsRow[]): NewsRow[][] {
+/** News results grouped into stories, each story led by its first result's title. Every result of a search carries
+ *  the search's own words, so a story is the words its titles share beyond the search that found each. */
+export function storiesOf(rows: readonly (NewsRow & { query: string })[]): NewsRow[][] {
   const stories: { words: Set<string>; rows: NewsRow[] }[] = [];
   for (const row of rows) {
-    const words = topicWords(row.title);
+    const searched = topicWords(row.query), words = new Set([...topicWords(row.title)].filter((word) => !searched.has(word)));
     if (words.size === 0) continue;
     const story = stories.find((held) => sameTopic(held.words, words));
     if (story === undefined) stories.push({ words, rows: [row] });
@@ -78,14 +79,14 @@ export async function buyMarketChanges(
   const today = a.today.toISOString().slice(0, 10);
   const since = new Date(a.today.getTime() - MARKET_CHANGES.days * 86_400_000).toISOString().slice(0, 10);
   const inWindow = (day: string): boolean => day >= since && day <= today;
-  const rows: NewsRow[] = [];
+  const rows: (NewsRow & { query: string })[] = [];
   // At once, since each waits on the vendor following Google's links; a link it could not follow names no publisher and is skipped alone.
   const reads = c.capHit() ? [] : await Promise.all(counts.queries.map((query) =>
     serpNews(c, { query, locale: a.locale, scope: { site: a.siteId }, freshnessDays: a.again ? 0 : CACHE_WINDOWS_D.news, resolveRedirects: true, pastWeek: true })));
-  for (const news of reads) {
-    if (news.kind === "unmeasured") continue;
-    for (const row of news.value) if (googleWrapper(row.url) === null && inWindow(row.publishedAt) && !a.notOurs.has(publisherOf(row)) && !rows.some((held) => held.url === row.url)) rows.push(row);
-  }
+  reads.forEach((news, at) => {
+    if (news.kind === "unmeasured") return;
+    for (const row of news.value) if (googleWrapper(row.url) === null && inWindow(row.publishedAt) && !a.notOurs.has(publisherOf(row)) && !rows.some((held) => held.url === row.url)) rows.push({ ...row, query: counts.queries[at]! });
+  });
 
   // Each story's reports read and dated by their own page where it states one; a syndicated copy is the report it copies.
   const stories: Report[][] = [];
@@ -160,9 +161,10 @@ async function recordWeek(a: { scanId: string; siteId: string; weekStart: string
   const earlier = (await readMarketChanges({ siteIds: [a.siteId], from: new Date(Date.parse(`${a.weekStart}T00:00:00Z`) - 5 * 7 * 86_400_000).toISOString().slice(0, 10) }))
     .flatMap((week) => week.changes as Partial<MarketChange>[])
     .filter((change) => Array.isArray(change.words) && typeof change.firstSeen === "string");
+  const day = a.now.toISOString().slice(0, 10);
   const changes: MarketChange[] = found.map((change) => {
     const before = earlier.find((held) => sameTopic(new Set(held.words), new Set(change.words)));
-    return { ...change, firstSeen: before?.firstSeen ?? a.weekStart, lastSeen: a.weekStart };
+    return { ...change, firstSeen: before?.firstSeen ?? day, lastSeen: day };
   });
   await storeMarketChanges({ siteId: a.siteId, weekStart: a.weekStart, changes });
   return changes.length;
