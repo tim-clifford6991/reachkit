@@ -1207,7 +1207,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
   );
   it.each(["rested at decide", "set aside", "stopped by the customer"] as const)("a day whose first topic is %s writes its spare through the one loop: one page on the date", async (path) => {
     const date = nextPublishDate(EVENING, SITE_CLOCK);
-    if (path === "rested at decide") [generateStore.site.rivals, livePage.down] = [["asana.com", "trello.com"], "asana.com"];
+    if (path === "rested at decide") [generateStore.site!.rivals, livePage.down] = [["asana.com", "trello.com"], "asana.com"];
     const first = await seedOneOpportunity(path === "rested at decide" ? "asana vs trello" : "task tracking for agencies", path === "set aside" ? { type: "refresh_page", shortfall: { kind: "due", cause: "link" } } : {});
     const spare = await seedOneOpportunity();
     const row = (id: string) => opportunities.rows.find((each) => each.id === id)!;
