@@ -14,6 +14,7 @@ import { siteWritingMarket, type WritingMarket } from "@/lib/generate/voice/mark
 import type { Locale } from "@/lib/locale/locales";
 import { siteLocale } from "@/lib/locale/site";
 import { readSiteMarket } from "@/lib/market/infer/stored";
+import type { StoredMarket } from "@/lib/market/infer/types";
 import { googleWrapper, registrableDomain } from "@/lib/market/rivals/domains";
 import { topicWords } from "@/lib/opportunities/intent";
 import { serpNews } from "@/lib/vendors/dataforseo";
@@ -60,17 +61,26 @@ export function storiesOf(rows: readonly NewsRow[]): NewsRow[][] {
   return stories.map((story) => story.rows).filter((story) => new Set(story.map(publisherOf)).size >= MARKET_CHANGES.sources);
 }
 
+/** What moves the market first, since coverage of a launch or an update never names the category; the category fills the rest.
+ *  A market still pending holds the watch no pass has yet written onto the standing one. */
+export function newsQueries(stored: Pick<StoredMarket, "current" | "pending">, category: string): string[] {
+  const watch = stored.current?.watch ?? stored.pending?.watch ?? [];
+  return [...new Set([...watch, category].map((term) => term.trim()).filter((term) => term !== ""))];
+}
+
 /** The week's market changes, bought under `c`; `[]` where the cap, the vendor or the judgement leaves none. */
 export async function buyMarketChanges(
   c: CostContext,
   a: { siteId: string; locale: Locale; terms: readonly string[]; notOurs: ReadonlySet<string>; market: WritingMarket; today: Date; again?: true }
 ): Promise<Omit<MarketChange, "firstSeen" | "lastSeen">[]> {
+  const counts = { queries: a.terms.slice(0, RESEARCH.newsSearches), rows: 0, stories: 0, judged: 0, events: 0 };
+  const told = <T>(found: T[]): T[] => (console.log(JSON.stringify({ event: "market_changes_read", siteId: a.siteId, ...counts, claimed: found.length })), found);
   const today = a.today.toISOString().slice(0, 10);
   const since = new Date(a.today.getTime() - MARKET_CHANGES.days * 86_400_000).toISOString().slice(0, 10);
   const inWindow = (day: string): boolean => day >= since && day <= today;
   const rows: NewsRow[] = [];
   // At once, since each waits on the vendor following Google's links; a link it could not follow names no publisher and is skipped alone.
-  const reads = c.capHit() ? [] : await Promise.all(a.terms.slice(0, RESEARCH.newsSearches).map((query) =>
+  const reads = c.capHit() ? [] : await Promise.all(counts.queries.map((query) =>
     serpNews(c, { query, locale: a.locale, scope: { site: a.siteId }, freshnessDays: a.again ? 0 : CACHE_WINDOWS_D.news, resolveRedirects: true, pastWeek: true })));
   for (const news of reads) {
     if (news.kind === "unmeasured") continue;
@@ -90,18 +100,21 @@ export async function buyMarketChanges(
     });
     if (held.length >= MARKET_CHANGES.sources) stories.push(held);
   }
-  if (stories.length === 0 || c.capHit()) return [];
+  Object.assign(counts, { rows: rows.length, stories: stories.length });
+  if (stories.length === 0 || c.capHit()) return told([]);
 
   // Judged a batch at a time, and read for claims a call's pages at a time, while the cap leaves room: the cap is the only bound.
   const kept: { story: Report[]; names: string }[] = [];
   for (let at = 0; at < stories.length && !c.capHit(); at += RESEARCH.recentJudged) {
     const batch = stories.slice(at, at + RESEARCH.recentJudged);
     const about = await newsFit(c, { locale: a.locale, market: a.market, fallback: a.terms.at(-1) ?? "", results: batch.map((story) => story[0]!) });
+    counts.judged += batch.length;
     batch.forEach((story, n) => {
       const names = about?.get(n);
       if (names !== undefined) kept.push({ story, names });
     });
   }
+  counts.events = kept.length;
   const facts: MarketFact[] = [];
   // One call at a time, each holding whole pairs, so the first call the cap allows can already store a change.
   const perCall = RESEARCH.pagesPerCall - (RESEARCH.pagesPerCall % MARKET_CHANGES.sources);
@@ -111,7 +124,7 @@ export async function buyMarketChanges(
       locale: a.locale, search: a.market.category, rivals: [], today: a.today, siteId: a.siteId, calls: 1,
     })));
   }
-  return kept.flatMap(({ story, names }) => {
+  return told(kept.flatMap(({ story, names }) => {
     const claims = facts.flatMap((fact) => {
       const report = story.find((page) => page.url === fact.url);
       return report === undefined ? [] : [{ url: report.url, publisher: report.source, publishedAt: report.publishedAt, quote: fact.passage }];
@@ -120,7 +133,7 @@ export async function buyMarketChanges(
     if (new Set(claims.map((claim) => publisherOf({ url: claim.url, domain: claim.publisher }))).size < MARKET_CHANGES.sources) return [];
     const reportedOn = story.map((page) => page.publishedAt).sort()[0]!;
     return [{ title: story[0]!.title, names, reportedOn, words: [...topicWords(story[0]!.title)], claims }];
-  });
+  }));
 }
 
 /** The weekly pass's market changes, once per site and week: how many were stored, `null` where the week was already
@@ -139,11 +152,9 @@ async function recordWeek(a: { scanId: string; siteId: string; weekStart: string
   const [site, report, locale] = await Promise.all([readSiteMarket(a.siteId), readScanReport(a.scanId), siteLocale(a.siteId)]);
   if (site === null || report === null) return 0;
   const market = siteWritingMarket({ category: site.category, rivals: site.competitors, market: site.stored }, report);
-  // What moves the market first, since coverage of a launch or an update never names the category; the category fills the rest.
-  const terms = [...(site.stored.current?.watch ?? []), market.category].map((term) => term.trim()).filter((term) => term !== "");
   const notOurs = new Set([site.domain, ...site.competitors, ...market.concluded.map((rival) => rival.domain)].flatMap((host) => registrableDomain(host) ?? []));
   const found = await withCostContext({ scanId: a.scanId, cap: "WEEK_NEWS", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, (c) =>
-    buyMarketChanges(c, { siteId: a.siteId, locale, terms: [...new Set(terms)], notOurs, market, today: a.now, ...(a.again ? { again: true as const } : {}) })
+    buyMarketChanges(c, { siteId: a.siteId, locale, terms: newsQueries(site.stored, market.category), notOurs, market, today: a.now, ...(a.again ? { again: true as const } : {}) })
   );
   // A change seen in an earlier week keeps the week it was first seen.
   const earlier = (await readMarketChanges({ siteIds: [a.siteId], from: new Date(Date.parse(`${a.weekStart}T00:00:00Z`) - 5 * 7 * 86_400_000).toISOString().slice(0, 10) }))

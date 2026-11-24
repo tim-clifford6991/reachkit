@@ -128,7 +128,7 @@ export async function concludeMarketForPass(a: {
   /** What the home page's structured data states of its address. */
   stated?: PlaceSignals;
 }): Promise<PassMarket | null> {
-  const [{ readSiteMarket, writeSiteMarket }, { inferMarketFields }, { settleMarket, sameMarket }, { readCurrentReport }] = await Promise.all([
+  const [{ readSiteMarket, writeSiteMarket }, { inferMarketFields }, { settleMarket }, { readCurrentReport }] = await Promise.all([
     import("@/lib/market/infer/stored"), import("@/lib/market/infer/infer"), import("@/lib/market/infer/stability"), import("./report"),
   ]);
   const site = await readSiteMarket(a.siteId);
@@ -184,9 +184,9 @@ export async function concludeMarketForPass(a: {
     at: a.at,
   });
   // The market that stands has its words checked against search volume on this pass's money, keeps its words, takes the kind
-  // the first call that read one gave it, and what to watch from each call that concludes it again, since that moves weekly.
+  // the first call that read one gave it, and what to watch from every call, since that names what the buyer depends on, not the category.
   const standing = settled.next.current;
-  const watched = standing === null || fresh.value.watch === undefined || !sameMarket(standing, fresh.value) ? standing : { ...standing, watch: fresh.value.watch };
+  const watched = standing === null || fresh.value.watch === undefined ? standing : { ...standing, watch: fresh.value.watch };
   const kinded = watched === null || watched.kind !== undefined || fresh.value.kind === undefined ? watched : { ...watched, kind: fresh.value.kind };
   const current = await withSearchTerms({
     market: kinded,

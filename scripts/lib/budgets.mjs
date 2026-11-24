@@ -92,6 +92,17 @@ export function specRowFindings({ budget, spec }) {
   return [rows > budget ? `docs/SPEC.md has ${rows} rule rows, over specRows ${budget} in scripts/budgets.json; the count only goes down` : `docs/SPEC.md has ${rows} rule rows; lower specRows in scripts/budgets.json from ${budget} to ${rows}`];
 }
 
+// Live test files and layout gate files only go down: each count equals its budget, so a deletion lowers it in the same change.
+export function testFileFindings({ budget, files }) {
+  const live = files.filter((rel) => /\.test\.(?:ts|tsx|mjs|js)$/.test(rel) && !rel.startsWith("tests/archive/"));
+  const counts = { live: live.length, layout: live.filter((rel) => rel.startsWith("tests/ui/layout/")).length };
+  return Object.entries(counts).flatMap(([name, n]) => {
+    if (typeof budget?.[name] !== "number") return [`scripts/budgets.json has no testFiles.${name} count`];
+    if (n === budget[name]) return [];
+    return [n > budget[name] ? `${n} ${name} test files, over testFiles.${name} ${budget[name]} in scripts/budgets.json; the count only goes down` : `${n} ${name} test files; lower testFiles.${name} in scripts/budgets.json from ${budget[name]} to ${n}`];
+  });
+}
+
 // Only the owner makes a rule block: a section's count equals its budget, and rises only beside a new decision file that names each new row.
 // `base` and `head` map §n to its block row names, `base` null where no pull request base exists; `named` is the added decision files' text.
 export function blockRuleFindings({ budget, base, head, named }) {
