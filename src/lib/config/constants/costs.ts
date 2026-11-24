@@ -41,11 +41,11 @@ export const PRICE_BOOK = Object.freeze({
  *  the same ledger, for every paid call made against a scan row that carries
  *  a `site_id`; a free scan has no site and is bounded by `FREE_BOUNDS`.
  *  A drafted default the owner may correct, sized from two readings:
- *   - one deep pass (`DEEP_C` 150¢) plus a day's draft (`DRAFT_C` 87¢) is
- *     237¢;
+ *   - one deep pass (`DEEP_C` 150¢) plus a day's draft (`DRAFT_C` 116¢) is
+ *     266¢;
  *   - the largest day SPEC §6 allows a site, 3 deep passes in 24 hours (450¢)
- *     and the day's one draft (87¢), is 537¢.
- *  550¢ covers both, and is about half the product's smallest day (1000¢), so
+ *     and the day's one draft (116¢), is 566¢, 16¢ over this ceiling.
+ *  550¢ covers the first, and is about half the product's smallest day (1000¢), so
  *  one runaway site never takes the whole of it.
  *
  *  The UTC day and not the site's, because the two figures are read off one
@@ -53,11 +53,11 @@ export const PRICE_BOOK = Object.freeze({
  *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40,
-  /** A day's pages on Opus 5.5, reserved at the vendor's own input count (`INFERENCE_INPUT_RESERVE`): its research
-   *  on Sonnet 5.5 (two calls of ~7.3¢ reserved, ~12¢ billed), a write that fits its output cap (~25¢ reserved, ~20¢
-   *  billed) and the fix (~21¢ reserved) come to ~61¢. Even a write cut off at 8 192 tokens (~25¢ billed) and its
-   *  retry (~25¢) leave the fix its ~21¢ under 87¢, so a write is never refused its fix. */
-  DRAFT_C: 87,
+  /** A day's pages on Opus 5.5, reserved at the vendor's own input count (`INFERENCE_INPUT_RESERVE`): research on
+   *  Sonnet 5.5 (two calls of ~7.3¢ reserved, ~13¢ billed), a write reserved at its 12 288-token cap (~36¢, ~23¢
+   *  billed), its one retry (~36¢), the fit check (~0.6¢) and the fix (~29¢ reserved) come to ~116¢, so a retried
+   *  write is never refused its fix. A day with no retry bills about 37¢ before any fix. */
+  DRAFT_C: 116,
   DAILY_SITE_C: 550,
   /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
   TOPUP_C: 7,
@@ -164,7 +164,7 @@ export const INFERENCE_TIMEOUT_MS = Object.freeze({
    *  the free path. */
   sonnet: 60_000,
   /** One call that writes a whole page, or fixes one (SPEC §7, D41): up to
-   *  8 192 output tokens on Opus 5.5, whose writes took 61 s at p95 and its
+   *  12 288 output tokens on Opus 5.5, whose writes took 61 s at p95 and its
    *  fixes 33 s. The draft job's invocation is bounded by
    *  `TIMING.jobsCeilingS`; `PIPELINE.fixBeforeMs` keeps the fix call inside it. */
   writer: 120_000,
@@ -199,8 +199,8 @@ export const INFERENCE_MAX_RETRIES = 0 as const;
  *  - `generate.write`, `generate.fix` — a whole page in parts (SPEC §7, D41).
  *  - `generate.fit_check` — `{ unsupported: { index, claims }[] }`, a few
  *    words a sentence, and few sentences on a page that fails: ~20 each. */
-/** The most words a page's one write call is asked for: 2,400 at 2.76 tokens a word is about 6,600 of
- *  `generate.write`'s 8 192, room for the ~8% a writer runs over its aim. Only the aim; the ceiling still holds. */
+/** The most words a page's one write call is asked for: 2,400 at 3.25 tokens a word is about 7,800 of
+ *  `generate.write`'s 12 288, room for the ~16% a writer runs over its aim. Only the aim; the ceiling still holds. */
 export const WRITE_AIM_MAX_WORDS = 2400;
 
 /** How far a call's input runs past `llm()`'s four-characters-a-token estimate, where the vendor's own count was
@@ -234,13 +234,15 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   "topic-typed": 400,
   /** SPEC §7 (D41, stage 3): the whole page in one call — its title, short
    *  answer, takeaways, every section, closing line and buyer questions. A
-   *  comparison's body word costs about 2.76 output tokens with its links, FAQ
-   *  and parts' framing (2,854 words came back as 7,876 tokens), so 8 192
-   *  holds about 2,950 words, and the writer is asked for at most
-   *  `WRITE_AIM_MAX_WORDS`. `generate.fix` is the one fix call of stage 4 and
-   *  returns the page whole again. */
-  "generate.write": 8192,
-  "generate.fix": 8192,
+   *  list page's body word costs up to 3.25 output tokens with its links, FAQ
+   *  and parts' framing (7,520 tokens for 2,311 words), and the same input
+   *  wrote 6,526 tokens one run and over 8,192 the next, so 12 288 holds a
+   *  page at its ceiling with the writer's spread; the writer is asked for at
+   *  most `WRITE_AIM_MAX_WORDS`. About 36¢ reserved a write: research ~15¢ +
+   *  write ~36¢ + fit ~0.6¢ is ~52¢; a retry and the fix fit `CAPS.DRAFT_C`. `generate.fix`
+   *  is the one fix call of stage 4 and returns the page whole again. */
+  "generate.write": 12288,
+  "generate.fix": 12288,
   /** The lead's free first page (SPEC §2): the same write call, sized so the
    *  seam's reservation — two attempts — fits `CAPS.FREE_C`. 3 072 tokens is
    *  a page of about 1,800 words in parts; a lead's page is a Q&A or a
