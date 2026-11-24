@@ -3,25 +3,16 @@
 // Read ADR-041 before checking it in the giveaway: `first-page` kinds are `stoppable: false`, so an opt-out never refuses a page just asked for.
 // With no transaction, the suppression is written before sequences are stopped: a failure between leaves `running` rows the seam refuses,
 // while the reverse would leave no suppression and let the next delivery start a fresh sequence. The send step converges the label.
-import { leadStore, type SuppressionCause } from "./store";
+import { leadStore } from "./store";
 
 /** Three answers, not a boolean: a boolean would call an unreadable store "not suppressed" and mail someone who opted out. */
 export type SuppressionAnswer = "send" | "suppressed" | "unreadable";
 
-/** Lead mail stops for every cause; `subscribed` exists only to stop it, so no other mail counts it. */
-export const EVERY_CAUSE: readonly SuppressionCause[] = ["opt_out", "subscribed", "bounced", "complained"];
-export const NOT_SUBSCRIBED: readonly SuppressionCause[] = ["opt_out", "bounced", "complained"];
-/** Only a refused delivery stops a transactional mail such as the sign-in link. */
-export const MAIL_REFUSED: readonly SuppressionCause[] = ["bounced", "complained"];
-
-export async function suppressionState(
-  email: string,
-  stops: readonly SuppressionCause[] = EVERY_CAUSE
-): Promise<SuppressionAnswer> {
+/** Only the customer's own opt-out is ours to keep; bounces and complaints are refused by the mail vendor at send time. */
+export async function suppressionState(email: string): Promise<SuppressionAnswer> {
   const read = await leadStore().isSuppressed(normaliseAddress(email));
   if (!read.ok) return "unreadable";
-  // A row read without its cause stops the mail: failing closed never mails someone who opted out.
-  return read.suppressed && (read.cause === undefined || stops.includes(read.cause)) ? "suppressed" : "send";
+  return read.suppressed ? "suppressed" : "send";
 }
 
 /** One address, one identity. Every read and every write in this feature goes through here, so a mixed-case address can never become a second, unsuppressed person. */
@@ -30,21 +21,17 @@ export function normaliseAddress(email: string): string {
 }
 
 /** Ends every running and waiting sequence for the address and blocks future ones; waiting ones go to `stopped`, never `running` (criterion 12). */
-export async function suppressAddress(
-  email: string,
-  cause: SuppressionCause
-): Promise<{ suppressed: true; stopped: number } | { suppressed: false }> {
+export async function suppressAddress(email: string): Promise<{ suppressed: true; stopped: number } | { suppressed: false }> {
   const address = normaliseAddress(email);
   const store = leadStore();
 
-  const written = await store.addSuppression(address, cause);
+  const written = await store.addSuppression(address);
   if (!written.ok) return { suppressed: false };
 
   const stopped = await stopSequencesFor(address);
   console.log(
     JSON.stringify({
       event: "lead_suppressed",
-      cause,
       stopped,
       rule: "REQ-010 c11/c10 — address-wide, follow-up only (ADR-041, ADR-042)",
     })

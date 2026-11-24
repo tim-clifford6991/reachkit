@@ -222,7 +222,7 @@ describe('REQ-010 c12, last sentence — "those end the waiting sequences too, a
       waitingLead({ id: "b", email: "anna@example.com", domain: "b.com", deliveredMsAfterZero: HOUR }),
     ];
 
-    await suppressAddress("anna@example.com", "opt_out");
+    await suppressAddress("anna@example.com");
     for (let hour = 0; hour <= 24 * 20; hour++) {
       const result = await advanceSequences(at(hour * HOUR));
       expect(result.released).toBe(0);
@@ -239,7 +239,7 @@ describe('REQ-010 c12, last sentence — "those end the waiting sequences too, a
     await advanceSequences(DAY_ZERO);
     expect(state.leads[0]?.sequence_state).toBe("running");
 
-    state.suppressions.set("anna@example.com", "subscribed");
+    state.suppressions.set("anna@example.com", "opt_out");
     await advanceSequences(at(NURTURE_H[0] * HOUR));
 
     expect(state.leads[0]?.sequence_state).toBe("stopped");

@@ -24,7 +24,7 @@
 // eslint fence (`local/no-billing-internal-import`) makes that structural
 // rather than remembered.
 import { takeLimits } from "@/lib/limits";
-import { MAIL_REFUSED, suppressionState } from "@/lib/mail/leads/suppress";
+import { onVendorSuppressionList } from "@/lib/mail/vendor/resend";
 import type { NetworkKey } from "@/lib/scan/admission";
 import { accountStore } from "../store";
 import { sendSignInLink } from "./sign-in-mail";
@@ -42,7 +42,7 @@ export async function requestMagicLink(email: string, network: NetworkKey): Prom
   if (!(await takeLimits("sign_in", { network, email: address }))) return ANSWERED;
 
   // Behind the limit, so the stopped answer cannot be asked for without bound; a read that fails still sends.
-  if (await suppressionState(address, MAIL_REFUSED).then((state) => state === "suppressed", () => false)) return STOPPED;
+  if (await onVendorSuppressionList(address)) return STOPPED;
 
   const read = await accountStore().accountByEmail(address);
   if (read.ok && read.account !== null) {

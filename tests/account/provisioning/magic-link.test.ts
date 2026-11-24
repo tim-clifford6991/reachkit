@@ -19,6 +19,8 @@ import { sendCalls, sendMock, sendOutcome } from "../send-mock";
 applyEnvFixture();
 
 vi.mock("@/lib/mail/send", () => sendMock());
+const refused = vi.hoisted(() => new Set<string>());
+vi.mock("resend", () => ({ Resend: class { suppressions = { get: async (a: string) => ({ data: refused.has(a) ? { email: a } : null }) }; } }));
 
 const { requestMagicLink } = await import("@/lib/account/provisioning/magic-link");
 const { registerSignInLinkIssuer } = await import("@/lib/account/provisioning/sign-in-link");
@@ -146,9 +148,8 @@ describe('REQ-076 c5 / REQ-020 c4 — a lapsed customer is still sent a link and
 });
 
 it("a subscriber is sent the sign-in link; only a bounced address is told its mail was refused", async () => {
-  const [{ setLeadStore }, { memoryStore, newMemoryState }] = await Promise.all([import("@/lib/mail/leads/store"), import("../../mail/leads/memory-store")]);
-  const leads = newMemoryState(); setLeadStore(memoryStore(leads));
-  for (const [email, cause] of [["paid@a.example", "subscribed"], ["gone@a.example", "bounced"]] as const) { leads.suppressions.set(email, cause); await openAccount(email); }
+  refused.add("gone@a.example");
+  for (const email of ["paid@a.example", "gone@a.example"]) await openAccount(email);
   await expect(requestMagicLink("gone@a.example", NETWORK)).resolves.toEqual({ answered: true, stopped: true });
   await expect(requestMagicLink("paid@a.example", NETWORK)).resolves.toEqual({ answered: true });
   expect(sendCalls.map((c) => c.to)).toEqual(["paid@a.example"]);

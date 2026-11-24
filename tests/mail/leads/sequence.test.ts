@@ -16,7 +16,9 @@ let state: MemoryState;
 
 const DELIVERED = new Date("2026-09-05T12:00:00.000Z");
 
-beforeEach(() => {
+beforeEach(async () => {
+  const [{ setAccountStore }, { memoryAccountStore, newMemoryAccounts }] = await Promise.all([import("@/lib/account/store"), import("../../account/memory-store")]);
+  setAccountStore(memoryAccountStore(newMemoryAccounts()));
   state = newMemoryState();
   setLeadStore(memoryStore(state));
   sendCalls.length = 0;

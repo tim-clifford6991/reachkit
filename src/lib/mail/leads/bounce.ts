@@ -1,12 +1,12 @@
-// The mail vendor's webhook: a hard bounce, a spam complaint or the vendor's own suppression of an address reaches the address-wide
-// suppression store, so follow-up mail stops there, and the owner hears when the address is a paying account's.
+// The mail vendor's webhook: the vendor keeps its own list of refused addresses and refuses them at send time,
+// so a hard bounce, a complaint or a vendor suppression writes nothing here; the owner hears only when the address is a paying account's.
 // The signature is the whole trust boundary and is checked by the vendor's SDK over the bytes received; nothing is read before it.
 import { Resend, type WebhookEventPayload } from "resend";
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 import { sitesWithActiveAccess } from "@/lib/account/billing";
 import { claimOwnerMail, releaseOwnerMail, reportIncident } from "../ops";
-import { normaliseAddress, suppressAddress } from "./suppress";
+import { normaliseAddress } from "./suppress";
 
 export interface WebhookHeaders {
   id: string;
@@ -16,7 +16,7 @@ export interface WebhookHeaders {
 
 type Stop = { address: string; cause: "bounced" | "complained" };
 
-/** `handled: false` is a refused signature or a store that could not be written, which the vendor retries. */
+/** `handled: false` is a refused signature, which the vendor retries. */
 export async function handleMailWebhook(payload: string, headers: WebhookHeaders): Promise<{ handled: boolean }> {
   const secret = env.RESEND_WEBHOOK_SECRET;
   if (secret === undefined) return { handled: false };
@@ -29,11 +29,7 @@ export async function handleMailWebhook(payload: string, headers: WebhookHeaders
   }
 
   const stops = stopsOf(event);
-  for (const stop of stops) {
-    const written = await suppressAddress(stop.address, stop.cause);
-    if (!written.suppressed) return { handled: false };
-    await tellOwnerIfPaying(stop.address, stop.cause);
-  }
+  for (const stop of stops) await tellOwnerIfPaying(stop.address, stop.cause);
   console.log(JSON.stringify({ event: "mail_webhook", type: event.type, stops: stops.length }));
   return { handled: true };
 }
@@ -66,7 +62,7 @@ export async function tellOwnerIfPaying(email: string, cause: Stop["cause"] | "s
     const told = await reportIncident({ occasion: "mail-stopped", domains, cause }, once);
     if (!told) await releaseOwnerMail(key);
   } catch {
-    // The stop is already written; a failed alert is logged and does not make the vendor redeliver.
+    // A failed alert is logged and does not make the vendor redeliver.
     console.warn(JSON.stringify({ event: "mail_webhook", outcome: "owner-alert-failed" }));
   }
 }

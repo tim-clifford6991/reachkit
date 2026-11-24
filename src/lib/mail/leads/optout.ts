@@ -50,7 +50,7 @@ export async function applyOptOutToken(
   const read = readOptOutToken(token);
   if ("error" in read) return read;
 
-  const suppressed = await suppressAddress(read.email, "opt_out");
+  const suppressed = await suppressAddress(read.email);
   if (!suppressed.suppressed) return { error: "unavailable" };
   return { email: read.email };
 }

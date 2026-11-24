@@ -166,7 +166,7 @@ describe("REQ-010 c10/c11 — converted, suppressed or opted-out advances nothin
     expect(state.leads[0]).toMatchObject({ sequence_state: "stopped", next_touch_at: null });
   });
 
-  it.each(["opt_out", "subscribed"] as const)("a %s address is stopped and sends nothing", async (cause) => {
+  it.each(["opt_out"] as const)("a %s address is stopped and sends nothing", async (cause) => {
     running();
     state.suppressions.set("anna@example.com", cause);
     const outcome = await advanceOneTouch({ leadId: "lead-1", touchIndex: 0, now: NOW });

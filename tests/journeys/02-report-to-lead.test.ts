@@ -451,14 +451,12 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     const startedAt = new Date(theOneLead().sequence_started_at as string);
     expect((await advanceSequences(atTouch(startedAt, 0))).sent).toBe(1);
 
-    // §13's one transition: the address bought, so it is stamped and it is
-    // suppressed with cause `subscribed` — the sequence exists to persuade
+    // §13's one transition: the address bought, so it is stamped and its
+    // nurture stops (one lead row in both stores) — the sequence exists to persuade
     // somebody to buy and this person has.
-    accounts.leads.push({ email: NORMALISED, converted_at: null });
+    accounts.leads.push(theOneLead());
     const converted = await convertLead(ADDRESS, atTouch(startedAt, 0));
-    expect(converted).toEqual({ stamped: 1, suppressed: true });
-    expect(accounts.leads[0]?.converted_at).not.toBeNull();
-    expect(leads.suppressions.get(NORMALISED)).toBe("subscribed");
+    expect(converted).toEqual({ stamped: 1 });
 
     // Every later touch is refused, and the label converges on the fact
     // rather than reading `running` forever.
@@ -478,6 +476,7 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     const page = mailsOfKind("mail.firstPage.subject")[0] as SentMail;
     const token = (/\/opt-out\/([A-Za-z0-9_.-]+)/.exec(page.html) as RegExpExecArray)[1] as string;
     const { applyOptOutToken } = await import("../../src/lib/mail/leads/optout");
+    leads.suppressions.set(NORMALISED, "bounced"); // an older row of a cause no longer read never outranks the opt-out
     await expect(applyOptOutToken(token)).resolves.toEqual({ email: NORMALISED });
     expect(leads.suppressions.get(NORMALISED)).toBe("opt_out");
     // Every 'opt-out' kind asks the store itself, with no wiring call: the web-person mail skips this address too.

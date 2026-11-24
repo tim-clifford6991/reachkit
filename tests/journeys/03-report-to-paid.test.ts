@@ -19,30 +19,21 @@
 //
 // Four of those need a word.
 //
-// **The webhook body is really signed.** The vendor double's own
-// `constructEvent` takes a boolean; this journey replaces it with Stripe's
-// documented scheme — `t=<unix>,v1=HMAC-SHA256(secret, "<t>.<body>")`,
-// verified over the raw bytes — so the trust boundary REQ-024 c2 rests on
-// is exercised rather than asserted. A body altered after signing is
-// refused by arithmetic, not by a flag.
+// **The webhook body is really signed** with Stripe's documented scheme,
+// `t=<unix>,v1=HMAC-SHA256(secret, "<t>.<body>")` over the raw bytes, so the
+// trust boundary REQ-024 c2 rests on is exercised: a body altered after
+// signing is refused by arithmetic, not by a flag.
 //
 // **One `users` row, three readers.** `AccountStore`, `BillingStore` and
-// `IdentityStore` are three narrow views of the same two tables. Here they
-// are three doubles, so the account store is wrapped and its two inserts
-// fan out to the other two — the join Postgres would have made. It is the
-// only thing this file arranges that production would not, and
-// `tests/account/columns.test.ts` is what keeps the three views honest
-// about the real schema.
+// `IdentityStore` are three doubles of the same two tables, so the account
+// store is wrapped and its two inserts fan out to the other two, the join
+// Postgres would have made; `tests/account/columns.test.ts` keeps the three
+// views honest about the real schema.
 //
-// **The copy registry is a fixture**, for the same reason as journey 02:
-// every sentence §13 speaks is owner-owed and empty, and `copy()` refuses
-// an owner-owed key — so against the real registry the magic-link mail
-// would not compose and the founder could not be observed getting in. The
-// debt is asserted where it belongs; here each key resolves to itself.
+// **The copy registry is a fixture**, as in journey 02: each key resolves to itself.
 //
-// **The deep pass is not started here.** This journey ends where §13 ends —
-// at `/setup`. Setup starts the pass; running it is journey 04's. That is
-// why this path writes no `fetches` row: nothing on it spends.
+// **The deep pass is not started here.** This journey ends where §13 ends, at
+// `/setup`; journey 04 runs the pass. So nothing on this path writes a `fetches` row.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
 import { createHmac } from "node:crypto";
@@ -112,6 +103,7 @@ const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { deadLinkPath, LANDING_QUERY_KEY } = await import("../../src/lib/account/identity/addresses");
 const { unwireSignInLinkIssuer } = await import("../../src/lib/account/identity/wire");
 const { setLeadStore } = await import("../../src/lib/mail/leads/store");
+const { advanceSequences, scheduleSequence } = await import("../../src/lib/mail/leads/sequence");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { MAIL_KINDS } = await import("../../src/lib/mail/kinds");
 const { SETUP_PATH, APP_PATH, setupRedirectFor } = await import(
@@ -234,8 +226,6 @@ beforeEach(async () => {
 
   accounts = newMemoryAccounts();
   accounts.scans.set(SCAN_ID, { status: "done", domain: DOMAIN });
-  // The `leads` row §13 stamps `converted_at` on; its twin in the leads store below is the same row.
-  accounts.leads.push({ email: NORMALISED, converted_at: null });
   identity = newMemoryIdentity();
   auth = newFakeAuth();
   billing = newMemoryBilling();
@@ -252,8 +242,10 @@ beforeEach(async () => {
       sequence_state: "running",
       touch_count: 1,
       page_delivered_at: new Date("2026-09-02T12:00:00.000Z").toISOString(),
+      next_touch_at: new Date("2026-09-03T12:00:00.000Z").toISOString(),
     })
   );
+  accounts.leads.push(...leads.leads); // the `leads` row §13 stamps, one row in both stores
 
   setAccountStore(joinedAccountStore());
   setIdentityStore(memoryIdentityStore(identity));
@@ -515,14 +507,22 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(billing.users[0]?.paid_through).toBe(PAID_THROUGH.toISOString());
     expect(billing.users[0]?.stripe_subscription_id).toBe(SUBSCRIPTION_ID);
 
-    // The lead is converted and the follow-up is stopped, in the one
-    // transition that does both (§4.2 c10, ADR-042).
+    // The lead is converted, so its next due touch sends nothing and stops (§4.2 c10); no suppression row is written.
     expect(accounts.leads[0]?.converted_at).not.toBeNull();
-    expect(leads.suppressions.get(NORMALISED)).toBe("subscribed");
+    expect((await advanceSequences(new Date())).sent).toBe(0);
     expect(leads.leads[0]?.sequence_state).toBe("stopped");
 
     // Nothing on the payment path spends: no pass has started.
     expect(db.queries.filter((q) => q.table === "fetches")).toEqual([]);
+  });
+
+  it("step 2 — a customer who was never a lead later asks for a free page, and no follow-up starts", async () => {
+    leads.leads.length = 0;
+    await untilTheAccountIsOpen();
+    leads.leads.push(blankLead({ id: "lead-2", email: NORMALISED, domain: "other.example", scan_id: "scan-2", first_page_state: "sent", page_delivered_at: new Date().toISOString() }));
+    await scheduleSequence({ email: NORMALISED, domain: "other.example", deliveredAt: new Date() });
+    expect(leads.leads[0]?.sequence_state).toBeNull();
+    expect((await advanceSequences(new Date())).sent).toBe(0);
   });
 
   it("step 2 — the magic-link mail carries a real link, and is a mail nobody can switch off", async () => {

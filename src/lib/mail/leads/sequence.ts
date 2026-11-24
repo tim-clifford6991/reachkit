@@ -1,5 +1,5 @@
 // BUILD §4.2 — sweep, then release, then send: one sequence per address at a time, in delivery order, at most three touches a domain,
-// and none for an address that opted out or subscribed. Read ADR-041 before "fixing" a lead who got no follow-ups:
+// and none for an address that opted out or bought. Read ADR-041 before "fixing" a lead who got no follow-ups:
 // 1. A waiting sequence past its deadline is dropped forever, swept first on every run. Releasing it breaks REQ-010's bound that no
 //    follow-up reaches an address more than 14 days after its page was delivered.
 // 2. A re-delivery starts nothing: an existing `(lower(email), domain)` sequence in any state blocks a second, which would make six mails.
@@ -12,6 +12,7 @@ import {
 import { buildNurture, type NurtureTouch } from "../templates/nurture";
 import { sendEmail } from "../send";
 import { daysAfter, hoursAfter } from "./clock";
+import { accountStore } from "@/lib/account/store";
 import { leadStore, type LeadRow } from "./store";
 import { normaliseAddress, suppressionState } from "./suppress";
 
@@ -39,6 +40,13 @@ export async function scheduleSequence(a: {
   const read = await leadStore().leadsForAddress(email);
   if (!read.ok) {
     log({ outcome: "not-started", domain, reason: "store-unreadable" });
+    return;
+  }
+
+  // An address that bought, as a lead or with no lead before it, is told nothing more about buying; an unreadable account read starts nothing.
+  const account = await accountStore().accountByEmail(email);
+  if (read.leads.some((lead) => lead.converted_at !== null) || !account.ok || account.account !== null) {
+    log({ outcome: "not-started", domain, reason: "converted", rule: "REQ-010 c10" });
     return;
   }
 
@@ -193,7 +201,7 @@ export type TouchOutcome =
         | "already-recorded"
         /** REQ-010 c10 — they bought. */
         | "converted"
-        /** REQ-010 c10/c11 — they opted out, or subscribed. */
+        /** REQ-010 c11 — they opted out. */
         | "suppressed"
         /** Three touches have gone; there is no fourth. */
         | "finished"
@@ -221,11 +229,11 @@ async function advanceLead(
     return { advanced: false, reason: "converted" };
   }
 
-  // A subscribe or opt-out between runs stops the row, so the label converges on the fact.
+  // An opt-out between runs stops the row, so the label converges on the fact.
   const suppression = await suppressionState(lead.email);
   if (suppression !== "send") {
     await store.patchLead(lead.id, { sequence_state: "stopped", next_touch_at: null });
-    log({ leadId: lead.id, domain: lead.domain, outcome: "stopped", cause: suppression, rule: "REQ-010 c10/c11" });
+    log({ leadId: lead.id, domain: lead.domain, outcome: "stopped", cause: suppression, rule: "REQ-010 c11" });
     return { advanced: false, reason: "suppressed" };
   }
 
