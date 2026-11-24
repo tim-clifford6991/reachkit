@@ -146,9 +146,8 @@ describe("the weekly target re-check is the exception, and it is the tier that s
     expect(run.TIER_PARAMETERS.weekly.serpWindowDays).toBeLessThan(pins.CACHE_WINDOWS_D.serp);
   });
 
-  it("the two passes a human waits for ask at the pinned 30 — the exception is one tier's, not a new default", () => {
+  it("the free pass a human waits for asks at the pinned 30 — the exception is one tier's, not a new default", () => {
     expect(run.TIER_PARAMETERS.free.serpWindowDays).toBe(pins.CACHE_WINDOWS_D.serp);
-    expect(run.TIER_PARAMETERS.deep.serpWindowDays).toBe(pins.CACHE_WINDOWS_D.serp);
   });
 
   it("every tier states a window — a tier added later cannot inherit one by omission", () => {

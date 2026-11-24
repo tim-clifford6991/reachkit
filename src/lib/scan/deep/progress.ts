@@ -1,6 +1,6 @@
 // BUILD §4.3: what the waiting screen is told. The running arm carries each stage's recorded start instant and the screen subtracts consecutive entries in `_setup/stages.ts`,
 // so no duration is composed from a tab's clock. No arm carries a forecast.
-// `stage` is read from `sites.setup_stage` (see `runDeepPass`); the ended arm carries only `degraded`, and why the wait ended is `releaseNotice()`'s to state.
+// `stage` is read from `sites.setup_stage` (see `runFirstPass`); the ended arm carries only `degraded`, and why the wait ended is `releaseNotice()`'s to state.
 import { dbAdmin } from "@/lib/db";
 import { STAGES, type StageName } from "../stages";
 import { isReleased } from "./release";

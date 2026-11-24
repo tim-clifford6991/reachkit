@@ -33,7 +33,7 @@
 //      the pass would measure now.
 //   1. **Sizing**: the tracked rivals, then `serpDomainsToSize` over the
 //      report's own top tens, each through the product's `sizeRivals`.
-//   2. **After the report**: the deep pass's own `afterDeepReport` — the
+//   2. **After the report**: the first pass's own `afterFirstReport` — the
 //      rival conclusion and its brand volumes, the prompts that follow the
 //      rivals, the topics and their prune, and the health checks.
 //
@@ -69,7 +69,7 @@ import { sizeRivals } from "@/lib/market/rivals/size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { withStoredPassSpend } from "@/lib/scan/ceilings";
-import { afterDeepReport } from "@/lib/scan/deep/run";
+import { afterFirstReport } from "@/lib/scan/weekly/first";
 import { judgeSearchesForPass } from "@/lib/scan/market-conclusion";
 import { HEALTH_CHECKS, parseHealth } from "@/lib/scan/health";
 import { readStoredReport } from "@/lib/scan/report";
@@ -424,7 +424,7 @@ export async function main(o: Options): Promise<number> {
   });
 
   // 2. After the report: rivals, prompts, topics and prune, health.
-  await afterDeepReport({ scanId: scan.id, siteId, domain: o.site, remeasure: true });
+  await afterFirstReport({ scanId: scan.id, siteId, domain: o.site, remeasure: true });
   console.log = say;
 
   // ── What it found ────────────────────────────────────────────────────────

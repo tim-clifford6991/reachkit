@@ -880,7 +880,7 @@ describe("three decisions → deep pass → the first page already on the calend
     storedAs = { status: "failed" };
     await untilTheFounderIsReleased();
     await runTheQueuedPass();
-    expect(jobEvents.filter((e) => e.name === "scan/run").map((e) => e.payload.remeasure)).toEqual([true]);
+    expect(jobEvents.filter((e) => e.payload.again === true).map((e) => [e.name, e.payload.first])).toEqual([["weekly/refresh/subject", true]]);
   }, JOURNEY_TIMEOUT_MS);
 
   it(

@@ -2,7 +2,7 @@
 //
 // The pages are the ones the pass's crawl already read and ledgered: this
 // fetches nothing. It runs as a step of its own in the onboarding pass and
-// in a pass measured again now (`@/lib/scan/deep/run`), on the pass's money.
+// in a pass measured again now (`@/lib/scan/weekly/first`), on the pass's money.
 //
 // One exception buys a read (SPEC §6, issue 1374): a site that serves an
 // empty JavaScript shell has its pages drawn by the vendor (`./rendered`).

@@ -1,5 +1,5 @@
 // A thin market is measured again now, never "on Monday", bounded per site per day so it cannot be spammed.
-// No second pipeline: a re-measure is the onboarding pass again (`scan/run` at the deep tier) on a fresh claimed row; this file decides, claims and sends.
+// No second pipeline: a re-measure is the site's first weekly pass again on a fresh claimed row; this file decides, claims and sends.
 // The rate is read from `scans` rows, not a counter that could drift from the passes it started.
 import { REMEASURE } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
@@ -90,7 +90,7 @@ export async function remeasureAllowed(siteId: string, now: Date = new Date()): 
   return null;
 }
 
-/** Claims a fresh `running` deep row before anything is spent and answers its id; a new id per press, so `scan/run` keyed on it starts exactly this pass.
+/** Claims a fresh `running` deep row before anything is spent and answers its id; a new id per press, so the event keyed on it starts exactly this pass.
  *  Written here so the screens this is sent from reach no vendor client. `remeasureOf` makes two deliveries of one tick race on
  *  `scans_one_remeasure_per_pass`: the loser gets `null` and spends nothing. */
 async function claimFreshPass(a: {
@@ -149,8 +149,8 @@ export async function startRemeasure(a: {
   }
 
   try {
-    const { sendRemeasure } = await import("@/jobs/scan-run");
-    await sendRemeasure({ scanId, siteId: a.siteId, domain: a.domain, ...(a.at === undefined ? {} : { at: a.at }) });
+    const { sendAgain } = await import("@/jobs/weekly-refresh");
+    await sendAgain({ scanId, siteId: a.siteId, domain: a.domain, ...(a.at === undefined ? {} : { at: a.at }) });
   } catch (error) {
     await untyped()
       .from<{ id: string }>("scans")

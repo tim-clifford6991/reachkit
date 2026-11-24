@@ -205,12 +205,11 @@ that target's own pair; one value shared by both targets strands the other targe
 
 ## 4. The jobs
 
-Ten, closed. The registry is `src/jobs/index.ts` and it is a frozen array — a definition that is
+Nine, closed. The registry is `src/jobs/index.ts` and it is a frozen array — a definition that is
 not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that names the platform.
 
 | Job | Trigger | Does | In the kill switch |
 |---|---|---|---|
-| `scan/run` | event `scan/run` | the one pipeline; tier is a parameter | ● |
 | `draft/generate` | cron `3 * * * *` | next opportunity → pipeline → `in_review`, veto clock starts, daily mail. The tick is hourly; a site's page for a date is written in the hour whose start plus its veto window is at, or less than an hour before, that date's publish time in the site's zone (#1337). The tick sends each due site as `draft/generate/subject`, keyed `draft:{site}:{date}`, to its own run (`draft-generate-subject`): one per site, five at once, ten starts a minute; steps `notice`, `select`, `write`, `review`. A day owed with nothing recorded in `draft_days` is sent on the next tick while its window is open | ● |
 | `publish/execute` | event `publish/execute` | state machine → destination | ● |
 | `publish/verify` | event `publish/verify`, +24h | liveness checks on a published page | |
@@ -221,9 +220,9 @@ not in it is unreachable over HTTP. `src/jobs/client.ts` is the only file that n
 | `scan/rescore` | cron `7 * * * *` (hourly) | answers the oldest `rescore_runs` request: every stored scan and rival set scored again, dry or applied (issue 1433, "Re-scoring every stored scan" below). Steps: `claim`, then `answer-<id>`; `skipped` / `no-subject`, with no step entered, when a read-only check finds nothing asked or due | |
 | `scan/finish-reads` | event `scan/finish-reads` | sent by a free pass that stored a report with searches it chose and did not read (issue 1440): reads only those, once, inside the free cap the pass already spent from, and rewrites the report through `rescore_scan`. Step: `finish`; `degraded` where a search failed again, `skipped` / `no-subject` where the report has nothing left to finish. Log line `finish_reads` | ● |
 
-Five ids are sendable events (`src/jobs/types.ts`, `JobEvent`): `scan/run`,
+Four ids are sendable events (`src/jobs/types.ts`, `JobEvent`):
 `publish/execute`, `publish/verify`, `lead/nurture`, `scan/finish-reads`. The five clock-triggered jobs have no event;
-two of them send `…/subject` events to their own per-site runs, so twelve functions are synced.
+two of them send `…/subject` events to their own per-site runs, so eleven functions are synced.
 Every mail carries `Idempotency-Key: {kind}:{digest of the mail}:{UTC day}`, so a retried send,
 or the same ops alert from a later tick that day, is one mail.
 
@@ -231,8 +230,8 @@ or the same ops alert from a later tick that day, is one mail.
 
 **There is no endpoint, no script and no npm task that triggers a job.** `/api/jobs` accepts
 `GET`, `POST` and `PUT`, but a `POST` is signature-verified by the SDK against
-`INNGEST_SIGNING_KEY`, so it cannot be called by hand. The product itself sends exactly two
-events: `scan/run` when a setup completes (`src/app/(account)/setup/_setup/store.ts`),
+`INNGEST_SIGNING_KEY`, so it cannot be called by hand. The product itself sends these
+events: `weekly/refresh/subject` with `first: true` when a setup completes (`src/app/(account)/setup/_setup/store.ts`) and on each *Measure again* (`src/lib/scan/deep/remeasure.ts`),
 `publish/verify` after a publication (`src/jobs/engine.ts`), and `scan/finish-reads` after a free
 pass that left searches unread (`src/lib/scan/run.ts`).
 
@@ -243,7 +242,7 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   out-of-hours invocation is expected to return `skipped` with reason `not-due` or `no-subject` —
   that is the job working, not failing.
 - **An event job**: send the event with its payload, or *Replay* a past run. The payload keys are
-  the job's `idempotencyKey` in `src/jobs/*.ts` — `scan/run` takes `scanId`, `publish/execute`
+  the job's `idempotencyKey` in `src/jobs/*.ts` — `publish/execute`
   takes `draftId` and `destinationId`, `publish/verify` takes `publicationId`, `scan/finish-reads`
   takes `scanId`. A delivery is deduplicated on those keys, so re-sending the same one is a no-op rather than a second run.
 - **Next week's pass for one site, run now.** The owner sends `weekly/refresh/subject` from the
@@ -517,18 +516,17 @@ walk that runs a pass, and where to read each thing it did. It needs a paid acco
 finished and the Inngest app registered (above).
 
 **What starts it: leaving setup's Details step (`PASS_STARTS_AFTER`, `submit.ts`), and the finish
-sends it again.** `enqueueDeepPass` (`src/app/(account)/setup/_setup/store.ts`) sends `scan/run` with
-`tier: "deep"`. Payment provisioning queues no pass.
+sends it again.** `enqueueDeepPass` (`src/app/(account)/setup/_setup/store.ts`) sends `weekly/refresh/subject` with
+`first: true`, keyed `first:{site}`. Payment provisioning queues no pass.
 
-**It runs once per site.** The event's `scanId` is `setup-{siteId}`, which is the job's idempotency
-key, so the finish's send, or any second send for the same site, is deduplicated rather than run
-again; the pass adopts the site's onboarding row (`onboardingPassId`), whichever of setup's rivals
-route or the pass claimed it first. Running a
-second pass against a site that has had one means a new site row, or an event sent from the Inngest
-dashboard with a different `scanId` (*Running one by hand*, above).
+**It runs once per site.** The key `first:{site}` is the event's id, so the finish's send, or any
+second send for the same site, is deduplicated, and one after the window finds the pass ended; the pass adopts the site's onboarding row (`onboardingPassId`), whichever of setup's rivals
+route or the pass claimed it first. A second pass
+against a site that has had one is *Measure again*: the same event with `again: true`, keyed
+`again:{site}:{scan}` on the row its request claimed, at most `REMEASURE.perDay` a day.
 
 **What it may spend:** `CAPS.DEEP_C` = 150¢, re-checked between stages. The report ceiling does not
-apply to this tier (`TIER_PARAMETERS.deep.deadlineApplies` is `false`) and the founder is released
+apply to this tier (`TIER_PARAMETERS.weekly.deadlineApplies` is `false`) and the founder is released
 at `TIMING.deepReleaseMin` = 10 minutes whatever the pass is still doing. A cap degrades and never
 throws (§8).
 
@@ -547,12 +545,12 @@ they store a report — so a stage's cost is read back through `fetches.source`:
 | *after the report* | one typing call per candidate | `opportunity-typing` |
 
 Per-stage *timing* is `sites.setup_stage_times`, one instant per stage, written by
-`src/lib/scan/deep/run.ts`. One pass's own spend is
+`src/lib/scan/weekly/first.ts`. One pass's own spend is
 `select source, count(*), sum(cost_cents) from fetches where scan_id = …` (§8).
 
 **What to read when it ends, in order.**
 
-1. the job line — `{"event":"job","jobId":"scan/run","outcome":…}`: `ran`, or `degraded` naming the
+1. the job line — `{"event":"job","jobId":"weekly/refresh","outcome":…}`: `ran`, or `degraded` naming the
    step it stopped at;
 2. the supply row — `select read from ops_events where kind = 'supply_pass' and code = '<scan id>'`:
    `{ tier, added, derived, sources, have, short, dry, unworded, topUp }`. `have` is the writable

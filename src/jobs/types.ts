@@ -1,6 +1,6 @@
 // src/jobs/types.ts — BUILD §11, ARCHITECTURE `src/jobs/**`
 //
-// The job-id union, closed at exactly ten members, and the
+// The job-id union, closed at exactly nine members, and the
 // platform-neutral shapes the registry is built from. Adding an id is a
 // change to this file and to `tests/jobs/registry.test.ts`, which asserts
 // the set — a tenth id cannot arrive by accident.
@@ -29,9 +29,8 @@
 // Nothing here names the job platform. `client.ts` is the one file that
 // does, so replacing the platform is that file plus one route.
 
-/** Exactly ten, with their triggers. */
+/** Exactly nine, with their triggers. */
 export type JobId =
-  | "scan/run" // on demand; tier is a parameter (free | deep | weekly)
   | "draft/generate" // hourly tick, due a veto window before the site's own publish time
   | "publish/execute" // sent on approval and on window open, delivered at the page's due moment
   | "publish/verify" // +24h after a publish
@@ -42,11 +41,10 @@ export type JobId =
   | "scan/rescore" // every 15 minutes; answers a re-score the master session asked for (issue 1433)
   | "scan/finish-reads"; // sent by a free pass that left searches unread (issue 1440)
 
-/** The same ten as a value, so the registry's closure is assertable. The
+/** The same nine as a value, so the registry's closure is assertable. The
  *  `satisfies` pins it to the union: a member missing here or an id not in
  *  the union is a type error, not a test failure discovered later. */
 export const JOB_IDS = Object.freeze([
-  "scan/run",
   "draft/generate",
   "publish/execute",
   "publish/verify",
@@ -62,7 +60,7 @@ export const JOB_IDS = Object.freeze([
  *  clock-triggered jobs have none. */
 export type JobEvent = Extract<
   JobId,
-  "scan/run" | "publish/execute" | "publish/verify" | "lead/nurture" | "scan/finish-reads"
+  "publish/execute" | "publish/verify" | "lead/nurture" | "scan/finish-reads"
 >;
 
 /** A trigger, stated without the platform's vocabulary.
@@ -122,6 +120,8 @@ export interface JobInput {
 export interface SubjectEvent {
   readonly key: string;
   readonly data: Readonly<Record<string, unknown>>;
+  /** When the run starts, where it waits for a moment; absent, now. */
+  readonly at?: Date;
 }
 
 /** At most `limit` runs at once, per value of the `key` field where one is

@@ -50,9 +50,8 @@ describe("JobDefinition's concurrency and throttle, mapped only in client.ts", (
     });
   });
 
-  it("weekly/refresh is mapped the same way; a job with no subjects stays one function", async () => {
+  it("weekly/refresh is mapped the same way", async () => {
     expect((await mapped(byId("weekly/refresh"))).map((fn) => fn.options.id)).toEqual(["weekly-refresh", "weekly-refresh-subject"]);
-    expect((await mapped(byId("scan/run"))).map((fn) => fn.options.id)).toEqual(["scan-run"]);
   });
 
   it("weekly/refresh ranks a first-pass event ahead of the Monday passes queued under the same bounds", async () => {

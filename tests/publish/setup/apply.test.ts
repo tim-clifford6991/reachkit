@@ -159,7 +159,6 @@ describe("REQ-028 c4 — setup completes with neither DNS nor WordPress set up",
 
   it("nothing here gates generation — the draft path does not import it", () => {
     expect(PASS_SOURCE).not.toContain("publish/setup/apply");
-    expect(readFileSync(path.resolve(import.meta.dirname, "../../../src/lib/scan/deep/run.ts"), "utf8")).not.toContain("publish/setup/apply");
   });
 });
 
