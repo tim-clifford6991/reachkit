@@ -10,7 +10,7 @@ import { lengthRangeFor, sectionWords, typeLength } from "../length";
 import { sourcesNeed, TEMPLATES } from "../templates";
 import { runHardRules, type BatteryOutcome } from "../rules";
 import { namedRivals } from "../rules/rivals";
-import { renderOf } from "../rules/text";
+import { headingsOf, renderOf } from "../rules/text";
 import type { ComparisonSet, HardRule, SiteRuleInputs } from "../rules/types";
 import type { SiteFacts } from "../store";
 import type { StoredReport } from "@/lib/scan/report";
@@ -232,7 +232,8 @@ export async function checkPage(
       const dropped = mended.dropped[rule];
       repairs.push({ rule, cleared: again !== null && !still.has(rule), ...(dropped === undefined ? {} : { dropped }) });
     }
-    console.log(JSON.stringify({ event: "draft_repaired", siteId: at.siteId, draftId: at.draftId, repairs }));
+    const headingsKept = outcome.fit.state === "failed" ? outcome.fit.sentences.filter((sentence) => headingsOf(writer).includes(sentence)) : [];
+    console.log(JSON.stringify({ event: "draft_repaired", siteId: at.siteId, draftId: at.draftId, repairs, ...(headingsKept.length === 0 ? {} : { headingsKept }) }));
     const narrower = (before: Set<HardRule>, now: Set<HardRule>): boolean => now.size < before.size && [...now].every((rule) => before.has(rule));
     const all = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.map((failure) => failure.rule));
     const fewer = again !== null && (narrower(all(outcome), all(again)) || narrower(stopping(outcome), stopping(again)));

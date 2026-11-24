@@ -19,7 +19,7 @@ import type { Language } from "@/lib/locale/locales";
 import { brandTokens, namesBrand } from "../rules/brand";
 import type { MarketFactRead } from "../rules/brief";
 import { rivalsNamedIn } from "../rules/rivals";
-import { renderOf, sentencesOf } from "../rules/text";
+import { headingsOf, renderOf, sentencesOf } from "../rules/text";
 import type { PromptKnowledge } from "../voice/profile-block";
 
 export type FitVerdict =
@@ -144,7 +144,8 @@ export function stillAsked(
   page: { title: string; markdown: string; businessName: string | null; domain: string; titleOwed?: boolean }
 ): FitVerdict {
   if (verdict.state !== "failed") return verdict;
-  const asked = new Set(brandSentences(page));
-  const still = verdict.sentences.filter((sentence) => asked.has(sentence));
+  const asked = new Set(brandSentences(page)), headings = new Set(headingsOf(page.markdown));
+  // A heading is its section's question, never dropped, so it never stops the page; the repair's log names it.
+  const still = verdict.sentences.filter((sentence) => asked.has(sentence) && !headings.has(sentence));
   return still.length === 0 ? { state: "passed" } : { state: "failed", sentences: still };
 }
