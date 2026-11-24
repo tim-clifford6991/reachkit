@@ -19,30 +19,21 @@
 //
 // Four of those need a word.
 //
-// **The webhook body is really signed.** The vendor double's own
-// `constructEvent` takes a boolean; this journey replaces it with Stripe's
-// documented scheme — `t=<unix>,v1=HMAC-SHA256(secret, "<t>.<body>")`,
-// verified over the raw bytes — so the trust boundary REQ-024 c2 rests on
-// is exercised rather than asserted. A body altered after signing is
-// refused by arithmetic, not by a flag.
+// **The webhook body is really signed** with Stripe's documented scheme,
+// `t=<unix>,v1=HMAC-SHA256(secret, "<t>.<body>")` over the raw bytes, so the
+// trust boundary REQ-024 c2 rests on is exercised: a body altered after
+// signing is refused by arithmetic, not by a flag.
 //
 // **One `users` row, three readers.** `AccountStore`, `BillingStore` and
-// `IdentityStore` are three narrow views of the same two tables. Here they
-// are three doubles, so the account store is wrapped and its two inserts
-// fan out to the other two — the join Postgres would have made. It is the
-// only thing this file arranges that production would not, and
-// `tests/account/columns.test.ts` is what keeps the three views honest
-// about the real schema.
+// `IdentityStore` are three doubles of the same two tables, so the account
+// store is wrapped and its two inserts fan out to the other two, the join
+// Postgres would have made; `tests/account/columns.test.ts` keeps the three
+// views honest about the real schema.
 //
-// **The copy registry is a fixture**, for the same reason as journey 02:
-// every sentence §13 speaks is owner-owed and empty, and `copy()` refuses
-// an owner-owed key — so against the real registry the magic-link mail
-// would not compose and the founder could not be observed getting in. The
-// debt is asserted where it belongs; here each key resolves to itself.
+// **The copy registry is a fixture**, as in journey 02: each key resolves to itself.
 //
-// **The deep pass is not started here.** This journey ends where §13 ends —
-// at `/setup`. Setup starts the pass; running it is journey 04's. That is
-// why this path writes no `fetches` row: nothing on it spends.
+// **The deep pass is not started here.** This journey ends where §13 ends, at
+// `/setup`; journey 04 runs the pass. So nothing on this path writes a `fetches` row.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureMail } from "./harness";
 import { createHmac } from "node:crypto";
