@@ -198,6 +198,7 @@ export const DE: LanguagePack = {
   studySearch: (target) => `${target} Studie Umfrage Ergebnisse`,
   officialHosts: /(?:^|\.)(?:w3\.org|schema\.org|iso\.org|din\.de|destatis\.de|bundesnetzagentur\.de|verbraucherzentrale\.de|ihk\.de|bitkom\.org)$/,
   studyMethod: /(?:wir haben (?:\S+ ){0,3}(?:befragt|analysiert|untersucht|ausgewertet)|unsere (?:Umfrage|Studie|Analyse)|Methodik|Stichprobe|Befragte|n ?= ?\d)/i,
+  reported: /^(?!.*\b(?:wir|unsere?[mnrs]?)\b).*(?:\blaut\b|\bzufolge\b|\b(?:berichtet|berichtete|fand|ergab|schätzt|schätzte|zeigte|kam zu dem Schluss),? dass\b)/is,
   guidanceSearch: (target) => `${target} offizielle Anleitung`,
   businessHeading: (name) => `So macht es ${name}`,
   backReferences: ["dies", "diese", "es", "wie erwähnt", "auch"],

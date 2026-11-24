@@ -177,6 +177,8 @@ export interface LanguagePack {
   datedLines: { updated: string; published: string };
   /** How a page says it ran its own study: its sample, its respondents or its method. */
   studyMethod: RegExp;
+  /** How a passage reports another party's finding ("according to X", "X reported that"), never in the first person. */
+  reported: RegExp;
   /** The search that finds a target's own guidance: the platform's or the
    *  authority's documentation of the task (issue 1486). */
   guidanceSearch(target: string): string;

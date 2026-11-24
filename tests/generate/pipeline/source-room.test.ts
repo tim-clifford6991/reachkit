@@ -1,7 +1,7 @@
 // SPEC §7 *Two pools of facts*: in production a list of alternatives cited 24 of 24 claims off the rivals' own pages, 0 independent.
 import { describe, expect, it } from "vitest";
 import type { MarketFact } from "../../../src/lib/generate/pipeline/research";
-import { byTier, tiered, withRoom } from "../../../src/lib/generate/pipeline/source-tier";
+import { byTier, citedIndependent, tiered, withRoom } from "../../../src/lib/generate/pipeline/source-tier";
 
 const rivals = ["otterly.ai", "peec.ai", "tryprofound.com", "tryanalyze.ai"];
 const fact = (url: string, at: number, product?: string) => ({ url, passage: `claim ${at}`, kind: product === undefined ? "study" : "rival_pricing", ...(product === undefined ? {} : { product }) }) as unknown as MarketFact;
@@ -16,5 +16,16 @@ describe("a list of alternatives keeps room for independent sources", () => {
     const dealt = withRoom(byTier(facts), 24, 6);
     expect(dealt.filter((each) => each.tier === "vendor")).toHaveLength(23);
     expect(dealt[0]?.url).toBe(review);
+  });
+});
+
+describe("a directory and a vendor's blog are never original for a method word elsewhere on the page", () => {
+  it("tiers the directory review, the reported finding second-hand, undated and other, and counts no cited independent site", () => {
+    const dir = "https://slashdot.org/software/comparison/Otterly.AI-vs-Profound", blog = "https://www.scalenut.com/blogs/trends-in-generative-engine-optimization";
+    const stars = "OtterlyAI 4.5 out of 5 stars", ahrefs = "In its own brand analysis, Ahrefs reported that up to 89% of AI answers rely on third-party pages.";
+    const read = [{ url: dir, text: `Otterly AI vs Profound. ${stars}. ${"x ".repeat(400)}Our methodology` }, { url: blog, text: `${ahrefs} ${"y ".repeat(400)}Research methodology` }];
+    const facts = tiered([{ ...fact(dir, 0), passage: stars }, { ...fact(blog, 0), passage: ahrefs, publishedAt: "2026-10-19", ageAt: "2026-10-19" }], { rivals: [], products: rivals, names: [{ domain: "otterly.ai", name: "Otterly AI" }, { domain: "tryprofound.com", name: "Profound" }], language: "en", pages: read, capped: new Set() });
+    expect(facts.map((each) => [each.tier, each.secondHand, each.ageAt, each.publishedAt])).toEqual([["review", undefined, undefined, undefined], ["other", true, undefined, undefined]]);
+    expect(citedIndependent(facts, (url) => url === blog)).toBe(0);
   });
 });

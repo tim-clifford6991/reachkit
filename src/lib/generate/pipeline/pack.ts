@@ -43,8 +43,8 @@ import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
 import type { SourcedFact } from "./grounding";
-import { agesOf, newestCredible, type ClaimDates, type SourceAges } from "./claims";
-import { byTier, type SourceMix, type SourceTier } from "./source-tier";
+import { agesOf, newestCredible, type SourceAges } from "./claims";
+import { byTier, type SourceMix } from "./source-tier";
 import { neverASource, staleRivalPrice } from "./original";
 import { ownDataFact, type OwnDataFact } from "./own-data";
 import type { BuyersAsk, JudgedResult, MarketFact, MarketResearch, ResearchedProduct } from "./research";
@@ -60,28 +60,8 @@ export interface PackFact {
   report?: true;
 }
 
-export interface PackClaim extends ClaimDates {
-  passage: string;
-  url: string;
-  title: string;
-  readAt: string;
-  kind: MarketFact["kind"];
-  product?: string;
-  /** Issue 1485: the plan or tier of `product` the claim is true of, as its
-   *  own page names it; `null`, true of the product as a whole. Absent on a
-   *  claim not read off a rival's own page, and on a pack built before. */
-  plan?: string | null;
-  /** Issue 1485: the rival a claim read off someone else's page is about. */
-  about?: string;
-  /** Who published a `recent` page, as the news search names it (D48). */
-  source?: string;
-  /** The page that repeated a statistic cited here to its original: a supporting source only. */
-  via?: string;
-  /** A statistic whose original could not be read: never a title's figure, nor alone what makes its page a source. */
-  secondHand?: true;
-  tier?: SourceTier;
-  capped?: true;
-}
+/** A market fact as the pack stores it: its read time as an ISO string. */
+export type PackClaim = Omit<MarketFact, "readAt"> & { readAt: string };
 
 /** What the latest complete pass measured, as a research page states it. */
 export interface PackMeasurements {

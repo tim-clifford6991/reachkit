@@ -14,6 +14,7 @@
 // The figure the failure carries is the numeral as it appears in the draft
 // — a stored value read straight out of the text, never a sentence and
 // never anything a model wrote.
+import type { MarketFactRead } from "./brief";
 import { urlKey } from "../links/select";
 import { sentencesOf } from "./text";
 import type { RuleFailure } from "./types";
@@ -168,7 +169,7 @@ const squash = (text: string): string => text.replace(/[‘’]/g, "'").replace(
 /** What a rival's own claim must say beside it where it is used: its plan's
  *  name, nothing (true of the product), or `false` — no plan is known and
  *  its words name none, so no sentence can state it truthfully. */
-export function planToName(claim: MarketFactLike): string | null | false {
+export function planToName(claim: MarketFactRead): string | null | false {
   if (claim.product === undefined) return null;
   if (typeof claim.plan === "string") return claim.plan;
   if (claim.plan === null) return null;
@@ -177,20 +178,11 @@ export function planToName(claim: MarketFactLike): string | null | false {
   return PRICED_RE.test(claim.passage) && NAMED_PRICE_RE.test(claim.passage) ? null : false;
 }
 
-interface MarketFactLike {
-  url: string;
-  passage: string;
-  kind?: string;
-  product?: string;
-  about?: string;
-  plan?: string | null;
-}
-
 /** Whether a sentence states this claim: its words stand in it. */
-const uses = (sentence: string, claim: MarketFactLike): boolean => squash(sentence).includes(squash(claim.passage));
+const uses = (sentence: string, claim: MarketFactRead): boolean => squash(sentence).includes(squash(claim.passage));
 
 /** The rivals whose own pages the page was handed a claim from. */
-const ownRead = (facts: readonly MarketFactLike[]): Set<string> =>
+const ownRead = (facts: readonly MarketFactRead[]): Set<string> =>
   new Set(facts.flatMap((fact) => (fact.product === undefined ? [] : [fact.product.toLowerCase()])));
 
 /**
@@ -200,7 +192,7 @@ const ownRead = (facts: readonly MarketFactLike[]): Set<string> =>
 export function rivalScopeBreach(
   sentence: { text: string; links?: readonly string[] },
   rivals: readonly NamedRival[],
-  facts: readonly MarketFactLike[]
+  facts: readonly MarketFactRead[]
 ): "third_party" | "plan" | null {
   const own = ownRead(facts);
   for (const rival of rivalsNamedIn(sentence.text, rivals)) {
@@ -226,7 +218,7 @@ export function rivalScopeBreach(
 export function checkRivalScope(a: {
   markdown: string;
   rivals: readonly NamedRival[];
-  facts: readonly MarketFactLike[] | undefined;
+  facts: readonly MarketFactRead[] | undefined;
 }): RuleFailure | null {
   if (a.rivals.length === 0 || a.facts === undefined || a.facts.length === 0) return null;
   for (const sentence of sentencesOf(a.markdown)) {
@@ -277,7 +269,7 @@ function subjectsOf(text: string, rival: NamedRival): Set<string> {
 /** Whether a stored fact about this rival says what the sentence denies: a
  *  fact read off the rival's own page or naming it, that denies something
   *  and shares a subject with the sentence. */
-function supported(rival: NamedRival, sentence: string, facts: readonly MarketFactLike[]): boolean {
+function supported(rival: NamedRival, sentence: string, facts: readonly MarketFactRead[]): boolean {
   const wanted = subjectsOf(sentence, rival);
   // Its own page outranks a third party's here too: where it was read, only
   // it can say what the rival does not do.
@@ -296,7 +288,7 @@ export function checkRivalNegative(a: {
   markdown: string;
   faq?: readonly { question: string; answer: string }[];
   rivals: readonly NamedRival[];
-  facts: readonly MarketFactLike[] | undefined;
+  facts: readonly MarketFactRead[] | undefined;
 }): RuleFailure | null {
   if (a.rivals.length === 0) return null;
   const facts = a.facts ?? [];
