@@ -417,8 +417,6 @@ function sentencesFor(
     }
     case "no_placeholder_cell":
       return failure.detail !== undefined && "cell" in failure.detail ? [failure.detail.cell] : [];
-    case "no_demo_text":
-      return failure.detail !== undefined && failure.detail.rule === "no_demo_text" ? [failure.detail.sentence] : [];
     // By the headings they name; the pipeline and the fix brief say what each asks.
     case "distinct_headings":
     case "standalone_lead":
