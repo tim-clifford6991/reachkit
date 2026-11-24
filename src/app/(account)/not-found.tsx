@@ -41,7 +41,7 @@ export default function AccountNotFound(): React.JSX.Element {
     <NotFoundScreen
       line={<p>{copy(LINE)}</p>}
       action={
-        <Link href={OVERVIEW} prefetch={true} className="btn btn-ghost">
+        <Link href={OVERVIEW} className="btn btn-ghost">
           <ArrowLeft size={20} strokeWidth={1.75} aria-hidden />
           {copy("chrome.back-to-overview")}
         </Link>

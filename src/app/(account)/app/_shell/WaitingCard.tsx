@@ -28,7 +28,6 @@ export function WaitingCard(p: {
   return (
     <Link
       href={`/app/draft/${review.draftId}`}
-      prefetch={true}
       // `alert-vertical` is what stacks the three lines: daisyUI's `alert`
       // is a grid with `grid-auto-flow: column`, so a flex direction would
       // be ignored and all three would land in one cell on top of each

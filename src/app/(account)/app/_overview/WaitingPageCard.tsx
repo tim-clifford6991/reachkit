@@ -67,7 +67,7 @@ export function WaitingPageCard(p: {
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap items-start gap-2.5">
-          <Link className="btn btn-soft btn-primary min-h-11" href={page.href} prefetch={true} data-testid="overview-waiting-read">
+          <Link className="btn btn-soft btn-primary min-h-11" href={page.href} data-testid="overview-waiting-read">
             <Eye size={20} strokeWidth={1.75} aria-hidden />
             {copy(READ_ACTION)}
           </Link>
