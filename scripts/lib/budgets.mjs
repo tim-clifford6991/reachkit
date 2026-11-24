@@ -189,3 +189,32 @@ export function lineFindings({ budget, changes, lines }) {
   }
   return findings;
 }
+
+// The writer's closed lists, read from their source: each entry count may fall and never rise.
+export const LISTS = {
+  hardRules: ["src/lib/generate/rules/types.ts", "export const HARD_RULES"],
+  warningRules: ["src/lib/generate/rules/types.ts", "export const WARNING_RULES"],
+  mechanicalRules: ["src/lib/generate/pipeline/repair.ts", "export const MECHANICAL_RULES"],
+  pipelineSteps: ["src/lib/generate/pipeline/index.ts", "export type PipelineStep"],
+};
+
+// The quoted entries from a declaration's start to its close, comments aside; null where the declaration is gone.
+function entriesOf(text, start) {
+  const at = text?.indexOf(start) ?? -1;
+  if (at < 0) return null;
+  const from = text.indexOf("=", at);
+  const body = text.slice(from, start.startsWith("export type") ? text.indexOf(";", from) : text.indexOf("]", text.indexOf("[", from))).replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+  return [...body.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+}
+
+// `read` returns a repo file's text. A stop turned into a warning is a reduction, so WARNING_RULES has no ceiling of its own.
+export function listFindings({ budget, read }) {
+  if (!budget) return [];
+  const got = Object.fromEntries(Object.entries(LISTS).map(([name, [rel, start]]) => [name, entriesOf(read(rel), start)]));
+  const counts = { hardRules: got.hardRules, mechanicalRules: got.mechanicalRules, pipelineSteps: got.pipelineSteps, stoppingRules: got.hardRules && got.warningRules && got.hardRules.filter((r) => !got.warningRules.includes(r)) };
+  return Object.entries(budget).flatMap(([name, cap]) => {
+    if (!(name in counts)) return [`scripts/budgets.json lists.${name} counts nothing`];
+    if (counts[name] === null) return [`lists.${name}: ${LISTS[name]?.[1] ?? "HARD_RULES or WARNING_RULES"} is not found; remove lists.${name} from scripts/budgets.json with it`];
+    return counts[name].length <= cap ? [] : [`lists.${name} has ${counts[name].length} entries, over ${cap} in scripts/budgets.json; it only goes down`];
+  });
+}
