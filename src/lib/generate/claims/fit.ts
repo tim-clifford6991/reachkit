@@ -145,7 +145,7 @@ export function stillAsked(
 ): FitVerdict {
   if (verdict.state !== "failed") return verdict;
   const asked = new Set(brandSentences(page)), headings = new Set(headingsOf(page.markdown));
-  // A heading is its section's question, never dropped, so it never stops the page; the repair's log names it.
-  const still = verdict.sentences.filter((sentence) => asked.has(sentence) && !headings.has(sentence));
+  // A question heading claims nothing and is never dropped, so it never stops the page; a declarative one is still held.
+  const still = verdict.sentences.filter((s) => asked.has(s) && !(headings.has(s) && /\?\s*$/.test(s)));
   return still.length === 0 ? { state: "passed" } : { state: "failed", sentences: still };
 }

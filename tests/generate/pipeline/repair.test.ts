@@ -10,6 +10,7 @@ import {
 } from "../../../src/lib/generate/rules/brief";
 import { fixNotes, onTopicFacts, repairMechanical, repairRecorded } from "../../../src/lib/generate/pipeline/repair";
 import type { ContextPack } from "../../../src/lib/generate/pipeline/pack";
+import { stillAsked } from "../../../src/lib/generate/claims/fit";
 
 const BRIEF: BriefRuleInputs = {
   facts: ["Teams on the starter plan get 25 seats and unlimited projects for a flat monthly fee."],
@@ -52,6 +53,7 @@ describe("repairMechanical", () => {
     const heading = "Is ReachKit an Analyze AI alternative that writes pages?";
     const fit = repairRecorded(`${OPENING}\n\n## ${heading}\n\nReachKit sits in a different column. Seats matter most.`, ["fit_claim"], { brief: BRIEF, sources: [], fit: [heading, "ReachKit sits in a different column."] });
     expect(fit.markdown).toBe(`${OPENING}\n\n## ${heading}\n\nSeats matter most.`);
+    expect(stillAsked({ state: "failed", sentences: ["How ReachKit Guarantees Page-One Rankings"] }, { title: "", markdown: "## How ReachKit Guarantees Page-One Rankings\n\nSeats matter most.", businessName: "ReachKit", domain: "reachkit.app" }).state).toBe("failed");
   });
 
   it("test 6 (6fa22c97): the fact chosen for an Analyze AI page is never the /compare/semrush passage", () => {
