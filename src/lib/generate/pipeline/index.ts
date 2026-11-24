@@ -265,7 +265,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   }
   // What the page is written without, recorded as next week's ranking input.
   const packShort = [...pack.missing, ...(basis.room?.short === true && !pack.missing.includes("facts_few") ? ["facts_few"] : []), ...(pack.adds.short ? ["adds"] : [])];
-  const shortfall = packShort.length === 0 ? {} : { pack_short: packShort };
+  const shortfall: Record<string, string[]> = packShort.length === 0 ? {} : { pack_short: packShort };
 
   const writing = {
     template,
