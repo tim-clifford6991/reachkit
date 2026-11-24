@@ -177,7 +177,7 @@ export interface GenerateStore {
   /** The `meta` of the site's newest draft of one content type (D42), or `null` where it has none. */
   lastMetaOfType(siteId: string, type: string): Promise<unknown>;
   /** Each dated draft of the site from `from` on, with the market facts it was handed (SPEC §7, a site's week). */
-  citedFrom?(siteId: string, from: string): Promise<{ day: string; facts: unknown }[]>;
+  citedFrom?(siteId: string, from: string): Promise<{ day: string; facts: unknown; claims?: unknown }[]>;
 }
 
 export interface RestartedDraft {
@@ -506,9 +506,9 @@ export function supabaseGenerateStore(): GenerateStore {
     },
 
     async citedFrom(siteId, from) {
-      const result = await untyped().from<{ scheduled_for: string; facts: unknown }>("drafts").select("scheduled_for, facts:meta->marketFacts").eq("site_id", siteId).gte("scheduled_for", from);
+      const result = await untyped().from<{ scheduled_for: string; facts: unknown; claims: unknown }>("drafts").select("scheduled_for, facts:meta->marketFacts, claims:meta->pack->claims").eq("site_id", siteId).gte("scheduled_for", from);
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
-      return (result.data ?? []).map((row) => ({ day: row.scheduled_for, facts: row.facts }));
+      return (result.data ?? []).map((row) => ({ day: row.scheduled_for, facts: row.facts, claims: row.claims }));
     },
 
     async lastMetaOfType(siteId, type) {
