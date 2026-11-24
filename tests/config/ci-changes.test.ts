@@ -49,29 +49,8 @@ describe("what a pull request changed", () => {
     expect(changes("src/lib/generate/brief.ts", file)).toMatchObject({ status: 0, code: "true", ui: "true" });
   });
 
-  it.each([
-    ["a canvas board", "docs/design/boards/canvas/X.dc.html"],
-    ["a board's parity baseline", "docs/design/parity/Pricing.baseline.json"],
-    ["the parity script", "scripts/design/parity.mjs"],
-  ])("%s alone runs the sweep", (_, file) => {
-    expect(changes(file)).toMatchObject({ status: 0, ui: "true" });
-  });
-
-  it.each([
-    ["a canvas board", "docs/design/boards/canvas/OptOut.dc.html"],
-    ["an allow file", "docs/design/parity/OptOut.allow"],
-  ])("%s alone runs the unit tests that render the state boards", (_, file) => {
-    expect(changes(file)).toMatchObject({ status: 0, code: "true", unit: "affected" });
-    const r = spawnSync(process.execPath, [SCRIPT, "--related"], { cwd: ROOT, encoding: "utf8", input: `${file}\n` });
-    expect(r.status).toBe(0);
-    const renders = Object.values(JSON.parse(readFileSync(path.join(ROOT, "docs/design/parity/boards.json"), "utf8")) as { render?: string }[])
-      .flatMap((row) => (row.render ? [row.render] : []));
-    expect(renders).toContain("tests/app/opt-out/board.test.tsx");
-    expect(r.stdout.trim().split("\n")).toEqual(expect.arrayContaining(renders));
-  });
-
   it("a documentation-only diff skips everything but audit", () => {
-    expect(changes("docs/SPEC.md", "docs/spec/decisions/2026-10-18-1525.md", "README.md")).toEqual({
+    expect(changes("docs/SPEC.md", "docs/spec/decisions/2026-10-18-1525.md", "README.md", "docs/design/boards/canvas/X.dc.html")).toEqual({
       status: 0,
       code: "false",
       ui: "false",

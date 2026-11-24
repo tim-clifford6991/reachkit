@@ -1,5 +1,5 @@
-// The plain-words standard as code: one parser for the copy registry and the boards, read by
-// tests/ui/design/strategy.test.ts, scripts/design/parity.mjs and the copy scripts. No dependencies.
+// The plain-words standard as code: one parser for the copy registry, read by
+// tests/ui/design/strategy.test.ts and the copy scripts. No dependencies.
 // docs/SPEC.md §0 Plain words holds the rules this counts.
 
 export const LIMITS = { sentence: 15, heading: 6, paragraph: 2 };
@@ -20,8 +20,6 @@ export const EXEMPT_KEYS = [
   /^legal\.withdraw\./,
   /^offer\.start(?:\.priced)?$/,
 ];
-// Boards drawing a customer's own pages, the owner-only screens, and the legal pages.
-export const EXEMPT_BOARDS = /^(?:Hosted.*|Review|AppCosts|Legal)$/;
 
 /** Each retired name, and the pattern that finds it. Zero tolerance wherever a customer reads. */
 export const RETIRED = [

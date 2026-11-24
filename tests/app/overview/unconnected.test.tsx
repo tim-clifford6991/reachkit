@@ -15,7 +15,6 @@ process.env.HOSTED_EDGE_CNAME_TARGET = EDGE;
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expectStateParity } from "../../ui/layout/state-parity";
 import { fakeDb, type FakeDb } from "../../publish/harness";
 
 const db: FakeDb = fakeDb();
@@ -29,7 +28,6 @@ vi.mock("@/lib/opportunities", () => ({
 
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../account-door");
 const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/(overview)/page");
-const { default: OverviewTabsLayout } = await import("@/app/(account)/app/(tabs)/layout");
 const { copy } = await import("@/lib/presentation/copy");
 
 const ZONE = "America/Chicago";
@@ -169,12 +167,6 @@ describe("Overview for an address not connected yet", () => {
     expect(html).toContain(`data-host="${customer.label}.${customer.domain}"`);
     // DNS is the only connect path while WordPress is switched off.
     expect(text).not.toMatch(/wordpress/i);
-  });
-
-  it("parity: OverviewDNS reads its rendered arms", async () => {
-    seed({ kind: "hosted", hostname: `${PLUMBER.label}.${PLUMBER.domain}`, state: "pending_dns" });
-    // The tabs over the page are the (tabs) layout's, inside the board's main.
-    expectStateParity("OverviewDNS", [renderToStaticMarkup(<OverviewTabsLayout>{await OverviewPage()}</OverviewTabsLayout>)]);
   });
 
   it("names no go-live time and draws no ladder, week or other module", async () => {

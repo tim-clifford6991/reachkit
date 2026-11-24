@@ -24,7 +24,6 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 import { codeOf } from "../../mail/leads/source";
 import type { PreviewResult, RedeemResult, VetoPreview } from "../../../src/lib/publish/publishable";
 import type { PlannedPreview } from "../../../src/lib/opportunities/stop";
-import { expectStateParity } from "../../ui/layout/state-parity";
 
 applyEnvFixture();
 
@@ -670,19 +669,6 @@ describe("every arm renders, each in its own words", () => {
     expect(headingsOf(tree, "h1")).toEqual([COPY[head]]);
     expect(toldLine(tree)).toBe(COPY[line]);
     expect(headingsOf(tree, "h1")).not.toContain(COPY["publish.veto.done.head"]);
-  });
-
-  it("parity: Veto reads its rendered arms", async () => {
-    const arms: React.ReactNode[] = [await ask(), await ask({ done: "1" })];
-    previewAnswer = async () => spent("How teams pick an onboarding tool");
-    arms.push(await ask({ done: "1" }));
-    for (const reason of ["used", "expired", "unknown"] as const) {
-      previewAnswer = async () => (reason === "used" ? spent(null) : { ok: false, reason });
-      arms.push(await ask());
-    }
-    plannedAnswer = async () => PLANNED;
-    arms.push(await VetoPage({ params: { token: "planned.token" }, searchParams: {} }));
-    expectStateParity("Veto", arms.map((arm) => renderToStaticMarkup(arm as React.ReactElement)));
   });
 
   it("the closed and unusable arms say what the board says, with Stop as the word (E7)", () => {

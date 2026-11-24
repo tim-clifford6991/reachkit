@@ -52,9 +52,6 @@ The production Supabase project id is `kleepxxddbcnfsfwudoe` (`.env.local` point
 ## Never
 Merge by hand (arming auto-merge on a GO is the one merge step you take), deploy, apply a migration, run a write query against production, make a paid call, print a secret, or pass a PR with a pending check, an unproven condition or a missing PR body section.
 
-## Design parity
-Parity runs inside the `no overflow · axe` gate (`tests/ui/layout/parity.test.ts`): read it in `gh pr checks`, never run it on the box. A board that a later owner-approved plate superseded has no parity row (owner ruling 68, #3147). A parity failure caused only by an approved design change is a process defect: name it for one fix issue, not a per-PR NO-GO.
-
 ## Fresh base (owner R7, 2026-10-22; amended 2026-11-16)
 Branch protection stays `strict:false`. A GO may rest on a green run on an older `origin/main` when both are true:
 1. `git merge-tree --write-tree origin/main <head>` exits 0.
