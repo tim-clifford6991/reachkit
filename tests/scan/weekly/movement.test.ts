@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../../publish/harness";
 
 const db = fakeDb();
+db.uniqueIndexes.push({ table: "market_changes", columns: ["site_id", "week_start"] });
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const { previousWeekStart, weekMovement } = await import("@/lib/scan/weekly");
@@ -227,4 +228,12 @@ describe("SPEC §9 on Monday: the technical checks that moved (#573)", () => {
     const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
     expect(movement.issueChanges.kind).toBe("unmeasured");
   });
+});
+
+// The weekly market step claims its week before any spend: a second run of the same pass buys nothing, an owner's re-run takes the week over.
+it("claims a market week once per pass, and again for a re-run's own pass", async () => {
+  const { claimMarketWeek } = await import("@/lib/scan/weekly/store");
+  const week = { siteId: "site-1", weekStart: "2026-11-23" };
+  expect([await claimMarketWeek({ ...week, scanId: "monday" }), await claimMarketWeek({ ...week, scanId: "monday" })]).toEqual([true, false]);
+  expect([await claimMarketWeek({ ...week, scanId: "rerun" }), await claimMarketWeek({ ...week, scanId: "rerun" })]).toEqual([true, false]);
 });
