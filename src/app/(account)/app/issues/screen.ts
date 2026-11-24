@@ -93,7 +93,7 @@ export function siteFixesScreen(reading: IssuesReading | null, timeZone: string,
   const words = { back: copy("overview.issues.back"), fixLabel: copy("overview.issues.fix"), newTab: copy("draft.live.new-tab"), list: copy("overview.issues.title") };
   const date = reading?.measuredAt == null ? null : scanDay(reading.measuredAt, timeZone);
   const lead = date === null ? copy("overview.issues.lead") : `${copy("overview.issues.lead")} ${copy("overview.issues.found", { date })}`;
-  if (reading === null) return { lead, state: "unreadable", line: copy("overview.issues.unreadable"), summary: null, rows: [], words };
+  if (reading === null) return { lead, state: "unreadable", line: copy("chrome.error.part.line"), summary: null, rows: [], words };
   if (date === null || reading.pagesChecked === null) return { lead, state: "unscanned", line: copy("overview.issues.unscanned"), summary: null, rows: [], words };
 
   const read = reading.pagesChecked;

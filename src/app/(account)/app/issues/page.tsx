@@ -20,9 +20,7 @@ import { IssuesView } from "./view";
 export const metadata: Metadata = { title: copy("meta.app.issues.title") };
 
 export default async function IssuesPage(): Promise<React.JSX.Element> {
-  const reading = await readIssues();
-  const { timeZone } = await requireSetUpAccount();
   // The same next Monday check This Week's head names.
-  const [head, today] = await Promise.all([readPlanHead(), planToday()]);
+  const [reading, { timeZone }, head, today] = await Promise.all([readIssues(), requireSetUpAccount(), readPlanHead(), planToday()]);
   return <IssuesView screen={siteFixesScreen(reading, timeZone, checkDays(head, today).next)} />;
 }

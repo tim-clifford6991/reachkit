@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Check } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { formatCount } from "../_overview/present";
+import { Failed } from "../_shell/Part";
 import { FixList } from "./FixList";
 import type { SiteFixesScreen } from "./screen";
 
@@ -63,9 +64,7 @@ export function IssuesView(p: { screen: SiteFixesScreen }): React.JSX.Element {
         head
       )}
       {screen.state === "unreadable" ? (
-        <div role="alert" className="alert alert-soft alert-warning">
-          {screen.line}
-        </div>
+        <Failed testId="issues-unreadable" />
       ) : screen.state === "unscanned" ? (
         <p className="text-sm" data-testid="issues-unscanned">
           {screen.line}

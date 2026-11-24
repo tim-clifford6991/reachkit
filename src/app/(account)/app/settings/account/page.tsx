@@ -9,7 +9,8 @@ import { readBillingSummary, readMonthGot, readSettings } from "../provider";
 import { readsLanded } from "../model";
 import { ANCHORED, SETTINGS_ANCHOR } from "../tabs";
 import { CARD_COLUMN, CARD_GRID } from "../frame";
-import { landed, Unread } from "../Unread";
+import { recorded } from "@/lib/ops/events";
+import { Part } from "../../_shell/Part";
 import { readShell } from "../../_shell/provider";
 import { CardSkeleton } from "../../_shell/skeletons";
 import { planToday, readWeek } from "../../calendar/provider";
@@ -28,15 +29,19 @@ export default async function SettingsAccountTab(): Promise<React.JSX.Element> {
       <div id={SETTINGS_ANCHOR.billing} className={ANCHORED}>
         <div className={CARD_COLUMN}>
           <BillingPanel billing={billing} />
-          <Suspense fallback={<CardSkeleton testId="billing-month-skeleton" rows={3} />}>
-            <Month />
-          </Suspense>
+          <Part testId="settings-month-failed">
+            <Suspense fallback={<CardSkeleton testId="billing-month-skeleton" rows={3} />}>
+              <Month />
+            </Suspense>
+          </Part>
         </div>
       </div>
       <div className={CARD_COLUMN}>
-        <Suspense fallback={<CardSkeleton testId="settings-account-skeleton" />}>
-          <Account />
-        </Suspense>
+        <Part testId="settings-account-failed">
+          <Suspense fallback={<CardSkeleton testId="settings-account-skeleton" />}>
+            <Account />
+          </Suspense>
+        </Part>
         <DangerZone />
       </div>
     </div>
@@ -44,10 +49,10 @@ export default async function SettingsAccountTab(): Promise<React.JSX.Element> {
 }
 
 async function Month(): Promise<React.JSX.Element> {
-  const [month, shell, today] = await Promise.all([landed(readMonthGot(), "month"), landed(readShell(), "shell"), landed(planToday(), "today")]);
-  if (month === null || shell === null || today === null) return <Unread testId="settings-unread-month" />;
+  const today = recorded(planToday(), "today");
   // This week's pages still to go live, as Plan shows them; unread is never zero.
-  const week = await landed(readWeek(today), "week");
+  const weekRead = today.then((day) => recorded(readWeek(day), "week")).catch(() => null);
+  const [month, shell, week] = await Promise.all([recorded(readMonthGot(), "month"), recorded(readShell(), "shell"), weekRead, today]);
   const planned = week?.cells.flatMap((cell) => (cell.page !== null && cell.page.stage !== "live" ? [cell.day] : [])) ?? null;
   return (
     <MonthPanel
@@ -64,8 +69,8 @@ async function Month(): Promise<React.JSX.Element> {
 }
 
 async function Account(): Promise<React.JSX.Element> {
-  const [all, shell] = await Promise.all([landed(readSettings(), "settings"), landed(readShell(), "shell")]);
-  const settings = readsLanded(all, "card", "pages");
   // The shortcuts need the shell's blog; without it the card still stands, with Help and no blog link.
-  return settings === null ? <Unread testId="settings-unread-account" /> : <AccountPanel account={settings.account} pages={settings.content.pages} blog={shell?.blog ?? null} />;
+  const [all, shell] = await Promise.all([recorded(readSettings(), "settings"), recorded(readShell(), "shell").catch(() => null)]);
+  const settings = readsLanded(all, "card", "pages");
+  return <AccountPanel account={settings.account} pages={settings.content.pages} blog={shell?.blog ?? null} />;
 }

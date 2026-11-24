@@ -313,9 +313,11 @@ export interface SettingsFacts {
 /** The reads with no honest degraded arm, named so a panel can say which ones it states. */
 export type SettingsRead = "answers" | "measured" | "publishing" | "publishingOn" | "site" | "notify" | "pages" | "card" | "destinations";
 
-/** The model when every read a panel states landed, else `null` and the panel draws its error line. */
-export function readsLanded(settings: SettingsModel | null, ...reads: readonly SettingsRead[]): SettingsModel | null {
-  return settings !== null && reads.every((read) => !settings.unread.includes(read)) ? settings : null;
+/** The model when every read a panel states landed; else it throws, and the panel's boundary draws its error. */
+export function readsLanded(settings: SettingsModel, ...reads: readonly SettingsRead[]): SettingsModel {
+  const failed = reads.filter((read) => settings.unread.includes(read));
+  if (failed.length > 0) throw new Error(`settings reads failed: ${failed.join(",")}`);
+  return settings;
 }
 
 /**

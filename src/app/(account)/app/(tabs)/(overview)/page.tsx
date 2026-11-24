@@ -8,6 +8,7 @@
 // **It declares no `Surface`:** the shell's layout owns this route's screen
 // root (see `../layout.tsx`).
 import type React from "react";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Wrench } from "lucide-react";
@@ -27,6 +28,7 @@ import { OverviewHead } from "../../_overview/OverviewHead";
 import { WaitingPageCard } from "../../_overview/WaitingPageCard";
 import { WeekWaiting } from "../../_overview/WeekWaiting";
 import { HEAD, OVERVIEW, REGION } from "../../_overview/frame";
+import { TilesSkeleton } from "../../_overview/skeletons";
 
 export const metadata: Metadata = { title: copy("meta.app.overview.title") };
 
@@ -42,12 +44,22 @@ function weekdayOf(day: string): string {
 const shortDay = (day: string): string => formatShortDay(new Date(`${day}T12:00:00Z`), "UTC");
 
 export default async function OverviewPage(): Promise<React.JSX.Element> {
-  const [shell, overview, onboarding, wordpressWaiting] = await Promise.all([
-    readShell(),
-    readOverview(),
-    readOnboarding(),
-    readWordPressWaiting(),
-  ]);
+  // Every read starts here, together; one an arm below does not draw is dropped, and a value one needs is a promise.
+  const shellRead = readShell();
+  const onboardingRead = readOnboarding();
+  // Plan's own week and day cards, reached at the call: Plan's modules reach the
+  // market's, and this screen's graph holds no vendor client. Where it cannot be
+  // read the week is not drawn and the rest stands.
+  const thisWeekRead = import("../../_overview/this-week")
+    .then(async (m) => ({ week: await m.readThisWeek(), ThisWeek: m.ThisWeek }))
+    .catch(() => null);
+  const noticeRead = readReleaseNotice();
+  const tilesRead = readTiles(
+    Promise.all([onboardingRead, thisWeekRead]).then(([state, read]) => (state.kind === "running" ? 0 : (read?.week?.coming ?? 0))),
+    shellRead.then((shell) => shell.publishing.next !== null)
+  );
+  for (const read of [noticeRead, tilesRead]) read.catch(() => null);
+  const [shell, overview, onboarding, wordpressWaiting] = await Promise.all([shellRead, readOverview(), onboardingRead, readWordPressWaiting()]);
   // Until the address is connected no page can go live: the screen is the
   // connect arm alone, and no part of it names a go-live time or a total.
   if (overview.connect !== null) {
@@ -83,20 +95,14 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   }
 
   const running = onboarding.kind === "running";
-  // Plan's own week and day cards, reached at the call: Plan's modules reach the
-  // market's, and this screen's graph holds no vendor client. Where it cannot be
-  // read the week is not drawn and the rest stands.
-  const thisWeek = running
-    ? null
-    : await import("../../_overview/this-week").then(async (m) => ({ week: await m.readThisWeek(), ThisWeek: m.ThisWeek })).catch(() => null);
+  const thisWeek = running ? null : await thisWeekRead;
   const notice =
     onboarding.kind === "none" || onboarding.kind === "ended"
-      ? overviewNotice({ onboarding, notice: await readReleaseNotice(), weekZero: shell.weeks.kind !== "counted" })
+      ? overviewNotice({ onboarding, notice: await noticeRead, weekZero: shell.weeks.kind !== "counted" })
       : null;
 
   const week = thisWeek?.week ?? null;
   const weekPages = week?.pages ?? 0;
-  const tiles = await readTiles(week?.coming ?? 0, shell.publishing.next !== null);
 
   // The head. A page that cannot go out without the customer outranks "nothing needs you".
   const today = formatDay(overview.today, shell.timeZone);
@@ -114,7 +120,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         : week.chosen === week.today
           ? copy("overview.head.lead.chosen", { n })
           : copy("overview.head.lead.chosen-on", { n, weekday: weekdayOf(week.chosen), date: shortDay(week.checked) });
-  const firstLive = week?.checked === null ? (tiles?.firstLive ?? null) : null;
+  const firstLive = week?.checked === null ? ((await tilesRead)?.firstLive ?? null) : null;
 
   // In place of the today card: paused, or one quiet line about today.
   const paused = shell.publishing.next === null && shell.publishing.because === "publishing_paused";
@@ -172,12 +178,9 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         </p>
       )}
 
-      {tiles === null ? null : (
-        <>
-          <Tiles model={tiles} dates={{ due: shell.nextDueOn, goLive: shell.publishing.next, timeZone: shell.timeZone }} />
-          <TilesHow noConsole={tiles.google.shown.kind === "no-console"} read={tiles.tiles.some((tile) => tile.read !== undefined)} />
-        </>
-      )}
+      <Suspense fallback={<TilesSkeleton />}>
+        <TilesRow read={tilesRead} dates={{ due: shell.nextDueOn, goLive: shell.publishing.next, timeZone: shell.timeZone }} />
+      </Suspense>
 
       {running ? (
         <div className="min-w-0" data-frame={REGION.week}>
@@ -208,5 +211,16 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         </Link>
       )}
     </div>
+  );
+}
+
+/** The tiles stream in when their rows land; rows that could not be read leave no row, never zeros. */
+async function TilesRow(p: { read: ReturnType<typeof readTiles>; dates: React.ComponentProps<typeof Tiles>["dates"] }): Promise<React.JSX.Element | null> {
+  const tiles = await p.read;
+  return tiles === null ? null : (
+    <>
+      <Tiles model={tiles} dates={p.dates} />
+      <TilesHow noConsole={tiles.google.shown.kind === "no-console"} read={tiles.tiles.some((tile) => tile.read !== undefined)} />
+    </>
   );
 }

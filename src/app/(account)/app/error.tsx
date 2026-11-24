@@ -7,21 +7,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
+import { onConnection } from "./_shell/Part";
 
 const OVERVIEW = "/app";
 const SENTINEL = "\u0000";
 
 // The boundary may remount this screen when a retry throws again, so the path a retry was asked on outlives the instance.
 let retriedOn: string | null = null;
-
-function onConnection(change: () => void): () => void {
-  window.addEventListener("online", change);
-  window.addEventListener("offline", change);
-  return () => {
-    window.removeEventListener("online", change);
-    window.removeEventListener("offline", change);
-  };
-}
 
 function digestOf(error: unknown): string | null {
   const digest = error instanceof Error ? (error as Error & { digest?: unknown }).digest : undefined;
