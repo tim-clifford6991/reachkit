@@ -205,7 +205,6 @@ function describe(outcome: GenerateOutcome): string {
   if (outcome.ok) return "passed";
   if (outcome.reason === "rules") return `stopped by: ${outcome.failed.map((failure) => failure.rule).join(", ")}`;
   if (outcome.step === "pack") return `not written — the pack is short of: ${(outcome.missing ?? []).join(", ")}`;
-  if (outcome.step === "adds") return "not written — the pack adds too little the top results do not say";
   return `step failed: ${outcome.step}`;
 }
 

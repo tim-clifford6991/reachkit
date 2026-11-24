@@ -2,10 +2,10 @@
 // stages. Stage 1 (decide) and stage 2 (the context pack) are the caller's
 // (`../index.ts`): this function is handed the pack and runs the rest.
 //
-//   2b. the pack is held against its template's *pack must hold* line, and a
-//       new page against what it must add (D12). Short of either, nothing is
-//       written: the row is written with its pack and the page stops, naming
-//       what is missing;
+//   2b. only two things stop a page before it is written: a comparison with no
+//       first-hand evidence for a product it names, and an update whose live
+//       page is missing. Anything else the pack is short of, or adds too
+//       little, is written with what it holds and logged as `pack_short`;
 //   3.  **write** — one call, the type's template filled from the pack only
 //       (`./write.ts`), laid out in code (`./compose.ts`);
 //   4.  **check** — code only (`../rules`): the five checks and the guards,
@@ -48,7 +48,7 @@ import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
 import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
-import { deployedStandard, evidenceOf, meetsStandard, writtenAnyway } from "../standard";
+import { deployedStandard, evidenceOf, meetsStandard } from "../standard";
 import { batteryCleared, type BatteryOutcome } from "../rules";
 import { renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
@@ -76,15 +76,16 @@ import { carriedMark } from "../interrupted";
 
 /** The stages a page can stop at without a rule failing. */
 export type PipelineStep =
-  /** The pack is short of its template's *pack must hold* line (D41). */
+  /** A comparison with no first-hand evidence for a product it names, or an update whose live page is missing. */
   | "pack"
-  /** A new page whose pack adds too little (D12, issue 1143). */
-  | "adds"
   | "write"
   | "fix"
   | "fit_check"
   | "page_read"
   | "page_fix";
+
+/** The two needs that stop a page before it is written; every other need is written short. */
+const STOPS_BEFORE: ReadonlySet<PackNeed> = new Set<PackNeed>(["rival_evidence", "live_page"]);
 
 /** The state a row this function writes is left in. The edge into
  *  `in_review` — with the veto clock it starts — is the publishing engine's. */
@@ -114,7 +115,7 @@ export type GenerateOutcome =
       reason: "step_failed";
       draftId: string | null;
       step: PipelineStep;
-      /** On `pack`: what the template asks that the pack lacks. */
+      /** On `pack`: which of the two needs that stop a page it lacks. */
       missing?: readonly PackNeed[];
       /** On `write`: the writer answered and its answer was refused, so buying it again would fail the same way; `cut_off`, it ran past its output cap and is asked again only for a shorter page. */
       answered?: true | "cut_off";
@@ -168,8 +169,6 @@ export interface GenerateInputs {
    *  the run has a `fix` step, which a fix call this step has no room for is left to; `owed`: this is that step. */
   startedAt?: number;
   fixStep?: "owe" | "owed";
-  /** The day's last step, written anyway (SPEC §7): a short pack at the minimum is written short, adding too little noted. */
-  completeness?: "warn";
   /** The last write ran past its output cap: this one is asked for a shorter page, never the same input again. */ shorter?: true;
 }
 
@@ -253,24 +252,20 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return id;
   };
 
-  // 2b. A pack short of what its template asks, or a new page short of what it must add, writes nothing, and on a new
-  //     day no row: the caller rests the topic and goes to the next. A rewrite keeps its row, and the row its pack.
+  // 2b. Only an unsupported comparison or a missing live page stops before writing: on a new day with no
+  //     row, and the caller rests the topic; a rewrite keeps its row, and the row its pack. Any other shortfall is written.
   const basis = batteryBasis({ pack, opportunity: a.opportunity, site: a.site, facts: a.facts, grounding, ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }) });
   const { template, length, pageType, table, searches, names, passages, withList, brief: briefRead } = basis;
-  const standard = meetsStandard({ pack, words: basis.room });
-  const anyway = a.completeness === "warn";
-  const missing: PackNeed[] = writtenAnyway(pack, basis.room?.short === true && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing, anyway);
-  if ((anyway ? missing.length > 0 : !standard.met) && existing === null) {
-    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, step: "pack", outcome: "short", type: pack.type, missing: missing.join(","), ...evidenceOf(pack) });
-    return { ok: false, reason: "step_failed", draftId: null, step: "pack", missing };
+  const missing = pack.missing.filter((need) => STOPS_BEFORE.has(need));
+  if (missing.length > 0) {
+    const draftId = existing === null ? null : await writeRow({ title: existing.title ?? a.opportunity.title ?? null, body_md: existing.body_md ?? null, meta: baseMeta });
+    if (draftId !== null) await store.patchDraft(draftId, { hard_rules_passed: false });
+    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, ...(draftId === null ? {} : { draftId }), step: "pack", outcome: "short", type: pack.type, missing: missing.join(","), ...evidenceOf(pack) });
+    return { ok: false, reason: "step_failed", draftId, step: "pack", missing };
   }
-  if (missing.length > 0 || (pack.adds.short && !anyway)) {
-    const draftId = await writeRow({ title: existing?.title ?? a.opportunity.title ?? null, body_md: existing?.body_md ?? null, meta: baseMeta });
-    await store.patchDraft(draftId, { hard_rules_passed: false });
-    const step: PipelineStep = missing.length > 0 ? "pack" : "adds";
-    logRun({ siteId: a.siteId, opportunityId: a.opportunity.id, draftId, step, outcome: "short", type: pack.type, missing: missing.join(","), ...evidenceOf(pack) });
-    return { ok: false, reason: "step_failed", draftId, step, ...(step === "pack" ? { missing } : {}) };
-  }
+  // What the page is written without, recorded as next week's ranking input.
+  const packShort = [...pack.missing, ...(basis.room?.short === true && !pack.missing.includes("facts_few") ? ["facts_few"] : []), ...(pack.adds.short ? ["adds"] : [])];
+  const shortfall: Record<string, string[]> = packShort.length === 0 ? {} : { pack_short: packShort };
 
   const writing = {
     template,
@@ -385,7 +380,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
-      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken, a.site.young), standard: (({ parts, met }) => ({ parts, met, version: deployedStandard() }))(standardOf(page, outcome)) }),
+      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken, a.site.young), standard: (({ parts, met }) => ({ parts, met, version: deployedStandard(), ...(packShort.length === 0 ? {} : { packShort }) }))(standardOf(page, outcome)) }),
     };
   };
 
@@ -474,13 +469,13 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   }
   if (checked.outcome.passed) {
     const short = standardOf(checked.page, checked.outcome).parts.filter((part) => part.state === "short").map((part) => `${part.part}:${part.have}/${part.need}`);
-    logRun({ siteId: a.siteId, draftId, outcome: "passed", type: pack.type, fixed, short, costCents: Math.round(c.spentCents()) });
+    logRun({ siteId: a.siteId, draftId, outcome: "passed", type: pack.type, fixed, short, ...shortfall, costCents: Math.round(c.spentCents()) });
     return { ok: true, draftId, grounded: grounding?.fact ?? null };
   }
 
   // A page its fix call did not clear is stopped: never queued, no day taken.
   const attempt = attemptsBefore + 2;
-  logRun({ siteId: a.siteId, draftId, outcome: "rules", attempt, type: pack.type });
+  logRun({ siteId: a.siteId, draftId, outcome: "rules", attempt, type: pack.type, ...shortfall });
   return {
     ok: false,
     reason: "rules",

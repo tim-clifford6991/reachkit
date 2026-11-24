@@ -28,5 +28,5 @@ export async function fixOwedPage(a: { draftId: string; now: Date; since?: Date 
   const [site, report, opportunity] = await Promise.all([store.siteFacts(row.site_id), store.latestReport(row.site_id), writtenFor(row)]);
   if (site === null || report === null || opportunity === null) return { ok: false, because: "no_draft" };
   const { writeFallback } = await import(".");
-  return writeFallback({ siteId: row.site_id, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id, fixStep: "owed" }, a.now, undefined, undefined, a.since);
+  return writeFallback({ siteId: row.site_id, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id, fixStep: "owed" }, a.now, undefined, a.since);
 }

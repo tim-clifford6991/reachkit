@@ -9,7 +9,7 @@
 import { contentTypeOf, SHAPED, type ContentType } from "@/lib/opportunities/content-type";
 import { offeringTopTen, type TopTenRow } from "@/lib/opportunities/derive/top-ten-kind";
 import type { Opportunity } from "@/lib/opportunities/types";
-import { pageClass, registrableDomain } from "@/lib/market/rivals/domains";
+import { pageClass } from "@/lib/market/rivals/domains";
 import { bodyWords, lengthRangeFor, sectionWords, typeLength } from "./length";
 import type { BatteryBasis } from "./pipeline/battery";
 import { fold, knowledgeTexts, ownTopicWords, rivalsOnlyVersus, shares, type ContextPack, type PackClaim, type PackMeasurements } from "./pipeline/pack";
@@ -255,18 +255,6 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
  *  its template asks its pack for outside sources. A how-to and a Q&A. */
 export function builtFromOutside(type: ContentType, own?: ContentType): boolean {
   return packNeeds(type, own).some((requirement) => requirement.need === "outside_sources");
-}
-
-/** The needs a page written anyway goes without: never first-hand rival evidence, which an ungrounded page would be harm. */
-const WAIVED: ReadonlySet<PackNeed> = new Set<PackNeed>(["outside_sources", "buyer_questions", "options", "recent_results", "facts_few"]);
-
-/** What a page still lacks before it is written. Written anyway (SPEC §7, owner 2026-11-18), only what no waiver covers,
- *  once its research holds the minimum: two sourced sections, from two independent sources, the site's own on-topic
- *  facts one of them. Under it, or written as any other page, everything it lacks: nothing is invented. */
-export function writtenAnyway(pack: ContextPack, missing: readonly PackNeed[], anyway: boolean): PackNeed[] {
-  const sources = new Set(sourcingUrls(pack.claims).map((url) => registrableDomain(url) ?? url.replace(/^\w+:\/\/([^/]+).*$/, "$1")));
-  const own = factTexts(pack).some((text) => shares(ownTopicWords(pack), text)) ? 1 : 0;
-  return anyway && pack.questions.length >= 2 && sources.size + own >= 2 ? missing.filter((need) => !WAIVED.has(need)) : [...missing];
 }
 
 /** What the template asks of the pack that it does not hold, by handle. */

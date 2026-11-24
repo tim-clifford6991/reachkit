@@ -67,8 +67,8 @@ export async function dayTypes(siteId: string, o: Opportunity, now: Date, cost?:
   return { type, ...(type !== null && fellTo(type, own) ? { own } : {}) };
 }
 
-/** A topic's research for its date, ledgered at 0¢ beside its own calls, so the day's last step counts its minimum from
- *  what the run already bought (SPEC §7): that step reads only what is held, and never buys a topic's research again.
+/** A topic's research for its date, ledgered at 0¢ beside its own calls, so a row's owed fix step reads only what the run
+ *  already bought and never buys a topic's research again.
  *  Research bought logs its own `draft_researched`; any other outcome logs one saying why, so a skip reads as one. */
 export async function heldResearch(cost: CostContext, a: { key: string; reuse: boolean; researched: boolean; line: { site: string; draft: string | null; opportunity: string; type: ContentType } }, stored: () => MarketResearch, buy: () => Promise<MarketResearch>): Promise<MarketResearch> {
   const skipped = (reason: "type" | "held" | "cap", research: MarketResearch) => (console.log(JSON.stringify({ event: "draft_researched", skipped: reason, ...a.line })), research);
@@ -87,13 +87,13 @@ export async function heldResearch(cost: CostContext, a: { key: string; reuse: b
  *  market's searched terms too (owner, D62; issue 1297): the pack says when it holds enough. */
 export async function researchFor(
   cost: CostContext,
-  a: { siteId: string; site: SiteFacts; report: StoredReport; draftId?: string; publishDate: string | null; completeness?: "warn"; fixStep?: "owe" | "owed"; o: Opportunity; type: ContentType; as: ContentType; locale: Locale; writingFor: WritingMarket }
+  a: { siteId: string; site: SiteFacts; report: StoredReport; draftId?: string; publishDate: string | null; fixStep?: "owe" | "owed"; o: Opportunity; type: ContentType; as: ContentType; locale: Locale; writingFor: WritingMarket }
 ): Promise<MarketResearch> {
   const { site, report, o, type, as, locale, writingFor } = a;
   const category = writingFor.category;
   const { versusRivals } = await import("./day-refresh");
   const line = { site: a.siteId, draft: a.draftId ?? null, opportunity: o.id, type };
-  return heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.completeness === "warn" || a.fixStep === "owed", researched: TEMPLATES[as].research, line }, () => storedAsk(report, targetSearches(o)), () => researchMarket(cost, {
+  return heldResearch(cost, { key: `${a.siteId}:${o.id}:${type}:${a.publishDate}`, reuse: a.fixStep === "owed", researched: TEMPLATES[as].research, line }, () => storedAsk(report, targetSearches(o)), () => researchMarket(cost, {
           siteId: a.siteId, page: `${o.id}:${a.publishDate}`,
           locale,
           domain: site.domain,

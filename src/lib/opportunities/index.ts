@@ -54,7 +54,6 @@ export { contentTypeOf, CONTENT_TYPES, type ContentType } from "./content-type";
 export { pageTypeOf, type PageType } from "./page-type";
 export { sitePagesFor, type SitePage } from "./site-pages";
 export { claimForDraft, dismissForVeto, giveBackClaim, queueForDraft, restTopic } from "./drafted";
-export { updateInstead } from "./update-instead";
 
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { choiceOf, explainChoice, type Choice } from "./derive/explain";
