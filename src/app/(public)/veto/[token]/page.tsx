@@ -31,6 +31,11 @@
 // volume on a why-row of its own; the set puts the same facts on the page so
 // a person can tell which page they are stopping. Nothing about the account,
 // and nothing about any other page.
+//
+// **Bounded, and it answers rather than hanging.** Both the read and the
+// redemption sit on a public, unauthenticated address, so a database that is
+// unreachable costs its reader a written line and not a page that never
+// loads — see `DEADLINE_MS`.
 import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -71,9 +76,42 @@ export const revalidate = 0;
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.veto);
 
 /**
+ * How long either seam may take before the page answers anyway.
+ *
+ * Chosen here rather than pinned in `constants.ts` for the reason
+ * `src/middleware.ts`'s `REMOVAL_READ_DEADLINE_MS` states of its own: it is a
+ * property of this one request-path read, not a product bound anything else
+ * reads, and a number in two files is wrong.
+ *
+ * A `catch` alone does not bound a hang: a request that never settles never
+ * rejects. The deadline bounds *this page's waiting*, not the statement — a
+ * redemption that lands after it still stopped the page, and what the reader
+ * lost is the line saying so, not the stop.
+ */
+const DEADLINE_MS = 1_500;
+
+/** Rejects when `work` has not settled inside the deadline, so the caller's
+ *  own `catch` covers a hang the same way it covers a failure. The timer is
+ *  cleared once the race is over: a page that answered in 40 ms must not
+ *  leave a two-second handle behind on every request it serves. */
+async function withDeadline<T>(work: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error("the veto seam timed out")), DEADLINE_MS);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/**
  * What the token is bound to, or why it cannot be shown.
  *
- * The unknown arm is the honest one for a read that failed: its line
+ * The unknown arm is the honest one for a read that failed or hung: its line
  * says this is not a link ReachKit can act on, and a link it could not act on
  * is exactly what the reader is holding.
  */
@@ -86,8 +124,8 @@ type Read =
 async function preview(token: string): Promise<Read> {
   try {
     return isPlannedStopToken(token)
-      ? asRead(await previewPlannedStop(token))
-      : await previewVetoLink(token);
+      ? asRead(await withDeadline(previewPlannedStop(token)))
+      : await withDeadline(previewVetoLink(token));
   } catch {
     return { ok: false, reason: "unknown" };
   }
@@ -118,7 +156,7 @@ function asRead(read: PlannedPreview): Read {
 
 async function redeem(token: string): Promise<void> {
   try {
-    await (isPlannedStopToken(token) ? stopPlannedPage(token) : redeemVetoLink(token));
+    await withDeadline<unknown>(isPlannedStopToken(token) ? stopPlannedPage(token) : redeemVetoLink(token));
   } catch {
     // The page re-reads the token on the way back and says what is true.
   }
