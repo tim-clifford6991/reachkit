@@ -1,10 +1,9 @@
 // SPEC §7 (owner, D51, issue 1266; revised by issue 1389) — what a page's
 // title is held to, read off its context pack.
 //
-// The writer is told it (`./write.ts`), code picks among the titles the
-// writer proposes by it, and stage 4 checks it (`../rules/title.ts`) — from
-// this one reading, so the title a writer is asked for, the title code picks
-// and the title the check passes are one description.
+// A row planned with a title keeps it, held only to its figures. Else the writer is told it (`./write.ts`), code
+// picks among the titles the writer proposes by it, and stage 4 checks it (`../rules/title.ts`) — from this one
+// reading, so the title asked for, picked and passed are one description.
 import { SHAPES } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
@@ -114,7 +113,7 @@ export function titleRuleFor(pack: ContextPack, page: TitledPage): TitleRuleInpu
     ].join("\n"),
     year: new Date(pack.builtAt).getUTCFullYear(),
     titles: pack.pages.flatMap((each) => text(each.title)),
-    ...(pack.target.promise === undefined ? {} : { promise: pack.target.promise }),
+    ...(plannedTitle(pack) === null ? {} : { planned: true as const }),
     description: page.description,
     ...(pack.locale === undefined ? {} : { language }),
     ...(pack.hot === true ? { hot: true as const } : {}),
@@ -143,9 +142,21 @@ export function floorTitle(pack: ContextPack): string | null {
   return titles.find((title) => [...title].length >= TITLE.chars.min && [...title].length <= TITLE.chars.max && closestTitle(title, rule.titles) === null) ?? null;
 }
 
-/** The pick, on the writer's titles and the floor as the reader sees them: cased first, so the rules judge that text and the row stores it. */
+/** The title the row was planned with: an update's live page's, else its kept angle's, which is the page's question,
+ *  held only to a title's maximum, since This Week already shows it. `null` where the row holds none. */
+export function plannedTitle(pack: Pick<ContextPack, "type" | "live" | "target">): string | null {
+  if (pack.type === "update") return text(pack.live?.title)[0] ?? null;
+  const planned = pack.target.promise === undefined ? "" : pack.target.question.trim();
+  return planned !== "" && [...planned].length <= TITLE.chars.max ? planned : null;
+}
+
+/** The page's title as the reader sees it, cased first so the rules judge that text and the row stores it: the planned
+ *  title where the row holds one (an update's is code's live title with its year moved, `compose.ts` `liveTitle`, never
+ *  the writer's), else the pick among the writer's titles and the floor. */
 export function pickCased(pack: ContextPack, proposed: readonly string[], page: TitledPage): ReturnType<typeof pickTitle> {
   const cased = (title: string): string => pageTitle(title, pack.locale?.language);
+  const planned = plannedTitle(pack);
+  if (planned !== null) return { chosen: cased(pack.type === "update" ? (proposed[0] ?? planned) : planned), candidates: [] };
   const floor = floorTitle(pack);
   return pickTitle(proposed.map(cased), titleRuleFor(pack, page), floor === null ? null : cased(floor));
 }
@@ -176,17 +187,18 @@ export function promiseFigures(title: string, pack: ContextPack): string[] {
   return [...new Set(figures(title))].filter((figure) => promised.has(figure));
 }
 
-/** The same reading, as the writer is told it. A figure or a name is offered only where the search with it passes
- *  the very check stage 4 holds the title to, and those titles and the floor are handed over as already passing. */
+/** The same reading, as the writer is told it: the planned title where the row holds one, else what to propose by. A
+ *  figure or a name is offered only where the search with it passes the very check stage 4 holds the title to, and the
+ *  floor is handed over as already passing. */
 export function titleBrief(pack: ContextPack): Record<string, unknown> {
+  const planned = plannedTitle(pack);
+  if (planned !== null) return { title: planned };
   const rule = titleRuleFor(pack, { description: "" });
   const dated = (TITLE.yearTypes as readonly string[]).includes(pack.type);
   const titled = (specific: string): string => `${casedAsPack(rule.terms[0] ?? "", pack, rule)}: ${specific}`;
   const passes = (specific: string): boolean => pickTitle([titled(specific)], rule).candidates[0]?.faults.length === 0 && promiseFigures(titled(specific), pack).length === 0;
   const names = addedNames(rule).filter(passes).slice(0, TITLE.namesTold);
   const floor = floorTitle(pack);
-  // The topic's angle, offered where its words stop nothing; a search with a figure appended is never built here.
-  const angle = pack.target.searches.includes(pack.target.question) ? [] : [pack.target.question].filter((title) => pickTitle([title], rule).candidates[0]?.faults.every((fault) => fault === "specific"));
   return {
     searches: rule.terms,
     year: dated ? rule.year : null,
@@ -195,7 +207,7 @@ export function titleBrief(pack: ContextPack): Record<string, unknown> {
     // Whole sentences `pack` states a figure in, never the business's promise off the page that sells it.
     figures: figuresOf(pack).filter((sentence) => promiseFigures(sentence, pack).length === 0),
     // Titles code checked against every rule below.
-    titles: [...angle, ...(floor === null ? [] : [floor])],
+    titles: floor === null ? [] : [floor],
     // Issue 2378: the title rule's lines, from the one list every prompt renders.
     rules: briefLinesOf("title", { pack, pageType: null, titleRule: rule }),
   };

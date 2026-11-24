@@ -9,11 +9,13 @@
 // the title, and a meta description that is there at all — code fits its
 // length, which never stops a page (owner R-A).
 //
-// The writer proposes several titles and `pickTitle` chooses among them by
+// A row planned with a title (its kept angle's, or an update's live page's)
+// keeps it, and is held only to its figures: a figure beside a rival no owner
+// holds, and a description figure the body never states. On a row with none,
+// the writer proposes several titles and `pickTitle` chooses among them by
 // these same rules (issue 1389): no model judges a title.
 //
-// It binds what ReachKit generates and asks nothing of a founder's own edit
-// or of an update, whose title is the live page's (`../pipeline/compose.ts`).
+// It asks nothing of a founder's own edit.
 //
 // How code reads the ruling's words (drafted, the owner may correct):
 //   * **The search's wording in the first 30 characters.** Of D49's
@@ -24,8 +26,7 @@
 //   * **A specific, from the pack.** A number the pack states or the page
 //     counts out, a year aside; a price is such a number, and "free" where
 //     the pack says it; an engine's name; on a comparison, a rival the pack
-//     names; the place the business serves; a word of the topic's angle's
-//     promise the search does not carry. A name the search itself
+//     names; the place the business serves. A name the search itself
 //     carries is the search and no detail added to it. Asking a question is
 //     not one, and neither is who the page is for. A number that only counts
 //     an episode, an issue, a volume or a chapter ("ep. 16") is not one.
@@ -123,8 +124,8 @@ export interface TitleRuleInputs {
    *  itself, what was measured — and the counts of the page's own parts: a
    *  number in the title is a specific where this holds it. */
   holds: string;
-  /** What the topic's kept angle promises the reader, where it kept one: its own words count as the title's specific. */
-  promise?: string;
+  /** The row was planned with this title, which stands. */
+  planned?: true;
   /** The current year. */
   year: number;
   /** Every title the site has published or planned. */
@@ -240,19 +241,9 @@ function heldIn(passages: string, language: Language): (stated: { figure: string
 
 const statedIn = (title: string, language: Language) => unitsOf(withoutSerials(title, language).replace(YEAR_RE, ""));
 
-/** Whether a title states its angle's promise in a word the searches do not already carry. */
-function carriesPromise(title: string, a: TitleRuleInputs): boolean {
-  const language = languageOf(a);
-  const searched = new Set(a.terms.flatMap((term) => subjectOf(term, language)));
-  const own = new Set(wordsOf(title, language));
-  return subjectOf(a.promise ?? "", language).some((word) => !searched.has(word) && own.has(word));
-}
-
 function hasSpecific(title: string, a: TitleRuleInputs): boolean {
   const language = languageOf(a);
   const stated = statedIn(title, language);
-  // Owner rulings 91–92: the angle's own element is the title's specific, so no figure need be appended.
-  if (stated.length === 0 && carriesPromise(title, a)) return true;
   // One held figure does not carry another the pack never states.
   if (stated.length > 0) return stated.every(heldIn(a.holds, language));
   const free = wordsPattern(languagePack(language).title.free, false);
@@ -447,16 +438,15 @@ export function checkTitle(a: {
   markdown?: string;
 }): RuleFailure | null {
   if (a.rule === null) return null;
-  // An update keeps the live page's title, and writes a new description:
-  // that description's figures are the body's all the same.
-  if (a.rule.type === "update") {
-    return a.markdown !== undefined && descriptionFiguresMissing(a.rule.description, a.markdown, figureReading(a.rule)).length > 0
-      ? { rule: "title", detail: { rule: "title", faults: ["description_figures"] } }
-      : null;
-  }
-  const all = titleFaults(a.title, a.rule, a.heading, a.markdown);
+  const rule = a.rule;
+  const unheld = a.markdown !== undefined && descriptionFiguresMissing(rule.description, a.markdown, figureReading(rule)).length > 0;
+  // A planned title stands: only a figure no source holds stops the page, and an update's live title is not read again.
+  const all: TitleFault[] =
+    rule.planned === true || rule.type === "update"
+      ? [...(rule.type !== "update" && figureUnowned(a.title, rule) ? (["figure_owner"] as const) : []), ...(unheld ? (["description_figures"] as const) : [])]
+      : titleFaults(a.title, rule, a.heading, a.markdown);
   // The specific is tried for and never stops a page on its own.
-  const faults = a.rule.settled === true && specificOnly(all) ? [] : all;
+  const faults = rule.settled === true && specificOnly(all) ? [] : all;
   return faults.length === 0 ? null : { rule: "title", detail: { rule: "title", faults } };
 }
 
@@ -469,8 +459,6 @@ export interface TitleCandidate {
    *  of the nearest search's words it carries, plus the mean share of each
    *  follow-up question's. */
   closeness: number;
-  /** On the title that went on without its specific, after the fix call. */
-  specific_unmet?: true;
 }
 
 /** The share of a text's subject words the title carries. */
@@ -481,7 +469,7 @@ function carried(title: ReadonlySet<string>, text: string, language: Language): 
 
 /**
  * The writer proposes, code picks (issue 1389). Of the titles proposed, the
- * one that fails no rule, states its angle's promise, and sits closest to the search and its follow-up
+ * one that fails no rule and sits closest to the search and its follow-up
  * questions; among equals, one inside the aimed length, then a statement,
  * then the writer's own order. Where none passes, the one that fails fewest
  * of the rules that stop a page, then fewest in all — so a title that lacks
@@ -510,7 +498,6 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs, floor
       stopping(left) - stopping(right) ||
       Number(built.includes(left.title)) - Number(built.includes(right.title)) ||
       left.faults.length - right.faults.length ||
-      Number(carriesPromise(right.title, a)) - Number(carriesPromise(left.title, a)) ||
       right.closeness - left.closeness ||
       aimed(left.title) - aimed(right.title) ||
       Number(asksQuestion(left.title, language)) - Number(asksQuestion(right.title, language))
