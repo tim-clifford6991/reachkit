@@ -9,7 +9,8 @@
 //
 // How code reads the rules (drafted, the owner may correct):
 //   * **The search's wording in the first 30 characters:** the first three non-filler words of the target query or a
-//     buyer's question, whichever the title carries, are all in it, the first starting inside 30 characters.
+//     buyer's question, whichever the title carries, its ranking words ("most effective", "leading") aside, are all in
+//     it, the first starting inside 30 characters.
 //   * **A specific, from the pack:** a number the pack states or the page counts out (a year, or a count of episodes,
 //     issues or chapters, aside), a price, "free" where the pack says it, an engine's name, on a comparison a rival
 //     the pack names, the place served. A name the search carries, a question or an audience is none. It is tried
@@ -149,10 +150,12 @@ const subjectOf = (text: string, language: Language = "en"): string[] => {
   return [...new Set(wordsOf(text, language).filter((word) => !filler.has(word)))];
 };
 
-/** The title leads with the term: its first words are all there, and the
+/** The title leads with the term's subject: its first words, the words that only rank it aside, are all there, and the
  *  first of them starts inside the head. A term of filler alone asks nothing. */
 function leadsWith(title: string, term: string, language: Language): boolean | null {
-  const subject = subjectOf(term, language).slice(0, TITLE.termWords);
+  const ranking = new RegExp(`(?<![\\p{L}\\p{N}])(?:${languagePack(language).title.ranking})(?![\\p{L}\\p{N}])`, "giu");
+  const unranked = subjectOf(term.replace(ranking, " "), language);
+  const subject = (unranked.length > 0 ? unranked : subjectOf(term, language)).slice(0, TITLE.termWords);
   if (subject.length === 0) return null;
   const placed = placedWords(title, language);
   return (

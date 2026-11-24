@@ -42,7 +42,7 @@ export const EN: LanguagePack = {
     askStart: "how|why",
     pain: "problems?|issues?|errors?|not working|fix|troubleshoot(?:ing)?|broken",
     howToStart: "how (?:to|do|does|can|d[oi] i)",
-    solution: "software|tools?|apps?|platforms?",
+    solution: "software|tools?|apps?|platforms?|solutions?",
     informationalStart: "what (?:is|are)|why|who|when|where",
     definition: "definitions?|meaning",
     compare: "compare|compared|comparison|reviews?",
@@ -93,6 +93,7 @@ export const EN: LanguagePack = {
     filler: new Set(
       "a an and are as at be best but by can do does for from how i in is it my of on or our that the to top vs was we what when which who why will with you your".split(" ")
     ),
+    ranking: "most|leading|effective|top[- ]rated|highest[- ]rated|best[- ]rated|best[- ]practices?|recommended|popular",
     asksStart: "how|what|why|which|who|when|where|can|does|do|is|are|should",
     free: "free",
     serial: "episode|ep|issue|volume|vol|chapter|season|part",
