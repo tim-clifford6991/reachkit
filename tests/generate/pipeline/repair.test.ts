@@ -8,7 +8,9 @@ import {
   checkTraceableNumerals,
   type BriefRuleInputs,
 } from "../../../src/lib/generate/rules/brief";
-import { fixNotes, repairMechanical } from "../../../src/lib/generate/pipeline/repair";
+import { fixNotes, onTopicFacts, repairMechanical, repairRecorded } from "../../../src/lib/generate/pipeline/repair";
+import type { ContextPack } from "../../../src/lib/generate/pipeline/pack";
+import { stillAsked } from "../../../src/lib/generate/claims/fit";
 
 const BRIEF: BriefRuleInputs = {
   facts: ["Teams on the starter plan get 25 seats and unlimited projects for a flat monthly fee."],
@@ -42,6 +44,22 @@ describe("repairMechanical", () => {
     const repaired = repairMechanical(markdown, ["rival_claim"], { brief: BRIEF, sources, rivals: ["otterly.ai"], domain: "reachkit.app" });
     expect(repaired).toContain("covers [4](https://otterly.ai/pricing) of 7 AI engines");
     expect(repaired).not.toContain("reachkit.app");
+  });
+
+  it("test 6 (6fa22c97): a stored €29 is linked to its pricing page, and a fit verdict naming the business heading drops only the sentence", () => {
+    const sources = [{ url: "https://otterly.ai/pricing", text: "Lite €29 /month 16 prompts" }];
+    const lead = repairMechanical("Profound, Peec AI and Otterly track AI answers, at prices from €29 a month.", ["rival_claim"], { brief: BRIEF, sources, rivals: ["otterly.ai", "profound.com"], domain: "reachkit.app" });
+    expect(lead).toContain("[€29](https://otterly.ai/pricing)");
+    const heading = "Is ReachKit an Analyze AI alternative that writes pages?";
+    const fit = repairRecorded(`${OPENING}\n\n## ${heading}\n\nReachKit sits in a different column. Seats matter most.`, ["fit_claim"], { brief: BRIEF, sources: [], fit: [heading, "ReachKit sits in a different column."] });
+    expect(fit.markdown).toBe(`${OPENING}\n\n## ${heading}\n\nSeats matter most.`);
+    expect(stillAsked({ state: "failed", sentences: ["How ReachKit Guarantees Page-One Rankings"] }, { title: "", markdown: "## How ReachKit Guarantees Page-One Rankings\n\nSeats matter most.", businessName: "ReachKit", domain: "reachkit.app" }).state).toBe("failed");
+  });
+
+  it("test 6 (6fa22c97): the fact chosen for an Analyze AI page is never the /compare/semrush passage", () => {
+    const semrush = { passage: "Site Audit checks hundreds of technical and on-page issues, and Semrush One advertises more than 140 technical and on-page checks.", url: "https://reachkit.app/compare/semrush", readAt: "" };
+    const pack = { target: { question: "Analyze AI Alternatives that Write Pages", searches: ["analyze ai alternatives"] }, business: { category: "AI search visibility", market: null }, products: [{ domain: "profound.com" }, { domain: "otterly.ai" }], facts: [semrush] } as unknown as ContextPack;
+    expect(onTopicFacts(pack)).toEqual([]);
   });
 });
 

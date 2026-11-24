@@ -66,7 +66,7 @@ import type { SourcedFact } from "./grounding";
 import { packStatements, type ContextPack } from "./pack";
 import { batteryBasis, checkPage, storedClaim } from "./battery";
 import { FIX_OWED, owedParts, tryFix, type FixStop } from "./fix-call";
-import { fixNotes, withFitFact, withoutBusiness, withoutWriterNotes, type FixNote, type RepairRecord } from "./repair";
+import { fixNotes, offPage, onTopicFacts, withFitFact, withoutBusiness, withoutWriterNotes, type FixNote, type RepairRecord } from "./repair";
 import { languagePack } from "@/lib/locale/language";
 import { completeTables } from "./sources";
 import { withTable } from "./table";
@@ -207,7 +207,9 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   // The `fix` step writes nothing: it fixes the write its row holds, and with none held it buys none.
   const owed = a.fixStep === "owed" ? owedParts(existing?.meta) : null;
   if (a.fixStep === "owed" && owed === null) return stepFailed(a.siteId, "fix", a.draftId);
-  const grounding = pinned ?? a.facts.find((sourced) => sourced.fact.passage === pack.facts[0]?.passage) ?? a.facts[0];
+  // On the page's subject, else the fit fact its business section carries; never off a page comparing a product it does not name.
+  const ownFact = (passage?: string) => a.facts.find((each) => each.fact.passage === passage && !offPage(pack, each.fact.url));
+  const grounding = pinned ?? ownFact(onTopicFacts(pack)[0]?.passage) ?? ownFact(pack.fitFact?.passage) ?? ownFact(pack.facts.find((fact) => !offPage(pack, fact.url))?.passage) ?? a.facts.find((each) => !offPage(pack, each.fact.url));
 
   const priorRepairs = recordedRepairs(existing?.meta);
   const baseMeta = {

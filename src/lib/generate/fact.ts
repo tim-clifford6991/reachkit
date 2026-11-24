@@ -7,14 +7,7 @@
 // the customer before they approve, and the hosted page marks it in the
 // body a stranger reads.
 //
-// **They did not agree, which is issue #415.** The pipeline wrote
-// `drafts.grounded_fact` — the column the migration's trigger freezes — as
-// `{passage, url, readAt}`; the draft store read `drafts.meta.grounded_fact`
-// as `{fact, url, read_at}`, a key nothing in `src/` has ever written. Every
-// generated draft therefore reached the customer with no highlight and no
-// source line, and only the fixture account's draft — whose facts are typed
-// in by hand — showed one. A shape agreed by comment is a shape that drifts;
-// this module is the shape, and the writer and both readers call it.
+// This module is the shape, and the writer and both readers call it, so the keys cannot drift apart.
 //
 // **The passage is the record.** A stored value without one grounds
 // nothing, so it reads as no grounding at all rather than as a grounding

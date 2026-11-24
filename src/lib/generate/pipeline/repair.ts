@@ -44,6 +44,8 @@ import { leaningSections } from "../rules/standalone";
 import type { Language } from "@/lib/locale/locales";
 import type { HardRule, RuleFailure } from "../rules/types";
 import { languagePack } from "@/lib/locale/language";
+import { GENERIC_TOKENS } from "@/lib/market/questions/select";
+import { topicWords } from "../rules/gaps";
 import { urlKey } from "../links/select";
 import type { Template } from "../templates";
 import type { ContextPack } from "./pack";
@@ -147,14 +149,14 @@ function applyEdits(markdown: string, edits: readonly Edit[]): string {
 
 /** Each sentence of each block outside a table through `fn`: a string replaces it, `null` drops it, and a block left
  *  with no sentence is dropped whole, as is one where a kept sentence after a dropped one refers back to it. A table's
- *  rows are never sentences. */
-function mapSentences(markdown: string, fn: (piece: string) => string | null, language: Language = "en"): string {
+ *  rows are never sentences, and a heading is never dropped: a section without its heading reads as its neighbour's. */
+function mapSentences(markdown: string, fn: (piece: string, heading: boolean) => string | null, language: Language = "en"): string {
   const edits: Edit[] = [], refers = languagePack(language).refersBack;
   for (const block of sourceBlocksOf(markdown)) {
     if (TABLE_ROW_RE.test(block.raw.split("\n")[0]!)) continue;
     const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
-    const pieces = splitSentences(block.raw.slice(marker.length));
-    const mapped = pieces.map(fn);
+    const pieces = splitSentences(block.raw.slice(marker.length)), heading = marker.includes("#");
+    const mapped = pieces.map((piece) => fn(piece, heading) ?? (heading ? piece : null));
     if (mapped.every((piece, index) => piece === pieces[index])) continue;
     const kept = mapped.filter((piece): piece is string => piece !== null && piece.trim() !== "");
     const orphaned = mapped.some((piece, n) => piece !== null && mapped.slice(0, n).includes(null) && refers.test(wordsOf(piece)));
@@ -176,11 +178,15 @@ function sourceOf(raw: string, words: string, sources: RepairInputs["sources"]):
   if (at === null) return null;
   const after = /^\s*(%|\p{L}+)/u.exec(words.slice(at.index + raw.length))?.[1];
   const before = /(\p{L}+)\s*$/u.exec(words.slice(0, at.index))?.[1];
-  const needle =
-    after === "%" ? `${raw}%` : after !== undefined ? `${raw} ${after}` : before !== undefined ? `${before} ${raw}` : null;
-  // On number boundaries, so "4 of" is never read off "14 of".
-  const states = needle === null ? null : new RegExp(`(?<![\\p{L}\\d.,])${escaped(needle.toLowerCase())}(?![\\p{L}\\d])`, "u");
-  return states === null ? null : (sources.find((source) => states.test(collapse(source.text).toLowerCase()))?.url ?? null);
+  const needle = after === "%" ? `${raw}%` : after !== undefined ? `${raw} ${after}` : before !== undefined ? `${before} ${raw}` : null;
+  // A price in its currency is specific alone: "€29 a month" is what "Lite €29 /month" states.
+  for (const each of [needle, /^[$€£]/.test(raw) ? raw : null]) {
+    // On number boundaries, so "4 of" is never read off "14 of".
+    const states = each === null ? null : new RegExp(`(?<![\\p{L}\\d.,])${escaped(each.toLowerCase())}(?![\\p{L}\\d])`, "u");
+    const url = states === null ? undefined : sources.find((source) => states.test(collapse(source.text).toLowerCase()))?.url;
+    if (url !== undefined) return url;
+  }
+  return null;
 }
 
 function repairNumerals(markdown: string, inputs: RepairInputs): string {
@@ -261,6 +267,7 @@ export function repairRecorded(
   let out = markdown;
   for (const rule of MECHANICAL_RULES) {
     if (!rules.includes(rule)) continue;
+    let linked = out;
     const prior = out;
     if (rule === "nothing_invented") {
       out = mapSentences(out, (piece) => (isPhraseBreach({ raw: piece, text: wordsOf(piece) }, INVENTED_PROVENANCE_RES, inputs.brief) ? null : piece), language);
@@ -268,7 +275,8 @@ export function repairRecorded(
       out = repairNumerals(out, inputs);
     } else if (rule === "rival_claim") {
       const rivals = inputs.rivalsNamed ?? namedRivals(inputs.rivals ?? [], null);
-      out = withoutUnsourcedRivals(repairRivalFigures(out, inputs), inputs);
+      linked = repairRivalFigures(out, inputs);
+      out = withoutUnsourcedRivals(linked, inputs);
       out = withoutRivalBreaches(out, (piece) => deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null, language);
     } else if (rule === "fit_claim") {
       const unfit = withoutUnfit(out, inputs.fit ?? [], language);
@@ -279,8 +287,8 @@ export function repairRecorded(
       out = claimed.markdown;
       if (claimed.dropped.length > 0) dropped.do_not_claim = claimed.dropped;
     }
-    // A section left opening on a sentence that leans on one the repair dropped is a new fault: that repair is not made.
-    if (out !== prior && leaned(out).some((heading) => !leaned(prior).includes(heading))) out = prior;
+    // A section left opening on a sentence that leans on one the repair dropped is a new fault: its drops are not made, its links are.
+    if (out !== prior && leaned(out).some((heading) => !leaned(prior).includes(heading))) out = linked;
     if (out === prior) delete dropped[rule];
   }
   // Issue 1507: a step dropped with its sentence leaves no gap in the count.
@@ -315,7 +323,7 @@ export function withoutWriterNotes<Q extends { answer: string }>(markdown: strin
       const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
       const pieces = splitSentences(block.raw.slice(marker.length));
       const kept = pieces.filter((piece) => !notes.test(wordsOf(piece)));
-      if (kept.length === pieces.length) continue;
+      if (kept.length === pieces.length || marker.includes("#")) continue;
       dropped += pieces.length - kept.length;
       const gone = /[-*+\d]/.test(marker) || kept.length === 0;
       edits.push({ from: block.from, to: gone && text[block.to] === "\n" ? block.to + 1 : block.to, text: gone ? "" : marker + kept.join(" ") });
@@ -330,8 +338,9 @@ export function withoutWriterNotes<Q extends { answer: string }>(markdown: strin
 /** The page without each sentence `drops` takes, by the reader's words, and the sentences dropped. */
 function withoutSentences(markdown: string, drops: (words: string) => boolean, language?: Language): { markdown: string; dropped: string[] } {
   const dropped: string[] = [];
-  const out = mapSentences(markdown, (piece) => {
+  const out = mapSentences(markdown, (piece, heading) => {
     if (!drops(wordsOf(piece))) return piece;
+    if (heading) return (console.log(JSON.stringify({ event: "repair_heading_kept", heading: wordsOf(piece) })), piece);
     dropped.push(wordsOf(piece));
     return null;
   }, language);
@@ -462,11 +471,25 @@ export function fixNotes(
 
 const wordCount = (text: string): number => (text.match(/\S+/g) ?? []).length;
 
+/** A fact off a page comparing a product the page does not name: `/compare/semrush` on a page about Analyze AI. */
+export function offPage(pack: Pick<ContextPack, "target" | "products">, url: string): boolean {
+  const compared = /\/compare\/([^/?#.-]+)/i.exec(url)?.[1]?.toLowerCase();
+  return compared !== undefined && ![pack.target.question, ...pack.target.searches, ...pack.products.map((product) => product.domain)].join(" ").toLowerCase().includes(compared);
+}
+
+/** The pack's own facts on the page's subject, in its order: each shares a content word with the target or the market,
+ *  and none is `offPage`. Only these are pasted into the short answer, or ground the page ahead of its fit fact. */
+export function onTopicFacts(pack: ContextPack): ContextPack["facts"] {
+  const job = (pack.business.market as { job?: unknown } | null)?.job;
+  const words = [...topicWords([pack.target.question, ...pack.target.searches, pack.business.category, typeof job === "string" ? job : ""].join(" "))].filter((word) => !GENERIC_TOKENS.has(word));
+  return pack.facts.filter((fact) => !offPage(pack, fact.url) && words.some((word) => topicWords(fact.passage).has(word)));
+}
+
 /** The short answer with a linked business passage after the writer's leading sentences that leave room for it: the fit
  *  fact where it has a page and `withFit`, else the first of the pack's own that fits. Unchanged where it links one already or none fits. */
 function answerWithFact(answer: string, pack: ContextPack, withFit: boolean): string {
   const fit = pack.fitFact?.url == null ? [] : [{ passage: pack.fitFact.passage, url: pack.fitFact.url }];
-  const linked = withFit ? [...fit, ...pack.facts] : pack.facts.filter((fact) => fact.passage !== pack.fitFact?.passage);
+  const linked = withFit ? [...fit, ...onTopicFacts(pack)] : onTopicFacts(pack).filter((fact) => fact.passage !== pack.fitFact?.passage);
   const own = new Set([...fit, ...linked].flatMap((fact) => urlKey(fact.url) ?? []));
   if (linksOf(answer).some((url) => own.has(urlKey(url) ?? ""))) return answer;
   const sentences = splitSentences(answer.trim());
