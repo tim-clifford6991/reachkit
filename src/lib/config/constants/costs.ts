@@ -41,11 +41,11 @@ export const PRICE_BOOK = Object.freeze({
  *  the same ledger, for every paid call made against a scan row that carries
  *  a `site_id`; a free scan has no site and is bounded by `FREE_BOUNDS`.
  *  A drafted default the owner may correct, sized from two readings:
- *   - one deep pass (`DEEP_C` 150¢) plus a day's draft (`DRAFT_C` 87¢) is
- *     237¢;
+ *   - one deep pass (`DEEP_C` 150¢) plus a day's draft (`DRAFT_C` 116¢) is
+ *     266¢;
  *   - the largest day SPEC §6 allows a site, 3 deep passes in 24 hours (450¢)
- *     and the day's one draft (87¢), is 537¢.
- *  550¢ covers both, and is about half the product's smallest day (1000¢), so
+ *     and the day's one draft (116¢), is 566¢, 16¢ over this ceiling.
+ *  550¢ covers the first, and is about half the product's smallest day (1000¢), so
  *  one runaway site never takes the whole of it.
  *
  *  The UTC day and not the site's, because the two figures are read off one
@@ -55,10 +55,9 @@ export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40,
   /** A day's pages on Opus 5.5, reserved at the vendor's own input count (`INFERENCE_INPUT_RESERVE`): research on
    *  Sonnet 5.5 (two calls of ~7.3¢ reserved, ~13¢ billed), a write reserved at its 12 288-token cap (~36¢, ~23¢
-   *  billed), the fit check (~0.6¢) and the fix (~29¢ reserved) come to ~81¢. A write retried after a cut-off or a miss
-   *  is admitted (~15¢ + ~33¢ + ~36¢), but the fix then no longer fits and is owed: covering research, write, retry and
-   *  fix together would need ~116¢. */
-  DRAFT_C: 87,
+   *  billed), its one retry (~36¢), the fit check (~0.6¢) and the fix (~29¢ reserved) come to ~116¢, so a retried
+   *  write is never refused its fix. A day with no retry bills about 37¢ before any fix. */
+  DRAFT_C: 116,
   DAILY_SITE_C: 550,
   /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
   TOPUP_C: 7,
@@ -240,7 +239,7 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  wrote 6,526 tokens one run and over 8,192 the next, so 12 288 holds a
    *  page at its ceiling with the writer's spread; the writer is asked for at
    *  most `WRITE_AIM_MAX_WORDS`. About 36¢ reserved a write: research ~15¢ +
-   *  write ~36¢ + fit ~0.6¢ is ~52¢, inside `CAPS.DRAFT_C` 87¢. `generate.fix`
+   *  write ~36¢ + fit ~0.6¢ is ~52¢; a retry and the fix fit `CAPS.DRAFT_C`. `generate.fix`
    *  is the one fix call of stage 4 and returns the page whole again. */
   "generate.write": 12288,
   "generate.fix": 12288,

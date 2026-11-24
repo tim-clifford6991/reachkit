@@ -274,7 +274,7 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   key: "draft:<siteId>:<publishDate>:test:<n>"}`, a new `<n>` each time (the same key twice is one
   run). Only a site in `WEEKLY_RERUN_SITES` may; any other is refused `not_a_test_site` at 0¢, and a
   day already at `DAILY_SITE_C` or the product's day ceiling is refused `spend_ceiling` before spend.
-  It runs the date's plan row, research, write and rules under a fresh `DRAFT_C` 87¢, and saves the
+  It runs the date's plan row, research, write and rules under a fresh `DRAFT_C` 116¢, and saves the
   page as a **test draft**: undated, `meta.test: true`, moving no topic, taken `in_review` (or
   `needs_attention` when the rules stop it) and then `skipped` by `draft/test`, so it never
   publishes, mails or starts a veto clock, and the date's 08:03 write still happens. Read it with

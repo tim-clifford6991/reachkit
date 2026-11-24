@@ -50,8 +50,8 @@ afterEach(() => {
 });
 
 describe("a model call reserves one attempt at a time", () => {
-  it("a day that paid its research and a write billed at its ceiling is still admitted the fix, though not two", async () => {
-    const prior = RESEARCH_C + (INPUT_TOKENS * 1.56 / 1e6) * 400 + (INFERENCE_MAX_OUTPUT_TOKENS["generate.write"] / 1e6) * 2000;
+  it("a day that paid its research, a write cut off at its ceiling and the retry is still admitted the fix, though not two", async () => {
+    const prior = RESEARCH_C + 2 * ((INPUT_TOKENS * 1.56 / 1e6) * 400 + (INFERENCE_MAX_OUTPUT_TOKENS["generate.write"] / 1e6) * 2000);
     expect(2 * ONE_ATTEMPT).toBeGreaterThan(DRAFT_C - prior);
     createMock.mockResolvedValueOnce(toolUseMessage({ page: "fixed" }, INPUT_TOKENS, 2700, "generate_fix"));
 
