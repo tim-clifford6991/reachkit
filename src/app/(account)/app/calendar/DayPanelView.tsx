@@ -90,7 +90,6 @@ function DayActions(p: {
             <Link
               key={action.key}
               href={action.href}
-              prefetch={true}
               className={`btn min-h-11 ${p.cell.page?.stage === "live" ? "btn-ghost" : "btn-primary"}`}
               data-testid={`day-action-${action.key}`}
             >

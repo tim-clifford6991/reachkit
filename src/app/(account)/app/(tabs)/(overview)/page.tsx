@@ -153,7 +153,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         <section className="card card-border min-w-0 bg-base-100" data-testid="overview-paused">
           <div className="card-body min-w-0 gap-3 p-4 sm:p-5 md:flex-row md:items-center md:justify-between">
             <p className="min-w-0">{copy("overview.paused.line")}</p>
-            <Link className="btn btn-soft btn-sm min-h-11 shrink-0" href={PUBLISHING_SETTINGS} prefetch={true}>
+            <Link className="btn btn-soft btn-sm min-h-11 shrink-0" href={PUBLISHING_SETTINGS}>
               {copy("overview.paused.action")}
             </Link>
           </div>
@@ -194,7 +194,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       )}
 
       {fixes === 0 ? null : (
-        <Link className="card card-border min-w-0 bg-base-100 hover:border-primary" href={ISSUES_HREF} prefetch={true} data-testid="overview-fixes">
+        <Link className="card card-border min-w-0 bg-base-100 hover:border-primary" href={ISSUES_HREF} data-testid="overview-fixes">
           <span className="card-body min-w-0 flex-row flex-wrap items-center gap-x-3.5 gap-y-2.5 px-5 py-3.5 text-sm">
             <span className="grid size-8 shrink-0 place-items-center rounded-field bg-base-200 text-base-content/70" aria-hidden>
               <Wrench className="size-5" strokeWidth={1.75} />

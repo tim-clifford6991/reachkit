@@ -12,8 +12,8 @@
 // with a different contract (fixed to the foot of the viewport), reading
 // the same tuple.
 //
-// Links are `next/link` with `prefetch` (SPEC §4, 2026-10-08, issue 1341):
-// the destination is loaded before the tap and the shell stays mounted. It
+// Links are `next/link` with the default prefetch: the destination's loading
+// screen is ready before the tap, and the shell stays mounted. It
 // is a client component to read the pathname that marks the current
 // destination.
 //
@@ -112,7 +112,6 @@ export function SidebarNav(p: {
             <li key={destination}>
               <Link
                 href={DESTINATION_HREF[destination]}
-                prefetch={true}
                 // The rail's link is a 48px square — the same box for all
                 // three, so none of them reads as the odd one — with the
                 // word as its accessible name and its tooltip; the panel's

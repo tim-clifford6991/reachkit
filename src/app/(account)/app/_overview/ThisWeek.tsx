@@ -92,7 +92,7 @@ export function ThisWeek(p: { week: WeekList }): React.JSX.Element | null {
   const title = copy("overview.week.pages", { n: String(week.pages) });
   return (
     <section className="card card-border min-w-0 bg-base-100" aria-label={title} data-testid="overview-week">
-      <Link className="card-body min-h-11 min-w-0 flex-row items-center gap-3 p-4 lg:hidden" href={CALENDAR_HREF} prefetch={true}>
+      <Link className="card-body min-h-11 min-w-0 flex-row items-center gap-3 p-4 lg:hidden" href={CALENDAR_HREF}>
         <span className="flex min-w-0 flex-1 flex-col">
           <h2 className="text-base font-bold">{title}</h2>
           <span className="num text-sm text-base-content/70">{copy("overview.week.summary", { live: String(week.live), left: String(week.coming) })}</span>
@@ -102,7 +102,7 @@ export function ThisWeek(p: { week: WeekList }): React.JSX.Element | null {
       <div className="card-body hidden min-w-0 gap-3.5 p-6 lg:flex">
         <div className="flex min-w-0 items-center justify-between gap-4">
           <h2 className="text-xl font-bold tracking-tight">{title}</h2>
-          <Link className="link link-primary link-hover inline-flex min-h-11 items-center text-sm font-semibold" href={CALENDAR_HREF} prefetch={true}>
+          <Link className="link link-primary link-hover inline-flex min-h-11 items-center text-sm font-semibold" href={CALENDAR_HREF}>
             {copy("overview.week.calendar-link")}
           </Link>
         </div>

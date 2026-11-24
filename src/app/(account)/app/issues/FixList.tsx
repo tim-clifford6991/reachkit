@@ -124,7 +124,6 @@ export function FixList(p: { screen: SiteFixesScreen; head: React.ReactNode }): 
                 <li key={row.id} className="min-w-0" data-testid={`fix-row-${row.id}`}>
                   <Link
                     href={`?fix=${row.id}`}
-                    prefetch={true}
                     scroll={false}
                     onClick={(event) => choose(event, row.id)}
                     aria-current={row.id === chosen.id ? "true" : undefined}

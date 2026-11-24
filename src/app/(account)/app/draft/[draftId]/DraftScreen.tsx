@@ -838,7 +838,7 @@ export function DraftScreen(p: {
 
   return (
     <div className={SHAPE.screen} data-testid="draft-view">
-      <Link href="/app/calendar" prefetch={true} className={SHAPE.back} data-testid="draft-back">
+      <Link href="/app/calendar" className={SHAPE.back} data-testid="draft-back">
         <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
         {copy("draft.back")}
       </Link>

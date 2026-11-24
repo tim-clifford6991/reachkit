@@ -22,7 +22,7 @@ export function OverviewHead(p: {
         </p>
       )}
       {p.action === null ? null : (
-        <Link className="btn btn-soft btn-warning btn-sm min-h-11 self-start" href={p.action.href} prefetch={true}>
+        <Link className="btn btn-soft btn-warning btn-sm min-h-11 self-start" href={p.action.href}>
           {p.action.label}
         </Link>
       )}
