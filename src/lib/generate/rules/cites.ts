@@ -4,7 +4,7 @@
 // Found by the content review of 17 October: page D's pack held 24 claims
 // read off six public pages, and its body linked none of them; seven of its
 // ten steps were the business's own features. The template now asks the pack
-// for claims off `CITES_MARKET.min` pages (`../templates`), and this rule
+// for claims off `sourcesNeed` pages (`../templates`), and this rule
 // holds the body to linking at least that many of them, in its own words —
 // the *Sources* list is code's and is read off the links (`../pipeline/
 // sources.ts`), so the rules read the page without it.

@@ -76,7 +76,7 @@ export type HardRule =
    *  sentence lengths and its turns of phrase (`./prose.ts`). */
   | "plain_prose"
   /** SPEC §7 (2026-10-17, issue 1486): a how-to or a Q&A links at least
-   *  `CITES_MARKET.min` of the public pages its pack read claims off
+   *  `sourcesNeed` of the public pages its pack read claims off
    *  (`./cites.ts`). */
   | "cites_market"
   /** SPEC §7 (owner P2b, 2026-11-16): each H2 section's first sentence answers on its own (`./standalone.ts`). */
