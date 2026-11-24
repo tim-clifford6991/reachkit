@@ -509,10 +509,6 @@ export async function restartedDrafts(
   return restarted(siteIds, now);
 }
 
-/** Pages the interrupted rewrite put after their plan's date, moved back first so the tick may write the date they free. */
-export async function returnToPlannedDates(siteIds: readonly string[], now: Date): Promise<number> {
-  return (await import("@/lib/publish/attempt/own-date")).returnToPlannedDate(siteIds, now);
-}
 /** The customer's Regenerate, carried out by the draft tick (#788): the page is written again for its own date, and a
  *  passing one enters review exactly as the evening's does. */
 export async function regenerateDraft(a: { readonly siteId: string; readonly draftId: string; readonly now: Date }): Promise<EngineResult> {

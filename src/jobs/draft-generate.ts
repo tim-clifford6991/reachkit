@@ -51,7 +51,6 @@ import {
   recordDraftDay,
   regenerateDraft,
   restartedDrafts,
-  returnToPlannedDates,
   missedDays,
 } from "@/jobs/engine";
 import { JOB_SUBJECT_CONCURRENCY, LLM_RUN_THROTTLE } from "@/lib/config/constants";
@@ -143,7 +142,6 @@ export const draftGenerate: JobDefinition = {
       return { outcome: "degraded", subjectId: null, step: `held:${selection.held}` };
     }
 
-    await returnToPlannedDates(selection.sites.map((site) => site.siteId), input.now);
     const restarted = await restartedDrafts(selection.sites.map((site) => site.siteId), input.now);
     const regenerated = await fanOut(restarted, (draft) =>
       regenerateDraft({ siteId: draft.siteId, draftId: draft.draftId, now: input.now })

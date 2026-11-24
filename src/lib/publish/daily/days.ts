@@ -120,6 +120,16 @@ export async function recordDraftDay(a: {
   }
 }
 
+/** Clears the day's recorded ending, so the next tick offers it again as a day no due hour recorded. Never throws. */
+export async function reopenDraftDay(siteId: string, publishDate: string): Promise<void> {
+  try {
+    const { error } = await publishDb().from("draft_days").update({ outcome: null, reason: null, decided_at: null }).eq("site_id", siteId).eq("publish_date", publishDate);
+    if (error !== null) throw new Error(error.message);
+  } catch {
+    warn("reopen-failed");
+  }
+}
+
 /** Why the day's page is held, or `null`: until the address is connected only the first page is written. A day not held
  *  is stamped as started, once, so This Week can say since when it is being worked on. Never throws. */
 export async function startDay(siteId: string, publishDate: string): Promise<string | null> {

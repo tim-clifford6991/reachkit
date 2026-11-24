@@ -294,7 +294,7 @@ vi.mock("@anthropic-ai/sdk", () => {
 
 const { CAPS, VETO, PUBLISH_VERIFY_DELAY_H, PUBLISH_RETRY_BACKOFF_MIN } =
   await import("../../src/lib/config/constants");
-const { isDraftDue, nextPublishDate, localClock } = await import("../../src/jobs/site-clock");
+const { isDraftDue, nextPublishDate, localClock, openDraftDays } = await import("../../src/jobs/site-clock");
 const engine = await import("../../src/jobs/engine");
 const { generateDayPage, setGenerateStore, PageStopped } = await import("../../src/lib/generate");
 const { pageForDay, setOpportunityStore } = await import("../../src/lib/opportunities");
@@ -761,11 +761,8 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // number and does not go and ask again.
       expect(mails[0]!.html).toContain("mail.draftReady.fact.search");
       expect(mails[0]!.html).toContain("mail.draftReady.why.volume");
-      // The one veto link, and it is a link the database will accept: the
-      // sender mints the token it sends, so the hash on the row is the
-      // hash of what reached the inbox. (The link minted by hand above is
-      // superseded — one page has one live stop link, which is why the
-      // sender owns the minting rather than taking one from its caller.)
+      // The one veto link, which the database accepts: the sender mints the token it sends, so the row's hash is
+      // the hash of what reached the inbox, and the link minted by hand above is superseded.
       expect(hashToken(tokenFromInbox())).toBe(theDraftRow().veto_token_hash);
 
       // The window is the site's own — `VETO.defaultHours` from the moment
@@ -885,11 +882,8 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(pages.count).toBe(1);
       expect(await resumeOrder(SITE_ID)).toEqual([draftId]);
 
-      // ReachKit's own stop is the second reason no attempt begins, not a
-      // second mechanism: the same page, in the same set, in the same
-      // order. `reachKitStopped()` reads `KILL_SWITCH`, a deployment
-      // binding parsed once at module load, so the journey drives it
-      // through the dependency the machine declares for exactly this.
+      // ReachKit's own stop is the second reason no attempt begins, in the same set and order; `reachKitStopped()`
+      // reads `KILL_SWITCH`, bound once at module load, so the journey drives it through the machine's declared dependency.
       await setPublishing(SITE_ID, true, { kind: "customer", userId: USER_ID });
       const stopped = await publish({
         draftId,
@@ -976,12 +970,8 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
         { draftId, destinationId: DEST_ID },
       ]);
 
-      // The stop hold and the retry are the same rule seen twice: §9
-      // *withholds* a retry while publishing is off rather than cancelling
-      // it. So the tick goes on offering the page — the sweep asks no
-      // switch — and the claim is what refuses the attempt, at the moment
-      // it would be made. Nothing moves, and it is offered again the
-      // moment the customer switches back on.
+      // The stop holds a retry rather than cancelling it (§9): the sweep asks no switch and goes on offering the page,
+      // the claim refuses the attempt, nothing moves, and it is offered again once publishing is back on.
       await setPublishing(SITE_ID, false, { kind: "customer", userId: USER_ID });
       expect(await dueRetries(dueAt as Date)).toEqual([{ draftId, destinationId: DEST_ID }]);
       expect(await engine.publishApproved({ draftId, destinationId: DEST_ID })).toEqual({
@@ -1128,11 +1118,8 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // And §7's account of why the page exists travels with it, unchanged from the day supply chose it.
       expect(page?.why.search).toBe(TARGET_SEARCH);
 
-      // The engine's held set is cause-agnostic and counts every page that
-      // is publishable and has not been attempted — this one is in it. But
-      // a held page only *vacates* a date it has already missed, and this
-      // page's date has not come round yet, so no date on the calendar
-      // reads held and the page is still drawn on its own (#175).
+      // The engine's held set counts every publishable page not attempted, this one included, but a held page only
+      // vacates a date it has already missed; this date has not come round, so the page is drawn on its own (#175).
       expect((await heldPages(SITE_ID)).count).toBe(1);
       expect(facts.heldDays).toEqual([]);
       expect(facts.customerChangeHoldsPages).toBeNull();
@@ -1222,6 +1209,19 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     const drafts = db.rows("drafts");
     expect({ onDate: drafts.filter((d) => d.scheduled_for === date).map((d) => d.opportunity_id), drafts: drafts.length, firstRested: row(first).unready_reason === "resting" })
       .toEqual({ onDate: [spare], drafts: path === "set aside" ? 2 : 1, firstRested: path === "rested at decide" });
+  }, JOURNEY_TIMEOUT_MS);
+  it("an interrupted write is stopped and its date freed, and the next tick writes the day again: one page on the date", async () => {
+    const [date, later, cut] = [nextPublishDate(EVENING, SITE_CLOCK), new Date(EVENING.getTime() + 3 * 3_600_000), await seedOneOpportunity("task tracking for agencies")];
+    // The run was cut off with its row on the date in `generating`, and a tick in between recorded the day drafted.
+    const cutId = await generateStore.insertDraft({ site_id: SITE_ID, opportunity_id: cut, state: "generating", title: null, body_md: null, grounded_fact: null, attribution: null, scheduled_for: date, cost_cents: 0 } as never);
+    Object.assign(generateStore.rows.get(cutId)!, { created_at: EVENING.toISOString() });
+    db.seed("drafts", [...db.rows("drafts"), { id: "draft-before", site_id: SITE_ID, state: "published", transitions: [], scheduled_for: "2026-08-31" }]);
+    await engine.recordDraftDay({ siteId: SITE_ID, publishDate: date, outcome: "drafted", reason: null, at: EVENING });
+    const missed = async () => (await engine.missedDays(openDraftDays(later, SITE_CLOCK).map((day) => ({ siteId: SITE_ID, ...day })))).map((day) => day.publishDate);
+    expect([await missed(), await engine.regenerateDraft({ siteId: SITE_ID, draftId: cutId, now: later }), await missed()]).toEqual([[], { degraded: "generate:step_failed:interrupted" }, [date]]);
+    expect((await seedOneOpportunity(), await engine.generateDraft({ siteId: SITE_ID, publishDate: date, now: later }))).toEqual({ done: true });
+    const row = db.rows("drafts").find((d) => d.id === cutId)!;
+    expect([row.state, (row.transitions as { reason?: string }[]).at(-1)?.reason, row.scheduled_for, db.rows("drafts").filter((d) => d.scheduled_for === date).length]).toEqual(["needs_attention", "step_failed:interrupted", null, 1]);
   }, JOURNEY_TIMEOUT_MS);
   it("a list sent as text is read, and one still unread is logged without its text and bought once", async () => {
     const opportunityId = await seedOneOpportunity();

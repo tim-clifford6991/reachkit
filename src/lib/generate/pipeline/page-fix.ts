@@ -178,7 +178,7 @@ export async function generatePageFix(
     });
   } else {
     draftId = a.draftId;
-    // The tick's one automatic rewrite stays recorded through the rewrite itself.
+    // A restart's first ask stays recorded through the rewrite itself.
     await store.patchDraft(draftId, { ...fields, meta: { ...fields.meta, ...carriedMark((await store.draftById(draftId))?.meta) } });
   }
   // Issue 1478: the calls this page made are named for its row.

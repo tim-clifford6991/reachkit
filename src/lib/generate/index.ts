@@ -60,7 +60,8 @@ import { meetsStandard, researchedAs } from "./standard";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import type { MarketResearch } from "./pipeline/research";
-import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
+import { owedToRow, withFirstAsk } from "./interrupted";
+import { localDay } from "@/lib/scan/weekly/week";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 import { inTest } from "./test-draft";
 import { recentFacts, storedChanges } from "@/lib/hot/detect";
@@ -274,11 +275,17 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   }
   const site = await store.siteFacts(a.siteId);
   if (site === null) return { ok: false, because: "no_site" };
-  // Read from the row, so a retried step sees its first try's mark; set before the paid call, so any interruption stops it next tick.
-  const now = a.now ?? new Date(), owed = owedToRow(row, now, site.timeZone);
+  const now = a.now ?? new Date(), owed = owedToRow(row, now);
   if (owed === null) return { ok: false, because: "no_draft" };
-  if (owed === "stop") { await rest(row.id, row.opportunity_id, "step_failed:interrupted", now, site.timeZone); return { ok: false, because: "step_failed", draftId: row.id, step: "interrupted" }; }
-  if (owed === "mark") await store.patchDraft(row.id, { meta: { ...(typeof row.meta === "object" && row.meta !== null ? row.meta : {}), [REWRITTEN]: now.toISOString() } });
+  if (owed !== "rewrite") {
+    const rested = await rest(row.id, row.opportunity_id, "step_failed:interrupted", now, site.timeZone);
+    // An interrupted run's date is freed, and its day re-opened while still ahead, so the next tick writes it with no one's step.
+    if (owed === "interrupted" && rested && row.scheduled_for !== null) {
+      await store.patchDraft(row.id, { scheduled_for: null });
+      if (row.scheduled_for >= localDay(now, site.timeZone)) await (await import("@/lib/publish/daily")).reopenDraftDay(a.siteId, row.scheduled_for);
+    }
+    return { ok: false, because: "step_failed", draftId: row.id, step: "interrupted" };
+  }
   const report = await store.latestReport(a.siteId);
   if (report === null) return { ok: false, because: "no_scan" };
   const opportunity = await writtenFor(row);
@@ -288,7 +295,7 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   // Research is asked again (a read left on the queue is read free); a restart's 2 hours run from its first ask.
   const outcome: DayPageOutcome = opportunity.type !== "fix_page" && (await askDayResearch({ siteId: a.siteId, opportunityId: opportunity.id, writeAs: opportunity.writeAs, now, waitMs: COLLECT.askMs })) > 0 ? { ok: false, because: "research_pending" }
     : await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) => opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost));
-  const asked = owed === "rewrite" && !outcome.ok && outcome.because === "research_pending" ? withFirstAsk(row, now) : null;
+  const asked = !outcome.ok && outcome.because === "research_pending" ? withFirstAsk(row, now) : null;
   if (asked !== null) await store.patchDraft(row.id, { meta: asked });
   await settle(outcome, opportunity.id, now, site);
   return outcome;
@@ -390,13 +397,14 @@ async function alertStoppedTwice(a: {
  * Never a throw on a refused move: the page is stopped either way, and a
  * row another mover moved first is logged rather than forced.
  */
-export async function rest(draftId: string, opportunityId: string, reason: `rules:${string}` | `step_failed:${string}`, now: Date, zone?: string | null): Promise<void> {
+export async function rest(draftId: string, opportunityId: string, reason: `rules:${string}` | `step_failed:${string}`, now: Date, zone?: string | null): Promise<boolean> {
   const { transition } = await import("@/lib/publish/machine");
   const moved = await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason });
   if (!moved.ok) {
     console.log(JSON.stringify({ event: "draft_not_rested", draftId, refused: moved.refused, state: moved.state }));
   }
   await restTopic(opportunityId, now, { zone });
+  return moved.ok;
 }
 
 async function fixPage(a: PageInput, cost: CostContext): Promise<DayPageOutcome> {
