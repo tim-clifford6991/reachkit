@@ -68,7 +68,7 @@ import { weekStartFor } from "@/lib/scan/weekly/week";
 import type { PageStanding } from "./day-number";
 import type { BestRival } from "./target";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
-import type { Opportunity, PlanReason, PlanWriteAs } from "@/lib/opportunities/types";
+import type { Opportunity, PlanWriteAs } from "@/lib/opportunities/types";
 import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-type";
 
 /** The site one calendar belongs to. Which site that is, is
@@ -247,7 +247,7 @@ function pageOn(a: {
     type: typeOf(a.choice, a.writeAs),
     ...replacesOf(a.choice),
     whyLine: whySentenceOf(a.choice.planReason),
-    ...hotOf(a.choice.planReason),
+    ...hotOf(a.choice),
     startedAt: a.startedAt,
     stoppedByYou: a.page.stoppedByCustomer,
   };
@@ -294,13 +294,13 @@ function plannedOn(day: DayKey, row: Opportunity, language: Language, now: Date)
     type: typeOf(choice, row.writeAs),
     ...replacesOf(choice),
     whyLine: whySentenceOf(choice.planReason),
-    ...hotOf(choice.planReason),
+    ...hotOf(choice),
   };
 }
 
-/** What a hot page, and a page one moved, carry to the card and the pane, as their reasons stored it. */
-function hotOf(reason: PlanReason | null | undefined): Pick<DraftOnDay, "hotLine" | "moved" | "movedOut"> {
-  return { ...(reason?.hot === undefined ? {} : { hotLine: whyLineOf(reason) }), ...(reason?.moved === undefined ? {} : { moved: reason.moved }), ...(reason?.movedOut === undefined ? {} : { movedOut: reason.movedOut }) };
+/** What a hot page, and a page one moved, carry to the card and the pane, as their reasons stored it; and the stored reason and evidence. */
+function hotOf({ planReason: reason, evidence }: Choice): Pick<DraftOnDay, "hotLine" | "moved" | "movedOut" | "plan"> {
+  return { plan: { reason: reason ?? null, evidence }, ...(reason?.hot === undefined ? {} : { hotLine: whyLineOf(reason) }), ...(reason?.moved === undefined ? {} : { moved: reason.moved }), ...(reason?.movedOut === undefined ? {} : { movedOut: reason.movedOut }) };
 }
 
 // ── The month ───────────────────────────────────────────────────────────

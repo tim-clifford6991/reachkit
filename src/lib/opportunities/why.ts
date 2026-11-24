@@ -4,7 +4,7 @@ import type { PlanReason, PointPart } from "./types";
 
 /** The parts a page's why can state, most specific first: the short label
  *  and the sentence Plan's day rows carry. */
-const WHY_LINE: readonly { part: PointPart; n?: number; key: CopyKey; sentence: CopyKey }[] = [
+export const WHY_LINE: readonly { part: PointPart; n?: number; key: CopyKey; sentence: CopyKey }[] = [
   { part: "near_page_one", key: "calendar.week.why.near-page-one", sentence: "calendar.reason.near-page-one" },
   { part: "not_moving", key: "calendar.week.why.not-moving", sentence: "calendar.reason.not-moving" },
   { part: "shown_no_visits", key: "calendar.week.why.shown-no-visits", sentence: "calendar.reason.shown-no-visits" },

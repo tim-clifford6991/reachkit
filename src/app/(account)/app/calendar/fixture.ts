@@ -29,6 +29,7 @@ import { whyLineOf, whySentenceOf } from "./card-lines";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 import type { DayKey } from "./dates";
 import type { ContentType } from "@/lib/opportunities/content-type";
+import type { Evidence, PlanReason } from "@/lib/opportunities/types";
 import { generatedLabel } from "@/lib/presentation/generated";
 import type { State } from "./stages";
 import { CONTENT_FIXTURE_NOW, FIXTURE_PUBLISHED } from "../_overview/content-fixture";
@@ -205,6 +206,25 @@ const TYPES: readonly ContentType[] = ["listicle", "how_to", "qa", "documentatio
 
 // A timely page, written and planned; a page an earlier daily placement moved, and one it moved out of the week.
 const NEWS = { points: 7, parts: [{ part: "fit" as const, n: 3 }, { part: "timely" as const, n: 4 }], rule: null, hot: { signal: "news" as const, event: "Acme CRM 5.2 adds shared inbox rules and team routing to CRM", date: "2026-09-11", a: "TechCrunch", b: "The Verge", key: "news:fixture", detectedOn: "2026-09-15" } };
+// A planned page's stored reason with every part a new page can carry and its research read; one still queued; none.
+const EVIDENCE: Evidence = {
+  family: "write",
+  query: "getting a team to use a crm",
+  volume: measured(90, MEASURED_AT),
+  rival: null,
+  askedBeside: { term: "crm adoption", serpAt: MEASURED_AT, newSince: new Date(Date.UTC(2026, 8, 7)) },
+  trend: { quarterly: 42, at: MEASURED_AT },
+  prompt: { id: "prompt-fixture", text: "Which CRM do small sales teams keep using?" },
+  win: { signal: "prompt", competitor: "pipedrive.com", absent: "answer-fixture" },
+  fitFact: { text: "Most teams are set up in an afternoon, with a guided import from their spreadsheet.", source: { kind: "page", url: "https://content.example.com/onboarding" } },
+  angle: { pattern: "P2", promise: "what keeps a team using it after the first week", gap: 1 },
+};
+const PARTS: PlanReason["parts"] = (["fit", "demand", "ai_gap", "rising", "new_site", "outsized", "no_footprint"] as const).map((part) => ({ part, n: part === "fit" ? 3 : 1 }));
+const URLS = ["https://www.pipedrive.com/en/blog/crm-adoption", "https://blog.hubspot.com/sales/crm-adoption", "https://www.reddit.com/r/sales/comments/crm_adoption"];
+const PLANS: Readonly<Record<DayKey, DraftOnDay["plan"]>> = {
+  "2026-09-18": { evidence: EVIDENCE, reason: { points: 6, parts: PARTS, rule: "best", research: { state: "met", R: 6, Q: 4, F: 2, estWords: 1400, urls: URLS } } },
+  "2026-09-20": { evidence: { ...EVIDENCE, fitFact: null, angle: { ...EVIDENCE.angle!, gap: 0 } }, reason: { ...NEWS, research: { state: "queued", R: null, Q: null, F: null, estWords: null, urls: [] } } },
+};
 const HOT: Readonly<Record<DayKey, Partial<DraftOnDay>>> = {
   "2026-09-15": { hotLine: whyLineOf(NEWS), whyLine: whySentenceOf(NEWS), movedOut: [{ search: "crm migration checklist", day: "2026-09-17" }] },
   "2026-09-18": { moved: { from: "2026-09-15", search: "acme crm 5.2 shared inbox rules" } },
@@ -272,6 +292,7 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     // Every page states why the week holds it, as the store does for every chosen draft.
     whyLine: whySentenceOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: index % 2 === 0 ? "demand" : "ai_gap", n: 2 }], rule: "best" }),
     ...HOT[day],
+    ...(PLANS[day] === undefined ? {} : { plan: PLANS[day] }),
   };
 });
 

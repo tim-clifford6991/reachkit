@@ -29,6 +29,7 @@ import { SupplyNotice } from "./SupplyNotice";
 import { demoteHeadings, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import { DRAFT_BODY_CLASSES } from "../draft/[draftId]/present";
 import { weekScreen, writtenDrafts } from "./week-screen";
+import { addsLine } from "./brief";
 import { bracketed, numbered, pageCitations, type PageCitations } from "@/lib/generate/citations";
 
 /** /app/calendar's own `<title>`. */
@@ -40,7 +41,8 @@ export default async function CalendarPage(): Promise<React.JSX.Element> {
   const [week, onboarding, head, published] = await Promise.all([planToday().then(readWeek), readOnboarding(), readPlanHead(), readPlanPublished().catch(() => null)]);
   const read = await readWeekBodies(writtenDrafts(week)).catch(() => null);
   const sources = new Map<string, PageCitations>([...(read ?? [])].map(([id, row]) => [id, pageCitations(row)]));
-  const screen = weekScreen({ week, head, published, bodies: read === null ? null : new Set(read.keys()), sources });
+  const adds = new Map([...(read ?? [])].map(([id, row]) => [id, addsLine(row.meta)] as const));
+  const screen = weekScreen({ week, head, published, bodies: read === null ? null : new Set(read.keys()), sources, adds });
   const bodies = Object.fromEntries(
     [...(read ?? [])].map(([id, row]) => {
       const blocks = demoteHeadings(parseMarkdown(row.bodyMd));
