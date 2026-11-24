@@ -3,10 +3,10 @@
 // standard, kept only where it adds real substance. A short pack writes its own planned page, so no topic is written
 // anyway here.
 import { z } from "zod";
-import { DAY_TOPICS_MAX, REFRESH_MIN_AGE_DAYS, RESEARCH, SITE_PROFILE, TITLE } from "@/lib/config/constants";
+import { REFRESH_MIN_AGE_DAYS, RESEARCH, SITE_PROFILE, TITLE } from "@/lib/config/constants";
 import { googleRead, readingOf } from "@/lib/measure/page-reading";
 import { siteLocale } from "@/lib/locale/site";
-import { opportunityById, pageForDay, restTopic, type Opportunity } from "@/lib/opportunities";
+import { opportunityById, type Opportunity } from "@/lib/opportunities";
 import { addressKey, persistAssessed, refreshOfPage, stoppedRefreshes, type OwnLivePage } from "@/lib/opportunities/refresh";
 import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
 import { isResting } from "@/lib/opportunities/types";
@@ -141,19 +141,33 @@ export async function snippetPage(a: MendInput, cost: CostContext): Promise<DayP
   return checked.passed ? { ok: true, draftId } : { ok: false, because: "rules", draftId, attempts: 1 };
 }
 
-/** SPEC §7 (owner, 2026-11-17 ~23:45): a committed 0¢ `structure` mend or a `link`/`unseen` refresh never keeps the day.
- *  As an update that adds too little, it gives up its date, keeps its live version's, and never enters review, which would date it again. */
-export async function setAside(draftId: string): Promise<boolean> {
+/** SPEC §7, reason 1, a duplicate of a live page (owner, 2026-11-17 ~23:45): whether a written update adds anything over
+ *  its live version. A committed 0¢ `structure` mend or a `link`/`unseen` refresh never does. The day's fallback `update`
+ *  does where it passed with three new sourced facts or one new question answered, and two cited pages, one read since
+ *  `since`, and then keeps its `marks`. One that adds nothing gives up its date, keeps its live version's, and never enters
+ *  review, which would date it again. */
+export async function addsOverLive(draftId: string, update?: { ok: boolean; since: Date; marks: Meta }): Promise<boolean> {
   const store = generateStore();
   const row = await store.draftById(draftId);
-  const o = row === null ? null : await opportunityById(row.opportunity_id);
+  const meta = metaOf(row?.meta), pack = meta.pack as ContextPack | undefined;
+  const o = update !== undefined || row === null ? null : await opportunityById(row.opportunity_id);
   const cause = (o?.evidence as { shortfall?: { cause?: unknown } } | undefined)?.shortfall?.cause;
-  if (row === null || o === null || !(mendable(o) || (o.type === "refresh_page" && (cause === "link" || cause === "unseen")))) return false;
-  const meta = metaOf(row.meta), live = (meta.pack as ContextPack | undefined)?.live?.datedAs;
-  await store.patchDraft(draftId, { scheduled_for: null, meta: typeof meta.datedAs === "string" || live === undefined ? meta : { ...meta, datedAs: live } });
+  const live = pack?.live?.markdown ?? "", body = row?.body_md ?? "";
+  const cited = pack?.claims.filter((claim) => body.includes(claim.url)) ?? [];
+  const asked = (markdown: string): string[] => (markdown.match(/^#{2,3} .*\?\s*$/gm) ?? []).map(fold);
+  const substance = (cited.filter((claim) => !fold(live).includes(fold(claim.passage))).length >= 3 || asked(body).some((heading) => !asked(live).includes(heading))) && new Set(cited.map((claim) => claim.url)).size >= 2 && cited.some((claim) => Date.parse(claim.readAt) >= (update?.since.getTime() ?? 0));
+  const adds = update === undefined ? o === null || !(mendable(o) || (o.type === "refresh_page" && (cause === "link" || cause === "unseen"))) : update.ok && substance;
+  if (adds) {
+    if (update !== undefined) await store.patchDraft(draftId, { meta: { ...meta, ...update.marks } });
+    return true;
+  }
+  const datedAs = pack?.live?.datedAs;
+  await store.patchDraft(draftId, { scheduled_for: null, meta: typeof meta.datedAs === "string" || datedAs === undefined ? meta : { ...meta, datedAs } });
+  // A stopped update already rests; a passing one is set aside.
+  if (update?.ok === false) return false;
   const { transition } = await import("@/lib/publish/machine");
   await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason: "step_failed:adds" });
-  return true;
+  return false;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -174,18 +188,14 @@ export function versusRivals(site: SiteFacts, report: StoredReport, o: Pick<Oppo
   return rivalsOnlyVersus({ target: { searches: targetSearches(o), question: o.title ?? "" }, business }).map((rival) => rival.domain);
 }
 
-/** The day's topic: one whose named rival's own site does not answer gives up its date at 0¢, before its research is bought. */
-export async function dayTopic(day: { siteId: string; site: SiteFacts; report: StoredReport }, date: string, now: Date): Promise<Opportunity | null> {
-  for (let tries = 0; ; tries++) {
-    const topic = inTest() ? await plannedTopic(day.siteId, date) : await pageForDay(day.siteId, date, now);
-    const rivals = topic === null || tries >= DAY_TOPICS_MAX ? [] : versusRivals(day.site, day.report, topic);
-    if (topic === null || !(await Promise.all(rivals.map((domain) => fetchBody(`https://${domain}/`)))).includes(null)) return topic;
-    if (!inTest()) await restTopic(topic.id, now, { zone: day.site.timeZone });
-  }
+/** The pack's `rival_evidence` stop, checked at 0¢ before a topic's research is bought: each rival a `vs` topic names
+ *  answers on its own site. A test write's topic is written as found. */
+export async function rivalsAnswer(day: { site: SiteFacts; report: StoredReport }, topic: Opportunity): Promise<boolean> {
+  return inTest() || !(await Promise.all(versusRivals(day.site, day.report, topic).map((domain) => fetchBody(`https://${domain}/`)))).includes(null);
 }
 
 /** A test write's topic, read and never planned: the date's open planned row, else the first open spare. */
-async function plannedTopic(siteId: string, date: string): Promise<Opportunity | null> {
+export async function plannedTopic(siteId: string, date: string): Promise<Opportunity | null> {
   const open = (await opportunityStore().plannedRows(siteId)).filter((row) => row.status === "open" && row.ready);
   const row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
   return row === undefined ? null : row.plan_write_as == null ? readOpportunity(row) : { ...readOpportunity(row), writeAs: row.plan_write_as };
@@ -243,36 +253,12 @@ async function refreshRow(siteId: string, page: OwnLivePage, at: Date, plan = tr
   return usable(open) ?? (open.some((o) => isResting(o, at)) ? "row_resting" : "row_unready");
 }
 
-/** Real substance (SPEC §7, owner 2026-11-17 ~23:45): three new sourced facts or one new question answered, and two
- *  cited pages, one read in this run. A link, a mend or a page that says little more is not the day's content. */
-function substantial(pack: ContextPack | undefined, body: string, since: Date): boolean {
-  if (pack === undefined) return false;
-  const live = pack.live?.markdown ?? "";
-  const cited = pack.claims.filter((claim) => body.includes(claim.url));
-  const facts = cited.filter((claim) => !fold(live).includes(fold(claim.passage))).length;
-  const asked = (markdown: string): string[] => (markdown.match(/^#{2,3} .*\?\s*$/gm) ?? []).map(fold);
-  const question = asked(body).some((heading) => !asked(live).includes(heading));
-  return (facts >= 3 || question) && new Set(cited.map((claim) => claim.url)).size >= 2 && cited.some((claim) => Date.parse(claim.readAt) >= since.getTime());
-}
-
-/** The writer's update of one candidate, from its research: the day's page where it passes and adds real substance.
- *  One that adds too little keeps the live page's dates, gives up the date and rests as such a page does. */
+/** The writer's update of one candidate, from its research: the day's page where it passes and adds over its live page. */
 async function writtenUpdate(page: Day & { opportunity: Opportunity }, marks: Meta, now: Date, cost: CostContext): Promise<{ ok: true; draftId: string } | null> {
   const { writeFallback } = await import(".");
-  const store = generateStore();
   const outcome = await writeFallback(page, now, cost);
   const draftId = outcome.ok ? outcome.draftId : "draftId" in outcome ? outcome.draftId : null;
-  if (draftId === null) return null;
-  const row = await store.draftById(draftId);
-  const meta = metaOf(row?.meta);
-  const pack = meta.pack as ContextPack | undefined;
-  const kept = outcome.ok && substantial(pack, row?.body_md ?? "", now);
-  const dated = pack?.live?.datedAs === undefined ? {} : { datedAs: pack.live.datedAs };
-  await store.patchDraft(draftId, { meta: { ...meta, ...(kept ? marks : dated) }, ...(kept ? {} : { scheduled_for: null }) });
-  if (!outcome.ok || kept) return kept ? { ok: true, draftId } : null;
-  const { transition } = await import("@/lib/publish/machine");
-  await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason: "step_failed:adds" });
-  return null;
+  return draftId !== null && (await addsOverLive(draftId, { ok: outcome.ok, since: now, marks })) ? { ok: true, draftId } : null;
 }
 
 /** The day's update (SPEC §7): each candidate's one target SERP read on the normal queue, cached or bought inside the

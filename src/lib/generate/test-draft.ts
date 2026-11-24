@@ -28,7 +28,8 @@ async function write(a: { siteId: string; publishDate: string; now: Date }, test
   const { askDayResearch, COLLECT } = await import("./research-queue");
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now, since: a.now };
   const decided = await testing("select", () => decideDayPage(day));
-  if (!decided.ok) return { outcome: decided.because, draftId: null };
+  // A test write's topic is never rested, so it always has one.
+  if (!decided.ok || decided.opportunityId === null) return { outcome: decided.ok ? "no_opportunity" : decided.because, draftId: null };
   const research = { siteId: a.siteId, opportunityId: decided.opportunityId, now: a.now, since: a.now };
   let left = await testing("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
   for (let round = 1; left > 0 && round <= COLLECT.rounds; round++) left = await testing(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
