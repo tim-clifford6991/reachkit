@@ -20,8 +20,13 @@
 //
 // Not in the kill switch's scope directly; the scan each due site starts
 // is stopped at its own door, inside `runWeekly`, before any spend.
-import { startWeeklyScan, weeklyDueSites } from "@/jobs/engine";
+//
+// A site's first pass is a subject event too, sent once by setup with `first: true` under `first:{site}`: it measures as onboarding needs,
+// plans the first week and releases the founder, and sends no Monday mail.
+import { startFirstPass, startWeeklyScan, weeklyDueSites } from "@/jobs/engine";
 import { JOB_SUBJECT_CONCURRENCY, LLM_RUN_THROTTLE } from "@/lib/config/constants";
+import { parseDomain } from "@/lib/scan/domain";
+import { killSwitchEngaged } from "./kill-switch";
 import { sendSubjects, settle } from "./fan-out";
 import type { JobDefinition, JobInput, Outcome } from "./types";
 
@@ -33,6 +38,7 @@ export const WEEKLY_TICK_CRON = "41 * * * *";
 /** One site's week, measured and told, in its own steps. */
 async function weeklySite(input: JobInput): Promise<Outcome> {
   const { siteId, domain, zone, weekStart, at } = input.data;
+  if (input.data.first === true) return firstPass(input);
   if ([siteId, domain, zone, weekStart, at].some((field) => typeof field !== "string")) {
     throw new TypeError("weekly/refresh: a site run needs siteId, domain, zone, weekStart and at");
   }
@@ -51,6 +57,23 @@ async function weeklySite(input: JobInput): Promise<Outcome> {
   return "degraded" in result ? { outcome: "degraded", subjectId: siteId as string, step: result.degraded } : { outcome: "ran", subjectId: siteId as string };
 }
 
+/** A site's first pass. This run is outside the kill switch's scope, so the switch is read here before any spend. */
+async function firstPass(input: JobInput): Promise<Outcome> {
+  const { siteId, domain } = input.data;
+  if (typeof siteId !== "string" || typeof domain !== "string") throw new TypeError("weekly/refresh: a first pass needs siteId and domain");
+  if (killSwitchEngaged()) return { outcome: "stopped", subjectId: siteId, by: "kill-switch" };
+  // A retry reads the same public-suffix list, so an unlisted domain stops here once instead of dead-lettering.
+  if (!parseDomain(domain).ok) return { outcome: "stopped", subjectId: siteId, by: "domain_unlisted" };
+  const result = await startFirstPass({ siteId, domain, ...(input.step === undefined ? {} : { step: input.step }) });
+  return "degraded" in result ? { outcome: "degraded", subjectId: siteId, step: result.degraded } : { outcome: "ran", subjectId: siteId };
+}
+
+/** Setup's send of a site's first pass, keyed on the site: a second send inside the platform's window is dropped, and one after it finds the pass ended. */
+export async function sendFirstPass(a: { siteId: string; domain: string }): Promise<void> {
+  const { sendSubjectEvents } = await import("./client");
+  await sendSubjectEvents("weekly/refresh", [{ key: `first:${a.siteId}`, data: { siteId: a.siteId, domain: a.domain, first: true } }]);
+}
+
 export const weeklyRefresh: JobDefinition = {
   id: "weekly/refresh",
   trigger: { kind: "cron", cron: WEEKLY_TICK_CRON },
@@ -58,6 +81,8 @@ export const weeklyRefresh: JobDefinition = {
   perSubject: weeklySite,
   concurrency: [{ key: "siteId", shared: true, limit: 1 }, { limit: JOB_SUBJECT_CONCURRENCY }],
   throttle: LLM_RUN_THROTTLE,
+  // A founder waits on the first pass, so it never queues behind a Monday.
+  ahead: "first",
   async run(input): Promise<Outcome> {
     const step = input.step;
     // Read once outside any step, so an hour with no site due costs one invocation.

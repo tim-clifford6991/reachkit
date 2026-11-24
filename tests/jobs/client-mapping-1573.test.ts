@@ -55,6 +55,11 @@ describe("JobDefinition's concurrency and throttle, mapped only in client.ts", (
     expect((await mapped(byId("scan/run"))).map((fn) => fn.options.id)).toEqual(["scan-run"]);
   });
 
+  it("weekly/refresh ranks a first-pass event ahead of the Monday passes queued under the same bounds", async () => {
+    const [, site] = await mapped(byId("weekly/refresh"));
+    expect(site!.options.priority).toEqual({ run: "event.data.first == true ? 600 : 0" });
+  });
+
   it("a subject's event carries its key as the event id", async () => {
     stubEnv(false);
     const { subjectEvents } = await import("@/jobs/client");

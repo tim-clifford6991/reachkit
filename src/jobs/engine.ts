@@ -230,9 +230,9 @@ async function tellWeek(a: DueSite & { readonly now: Date; readonly rerun?: Reru
 // adopts the row admission already claimed and a paid one mints its own,
 // both inside `runScan` itself. Nothing about a tier is decided here.
 //
-// **`scan/run` is the deep tier's job and no other's** (issue #229). This
-// used to read as two unbuilt arms waiting on an engine; neither is. Both
-// other tiers reach the same pipeline, and neither reaches it through here:
+// **`scan/run` is the deep tier's job and no other's**, and it carries only a
+// re-measure: setup's first pass is `weekly/refresh`'s event. Both other tiers
+// reach the same pipeline, and neither reaches it through here:
 //
 //   - **Free runs inline, on the request.** `POST /api/scan` imports
 //     `@/lib/scan/run` and calls `runScan({ domain, tier: 'free' })`
@@ -256,10 +256,7 @@ async function tellWeek(a: DueSite & { readonly now: Date; readonly rerun?: Reru
 // a different name, so an operator reading a dead-letter can tell "this
 // engine is missing" from "this event should never have been sent".
 //
-// A deep pass takes `runDeepPass` rather than `runScan` directly, because
-// onboarding needs two things the other tiers do not: the founder's stage
-// written where the waiting screen can read it, and the release latch.
-// Both are that module's; it is still one `runScan` call underneath.
+// A deep pass takes `runDeepPass`, which writes the founder's stage and the release latch around one `runScan` call.
 
 /** The tier this job runs, and the only one. */
 export const SCAN_RUN_TIER = "deep" as const satisfies ScanTier;
@@ -293,26 +290,27 @@ export async function runScan(a: {
   if (a.tier !== SCAN_RUN_TIER) throw new NotAJobPath(a.tier, `runScan(${a.scanId})`);
   if (a.siteId === undefined) {
     // A deep event with no site is a malformed delivery, not an unbuilt
-    // engine: the onboarding pass is a pass *for a site*, and the only
-    // sender (`setup/_setup/store.ts`) always names one.
+    // engine: a re-measure is a pass *for a site*, and its only sender
+    // (`scan/deep/remeasure.ts`) always names one.
     throw new Error(
       `src/jobs/engine.ts: runScan(${a.scanId}) is a deep pass with no siteId — ` +
         "the onboarding pass belongs to a site and the event must name it."
     );
   }
-  const siteId = a.siteId;
+  return startFirstPass({ ...a, siteId: a.siteId });
+}
+
+/** A site's first pass (setup's `weekly/refresh` event, `first: true`), and a re-measure through `scan/run`: the same deep steps. */
+export async function startFirstPass(a: {
+  readonly siteId: string;
+  readonly domain: string;
+  readonly step?: StepRunner;
+  readonly remeasure?: boolean;
+}): Promise<EngineResult> {
+  const { siteId } = a;
   const deep = await runDeepPass({
-    siteId,
-    domain: a.domain,
-    ...(a.step === undefined ? {} : { step: a.step }),
-    ...(a.remeasure === true ? { remeasure: true } : {}),
-    // SPEC §5: "Finishing setup reaches `/app` with a first draft" (issue
-    // 737). The first page is started here rather than waiting for the
-    // site's evening tick, and before the release (issue #782): the founder
-    // is already in the app, and its side panel stays on until this ends.
-    // Its outcome is logged, not returned: this job's result is the pass's,
-    // and a site the tick would not draft for yet (a destination still
-    // waiting for DNS) is not a degraded onboarding pass.
+    ...a,
+    // SPEC §5: setup reaches `/app` with a first draft, started before the release; its outcome is logged, since a site not yet draftable is no degraded pass.
     beforeRelease: async () => {
       const first = await kickOffFirstDraft({ siteId, now: new Date() });
       console.log(JSON.stringify({ event: "first_draft", siteId, outcome: first }));

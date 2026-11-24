@@ -42,3 +42,12 @@ export const scanRun: JobDefinition = {
       : { outcome: "ran", subjectId: scanId };
   },
 };
+
+/** The `scan/run` payload for one pass measured again now (issue 837).
+ *  `scanId` is the fresh row `claimRemeasurePass` claimed — a new key per
+ *  press, so each allowed press starts exactly one pass — and `remeasure`
+ *  tells the pass it adopts that row rather than the site's onboarding one. */
+export async function sendRemeasure(a: { scanId: string; siteId: string; domain: string; at?: Date }): Promise<void> {
+  const { sendJobEvent } = await import("./client");
+  await sendJobEvent("scan/run", { scanId: a.scanId, domain: a.domain, tier: "deep", siteId: a.siteId, remeasure: true }, a.at === undefined ? {} : { at: a.at });
+}

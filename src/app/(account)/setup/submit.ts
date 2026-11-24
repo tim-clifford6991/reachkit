@@ -145,7 +145,7 @@ export type SetupProgressState =
  *                      without a network stub
  *   readProgress     → `sites.setup_completed_at`
  *   commitSetup      → the three decisions plus `setup_completed_at`
- *   enqueueDeepPass  → `scan/run` at tier `deep` (§6.3, §11)
+ *   enqueueDeepPass  → `weekly/refresh`'s first pass, keyed `first:{site}` (§5, §11)
  *   enqueueFirstDraft → `draft/generate`'s per-site event (§5)
  *
  * It stays an interface the caller passes in: `completeSetup` is a
@@ -244,7 +244,7 @@ export async function completeSetup(
   // clears.
   //
   // Leaving Check has usually sent it already.
-  // Sending it again is free and deliberate: `sendDeepPass` keys the
+  // Sending it again is free and deliberate: `sendFirstPass` keys the
   // delivery on the site, so a second send starts no second pass, and a
   // founder whose Check step was saved by a build that could not reach the
   // queue still gets one from the finish.
@@ -260,8 +260,7 @@ export async function completeSetup(
 
 /** The bounded send of the onboarding pass, shared by the Check step and
  *  the finish. Never throws: the founder's answers are already on disk, and
- *  `account/maintenance` re-sends a setup left with no pass
- *  (`src/jobs/deep-pass-backstop.ts`). */
+ *  the finish sends it again under the same key. */
 async function startPass(store: SetupStore, siteId: string): Promise<void> {
   for (let attempt = 1; attempt <= ENQUEUE_ATTEMPTS; attempt += 1) {
     try {

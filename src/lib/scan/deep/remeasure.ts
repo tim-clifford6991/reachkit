@@ -122,8 +122,10 @@ export async function startRemeasure(a: {
   siteId: string;
   domain: string;
   category?: string;
-  /** The cut-short pass this one measures again, where a maintenance tick started it; absent for a founder's press. */
+  /** The cut-short first pass this one measures again; absent for a founder's press. */
   remeasureOf?: string;
+  /** When the pass is sent, where a day's ceiling stopped the one it re-measures; its own stages are written when it runs. */
+  at?: Date;
   now?: Date;
 }): Promise<RemeasureStart> {
   const now = a.now ?? new Date();
@@ -139,14 +141,16 @@ export async function startRemeasure(a: {
   // Another delivery of the same tick claimed this pass's one re-measure first, so one is under way.
   if (scanId === null) return { started: false, because: "running" };
 
-  await untyped()
-    .from<{ id: string }>("sites")
-    .update({ setup_stage: STAGES[0], setup_stage_times: {} })
-    .eq("id", a.siteId);
+  if (a.at === undefined) {
+    await untyped()
+      .from<{ id: string }>("sites")
+      .update({ setup_stage: STAGES[0], setup_stage_times: {} })
+      .eq("id", a.siteId);
+  }
 
   try {
-    const { sendRemeasure } = await import("@/jobs/deep-pass-backstop");
-    await sendRemeasure({ scanId, siteId: a.siteId, domain: a.domain });
+    const { sendRemeasure } = await import("@/jobs/scan-run");
+    await sendRemeasure({ scanId, siteId: a.siteId, domain: a.domain, ...(a.at === undefined ? {} : { at: a.at }) });
   } catch (error) {
     await untyped()
       .from<{ id: string }>("scans")
@@ -156,4 +160,21 @@ export async function startRemeasure(a: {
     throw error;
   }
   return { started: true, scanId };
+}
+
+const CEILINGS: ReadonlySet<string> = new Set(["time_ceiling", "spend_ceiling"]);
+
+/** A first pass a ceiling stopped, or that failed, measured again once: keyed on it (`scans_one_remeasure_per_pass`), so a second
+ *  delivery starts none, and sent after the UTC day rolls over where the day's own ceiling, the site's or the product's, stopped it. */
+export async function remeasureCutShort(a: { siteId: string; domain: string; scanId: string; now?: Date }): Promise<RemeasureStart | null> {
+  const now = a.now ?? new Date();
+  const { data, error } = await untyped().from<{ status: string; stopped_reason: string | null }>("scans").select("status, stopped_reason").eq("id", a.scanId).limit(1);
+  if (error) throw new Error(`remeasure: could not read ${a.scanId}: ${error.message}`);
+  const row = data?.[0];
+  if (row === undefined || (row.status !== "failed" && !CEILINGS.has(row.stopped_reason ?? ""))) return null;
+  const daily = await import("@/lib/costs/daily");
+  const [site, day] = row.stopped_reason === "spend_ceiling" ? await Promise.all([daily.readSiteDaySpendCents(a.siteId, now), daily.readDaySpendCents(now)]) : [null, null];
+  const dayHit = (site !== null && daily.siteCeilingReached(site)) || (day !== null && daily.ceilingReached(day, await daily.readDayCeilingCents(now)));
+  const at = dayHit ? new Date(now.getTime() + daily.secondsUntilDayRollsOver(now) * 1000) : undefined;
+  return startRemeasure({ siteId: a.siteId, domain: a.domain, remeasureOf: a.scanId, now, ...(at === undefined ? {} : { at }) });
 }

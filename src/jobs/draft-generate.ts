@@ -177,3 +177,18 @@ export const draftGenerate: JobDefinition = {
     return settle([...regenerated, ...sent], null);
   },
 };
+
+/** The site's first page as the draft tick's own per-site event, for the
+ *  date `nextPublishDate` gives now. A site the tick would not select is
+ *  sent nothing here; the tick sends its first page once it is selected. */
+export async function sendFirstDraft(a: { siteId: string; now?: Date }): Promise<void> {
+  const selection = await activeSites();
+  const site = selection.held === null ? selection.sites.find((row) => row.siteId === a.siteId) : undefined;
+  if (site === undefined) {
+    console.log(JSON.stringify({ event: "first_draft_not_selected", siteId: a.siteId, reason: selection.held ?? "not-selected" }));
+    return;
+  }
+  const now = a.now ?? new Date();
+  const { sendSubjectEvents } = await import("./client");
+  await sendSubjectEvents("draft/generate", [dayEvent(site, { publishDate: nextPublishDate(now, site), hour: now })]);
+}

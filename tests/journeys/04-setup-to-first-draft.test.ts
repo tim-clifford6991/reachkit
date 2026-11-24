@@ -6,7 +6,7 @@
 // End to end, at the seams and no further in. Everything the product owns
 // is real: the setup screen's three cards, `POST /api/setup`, the closed
 // submission shape, `completeSetup`, the live setup store's three writes,
-// `applySetupChoice`'s one transaction, the `scan/run` event, the whole
+// `applySetupChoice`'s one transaction, the first pass's keyed event, the whole
 // deep pass (`runScan` at `tier: 'deep'` — the same six stages, the paid
 // battery, rival sizing, the real cost seam and its ledger), §7's
 // derivation over what that pass measured, the release latch, the waiting
@@ -36,18 +36,8 @@
 // journey stubs `setTimeout` to fire immediately: it is about the path,
 // not about waiting two minutes for a fixture to answer.
 //
-// **The founder signs in, and the submit is theirs** (#133). Both halves
-// of the switch this file used to name as a gap have landed:
-// `_setup/provider.ts` hands out the live store in production, and
-// `POST /api/setup` resolves the founder through `currentSession()`. So
-// this journey mints a **real** session cookie through identity's own
-// `sessionCookie()`, puts it in the jar `cookies()` reads, and lets
-// `currentSession()` verify it the way it does on a deployed request —
-// the MAC, the signed expiry, the account's own session stamp and its
-// tombstone, all against the `users` row below. Nothing here stands in
-// for identity any more; the provider is still mocked to the live store
-// only because this file's own db is a fake and `importOriginal` is how it
-// says so.
+// **The founder signs in, and the submit is theirs.** A real session cookie from identity's own `sessionCookie()`,
+// verified by `currentSession()` against the `users` row below; the provider is mocked only to the live store over this fake db.
 //
 // **The copy registry is a fixture**, for the same reason as journeys 02
 // and 03: `copy()` refuses an owner-owed key, and the screens on this path
@@ -77,26 +67,19 @@ import type { FetchOutcome } from "../../src/lib/egress/types";
 
 const db = fakeDb();
 
-/** What each stored procedure answers. `apply_setup_choice` returns the
- *  destination id its transaction created; a `null` there is the arm
- *  `applySetupChoice` throws on, which is why the journey supplies one. */
+/** What each stored procedure answers: `apply_setup_choice` must return its destination id, or `applySetupChoice` throws. */
 const rpcAnswers: Record<string, unknown> = {};
+let storedAs: Record<string, unknown> = {};
 
 const client = {
   from: (table: string) => db.client.from(table),
   rpc: (fn: string, args: unknown) => {
     db.rpcCalls.push({ fn, args: args as Record<string, unknown> });
-    // The stored report lands on the pass's row, as the procedure writes
-    // it — a jsonb column, so a later step reads back plain data (issue 798).
+    // The stored report lands on the pass's row as plain data, as the procedure writes it; `storedAs` forces how it ended.
     if (fn === "store_current_report") {
       const a = args as Record<string, unknown>;
       for (const row of scanRows.filter((held) => held.id === a.p_scan_id)) {
-        Object.assign(row, {
-          report: JSON.parse(JSON.stringify(a.p_report)),
-          status: a.p_status,
-          cost_cents: a.p_cost_cents,
-          stopped_reason: a.p_stopped_reason, finished_at: new Date().toISOString(),
-        });
+        Object.assign(row, { report: JSON.parse(JSON.stringify(a.p_report)), status: a.p_status, cost_cents: a.p_cost_cents, stopped_reason: a.p_stopped_reason, finished_at: new Date().toISOString() }, storedAs);
       }
     }
     return Promise.resolve({ data: rpcAnswers[fn] ?? null, error: null });
@@ -124,15 +107,13 @@ vi.mock("next/headers", async () => (await import("./harness")).nextHeaders(cook
 // ── The job platform ────────────────────────────────────────────────────
 
 const jobEvents: { name: string; payload: Record<string, unknown> }[] = [];
-/** The site's zone at the moment each event was sent (issue #783): the
- *  deep pass, and so its first-draft kickoff, starts from that event. */
+/** The site's zone as each event was sent: the first pass, and so its first-draft kickoff, starts from that event. */
 const zoneWhenSent: (string | null)[] = [];
-vi.mock("@/jobs/client", async () =>
-  (await import("./harness")).jobsClient((name, payload) => {
-    jobEvents.push({ name, payload });
-    zoneWhenSent.push(site.timezone);
-  })
-);
+const sent = (name: string, payload: Record<string, unknown>) => (jobEvents.push({ name, payload }), zoneWhenSent.push(site.timezone));
+vi.mock("@/jobs/client", async () => ({
+  ...(await import("./harness")).jobsClient(sent),
+  sendSubjectEvents: async (jobId: string, events: { key: string; data: object }[]) => events.forEach((e) => sent(`${jobId}/subject`, { ...e.data, key: e.key })),
+}));
 
 // The switch `provider.ts` writes down in its own header — see this file's.
 vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => {
@@ -413,7 +394,8 @@ const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await import(
   "../account/identity/fake-auth"
 );
-const { runDeepPass } = await import("../../src/lib/scan/deep/run");
+const { weeklyRefresh } = await import("../../src/jobs/weekly-refresh");
+type Outcome = import("../../src/jobs/types").Outcome;
 const { activeSites } = await import("../../src/jobs/engine");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { lastPass } = await import("../../src/lib/scan/deep/pass-end");
@@ -444,6 +426,7 @@ beforeEach(() => {
   db.answer = answerQuery;
   db.singles.set("scans", { id: "scan-journey-04" });
   scanRows.length = 0;
+  storedAs = {};
   steps.length = 0;
   for (const key of Object.keys(rpcAnswers)) delete rpcAnswers[key];
   rpcAnswers.apply_setup_choice = "destination-journey-04";
@@ -524,21 +507,19 @@ async function submitTheThree(
   return { status: response.status, body: (await response.json()) as Record<string, unknown> };
 }
 
-/** Steps 4–8 — the `scan/run` event the submit queued, run. */
-async function runTheQueuedPass(): Promise<{ status: string; reason: string }> {
-  const queued = jobEvents.find((event) => event.name === "scan/run");
-  if (queued === undefined) throw new Error("no scan/run event was queued");
-  const result = await runDeepPass({
-    siteId: queued.payload.siteId as string,
-    domain: queued.payload.domain as string,
-    // The job platform's steps: each answer is stored and handed back as
-    // plain data, never the object the step returned (issue 798).
+/** Steps 4–8 — the first-pass event the submit queued, run by the weekly job's own per-site handler. */
+async function runTheQueuedPass(): Promise<Outcome> {
+  const queued = jobEvents.find((event) => event.name === "weekly/refresh/subject");
+  if (queued === undefined) throw new Error("no first pass was queued");
+  return weeklyRefresh.perSubject!({
+    data: queued.payload,
+    now: new Date(),
+    // The job platform's steps: each answer is handed back as plain data, never the object the step returned.
     step: async (name, body) => {
       steps.push(name);
       return JSON.parse(JSON.stringify((await body()) ?? null));
     },
   });
-  return { status: result.status, reason: result.reason };
 }
 
 /** The steps the onboarding pass ran, in order. */
@@ -603,7 +584,7 @@ describe("three decisions → deep pass → the first page already on the calend
     // adapter parses to the closed shape and drops what is not in it.
     const withExtra = await submitTheThree({ veto_hours: 0 } as Record<string, unknown>);
     expect(withExtra.status).toBe(200);
-    expect(jobEvents.filter((e) => e.name === "scan/run")).toHaveLength(1);
+    expect(jobEvents.filter((e) => e.name === "weekly/refresh/subject")).toHaveLength(1);
   });
 
   it("step 3 — a free scan that named no market still opens setup on its address, the market card asking", async () => {
@@ -650,7 +631,7 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(edits?.job).toBe("We run agencies' projects");
     expect(edits?.answers.buyers).toBe("Agencies, because they bill by the hour.");
     // Check confirms the rivals, so it starts the pass, and the founder resumes on Connect.
-    expect(jobEvents.filter((event) => event.name === "scan/run")).toHaveLength(1);
+    expect(jobEvents.filter((event) => event.name === "weekly/refresh/subject")).toHaveLength(1);
     expect(row.setup_step).toBe("publishing");
   });
 
@@ -680,19 +661,15 @@ describe("three decisions → deep pass → the first page already on the calend
     // and the release deadline all read.
     expect(site.setup_completed_at).not.toBeNull();
 
-    // The pass is queued as the one pipeline with tier as a parameter —
-    // §4.3 has no pipeline of its own to start.
+    // The pass is queued as the site's first weekly pass, keyed on the site.
     expect(jobEvents).toEqual([
-      {
-        name: "scan/run",
-        payload: { scanId: `setup-${SITE_ID}`, domain: DOMAIN, tier: "deep", siteId: SITE_ID },
-      },
+      { name: "weekly/refresh/subject", payload: { siteId: SITE_ID, domain: DOMAIN, first: true, key: `first:${SITE_ID}` } },
     ]);
 
     // A second submit starts no second pass (REQ-025 c4).
     const again = await submitTheThree();
     expect(again).toEqual({ status: 422, body: { ok: false, refused: "already_complete" } });
-    expect(jobEvents.filter((event) => event.name === "scan/run")).toHaveLength(1);
+    expect(jobEvents.filter((event) => event.name === "weekly/refresh/subject")).toHaveLength(1);
   });
 
   // ── Issue #783: the zone rides the submit ───────────────────────────
@@ -711,8 +688,8 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(submitted).toEqual({ status: 200, body: { ok: true, siteId: SITE_ID } });
 
     expect(site.timezone).toBe("Europe/Lisbon");
-    expect(jobEvents.map((event) => event.name)).toEqual(["scan/run"]);
-    expect(zoneWhenSent).toEqual(["Europe/Lisbon"]);
+    expect(jobEvents.map((event) => event.name)).toEqual(["weekly/refresh/subject", "draft/generate/subject"]);
+    expect(zoneWhenSent).toEqual(["Europe/Lisbon", "Europe/Lisbon"]);
     expect((await activeSites()).sites).toEqual([{ siteId: SITE_ID, timeZone: "Europe/Lisbon", publishTime: "09:00", vetoHours: 24 }]);
   });
 
@@ -874,7 +851,7 @@ describe("three decisions → deep pass → the first page already on the calend
       // Issue 798: the derivation is a step of its own, after the pass's,
       // and the typing it paid for is in the row's cost — every ledgered
       // call, not only the stages'.
-      expect(steps.filter((name) => !name.startsWith("first-week-"))).toEqual(["deep-pass", "knowledge-base", "opportunities", "voice", "first-draft", "onboarding-mail"]);
+      expect(steps.filter((name) => !name.startsWith("first-week-"))).toEqual(["deep-pass", "knowledge-base", "opportunities", "voice", "first-draft", "onboarding-mail", "re-measure"]);
       const spent = ledger().reduce((total, row) => total + row.costCents, 0);
       const typingCents = ledger()
         .filter((row) => row.source === "opportunity-typing")
@@ -884,6 +861,27 @@ describe("three decisions → deep pass → the first page already on the calend
     },
     JOURNEY_TIMEOUT_MS
   );
+
+  it(
+    "steps 4–9 — a second send of the first pass claims no second row, spends nothing, and leaves the stage it wrote",
+    async () => {
+      await untilTheFounderIsReleased();
+      const spent = ledger().length, times = (site as unknown as Record<string, unknown>).setup_stage_times;
+      expect(Object.keys(times as object).length).toBeGreaterThan(0);
+      steps.length = 0;
+      expect(await runTheQueuedPass()).toEqual({ outcome: "ran", subjectId: SITE_ID });
+      expect([steps, scanRows.filter((row) => row.tier === "deep").length, ledger().length]).toEqual([["deep-pass"], 1, spent]);
+      expect((site as unknown as Record<string, unknown>).setup_stage_times).toBe(times);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it("steps 4–9 — a first pass that ends failed queues exactly one re-measure, and a second delivery queues none", async () => {
+    storedAs = { status: "failed" };
+    await untilTheFounderIsReleased();
+    await runTheQueuedPass();
+    expect(jobEvents.filter((e) => e.name === "scan/run").map((e) => e.payload.remeasure)).toEqual([true]);
+  }, JOURNEY_TIMEOUT_MS);
 
   it(
     "step 9 — the latch releases the founder once, and the waiting screen lets go",
@@ -899,9 +897,7 @@ describe("three decisions → deep pass → the first page already on the calend
       const before = await isReleased(SITE_ID, new Date(PAID_AT.getTime() + 60_000));
       expect(before.released).toBe(false);
 
-      const ran = await runTheQueuedPass();
-      expect(ran.status).toBe("done");
-      expect(ran.reason).toBe("completed");
+      expect(await runTheQueuedPass()).toEqual({ outcome: "ran", subjectId: SITE_ID });
 
       // The latch, written from the pass's own end state, once.
       expect(site.setup_released_at).not.toBeNull();
