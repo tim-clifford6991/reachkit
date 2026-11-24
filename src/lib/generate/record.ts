@@ -150,12 +150,8 @@ export function readRecordedRules(payload: unknown): RuleFailure[] | null {
 
 /** A rule name stored before its rule was merged, read as the rule that took it and the kind it now is. */
 const RENAMED: Readonly<Record<string, readonly [HardRule, string]>> = Object.freeze({
-  rival_source: ["rival_claim", "source"],
-  rival_negative: ["rival_claim", "negative"],
-  no_invented_people: ["nothing_invented", "people"],
-  no_unsourced_testimonial: ["nothing_invented", "testimonial"],
-  no_invented_test: ["nothing_invented", "test"],
-  no_invented_provenance: ["nothing_invented", "provenance"],
+  rival_source: ["rival_claim", "source"], rival_negative: ["rival_claim", "negative"], no_invented_people: ["nothing_invented", "people"],
+  no_unsourced_testimonial: ["nothing_invented", "testimonial"], no_invented_test: ["nothing_invented", "test"], no_invented_provenance: ["nothing_invented", "provenance"],
 });
 
 // ── Which rules a run asked, and which it put right (issue 1394) ────────

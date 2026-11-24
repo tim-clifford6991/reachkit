@@ -190,14 +190,9 @@ export function runDeterministicRules(
   given: DeterministicInputs
 ): Record<Exclude<HardRule, ModelRule>, RuleFailure | null> {
   const a = withoutSources(given);
-  const honest = {
-    title: a.title,
-    // The H1 is a heading of the page: read as its first one.
-    markdown: a.heading === undefined || a.heading === a.title ? a.markdown : `# ${a.heading}\n\n${a.markdown}`,
-    businessName: a.site.businessName,
-    domain: a.site.domain,
-    pageType: a.pageType,
-  };
+  // The H1 is a heading of the page: read as its first one.
+  const headed = a.heading === undefined || a.heading === a.title ? a.markdown : `# ${a.heading}\n\n${a.markdown}`;
+  const honest = { title: a.title, markdown: headed, businessName: a.site.businessName, domain: a.site.domain, pageType: a.pageType };
   return {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
     rival_claim:
@@ -210,13 +205,14 @@ export function runDeterministicRules(
       }) ??
       checkRivalScope({ markdown: a.markdown, rivals: rivals(a), facts: a.brief.marketFacts }) ??
       checkRivalNegative({ markdown: a.markdown, faq: a.blocks?.faq ?? [], rivals: rivals(a), facts: a.brief.marketFacts }),
+    // A self-ranked "#1" first: the fix note names its sentences only when it is the kind recorded.
     nothing_invented:
+      checkSelfRanked(honest) ??
       checkInventedPeople({ markdown: a.markdown, businessName: a.site.businessName }) ??
       checkUnsourcedTestimonial({
         markdown: a.markdown,
         ...(a.brief.marketFacts === undefined ? {} : { quotable: poolPassages(a.brief) }),
       }) ??
-      checkSelfRanked(honest) ??
       checkInventedTest({ markdown: a.markdown, brief: a.brief }) ??
       checkInventedProvenance({ markdown: a.markdown, brief: a.brief }),
     honest_row: checkHonestRow({ ...honest, rivals: a.site.rivals }),

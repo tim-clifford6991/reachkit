@@ -421,7 +421,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   /** What the fix call is told: each check failed and what failed it. A page no stop holds is told nothing. */
   const notesFor = (stopped: Awaited<ReturnType<typeof check>>): FixNote[] => {
     if (stopped.outcome.passed) return [];
-    return fixNotes(stopped.page.writer, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
+    return fixNotes(stopped.page.writer, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title, { rivals: basis.rivalsNamed, faq: stopped.page.laid.faq }).map((note) => {
       const title = stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
       if (note.rule === "title" && title !== undefined && title.rule === "title") {
         const body = stopped.page.laid.body;

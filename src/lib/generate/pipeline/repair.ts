@@ -82,6 +82,9 @@ export interface SiteNames {
   domain: string;
 }
 
+/** What a denial of a rival is read against beside the body: the rivals by name, and the FAQ stored with the page. */
+export type RivalPage = { rivals: readonly NamedRival[]; faq: readonly { question: string; answer: string }[] };
+
 /** One rule's repair, as the row records it (`drafts.meta.repairs`). */
 export interface RepairRecord {
   rule: HardRule;
@@ -471,7 +474,8 @@ function sentencesFor(
   failure: RuleFailure,
   brief: BriefRuleInputs,
   site?: SiteNames,
-  title?: string
+  title?: string,
+  page?: RivalPage
 ): string[] {
   const sentences = sentencesOf(markdown);
   switch (failure.rule) {
@@ -500,10 +504,11 @@ function sentencesFor(
     }
     case "rival_claim": {
       const said = failure.detail?.rule === "rival_claim" ? failure.detail.sentence : undefined;
-      if (said !== undefined) return [said];
       const figure = failure.detail !== undefined && "figure" in failure.detail ? failure.detail.figure : null;
-      if (figure === null) return [];
-      return sentences.filter((s) => !s.hasLink && numeralRe(figure).test(s.text)).map((s) => s.text);
+      const own = said !== undefined ? [said] : figure === null ? [] : sentences.filter((s) => !s.hasLink && numeralRe(figure).test(s.text)).map((s) => s.text);
+      // One failure is recorded, so a denial elsewhere on the page, the FAQ included, is named beside it.
+      const read = [...sentences.map((s) => s.text), ...(page?.faq ?? []).flatMap((entry) => sentencesOf(entry.answer).map((s) => s.text))];
+      return [...own, ...read.filter((text) => checkRivalNegative({ markdown: text, rivals: page?.rivals ?? [], facts: brief.marketFacts }) !== null)];
     }
     case "no_placeholder_cell":
       return failure.detail !== undefined && "cell" in failure.detail ? [failure.detail.cell] : [];
@@ -543,11 +548,12 @@ export function fixNotes(
   brief: BriefRuleInputs,
   site?: SiteNames,
   /** The title as written, which a self-ranked "#1" is read in beside the text. */
-  title?: string
+  title?: string,
+  page?: RivalPage
 ): FixNote[] {
   return failed.map((failure) => ({
     rule: failure.rule,
-    sentences: [...new Set(sentencesFor(markdown, failure, brief, site, title))].slice(0, NOTE_SENTENCES_MAX),
+    sentences: [...new Set(sentencesFor(markdown, failure, brief, site, title, page))].slice(0, NOTE_SENTENCES_MAX),
   }));
 }
 
