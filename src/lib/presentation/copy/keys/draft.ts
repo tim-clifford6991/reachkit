@@ -364,8 +364,9 @@ export const DRAFT_COPY = Object.freeze({
   // whose own page says its price is agreed, not published, and the line
   // under a table whose prices are in more than one currency. Drafted; the
   // owner corrects the wording.
-  "body.table.custom": "No public price (on request)",
-  "body.table.customPlan": "No public price ({plan} on request)",
+  "body.table.custom": "Custom pricing",
+  // The same where the page names the one plan priced on request; a cell never says a value is missing.
+  "body.table.customPlan": "{plan}, price on request",
   // A price cell's period, after the amount as its page writes it.
   "body.table.monthly": "{price} a month",
   "body.table.yearly": "{price} a year",

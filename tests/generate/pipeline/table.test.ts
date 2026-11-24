@@ -40,7 +40,7 @@ describe("the table is laid out from the pack", () => {
     // Meltwater's pricing page states no figure, only that its pricing is
     // tailored: it keeps its row with that (D56), and the criterion it
     // lacks is left out of its cell.
-    expect(rows[4]).toMatch(/Pricing: \[No public price \(on request\)\]\(https:\/\/[^)]*meltwater/);
+    expect(rows[4]).toMatch(/Pricing: \[Custom pricing\]\(https:\/\/[^)]*meltwater/);
     expect(rows[4]).not.toContain("What it does");
     expect(rows[3]).toContain("What it does: [30-60 Articles/Month");
     expect(checkPlaceholderCell({ markdown: table!.markdown })).toBeNull();
@@ -90,7 +90,7 @@ describe("the table is laid out from the pack", () => {
     expect(rows[2]).toContain("€");
     expect(rows[3]).toContain("[$20 a month](https://a.example/pricing)");
     // No figure on its pricing page, but it says how it prices: a cell.
-    expect(rows[4]).toContain("[No public price (on request)](https://b.example/pricing)");
+    expect(rows[4]).toContain("[Custom pricing](https://b.example/pricing)");
     expect(table?.currencies).toBe("Prices are shown in the currency each vendor publishes; none is converted.");
     expect(completeTables(table!.markdown)).toBe(table!.markdown);
     // One currency needs no such line.
@@ -112,7 +112,7 @@ describe("the table is laid out from the pack", () => {
     ]), 2)!.markdown;
     expect(markdown).toContain("[Starter, $95 a month](https://peec.ai/pricing)");
     expect(markdown).toContain("[Analyze AI tracks your brand across ChatGPT, Perplexity, Gemini, Claude…](https://tryanalyze.ai/features)");
-    expect(markdown).toContain("[No public price (Enterprise on request)](https://tryprofound.com/pricing)");
+    expect(markdown).toContain("[Enterprise, price on request](https://tryprofound.com/pricing)");
     expect(markdown).toContain("[Lite, €29 a month](https://otterly.ai/pricing)");
     expect(markdown).not.toContain("$29");
   });

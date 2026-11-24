@@ -24,8 +24,9 @@
 //     states a price as the option's own page states it and nothing
 //     converts. Where the cells name more than one currency, a line under
 //     the table says so. A rival whose pricing page states no current figure
-//     but says it prices on request has a no-public-price cell, linked to
-//     that page, so it keeps its row;
+//     but says it prices on request has the cell "Custom pricing", or its
+//     plan's name and "price on request", linked to that page, so it keeps
+//     its row;
 //   * **the table is dated** (owner, D52; issue 1267): a line under it says
 //     when the prices were last checked — the day the oldest of the rivals'
 //     pages it stands on was read (`readAt`), so the date holds for every row;

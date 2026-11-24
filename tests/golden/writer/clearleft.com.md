@@ -2,21 +2,21 @@
 
 | Rule | As written | After the code repair |
 |---|---|---|
-| grounding | passed | passed |
-| rival_source | passed | passed |
-| rival_negative | passed | passed |
-| no_invented_people | passed | passed |
-| no_unsourced_testimonial | passed | passed |
-| no_hidden_text | passed | passed |
-| no_machine_address | passed | passed |
-| near_duplicate | passed | passed |
-| no_invented_test | passed | passed |
-| no_invented_provenance | passed | passed |
-| traceable_numerals | passed | passed |
-| first_block_answers | passed | passed |
-| no_placeholder_cell | passed | passed |
-| plain_prose | warns {"faults":[{"tell":"repeated_phrase","count":3,"found":["internal service design product design and design systems"]}]} | warns {"faults":[{"tell":"even_sentences","count":33,"found":[]}]} |
-| standalone_lead | warns {"headings":["How does design transformation consulting work?","What options does design transformation consulting offer?","What does a design transformation project look like in practice?"]} | warns {"headings":["How does design transformation consulting work?","What options does design transformation consulting offer?","What does a design transformation project look like in practice?","What related work does Clearleft offer?"]} |
+| grounding | passed | — |
+| rival_source | passed | — |
+| rival_negative | passed | — |
+| no_invented_people | passed | — |
+| no_unsourced_testimonial | passed | — |
+| no_hidden_text | passed | — |
+| no_machine_address | passed | — |
+| near_duplicate | passed | — |
+| no_invented_test | passed | — |
+| no_invented_provenance | passed | — |
+| traceable_numerals | passed | — |
+| first_block_answers | passed | — |
+| no_placeholder_cell | passed | — |
+| plain_prose | warns {"faults":[{"tell":"repeated_phrase","count":3,"found":["internal service design product design and design systems"]}]} | — |
+| standalone_lead | warns {"headings":["How does design transformation consulting work?","What options does design transformation consulting offer?","What does a design transformation project look like in practice?"]} | — |
 
 ## What the fix call is told
 
