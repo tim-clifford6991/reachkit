@@ -5,7 +5,7 @@
 // bounded in code: at most `TOPIC_FIT.topShare` keep a 3, in the model's own order, and the rest are 2. A new topic of
 // 2 or 3 names the knowledge-base passage that answers it, and one naming none it was shown is stored as 1. The model
 // cannot add, drop or change a search. An unavailable model or a reached cap is no judgement, and nothing is proposed.
-import type { Locale } from "@/lib/locale/locales";
+import type { Language, Locale } from "@/lib/locale/locales";
 import type { FitFact, KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { z } from "zod";
 import { TOPIC_FIT } from "@/lib/config/constants";
@@ -76,7 +76,7 @@ export function boundTopFit(
   strongest: readonly number[],
   searches: readonly Pick<FitSearch, "update" | "query" | "ranks">[],
   knowledge: KnowledgeDigest | null = null,
-  names: { own: readonly string[]; rivals: readonly string[] } = { own: [], rivals: [] }
+  names: { own: readonly string[]; rivals: readonly string[]; language?: Language } = { own: [], rivals: [] }
 ): Map<number, FitJudgement> {
   const sources = [...(knowledge ?? []).map((passage) => passage.text), ...names.own, ...names.rivals];
   const out = new Map<number, FitJudgement>();
@@ -86,7 +86,7 @@ export function boundTopFit(
     const passage = newTopic ? (knowledge?.[score.fact ?? -1] ?? null) : null;
     const fit = (newTopic && passage === null ? 1 : score.fit) as BusinessFit;
     const search = searches[score.i]!;
-    const chosen = fit < TOPIC_FIT.gate ? null : pickAngle(score.angles ?? [], { search: search.query ?? "", sources, ranks: search.ranks ?? [], rivals: names.rivals, ...(knowledge === null ? {} : { passages: knowledge.length }) });
+    const chosen = fit < TOPIC_FIT.gate ? null : pickAngle(score.angles ?? [], { search: search.query ?? "", sources, ranks: search.ranks ?? [], rivals: names.rivals, ...(names.language === undefined ? {} : { language: names.language }), ...(knowledge === null ? {} : { passages: knowledge.length }) });
     const angle = chosen && { pattern: chosen.pattern, promise: chosen.promise, gap: chosen.gap };
     out.set(score.i, { fit, title: chosen?.title ?? null, angle, fact: passage && { text: passage.text, source: passage.source } });
   }
@@ -154,5 +154,5 @@ export async function judgeFit(
     ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
   if (answer.kind === "unmeasured") return new Map();
-  return boundTopFit(answer.value.scores, answer.value.strongest, searches, a.knowledge ?? null, { own: [a.domain], rivals: a.market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [] });
+  return boundTopFit(answer.value.scores, answer.value.strongest, searches, a.knowledge ?? null, { own: [a.domain], rivals: a.market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [], ...(a.locale === undefined ? {} : { language: a.locale.language }) });
 }

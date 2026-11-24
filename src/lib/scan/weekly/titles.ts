@@ -1,19 +1,24 @@
 // SPEC §6 *Every topic is an angle*: every page a committed week holds has a title. A new page the fit call gave no
 // angle (a fit of 2, a top-up, a row held from an earlier pass) is asked in one batched call on the fit call's tier,
-// in a context of its own under `CAPS.WEEKLY_C`, since the pass itself ends near its cap; an update shows its live
-// page's own title, at 0¢. No title never stops a topic: a row left untitled stays planned, and the site's next daily
-// run asks again.
+// in a context of its own under `CAPS.WEEKLY_C`, since the pass itself ends near its cap, beside the titles the
+// commit's research already read for each search, at 0¢; an update shows its live page's own title, at 0¢. A search
+// whose every angle fails is asked once more with its failed gates named, then its angles repaired, then titled as its
+// own words in Title Case: a title gate ranks and never leaves a row untitled. A call that does not answer leaves its
+// rows to the site's next daily run.
 import { z } from "zod";
 import { withCostContext, type CostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
 import { llm } from "@/lib/llm";
 import { siteLocale } from "@/lib/locale/site";
-import { ANGLE_ASK, ANGLE_PATTERNS, pickAngle } from "@/lib/market/questions/angle";
+import { researchSerps } from "@/lib/generate/pipeline/research";
+import type { Locale } from "@/lib/locale/locales";
+import { ANGLE_ASK, ANGLE_PATTERNS, angleGates, casedTitle, pickAngle, repairedAngle, type AngleContext, type ProposedAngle } from "@/lib/market/questions/angle";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { queryKey, topTenRowsOf } from "@/lib/opportunities/cluster";
 import { addressKey, ownLivePages } from "@/lib/opportunities/refresh";
 import { opportunityStore, readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
 import { readScanReport, type StoredReport } from "@/lib/scan/report";
+import { cachedSerp } from "@/lib/vendors/dataforseo/serp";
 
 const SCHEMA = z.strictObject({
   titles: z.array(
@@ -25,6 +30,10 @@ const SCHEMA = z.strictObject({
 });
 
 const TASK = [`Each of \`searches\` is a page this business will write this week. For each, give \`angles\`: ${ANGLE_ASK.pages}`, ANGLE_ASK.title].join(" ");
+const RETRY = [
+  TASK,
+  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; fact, its passage was not shown. Give new angles that pass them.",
+].join(" ");
 
 /** Titles the open rows of the site's committed week that have none, from `scanId`'s report (else its latest paid
  *  pass's); how many it titled. Never throws. */
@@ -64,43 +73,75 @@ async function liveTitles(siteId: string, domain: string, rows: readonly Opportu
   return titled;
 }
 
-/** One call for the week's untitled new pages; each keeps the angle `pickAngle` keeps, stored as the fit call's is. */
+/** One call for the week's untitled new pages, and one more for the searches it kept no angle for; each keeps the angle
+ *  `pickAngle` keeps, stored as the fit call's is, else a repaired one, else its search in Title Case. */
 async function angleTitles(c: CostContext, siteId: string, rows: readonly OpportunityRow[], report: StoredReport): Promise<number> {
   const store = opportunityStore();
   const [{ market, knowledge }, locale] = await Promise.all([store.marketFor(siteId), siteLocale(siteId)]);
   const profile = report.market.kind === "unmeasured" ? null : report.market.value.profile;
   if (market === null && profile === null) return 0;
   const ranked = topTenRowsOf(report);
-  const searches = rows.map((row) => ({ row, query: row.target_query ?? "", ranks: (ranked.get(queryKey(row.target_query ?? ""))?.rows ?? []).slice(0, 5).map((top) => top.title) }));
-  const answer = await llm(c, {
-    site: "topic-title",
-    tier: "sonnet",
-    locale,
-    schema: SCHEMA,
-    input: {
-      task: TASK,
-      product: { domain: report.domain, offering: profile?.offeringType ?? null, ...(knowledge == null ? {} : { knowledge: knowledge.map((passage, i) => ({ i, about: passage.about, text: passage.text })) }) },
-      market:
-        market === null
-          ? { category: profile!.category, job: profile!.job, buyer: profile!.audienceTerms.join(", ") }
-          : { buyer: market.buyer, job: market.job, category: market.category, synonyms: market.synonyms, differentiators: market.differentiators, rivals: market.rivals.map((rival) => rival.name || rival.domain) },
-      searches: searches.map((search, i) => ({ i, search: search.query, ...(search.ranks.length === 0 ? {} : { ranks: search.ranks }) })),
-    },
-  });
-  if (answer.kind === "unmeasured") return 0;
+  const searches = await Promise.all(
+    rows.map(async (row) => {
+      const query = row.target_query ?? "";
+      const stored = (ranked.get(queryKey(query))?.rows ?? []).map((top) => top.title);
+      return { row, query, ranks: (stored.length > 0 ? stored : await researchTitles(siteId, locale, query)).slice(0, 5) };
+    })
+  );
   const rivals = market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [];
   const sources = [...(knowledge ?? []).map((passage) => passage.text), report.domain, ...rivals];
-  const done = new Set<number>();
-  for (const { i, angles } of answer.value.titles) {
-    const search = searches[i];
-    if (search === undefined || done.has(i)) continue;
-    const kept = pickAngle(angles, { search: search.query, sources, ranks: search.ranks, rivals, ...(knowledge == null ? {} : { passages: knowledge.length }) });
+  const context = (search: (typeof searches)[number]): AngleContext => ({ search: search.query, sources, ranks: search.ranks, rivals, language: locale.language, ...(knowledge == null ? {} : { passages: knowledge.length }) });
+  const ask = (task: string, list: readonly Record<string, unknown>[]) =>
+    llm(c, {
+      site: "topic-title",
+      tier: "sonnet",
+      locale,
+      schema: SCHEMA,
+      input: {
+        task,
+        product: { domain: report.domain, offering: profile?.offeringType ?? null, ...(knowledge == null ? {} : { knowledge: knowledge.map((passage, i) => ({ i, about: passage.about, text: passage.text })) }) },
+        market:
+          market === null
+            ? { category: profile!.category, job: profile!.job, buyer: profile!.audienceTerms.join(", ") }
+            : { buyer: market.buyer, job: market.job, category: market.category, synonyms: market.synonyms, differentiators: market.differentiators, rivals: market.rivals.map((rival) => rival.name || rival.domain) },
+        searches: list,
+      },
+    });
+  const shown = (search: (typeof searches)[number], i: number) => ({ i, search: search.query, ...(search.ranks.length === 0 ? {} : { ranks: search.ranks }) });
+  const proposed = new Map<number, ProposedAngle[]>();
+  const kept = new Map<number, ProposedAngle & { gap: number }>();
+  const take = (answer: Awaited<ReturnType<typeof ask>>): void => {
+    if (answer.kind === "unmeasured") return;
+    for (const { i, angles } of answer.value.titles) {
+      const search = searches[i];
+      if (search === undefined || kept.has(i)) continue;
+      proposed.set(i, [...(proposed.get(i) ?? []), ...angles]);
+      const angle = pickAngle(angles, context(search));
+      if (angle !== null) kept.set(i, angle);
+    }
+  };
+  const first = await ask(TASK, searches.map(shown));
+  if (first.kind === "unmeasured") return 0;
+  take(first);
+  const rejected = searches.flatMap((search, i) => (kept.has(i) ? [] : [{ ...shown(search, i), rejected: (proposed.get(i) ?? []).map((angle) => ({ title: angle.title, pattern: angle.pattern, gates: angleGates(angle, context(search)) })) }]));
+  for (const each of rejected) console.log(JSON.stringify({ event: "week_title_rejected", siteId, search: each.search, angles: each.rejected.map(({ pattern, gates }) => ({ pattern, gates })) }));
+  if (rejected.length > 0) take(await ask(RETRY, rejected));
+  let titled = 0;
+  for (const [i, search] of searches.entries()) {
     const evidence = readOpportunity(search.row).evidence;
-    if (kept === null || (evidence.family !== "write" && evidence.family !== "earn")) continue;
-    await store.setEvidence(search.row.id, { ...evidence, angle: { pattern: kept.pattern, promise: kept.promise, gap: kept.gap } }, kept.title);
-    done.add(i);
+    if (search.query.trim() === "" || (evidence.family !== "write" && evidence.family !== "earn")) continue;
+    const angle = kept.get(i) ?? repairedAngle(proposed.get(i) ?? [], context(search));
+    const title = angle?.title ?? casedTitle(search.query, context(search), (proposed.get(i) ?? []).map((each) => each.promise));
+    await store.setEvidence(search.row.id, angle === null ? evidence : { ...evidence, angle: { pattern: angle.pattern, promise: angle.promise, gap: angle.gap } }, title);
+    titled += 1;
   }
-  return done.size;
+  return titled;
+}
+
+/** The titles of the search's top results as the commit's research read them, at 0¢; none where none is held. */
+async function researchTitles(siteId: string, locale: Locale, query: string): Promise<string[]> {
+  if (query.trim() === "") return [];
+  return (await cachedSerp(researchSerps({ siteId, locale, target: query }, 0)[0]!, DRAFT_POLICY_VERSION).catch(() => null))?.organic.map((top) => top.title) ?? [];
 }
 
 /** The site's latest paid pass, whose report the titles read and whose row their spend is ledgered on. */
