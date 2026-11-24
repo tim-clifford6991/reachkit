@@ -35,8 +35,7 @@ export interface MendInput {
   draftId?: string;
 }
 
-/** SPEC §7 (issue 1507): a refresh planned for the consistency rules alone,
- *  each of whose defects code repairs. */
+/** SPEC §7 (issue 1507): a refresh planned for the consistency rules alone, each of whose defects code repairs. */
 export function mendable(opportunity: Opportunity): boolean {
   const shortfall = (opportunity.evidence as { shortfall?: { cause?: unknown; defects?: unknown } } | undefined)?.shortfall;
   return (
@@ -69,7 +68,6 @@ async function mendedVersion(a: MendInput): Promise<Mended | null> {
   if (live === null) return notMended(a.siteId, a.opportunity, "no_live");
   const meta = metaOf(live.draft.meta);
   const body = repairStructure(live.draft.body_md ?? "", { title: live.draft.title ?? "" });
-  // Mended since it was planned: there is nothing to publish.
   if (body === (live.draft.body_md ?? "")) return notMended(a.siteId, a.opportunity, "unchanged");
   const version = { ...live.draft, meta: { ...meta, datedAs: typeof meta.datedAs === "string" ? meta.datedAs : live.publishedAt.toISOString(), mendOf: live.draft.id } };
   // The live text passed the rules of its own day; its new version enters review only on today's.
@@ -87,12 +85,10 @@ async function insertMended(a: MendInput, { version, body, checked }: Mended, ce
   return draftId;
 }
 
-/** The live page mended (SPEC §7, issue 1507): a new version of its own text with what code repairs repaired — a list
- *  counted again, a repeated link gone, a stray bracket removed — and nothing written, at 0¢. A new version through the
- *  refresh path, never an edit of the live row (ADR-080), dated as the version it mends (`datedAs`): a renumbered list is
- *  not a change of what the page says, so its updated date, `dateModified` and `lastmod` stay. It enters review only where
- *  it passes today's whole battery, as a stored page re-checked does. A `snippet` refresh takes the same path with one
- *  small call (`snippetPage`). */
+/** The live page mended (SPEC §7, issue 1507): a new version of its own text with what code repairs repaired and nothing
+ *  written, at 0¢, through the refresh path, never an edit of the live row (ADR-080). It is dated as the version it mends
+ *  (`datedAs`), since a renumbered list does not change what the page says, and enters review only on today's battery. A
+ *  `snippet` refresh takes the same path with one small call (`snippetPage`). */
 export async function mendPage(a: MendInput, cost: CostContext): Promise<DayPageOutcome> {
   if (snippetOnly(a.opportunity)) return snippetPage(a, cost);
   const mended = await mendedVersion(a);
