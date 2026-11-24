@@ -10,9 +10,8 @@
 // **Every rule runs, and the failure list carries all of them** — not the
 // first. The one fix call is told every check the page failed.
 //
-// **An unrun fit check is not a rule failure.** "We could not check" is not
-// "it failed": it does not populate `failed`, and it is returned to the
-// caller as a step that did not run.
+// **An unrun fit check fails every business sentence.** "We could not check"
+// is never a pass, and never a stop of its own: the fit drop removes them.
 //
 // The order is `HARD_RULES`' order, so a failure list is comparable across
 // runs.
@@ -31,7 +30,7 @@ import { checkRequiredBlocks, type BlockRuleInputs } from "./blocks";
 import { checkCitesMarket, type CitesRuleInputs } from "./cites";
 import { checkPlaceholderCell } from "./cells";
 import { checkDemoText } from "./demo";
-import { fitCheck, type FitVerdict } from "../claims/fit";
+import { brandSentences, fitCheck, type FitVerdict } from "../claims/fit";
 import type { PromptKnowledge } from "../voice/profile-block";
 import { checkDistinctHeadings } from "./headings";
 import { checkHonestRow, checkSelfRanked } from "./honest";
@@ -50,10 +49,10 @@ import { HARD_RULES, SWITCHED_RULES } from "./types";
 import type { ComparisonSet, GroundedFact, HardRule, ModelRule, RuleFailure, SiteRuleInputs } from "./types";
 import type { PageType } from "@/lib/opportunities/types";
 
-/** `fit` is the fit check's own verdict, carried beside the claim check's
- *  for the same reason: `unrun` is neither a pass nor a failure, and the
- *  caller holds the page on it. `failed` holds the warnings too; `passed`
- *  reads only the failures that stop the page. */
+/** `fit` is the fit verdict the page is held to, carried beside the claim
+ *  check's: an unrun check is read as failed on every business sentence.
+ *  `failed` holds the warnings too; `passed` reads only the failures that
+ *  stop the page. */
 export interface BatteryOutcome {
   passed: boolean;
   asked: HardRule[];
@@ -276,16 +275,18 @@ export async function runHardRules(
 
   // The last two, each owning its own judgement; this file holds no second
   // implementation of either.
-  const fit = given.fit ?? await fitCheck(c, {
+  const asking = {
     title: a.title,
     markdown: a.markdown,
     businessName: a.site.businessName,
     domain: a.site.domain,
     titleOwed: (a.titleRule?.business?.length ?? 0) > 0,
     ...(a.prose === undefined ? {} : { language: a.prose.language }),
-    knowledge: a.knowledge,
-    market: given.market,
-  });
+  };
+  const verdict = given.fit ?? await fitCheck(c, { ...asking, knowledge: a.knowledge, market: given.market });
+  // A business sentence the check could not read is never kept as if it had passed.
+  const unread = verdict.state === "unrun" ? brandSentences(asking) : [];
+  const fit: FitVerdict = verdict.state !== "unrun" ? verdict : unread.length === 0 ? { state: "passed" } : { state: "failed", sentences: unread };
   // D45: a literal match of the list's own words, in the title and the body.
   const claim = claimCheck({ text: [a.title, ...(a.heading === undefined ? [] : [a.heading]), a.markdown].join("\n"), list: a.site.doNotClaim });
 
@@ -310,7 +311,7 @@ export async function runHardRules(
     if (failure != null) failed.push(failure);
   }
 
-  logBattery({ failed, claimState: claim.state, fitState: fit.state });
+  logBattery({ failed, claimState: claim.state, fitState: verdict.state });
   const asked = rulesAsked(a, { fit, fitAsked: a.knowledge !== undefined });
   return { passed: !failed.some((failure) => stops(failure)), asked, failed, claim, fit };
 }

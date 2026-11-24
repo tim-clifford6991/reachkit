@@ -5,7 +5,7 @@ import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
-import { brandSentences, stillAsked, type FitVerdict } from "../claims/fit";
+import { stillAsked, type FitVerdict } from "../claims/fit";
 import { lengthRangeFor, sectionWords, typeLength } from "../length";
 import { sourcesNeed, TEMPLATES } from "../templates";
 import { runHardRules, type BatteryOutcome } from "../rules";
@@ -23,7 +23,7 @@ import { ageDays } from "./claims";
 import { sourcingUrls } from "./original";
 import { packStatements, type ContextPack, type PackClaim } from "./pack";
 import { fittedTemplate } from "../standard";
-import { repairable, repairRecorded, withoutBusiness, type RepairRecord } from "./repair";
+import { repairable, repairRecorded, type RepairRecord } from "./repair";
 import { stops } from "../record";
 import { reportFactsAllowed } from "./report-scope";
 import { withSources } from "./sources";
@@ -184,7 +184,8 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
 /** One page through stage 4. The rules read the writer's words (`written`), and the page-level ones the page `lay`
  *  makes of them, so a line code laid is never read as the writer's. The repairs code can make (#1178) edit the
  *  writer's words, which are laid out again, and are kept only where the page then passes or fails fewer checks, or
- *  fewer that stop it, and no new one. A fit check that could not run leaves the page saying nothing of the business.
+ *  fewer that stop it, and no new one. A fit check that could not run fails every business sentence, which its drop
+ *  then removes.
  *  Each rule the first check failed is added to `broken`. A stored page has no parts: it is read as it stands, and a
  *  repair lays its sources list again. */
 export async function checkPage(
@@ -205,18 +206,7 @@ export async function checkPage(
   const inputs = batteryInputs(b, page, writer, at.comparison, settled);
   const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
   const stopping = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.filter((failure) => stops(failure)).map((failure) => failure.rule));
-  if (outcome.fit.state === "unrun") {
-    // With no sentence left that names the business, the fit check passes, and no call is made for it.
-    const bare = withoutBusiness(writer, b.site);
-    const again = bare.dropped.length === 0 || brandSentences(reading(bare.markdown)).length > 0 ? null : await read(bare.markdown, lay(bare.markdown), { state: "passed" });
-    if (again !== null && [...stopping(again)].every((rule) => stopping(outcome).has(rule))) {
-      repairs.push({ rule: "fit_claim", cleared: true, dropped: bare.dropped });
-      writer = bare.markdown;
-      markdown = lay(writer);
-      outcome = again;
-    }
-  }
-  const tried = outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
+  const tried = repairable(outcome.failed);
   if (tried.length > 0) {
     const named = stillAsked(outcome.fit, reading(writer));
     const mended = repairRecorded(writer, tried, {
@@ -229,6 +219,7 @@ export async function checkPage(
         domain: b.site.domain,
         rivalsNamed: b.rivalsNamed,
         prose: inputs.prose,
+        doNotClaim: b.site.doNotClaim,
         // Issue 2375: the sentences the fit check named.
         ...(named.state === "failed" ? { fit: named.sentences } : {}),
       });

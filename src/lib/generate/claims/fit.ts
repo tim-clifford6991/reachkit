@@ -8,8 +8,8 @@
 // wrote is kept.
 //
 // **A check that cannot decide does not fail a page.** No knowledge base, or no such sentence, passes at no cost. A
-// model that did not answer and the spend ceiling both resolve to `unrun` (`claims/check.ts`), which holds the page
-// without consuming the one automatic regeneration.
+// model that did not answer and the spend ceiling both resolve to `unrun`, which the battery reads as failed on every
+// business sentence (`../rules/index.ts`), so the fit drop removes them and the page is never stopped for it.
 import { z } from "zod";
 import { FIT_CHECK_MAX_SENTENCES } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";

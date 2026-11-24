@@ -36,6 +36,7 @@
 - Today: passes, 0¢
 - Warns required_blocks: {"block":"faq","length":true}
 - Warns title: {"faults":["length","specific","question"]}
+- Warns plain_prose: {"faults":[{"tell":"repeated_phrase","count":6,"found":["mehl wasser und salz"]}]}
 
 ## wesbos.com: how_to, "learn javascript"
 

@@ -78,7 +78,7 @@ async function stage4(domain: string): Promise<string> {
 
   const written = await battery(markdown);
   const tried = repairable(written.failed);
-  const repaired = tried.length === 0 ? markdown : repairMechanical(markdown, tried, { brief, sources: pack.facts.map((fact) => ({ url: fact.url, text: fact.passage })), rivals: site.rivals, prose });
+  const repaired = tried.length === 0 ? markdown : repairMechanical(markdown, tried, { brief, sources: pack.facts.map((fact) => ({ url: fact.url, text: fact.passage })), rivals: site.rivals, prose, doNotClaim: site.doNotClaim, ...(written.fit.state === "failed" ? { fit: written.fit.sentences } : {}) });
   const after = repaired === markdown ? null : await battery(repaired);
   const last = after ?? written;
   const notes = last.passed ? [] : fixNotes(repaired, last.failed, brief, site, title);

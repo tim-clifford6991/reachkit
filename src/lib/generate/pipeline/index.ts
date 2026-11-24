@@ -80,7 +80,6 @@ export type PipelineStep =
   | "pack"
   | "write"
   | "fix"
-  | "fit_check"
   | "page_read"
   | "page_fix";
 
@@ -445,7 +444,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   // The one fix call, only for a stop code's repairs left: each check the page failed, and the sentences that failed it.
   // A page short on sections, sources or words is a warning and buys none. Not started without the money or the time.
-  if (!checked.outcome.passed && checked.outcome.fit.state !== "unrun") {
+  if (!checked.outcome.passed) {
     await record(checked, repairs, attemptsBefore + 1);
     const notes = notesFor(checked);
     const { again, stop, owed: later } = await tryFix(c, { startedAt, writtenAt, owe: a.fixStep === "owe", call: () => fixPage(c, { ...writing, parts: written.value, fix: notes }) });
@@ -463,10 +462,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   const failedNow = !checked.outcome.passed;
   await record(checked, repairs, fixed && failedNow ? attemptsBefore + 2 : null);
 
-  if (checked.outcome.fit.state === "unrun") {
-    logRun({ siteId: a.siteId, draftId, step: "fit_check", outcome: checked.outcome.fit.reason });
-    return { ok: false, reason: "step_failed", draftId, step: "fit_check" };
-  }
   if (checked.outcome.passed) {
     const short = standardOf(checked.page, checked.outcome).parts.filter((part) => part.state === "short").map((part) => `${part.part}:${part.have}/${part.need}`);
     logRun({ siteId: a.siteId, draftId, outcome: "passed", type: pack.type, fixed, short, ...shortfall, costCents: Math.round(c.spentCents()) });
