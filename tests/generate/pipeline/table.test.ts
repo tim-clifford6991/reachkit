@@ -40,7 +40,7 @@ describe("the table is laid out from the pack", () => {
     // Meltwater's pricing page states no figure, only that its pricing is
     // tailored: it keeps its row with that (D56), and the criterion it
     // lacks is left out of its cell.
-    expect(rows[4]).toMatch(/Pricing: \[Custom pricing\]\(https:\/\/[^)]*meltwater/);
+    expect(rows[4]).toMatch(/Pricing: \[No public price \(on request\)\]\(https:\/\/[^)]*meltwater/);
     expect(rows[4]).not.toContain("What it does");
     expect(rows[3]).toContain("What it does: [30-60 Articles/Month");
     expect(checkPlaceholderCell({ markdown: table!.markdown })).toBeNull();
@@ -88,13 +88,33 @@ describe("the table is laid out from the pack", () => {
     const rows = table!.markdown.split("\n");
     expect(rows[0]).toBe("| Option | Pricing | What it does |");
     expect(rows[2]).toContain("€");
-    expect(rows[3]).toContain("[Plans start at $20 a month.](https://a.example/pricing)");
+    expect(rows[3]).toContain("[$20 a month](https://a.example/pricing)");
     // No figure on its pricing page, but it says how it prices: a cell.
-    expect(rows[4]).toContain("[Custom pricing](https://b.example/pricing)");
+    expect(rows[4]).toContain("[No public price (on request)](https://b.example/pricing)");
     expect(table?.currencies).toBe("Prices are shown in the currency each vendor publishes; none is converted.");
     expect(completeTables(table!.markdown)).toBe(table!.markdown);
     // One currency needs no such line.
     expect(comparisonTable(STORED, 2)?.currencies).toBeNull();
+  });
+
+  it("a cell is a short value, and a price is its pricing page's (9f52fa66, 11-24)", () => {
+    const at = (product: string, kind: PackClaim["kind"], passage: string, page: string): PackClaim => ({ ...claim(product, kind, passage), url: `https://${product}/${page}` });
+    const markdown = comparisonTable(packOf([
+      claim("peec.ai", "rival_pricing", "Starter $95 /mo Monthly For SEO and content managers getting started with AI Search visibility."),
+      claim("peec.ai", "rival_features", "Peec AI tracks visibility, position and sentiment in AI search."),
+      claim("tryanalyze.ai", "rival_pricing", "Plans from $99 a month."),
+      claim("tryanalyze.ai", "rival_features", "Analyze AI tracks your brand across ChatGPT, Perplexity, Gemini, Claude, Copilot and Google AI Overviews, shows which prompts mention you, which sources AI engines cite, and more."),
+      claim("tryprofound.com", "rival_pricing", "Enterprise: Profound retired its Starter and Growth plans in September 2026. The $399 and $499 prices no longer apply."),
+      claim("tryprofound.com", "rival_features", "Profound monitors how AI answers describe a brand."),
+      at("otterly.ai", "rival_pricing", "Otterly tracks all seven major AI search engines from $29/month.", "features"),
+      claim("otterly.ai", "rival_pricing", "Lite €29 per month for 15 prompts."),
+      claim("otterly.ai", "rival_features", "Otterly tracks brand mentions in AI search."),
+    ]), 2)!.markdown;
+    expect(markdown).toContain("[Starter, $95 a month](https://peec.ai/pricing)");
+    expect(markdown).toContain("[Analyze AI tracks your brand across ChatGPT, Perplexity, Gemini, Claude…](https://tryanalyze.ai/features)");
+    expect(markdown).toContain("[No public price (Enterprise on request)](https://tryprofound.com/pricing)");
+    expect(markdown).toContain("[Lite, €29 a month](https://otterly.ai/pricing)");
+    expect(markdown).not.toContain("$29");
   });
 
   it("fewer than two rivals with a fact is no comparison", () => {

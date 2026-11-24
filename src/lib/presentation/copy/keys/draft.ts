@@ -364,7 +364,11 @@ export const DRAFT_COPY = Object.freeze({
   // whose own page says its price is agreed, not published, and the line
   // under a table whose prices are in more than one currency. Drafted; the
   // owner corrects the wording.
-  "body.table.custom": "Custom pricing",
+  "body.table.custom": "No public price (on request)",
+  "body.table.customPlan": "No public price ({plan} on request)",
+  // A price cell's period, after the amount as its page writes it.
+  "body.table.monthly": "{price} a month",
+  "body.table.yearly": "{price} a year",
   "body.table.currencies": "Prices are shown in the currency each vendor publishes; none is converted.",
   // Issue 1508 (SPEC §7, 2026-10-18): the row of the product an alternatives
   // page lists alternatives to. It is compared against and is not counted.

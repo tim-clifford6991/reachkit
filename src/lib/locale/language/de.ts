@@ -202,6 +202,7 @@ export const DE: LanguagePack = {
   guidanceSearch: (target) => `${target} offizielle Anleitung`,
   businessHeading: (name) => `So macht es ${name}`,
   backReferences: ["dies", "diese", "es", "wie erwähnt", "auch"],
+  refersBack: /^(?:es|dies|diese|dieser|dieses|jene|solche|beide|auch|wie erwähnt)(?![\p{L}])|(?<![\p{L}])(?:jene|so viel|ebenfalls|derselbe|dieselbe|dasselbe)(?![\p{L}])/iu,
 
   question(keyword) {
     const text = keyword.trim().replace(/\s+/g, " ");

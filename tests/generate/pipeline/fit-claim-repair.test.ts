@@ -20,6 +20,7 @@ const { batteryBasis, blockInputs, checkPage } = await import("../../../src/lib/
 const { repairRecorded, withoutUnfit } = await import("../../../src/lib/generate/pipeline/repair");
 const { answerBoxOf, missingBlock } = await import("../../../src/lib/generate/rules/blocks");
 const { sentencesOf } = await import("../../../src/lib/generate/rules/text");
+const { checkStandaloneLead } = await import("../../../src/lib/generate/rules/standalone");
 const { setGenerateStore } = await import("../../../src/lib/generate/store");
 type ContextPack = import("../../../src/lib/generate/pipeline/pack").ContextPack;
 type FitVerdict = import("../../../src/lib/generate/claims/fit").FitVerdict;
@@ -99,5 +100,22 @@ describe("the battery runs again after the drop, and no fit call is bought twice
     expect(NAMED.some((sentence) => checked.markdown.includes(sentence))).toBe(false);
     // Recorded as the row's `meta.repairs` records it.
     expect(checked.repairs).toContainEqual({ rule: "fit_claim", cleared: true, dropped: NAMED });
+  });
+});
+
+describe("a dropped sentence takes the sentences that refer back to it (9f52fa66, 11-24)", () => {
+  const DROPPED = ["Otterly is an AI search monitor with 40,000+ users.", "Slashdot users rate Otterly 4.5 stars and Profound 3.5 stars.", "Trackers start at €95 a month, about €46 more than ReachKit."];
+  const ORPHANS = ["Its features page says it tracks all seven major AI search engines.", "Treat those as one site's user scores.", "Ours costs that much more and puts pages on your site."];
+  const PAGE_ = `## What does Otterly offer, and what do its plans cost?\n\n${DROPPED[0]} ${ORPHANS[0]}\n\nOtterly's pricing page lists Lite at €29 a month.\n\n## How do the options compare at a glance?\n\nIndependent ratings vary as well. ${DROPPED[1]} ${ORPHANS[1]}\n\n## What does ReachKit offer?\n\n${DROPPED[2]} ${ORPHANS[2]}`;
+  const repair = (markdown: string) => repairRecorded(markdown, ["fit_claim"], { brief: BASIS.brief, sources: [], fit: DROPPED, prose: { language: "en" } }).markdown;
+
+  it("none of the three orphans is left, and no section is left opening on a sentence that leans back", () => {
+    const out = repair(PAGE_);
+    expect(ORPHANS.filter((orphan) => out.includes(orphan))).toEqual([]);
+    expect(out).toContain("Otterly's pricing page lists Lite");
+    expect(checkStandaloneLead({ markdown: out, language: "en" })).toBeNull();
+    // A repair that would leave a section opening "Its…" is not made.
+    const leaning = PAGE_.replace("Otterly's pricing page lists", "Its pricing page lists");
+    expect(repair(leaning)).toBe(leaning);
   });
 });
