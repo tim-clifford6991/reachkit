@@ -69,7 +69,7 @@ export interface RecheckWorld {
 export type RecheckOutcome =
   | { kind: "skipped"; reason: NotCandidate }
   | { kind: "held"; reason: "title_promise_figure"; figures: string[] }
-  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; close: boolean; fit: FitVerdict["state"]; spentCents: number; standard: Standard; patch: DraftPatch };
+  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; fit: FitVerdict["state"]; spentCents: number; standard: Standard; patch: DraftPatch };
 
 /** What the re-check mended, as the row records it (`drafts.meta.recheck`). */
 export interface RecheckFixes {
@@ -123,21 +123,20 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
   const figures = promiseFigures(title, pack);
   if (figures.length > 0) return { kind: "held", reason: "title_promise_figure", figures };
   const fit = storedFit(row, stopped, { title, markdown, site: world.site, titleOwed: (titleRuleFor(pack, page).business?.length ?? 0) > 0 });
-  const comparison = await buildComparisonSet({ siteId: row.site_id, exceptDraftId: row.id, ...(world.versionsAt === undefined ? {} : { exceptVersionsAt: world.versionsAt }) });
+  const comparison = await buildComparisonSet({ siteId: row.site_id, exceptDraftId: row.id, elsewhere: true, ...(world.versionsAt === undefined ? {} : { exceptVersionsAt: world.versionsAt }) });
   const broken = new Set<HardRule>();
   const at = { siteId: row.site_id, draftId: row.id, comparison, broken, ...(fit === undefined ? {} : { fit }) };
   const settled = row.hard_rule_attempts >= 2;
   const checked = await checkPage(REFUSED, basis, page, markdown, at, settled);
 
   const failed = recordedRulesValue(checked.outcome);
-  const passed = batteryCleared(checked.outcome) && checked.close === null;
+  const passed = batteryCleared(checked.outcome);
   const priorRepairs = Array.isArray(meta.repairs) ? meta.repairs : [];
   return {
     kind: "checked",
     passed,
     failed,
     cleared: [...new Set(stopped.map((failure) => failure.rule))].filter((rule) => !failed.some((failure) => failure.rule === rule)),
-    close: checked.close !== null,
     fit: checked.outcome.fit.state,
     spentCents: REFUSED.spentCents(),
     standard: meetsStandard({ failed, markdown: checked.markdown, sections: page.sections.length, basis, notes }),
@@ -229,8 +228,8 @@ export function retiredFor(outcome: RecheckOutcome): string | null {
   if (outcome.kind === "skipped" || outcome.passed) return null;
   // A warning never sets a page aside, so it never names why.
   const rules = [...new Set(outcome.failed.filter((failure) => stops(failure)).map((failure) => failure.rule))];
-  // No rule failed: a page elsewhere is too close, or a check could not run at 0¢; the record names which.
-  const causes = rules.length > 0 ? rules : [outcome.close ? "elsewhere" : outcome.fit !== "passed" ? "fit_claim" : "do_not_claim"];
+  // No rule failed: a check could not run at 0¢, and the record names which.
+  const causes = rules.length > 0 ? rules : [outcome.fit !== "passed" ? "fit_claim" : "do_not_claim"];
   return `retired:${causes.join(",")}`;
 }
 

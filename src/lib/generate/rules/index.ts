@@ -117,11 +117,16 @@ export type RuleSwitches = Pick<DeterministicInputs, "pageType" | "demoPhrases" 
 
 /** Everything the deterministic rules read. */
 export interface DeterministicInputs {
+  /** The writer's words, before code lays out its table, sources, closing and links: what every rule reads but the
+   *  page-level ones. */
   markdown: string;
+  /** The page as code laid it out, where it differs: what the page-level rules read (hidden text, a machine address,
+   *  a near duplicate, its blocks). Absent, they read `markdown`. */
+  laid?: string;
   /** The title as written. The honest row and the fit check read it: a
    *  title is the first place a page says what the business is. */
   title: string;
-  /** What a reader of the published page meets. */
+  /** What a reader of the published page meets: `laid` rendered. */
   rendered: string;
   /** The page's type (SPEC §7, issue 1136), which chooses the rule set:
    *  `honest_row` reads a market comparison. `null` where the page has
@@ -213,14 +218,14 @@ export function runDeterministicRules(
       rivals: a.site.rivals,
       pageType: a.pageType,
     }),
-    no_hidden_text: checkHiddenText({ markdown: a.markdown }),
+    no_hidden_text: checkHiddenText({ markdown: a.laid ?? a.markdown }),
     no_machine_address: checkMachineAddress({ rendered: a.rendered }),
     near_duplicate: checkNearDuplicate({ rendered: a.rendered, comparison: a.comparison }),
     no_invented_test: checkInventedTest({ markdown: a.markdown, brief: a.brief }),
     no_invented_provenance: checkInventedProvenance({ markdown: a.markdown, brief: a.brief }),
     traceable_numerals: checkTraceableNumerals({ markdown: a.markdown, brief: a.brief }),
     first_block_answers: checkFirstBlockAnswers({ markdown: a.markdown }),
-    required_blocks: checkRequiredBlocks({ markdown: a.markdown, title: a.title, blocks: a.blocks ?? null }),
+    required_blocks: checkRequiredBlocks({ markdown: a.laid ?? a.markdown, title: a.title, blocks: a.blocks ?? null }),
     no_placeholder_cell: checkPlaceholderCell({ markdown: a.markdown }),
     no_demo_text: checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases }),
     distinct_headings: checkDistinctHeadings({ markdown: a.markdown, apply: a.distinctHeadings === true }),
@@ -239,7 +244,9 @@ function rivals(a: DeterministicInputs): readonly NamedRival[] {
  *  rules read the page without it. */
 function withoutSources(given: DeterministicInputs): DeterministicInputs {
   const markdown = withoutReferenceLists(given.markdown);
-  return markdown === given.markdown ? given : { ...given, markdown, rendered: renderOf(markdown) };
+  const laid = given.laid === undefined ? undefined : withoutReferenceLists(given.laid);
+  if (markdown === given.markdown && laid === given.laid) return given;
+  return { ...given, markdown, ...(laid === undefined ? {} : { laid }), rendered: renderOf(laid ?? markdown) };
 }
 
 export async function runHardRules(

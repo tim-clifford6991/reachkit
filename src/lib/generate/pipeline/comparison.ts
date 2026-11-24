@@ -1,8 +1,7 @@
 // BUILD §8 hard rule 5 — the customer's own published set.
 //
 // "≥85% similarity vs the customer's published set = never queued." Three
-// sets in practice, and every member of every one of them is this
-// customer's:
+// sets in practice, each of them this customer's:
 //
 //   * `published` — the pages of theirs that went live;
 //   * `measured` — the pages of theirs the product measured, re-read out of
@@ -15,11 +14,12 @@
 // rather than at derivation time, and why the answer depends on what else
 // is waiting.
 //
-// **No code path in this file takes a site id other than the one it was
-// called with**, and no store method it calls is unscoped — which is how
-// "never another customer's page" is a property of the code rather than a
-// promise about it.
-import { BATTERY } from "@/lib/config/constants";
+// A fourth, `elsewhere` (D13, issue 1144), asked of a page ReachKit wrote, is
+// every draft and live page written for **other** sites in the last twelve
+// months, read as text alone:
+// no id, no title, no site. So no page of another customer's is ever named,
+// and the founder is told only that the page was too close to one.
+import { BATTERY, ELSEWHERE } from "@/lib/config/constants";
 import { readMeasuredText } from "@/lib/measure/text";
 import { urlKey } from "../links/select";
 import { renderOf } from "../rules/text";
@@ -41,6 +41,8 @@ export async function buildComparisonSet(a: {
   /** A new version of a live page is not a duplicate of the versions it
    *  replaces at its own address. */
   exceptVersionsAt?: { url: string; draftIds: readonly string[] };
+  /** The pages written for other sites too: a page ReachKit wrote, never a founder's edit. */
+  elsewhere?: true;
 }): Promise<ComparisonSet> {
   const store = generateStore();
   const versions = new Set(a.exceptVersionsAt?.draftIds ?? []);
@@ -59,7 +61,17 @@ export async function buildComparisonSet(a: {
       title: page.url,
       rendered: page.text,
     })),
+    ...(a.elsewhere === true ? { elsewhere: await pagesElsewhere(a.siteId) } : {}),
   };
+}
+
+/** The pages written for other sites since `ELSEWHERE.months` before `now`, each as text alone. */
+export async function pagesElsewhere(siteId: string, now = new Date()): Promise<NonNullable<ComparisonSet["elsewhere"]>> {
+  const since = new Date(now);
+  since.setUTCMonth(since.getUTCMonth() - ELSEWHERE.months);
+  const others = await generateStore().pagesElsewhere(siteId, since, ELSEWHERE.pagesMax);
+  if (others.length >= ELSEWHERE.pagesMax) console.warn(JSON.stringify({ event: "elsewhere_read_capped", siteId, pages: others.length }));
+  return others.map((markdown) => ({ ref: "", title: "", rendered: renderOf(markdown) }));
 }
 
 /** A refresh's text is a new version of the page at its own address, so the

@@ -9,9 +9,9 @@
 //   3.  **write** — one call, the type's template filled from the pack only
 //       (`./write.ts`), laid out in code (`./compose.ts`);
 //   4.  **check** — code only (`../rules`): the five checks and the guards,
-//       after the repairs code can make without writing a word
-//       (`./repair.ts`), and the pages written for other sites
-//       (`./elsewhere.ts`, D13). A page a harm check still fails takes **one
+//       on the writer's words before code lays out its table, sources and
+//       links, after the repairs code can make without writing a word
+//       (`./repair.ts`). A page a harm check still fails takes **one
 //       fix call**, told each check it failed, and is checked again. A page
 //       that still fails a harm check is stopped; a warning never stops one;
 //   5.  `passed: true` and nothing else lets the page move toward review —
@@ -53,7 +53,7 @@ import { deployedStandard, incomplete, evidenceOf, meetsStandard, writtenAnyway 
 import { batteryCleared, type BatteryOutcome } from "../rules";
 import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
-import { linksOf, renderOf } from "../rules/text";
+import { linksOf } from "../rules/text";
 import { titleNotes, type TitleCandidate } from "../rules/title";
 import { brandTokens, namesBrand } from "../rules/brand";
 import { RIVAL_SCOPE_VERSION } from "../live-recheck";
@@ -83,9 +83,6 @@ export type PipelineStep =
   | "adds"
   | "write"
   | "fix"
-  /** Still too close to a page written for another site after its fix call
-   *  (D13, issue 1144). */
-  | "elsewhere"
   | "fit_check"
   | "page_read"
   | "page_fix";
@@ -179,7 +176,11 @@ export interface GenerateInputs {
 
 interface Finished {
   laid: LaidPage;
+  /** The writer's words, as the rules read them. */
+  writer: string;
+  /** The page code lays out of them. */
   markdown: string;
+  lay: (writer: string) => string;
   /** The titles the writer proposed, as code read them (issue 1389). */
   titles: TitleCandidate[];
   /** How many sentences about the writer's own inputs the repair dropped. */
@@ -304,11 +305,11 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   };
   const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding?.fact.url, factUrls: [...pack.facts.map((fact) => fact.url), ...(pack.fitFact?.url == null ? [] : [pack.fitFact.url])] };
 
-  /** The parts laid out as the page (SPEC §7, issue 1137): the body's links
-   *  held to the chosen pages, no table cell left empty, the closing line
-   *  last, and the sources list of the market pages the body cites — written
-   *  here and never by the model (issue 1135). A listicle's table is the one
-   *  code built, under its at-a-glance section's opening paragraph (D47). */
+  /** The parts as the writer's words, tidied in code: the links held to the chosen pages, no table cell left empty,
+   *  the closing line last. `lay` then makes the page of them (SPEC §7, issue 1137): a listicle's table is the one code
+   *  built, under its at-a-glance section's opening paragraph (D47), the pages the body did not reach are listed, the
+   *  closing is the link to its action, and the sources list of the market pages the body cites is written here and
+   *  never by the model (issue 1135). */
   const finish = (asWritten: PageParts): Finished => {
     // Owner P2b and P3: the row's fit fact stands in the short answer and the business section, added in code at 0¢.
     const parts = grounding === undefined ? asWritten : withFitFact(asWritten, { pack, template, businessName: a.site.businessName });
@@ -332,19 +333,20 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const glance = laid.sections.find((section) => template.sections.find((slot) => slot.key === section.key)?.block === "table")?.heading;
     // Issue 1507: a stray bracket goes and a numbered list counts from 1, in code, before stage 4 reads the page.
     const tidied = renumberSteps(withoutBrokenLinks(laid.body.bodyMarkdown));
-    const written = silent.length === 0 ? tidied : withoutBusiness(tidied, a.site).markdown;
-    const body = table === null ? written : withTable(written, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
-    const markdown = withList(
-      withClosing(
-        completeTables(applyLinks(body, { ...linking, appendUnder: own })),
-        applyLinks(laid.closing, { ...linking, appendMissing: false }),
-        a.links[0]?.url ?? `https://${a.site.domain}/`
-      )
-    );
-    return { laid, markdown, titles, notes: notes.dropped };
+    const written = completeTables(applyLinks(silent.length === 0 ? tidied : withoutBusiness(tidied, a.site).markdown, { ...linking, appendMissing: false }));
+    const closing = applyLinks(laid.closing, { ...linking, appendMissing: false }).trim();
+    const writer = [written.trimEnd(), closing].filter(Boolean).join("\n\n");
+    const lay = (words: string): string => {
+      // The closing is laid as its link only while a repair left it as written.
+      const closed = closing !== "" && words.trimEnd().endsWith(closing);
+      const body = closed ? words.trimEnd().slice(0, -closing.length) : words;
+      const tabled = table === null ? body : withTable(body, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
+      return withList(withClosing(applyLinks(tabled, { ...linking, appendUnder: own }), closed ? closing : "", a.links[0]?.url ?? `https://${a.site.domain}/`));
+    };
+    return { laid, writer, markdown: lay(writer), lay, titles, notes: notes.dropped };
   };
 
-  const metaOf = (page: Finished, repairs: readonly RepairRecord[], elsewhere: number | null, outcome?: BatteryOutcome): Record<string, unknown> => {
+  const metaOf = (page: Finished, repairs: readonly RepairRecord[], outcome?: BatteryOutcome): Record<string, unknown> => {
     const linked = new Set(linksOf(page.markdown).map(urlKey));
     const used = pack.facts.filter((fact) => linked.has(urlKey(fact.url)) || page.markdown.includes(fact.passage));
     return {
@@ -386,8 +388,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
       ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken, a.site.completeness), standard: (({ parts, met }) => ({ parts, met, version: deployedStandard() }))(meetsStandard({ failed: outcome.failed, markdown: page.markdown, sections: page.laid.sections.length, basis, notes: page.notes })) }),
-      // A number and nothing else: which page it was is not recorded.
-      ...(elsewhere === null ? {} : { elsewhere: { similarity: elsewhere } }),
     };
   };
 
@@ -396,22 +396,22 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   /** Every rule a check of this run failed, before any repair or fix. */
   const broken = new Set<HardRule>();
   const page = finish(written.value);
-  const draftId = await writeRow({ title: page.laid.body.title, body_md: page.markdown, meta: metaOf(page, [], null) });
+  const draftId = await writeRow({ title: page.laid.body.title, body_md: page.markdown, meta: metaOf(page, []) });
 
-  // 4. Check: code only, against this customer's own three sets.
-  const comparison = await buildComparisonSet({ siteId: a.siteId, exceptDraftId: draftId, ...(await ownVersions(a.siteId, a.opportunity)) });
+  // 4. Check: code only, against this customer's own sets and the pages written for other sites.
+  const comparison = await buildComparisonSet({ siteId: a.siteId, exceptDraftId: draftId, elsewhere: true, ...(await ownVersions(a.siteId, a.opportunity)) });
   const check = async (candidate: Finished) => {
     const { laid } = candidate;
     const page = { title: laid.body.title, heading: laid.body.heading, description: laid.body.description, sections: laid.sections, faq: laid.faq };
-    const checked = await checkPage(c, basis, page, candidate.markdown, { siteId: a.siteId, draftId, comparison, broken });
-    return { ...checked, page: { ...candidate, markdown: checked.markdown } };
+    const checked = await checkPage(c, basis, page, candidate.writer, { siteId: a.siteId, draftId, comparison, broken, lay: candidate.lay });
+    return { ...checked, page: { ...candidate, writer: checked.writer, markdown: checked.markdown } };
   };
 
   const record = async (checked: Awaited<ReturnType<typeof check>>, repairs: readonly RepairRecord[], attempts: number | null): Promise<void> => {
     await store.patchDraft(draftId, {
       title: checked.page.laid.body.title,
       body_md: checked.page.markdown,
-      meta: metaOf(checked.page, repairs, checked.close?.similarity ?? null, checked.outcome),
+      meta: metaOf(checked.page, repairs, checked.outcome),
       claim_check: recordedVerdictValue(checked.outcome.claim),
       // Written on every run — the empty array on a run that found nothing, because "the checks ran and passed"
       // and "no check has touched this row" are different facts (#424).
@@ -420,7 +420,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       // The publishing engine's guard on `generating → in_review`, written
       // here and nowhere else. An unrun fit check leaves it false: "we could
       // not check" is not "it passed".
-      hard_rules_passed: batteryCleared(checked.outcome) && checked.close === null,
+      hard_rules_passed: batteryCleared(checked.outcome),
       ...(attempts === null ? {} : { hard_rule_attempts: attempts }),
     });
   };
@@ -433,7 +433,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     const lengthNote = length === null ? null : `length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have ${length.floor > 0 ? `between ${length.floor} and ` : "at most "}${length.ceiling}`;
     const blocks = stopped.outcome.failed.find((failure) => failure.rule === "required_blocks")?.detail;
     const beside = lengthNote !== null && blocks?.rule === "required_blocks" && blocks.length === true ? [lengthNote] : [];
-    return fixNotes(stopped.page.markdown, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
+    return fixNotes(stopped.page.writer, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
       if (note.rule === "required_blocks" && note.sentences.includes("length") && lengthNote !== null) return { ...note, sentences: [lengthNote] };
       if (note.rule === "required_blocks" && note.sentences.includes("new_sections")) {
         return { ...note, sentences: [`new sections: at most ${HEADING_GAPS.sectionsMax} sections may be new, each headed by one of \`pack.gaps\` and linking a url of that gap's \`claims\`; return every other section under its live heading`] };
@@ -475,25 +475,19 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
 
   // The one fix call, for a stopped page and for one missing its sections, sources or words: each check the page
   // failed, and the sentences that failed it. Not started without the money or the time for it.
-  const clear = (read: typeof checked): boolean => read.outcome.passed && read.close === null;
-  if ((!clear(checked) || checked.outcome.failed.some(incomplete)) && checked.outcome.fit.state !== "unrun") {
-    await record(checked, repairs, clear(checked) ? null : attemptsBefore + 1);
+  if ((!checked.outcome.passed || checked.outcome.failed.some(incomplete)) && checked.outcome.fit.state !== "unrun") {
+    await record(checked, repairs, checked.outcome.passed ? null : attemptsBefore + 1);
     const notes = notesFor(checked);
-    // Issue 1536: a fix call told only of sentences the writer never wrote
-    // — code's table, its sources list — would be stopped for them again.
-    const futile = checked.close === null && !checked.outcome.passed && notWritersToFix(notes, written.value);
-    if (futile) logRun({ siteId: a.siteId, draftId, step: "fix", outcome: "not_writers" });
-    const { again, stop, owed: later } = await tryFix(c, { futile, startedAt, writtenAt, owe: a.fixStep === "owe", call: () => fixPage(c, { ...writing, parts: written.value, fix: notes, ...(checked.close === null ? {} : { apart: checked.close.sentences }) }) });
+    const { again, stop, owed: later } = await tryFix(c, { startedAt, writtenAt, owe: a.fixStep === "owe", call: () => fixPage(c, { ...writing, parts: written.value, fix: notes }) });
     // The `fix` step reads the row as this run found it, with the write's parts beside it.
     if (later) return (await store.patchDraft(draftId, { meta: { ...baseMeta, [FIX_OWED]: written.value }, hard_rule_attempts: attemptsBefore }), logRun({ siteId: a.siteId, draftId, step: "fix", outcome: "owed" }), { ok: false, reason: "step_failed", draftId, step: "fix", owed: true });
     if (again === null || again.kind === "unmeasured") {
       logRun({ siteId: a.siteId, draftId, step: "fix", outcome: stop ?? (again === null ? "not_started" : "step_failed") });
       if (!checked.outcome.passed) return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
-      if (checked.close !== null) return { ok: false, reason: "step_failed", draftId, step: "elsewhere" };
     } else {
       const mended = await check(finish(again.value));
       // A page that could enter review is never lost to its fix: the fixed page is kept only where it can too.
-      fixed = !clear(checked) || clear(mended);
+      fixed = !checked.outcome.passed || mended.outcome.passed;
       if (fixed) [checked, repairs] = [mended, [...repairs, ...mended.repairs]];
     }
   }
@@ -504,10 +498,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   if (checked.outcome.fit.state === "unrun") {
     logRun({ siteId: a.siteId, draftId, step: "fit_check", outcome: checked.outcome.fit.reason });
     return { ok: false, reason: "step_failed", draftId, step: "fit_check" };
-  }
-  if (checked.outcome.passed && checked.close !== null) {
-    logRun({ siteId: a.siteId, draftId, step: "elsewhere", outcome: "too_close", similarity: checked.close.similarity });
-    return { ok: false, reason: "step_failed", draftId, step: "elsewhere" };
   }
   if (checked.outcome.passed) {
     logRun({ siteId: a.siteId, draftId, outcome: "passed", type: pack.type, fixed, costCents: Math.round(c.spentCents()) });
@@ -555,46 +545,4 @@ async function lostFact(siteId: string, row: DraftRow): Promise<GenerateOutcome>
 function stepFailed(siteId: string, step: PipelineStep, draftId: string | undefined, answered: boolean | "cut_off" = false): GenerateOutcome {
   logRun({ siteId, step, outcome: "step_failed" });
   return { ok: false, reason: "step_failed", draftId: draftId ?? null, step, ...(answered === false ? {} : { answered }) };
-}
-
-/** The rules whose note names the sentences that broke them, word for word
- *  as the page reads (`./repair.ts`'s `fixNotes`). */
-const SENTENCE_RULES: ReadonlySet<HardRule> = new Set([
-  "traceable_numerals",
-  "rival_negative",
-  "rival_source",
-  "no_invented_test",
-  "no_invented_provenance",
-  "no_demo_text",
-  "no_placeholder_cell",
-  "fit_claim",
-]);
-
-/**
- * Issue 1536: whether every check a page failed points only at sentences
- * the writer did not write. Each failed rule names its sentences, and none
- * of them is in the parts the write call returned: they are lines code laid
- * in (the comparison table, the sources list), which a fix call is handed
- * back unchanged. A rule that names no sentence, or names one the writer
- * wrote, is the writer's to put right.
- */
-export function notWritersToFix(notes: readonly FixNote[], parts: PageParts): boolean {
-  if (notes.length === 0) return false;
-  const flat = (text: string): string => renderOf(text).replace(/\s+/g, " ").trim();
-  const own = [
-    parts.answer,
-    parts.closing,
-    ...parts.takeaways,
-    ...parts.sections.flatMap((section) => [section.heading, section.body]),
-    ...parts.faq.flatMap((entry) => [entry.question, entry.answer]),
-  ].map(flat);
-  return notes.every(
-    (note) =>
-      SENTENCE_RULES.has(note.rule) &&
-      note.sentences.length > 0 &&
-      note.sentences.every((sentence) => {
-        const words = flat(sentence);
-        return words !== "" && !own.some((text) => text.includes(words));
-      })
-  );
 }

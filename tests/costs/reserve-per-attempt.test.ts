@@ -115,7 +115,7 @@ describe("a model call reserves one attempt at a time", () => {
     createMock.mockResolvedValue(fullMiss());
 
     const { again, stop, degraded } = await draftDay(DRAFT_C - 1.5 * ONE_ATTEMPT, async (cost) => ({
-      ...(await tryFix(cost, { futile: false, startedAt: Date.now(), call: () => fix(cost) })),
+      ...(await tryFix(cost, { startedAt: Date.now(), call: () => fix(cost) })),
       degraded: cost.degraded(),
     }));
 

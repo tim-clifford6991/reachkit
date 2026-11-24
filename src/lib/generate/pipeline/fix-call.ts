@@ -12,17 +12,17 @@ export type FixStop = "budget" | "time";
 /** The `drafts.meta` key holding the saved write's parts while the run's `fix` step owes the page its fix call. */
 export const FIX_OWED = "fixOwed";
 
-/** The fix call where the money and the time allow it, and why not where they did not. A futile call is skipped
- *  with no stop: the page is stopped for its rules. Its time runs from the saved write's start (`writtenAt`); where
- *  the step (`startedAt`) has no room left for it and the run has a `fix` step (`owe`), it is `owed` to that step. */
+/** The fix call where the money and the time allow it, and why not where they did not. Its time runs from the saved
+ *  write's start (`writtenAt`); where the step (`startedAt`) has no room left for it and the run has a `fix` step
+ *  (`owe`), it is `owed` to that step. */
 export async function tryFix<T>(
   c: CostContext,
-  a: { futile: boolean; startedAt: number; writtenAt?: number; owe?: boolean; call: () => Promise<Measured<T>> }
+  a: { startedAt: number; writtenAt?: number; owe?: boolean; call: () => Promise<Measured<T>> }
 ): Promise<{ again: Measured<T> | null; stop: FixStop | null; owed?: true }> {
   const late = Date.now() - a.startedAt >= PIPELINE.fixBeforeMs;
-  const before: FixStop | null = a.futile ? null : c.capHit() ? "budget" : Date.now() - (a.writtenAt ?? a.startedAt) >= PIPELINE.fixBeforeMs || (late && !a.owe) ? "time" : null;
-  if (!a.futile && before === null && late) return { again: null, stop: null, owed: true };
-  const again = a.futile || before !== null ? null : await a.call();
+  const before: FixStop | null = c.capHit() ? "budget" : Date.now() - (a.writtenAt ?? a.startedAt) >= PIPELINE.fixBeforeMs || (late && !a.owe) ? "time" : null;
+  if (before === null && late) return { again: null, stop: null, owed: true };
+  const again = before !== null ? null : await a.call();
   // `not_attempted` is the ledger refusing the call's reservation.
   return { again, stop: again?.kind === "unmeasured" && again.reason === "not_attempted" ? "budget" : before };
 }

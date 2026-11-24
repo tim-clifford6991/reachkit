@@ -23,7 +23,6 @@ import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import {
   INVENTED_PROVENANCE_RES,
   INVENTED_TEST_RES,
-  isLaid,
   isPhraseBreach,
   pageTraceableNumerals,
   poolPassages,
@@ -151,12 +150,12 @@ function applyEdits(markdown: string, edits: readonly Edit[]): string {
   return out.replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "");
 }
 
-/** Each sentence of each block through `fn`: a string replaces it, `null`
- *  drops it, and a block left with no sentence is dropped whole. */
-function mapSentences(markdown: string, fn: (piece: string) => string | null, skipTables = false): string {
+/** Each sentence of each block outside a table through `fn`: a string replaces it, `null` drops it, and a block left
+ *  with no sentence is dropped whole. A table's rows are never sentences. */
+function mapSentences(markdown: string, fn: (piece: string) => string | null): string {
   const edits: Edit[] = [];
   for (const block of sourceBlocksOf(markdown)) {
-    if (skipTables && TABLE_ROW_RE.test(block.raw.split("\n")[0]!)) continue;
+    if (TABLE_ROW_RE.test(block.raw.split("\n")[0]!)) continue;
     const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
     const pieces = splitSentences(block.raw.slice(marker.length));
     const mapped = pieces.map(fn);
@@ -194,8 +193,6 @@ function repairNumerals(markdown: string, inputs: RepairInputs): string {
     // Issue 1490: the site's own measurement on a page that is not research
     // goes with its sentence; linking it to the report would still state it.
     if (ownMeasurementIn(wordsOf(piece), withheld) !== null) return null;
-    // Issue 1536: a line code laid in from the pack stays as it is.
-    if (isLaid(wordsOf(piece), inputs.brief)) return piece;
     const figures = untraceable(piece, traceable);
     if (figures.length === 0) return piece;
     const words = wordsOf(piece);
@@ -228,7 +225,7 @@ function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
     const theirs = inputs.sources.filter((source) => d === undefined || (host(source.url) !== d && !host(source.url).endsWith(`.${d}`)));
     const url = sourceOf(figure, text, theirs.sort((a, b) => Number(own(b.url)) - Number(own(a.url))));
     return url === null ? piece : piece.replace(numeralRe(figure), `[${figure}](${url})`);
-  }, true);
+  });
 }
 
 /** The page without each sentence `rival_source` still fails when handed it alone. */
@@ -241,7 +238,7 @@ function withoutUnsourcedRivals(markdown: string, inputs: RepairInputs): string 
 
 /** The page without each sentence a rival rule still fails handed alone; a table keeps its block and loses only such a row. */
 function withoutRivalBreaches(markdown: string, fails: (piece: string) => boolean): string {
-  return mapSentences(withoutRows(markdown, (_, raw) => fails(raw)).markdown, (piece) => (fails(piece) ? null : piece), true);
+  return mapSentences(withoutRows(markdown, (_, raw) => fails(raw)).markdown, (piece) => (fails(piece) ? null : piece));
 }
 
 function fits(paragraph: string): boolean {
@@ -425,13 +422,13 @@ export function withoutWriterNotes<Q extends { answer: string }>(markdown: strin
 }
 
 /** The page without each sentence `drops` takes, by the reader's words, and the sentences dropped. */
-function withoutSentences(markdown: string, drops: (words: string) => boolean, skipTables = false): { markdown: string; dropped: string[] } {
+function withoutSentences(markdown: string, drops: (words: string) => boolean): { markdown: string; dropped: string[] } {
   const dropped: string[] = [];
   const out = mapSentences(markdown, (piece) => {
     if (!drops(wordsOf(piece))) return piece;
     dropped.push(wordsOf(piece));
     return null;
-  }, skipTables);
+  });
   return { markdown: dropped.length === 0 ? markdown : renumberSteps(out), dropped };
 }
 
@@ -467,7 +464,7 @@ function withoutRows(markdown: string, drops: (row: string, raw: string) => bool
 export function withoutBusiness(markdown: string, site: SiteNames): { markdown: string; dropped: string[] } {
   const tokens = brandTokens(site);
   const rows = withoutRows(markdown, (row) => namesBrand(row, tokens));
-  const prose = withoutSentences(rows.markdown, (words) => namesBrand(words, tokens), true);
+  const prose = withoutSentences(rows.markdown, (words) => namesBrand(words, tokens));
   return { markdown: prose.markdown, dropped: [...rows.dropped, ...prose.dropped] };
 }
 
@@ -499,7 +496,7 @@ function sentencesFor(
       const withheld = withheldMeasurements(brief);
       return sourceBlocksOf(markdown)
         .flatMap((block) => splitSentences(block.raw))
-        .filter((piece) => !isLaid(wordsOf(piece), brief) && (untraceable(piece, traceable).length > 0 || ownMeasurementIn(wordsOf(piece), withheld) !== null))
+        .filter((piece) => untraceable(piece, traceable).length > 0 || ownMeasurementIn(wordsOf(piece), withheld) !== null)
         .map(wordsOf);
     }
     case "rival_negative":

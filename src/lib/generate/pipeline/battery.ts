@@ -1,6 +1,6 @@
-// SPEC §7 (D41 stage 4) — what the hard rules read of a page, and the one pass over it: the checks, the
-// repairs code can make, and the pages written for other sites. Built here once so a page as written and a stored page
-// re-checked (`../recheck.ts`) are read by the same inputs.
+// SPEC §7 (D41 stage 4) — what the hard rules read of a page, and the one pass over it: the checks and the repairs
+// code can make. Built here once so a page as written and a stored page re-checked (`../recheck.ts`) are read by the
+// same inputs.
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { contentTypeOf } from "@/lib/opportunities/content-type";
@@ -8,7 +8,7 @@ import { pageTypeOf } from "@/lib/opportunities/page-type";
 import { brandSentences, stillAsked, type FitVerdict } from "../claims/fit";
 import { lengthRangeFor, sectionWords, typeLength } from "../length";
 import { sourcesNeed, TEMPLATES } from "../templates";
-import { batteryCleared, runHardRules, type BatteryOutcome } from "../rules";
+import { runHardRules, type BatteryOutcome } from "../rules";
 import { namedRivals } from "../rules/rivals";
 import { renderOf } from "../rules/text";
 import type { ComparisonSet, Completeness, HardRule, SiteRuleInputs } from "../rules/types";
@@ -18,7 +18,6 @@ import { localeTag } from "@/lib/locale/locales";
 import { PAGE_LOCALE } from "@/lib/publish/render/byline";
 import { voiceLength } from "../voice/register";
 import type { LaidSection } from "./compose";
-import { closeElsewhere } from "./elsewhere";
 import type { SourcedFact } from "./grounding";
 import { ageDays } from "./claims";
 import { sourcingUrls } from "./original";
@@ -89,8 +88,6 @@ export function batteryBasis(a: {
     facts: passages,
     queries: searches,
     marketFacts: pack.claims.map((claim) => ({ url: claim.url, passage: claim.passage, ...scopeOf(claim) })),
-    // Issue 1536: the table's own lines are code's, from the pack.
-    ...(table === null ? {} : { laid: [table.checked, ...(table.currencies === null ? [] : [table.currencies])] }),
     // Issue 1490: the report's own sentences, withheld from every page that
     // is not research — a refresh's live page among them.
     ...(reportFactsAllowed(pack.type)
@@ -140,15 +137,16 @@ export function blockInputs(b: BatteryBasis, page: CheckedPage) {
   };
 }
 
-/** Everything `runHardRules` is handed for one text of the page. `settled` is the page after its fix call, whose
- *  title no longer stops it for want of a specific. */
-export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: string, comparison: ComparisonSet, settled = false, fit?: FitVerdict) {
+/** Everything `runHardRules` is handed for one text of the page: the writer's words, and `laid`, the page code lays
+ *  out of them. `settled` is the page after its fix call, whose title no longer stops it for want of a specific. */
+export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: string, comparison: ComparisonSet, settled = false, fit?: FitVerdict, laid?: string) {
   const { pack, site } = b;
   return {
     ...(fit === undefined ? {} : { fit }),
     markdown,
+    ...(laid === undefined ? {} : { laid }),
     title: page.title,
-    rendered: renderOf(markdown),
+    rendered: renderOf(laid ?? markdown),
     pageType: b.pageType,
     // D44: the one model check, on a listicle or comparison only.
     ...(pack.type === "listicle" && pack.profile?.knowledge !== undefined
@@ -183,39 +181,45 @@ export function batteryInputs(b: BatteryBasis, page: CheckedPage, markdown: stri
   };
 }
 
-/** One page through stage 4: the checks, the repairs code can make (#1178) kept only where the page then passes or
- *  fails fewer checks, or fewer that stop it, and no new one, and the pages written for other sites (D13) where the
- *  rules passed. A fit check that could not run leaves the page saying nothing of the business. Each rule the first
- *  check failed is added to `broken`. */
+/** One page through stage 4. The rules read the writer's words (`written`), and the page-level ones the page `lay`
+ *  makes of them, so a line code laid is never read as the writer's. The repairs code can make (#1178) edit the
+ *  writer's words, which are laid out again, and are kept only where the page then passes or fails fewer checks, or
+ *  fewer that stop it, and no new one. A fit check that could not run leaves the page saying nothing of the business.
+ *  Each rule the first check failed is added to `broken`. A stored page has no parts: it is read as it stands, and a
+ *  repair lays its sources list again. */
 export async function checkPage(
   c: CostContext,
   b: BatteryBasis,
   page: CheckedPage,
   written: string,
-  at: { siteId: string; draftId: string; comparison: ComparisonSet; broken?: Set<HardRule>; fit?: FitVerdict },
+  at: { siteId: string; draftId: string; comparison: ComparisonSet; broken?: Set<HardRule>; fit?: FitVerdict; lay?: (writer: string) => string },
   settled = false
 ) {
-  let markdown = written;
-  let outcome: BatteryOutcome = await runHardRules(c, batteryInputs(b, page, markdown, at.comparison, settled, at.fit));
+  const lay = at.lay ?? b.withList;
+  const read = (text: string, laid: string, fit?: FitVerdict) => runHardRules(c, batteryInputs(b, page, text, at.comparison, settled, fit, laid));
+  let writer = written;
+  let markdown = at.lay?.(written) ?? written;
+  let outcome: BatteryOutcome = await read(writer, markdown, at.fit);
   for (const failure of outcome.failed) at.broken?.add(failure.rule);
   const repairs: RepairRecord[] = [];
-  const inputs = batteryInputs(b, page, markdown, at.comparison, settled);
+  const inputs = batteryInputs(b, page, writer, at.comparison, settled);
   const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
   const stopping = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.filter((failure) => stops(failure, b.site.completeness)).map((failure) => failure.rule));
   if (outcome.fit.state === "unrun") {
     // With no sentence left that names the business, the fit check passes, and no call is made for it.
-    const bare = withoutBusiness(markdown, b.site);
-    const again = bare.dropped.length === 0 || brandSentences(reading(bare.markdown)).length > 0 ? null : await runHardRules(c, batteryInputs(b, page, bare.markdown, at.comparison, settled, { state: "passed" }));
+    const bare = withoutBusiness(writer, b.site);
+    const again = bare.dropped.length === 0 || brandSentences(reading(bare.markdown)).length > 0 ? null : await read(bare.markdown, lay(bare.markdown), { state: "passed" });
     if (again !== null && [...stopping(again)].every((rule) => stopping(outcome).has(rule))) {
       repairs.push({ rule: "fit_claim", cleared: true, dropped: bare.dropped });
-      markdown = bare.markdown;
+      writer = bare.markdown;
+      markdown = lay(writer);
       outcome = again;
     }
   }
   const tried = outcome.fit.state === "unrun" ? [] : repairable(outcome.failed);
   if (tried.length > 0) {
-    const named = stillAsked(outcome.fit, reading(markdown));
-    const mended = repairRecorded(markdown, tried, {
+    const named = stillAsked(outcome.fit, reading(writer));
+    const mended = repairRecorded(writer, tried, {
         brief: b.brief,
         sources: [
           ...b.facts.map((sourced) => ({ url: sourced.fact.url, text: sourced.sourceText })),
@@ -228,10 +232,10 @@ export async function checkPage(
         // Issue 2375: the sentences the fit check named.
         ...(named.state === "failed" ? { fit: named.sentences } : {}),
       });
-    const repaired = b.withList(mended.markdown);
+    const repaired = mended.markdown;
     // The verdict stands for the sentences the repaired page still asks about; no fit call is bought again.
     const fit = stillAsked(outcome.fit, reading(repaired));
-    const again = repaired === markdown ? null : await runHardRules(c, batteryInputs(b, page, repaired, at.comparison, settled, fit));
+    const again = repaired === writer ? null : await read(repaired, lay(repaired), fit);
     const still = new Set(again === null ? [] : again.failed.map((failure) => failure.rule));
     for (const rule of tried) {
       const dropped = mended.dropped[rule];
@@ -242,12 +246,12 @@ export async function checkPage(
     const all = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.map((failure) => failure.rule));
     const fewer = again !== null && (narrower(all(outcome), all(again)) || narrower(stopping(outcome), stopping(again)));
     if (again !== null && fewer && (again.passed || !outcome.passed)) {
-      markdown = repaired;
+      writer = repaired;
+      markdown = lay(repaired);
       outcome = again;
     }
   }
-  const close = batteryCleared(outcome) ? await closeElsewhere({ siteId: at.siteId, markdown }) : null;
-  return { markdown, outcome, repairs, close };
+  return { writer, markdown, outcome, repairs };
 }
 
 /** What a market fact says of a rival beyond its words (issue 1485): its

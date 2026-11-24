@@ -66,7 +66,7 @@ async function replay(name: string, [row, world]: [DraftRow, RecheckWorld]): Pro
   if (outcome.kind !== "checked") return [...head, `- Today: ${outcome.kind} (${"figures" in outcome ? `${outcome.reason} ${outcome.figures.join(", ")}` : outcome.reason})`, ""].join("\n");
   const fixes = ((outcome.patch.meta as { recheck?: RecheckFixes }).recheck ?? {}) as RecheckFixes;
   const rules = [...new Set(outcome.failed.map((failure) => failure.rule))];
-  const verdict = outcome.passed ? "passes" : rules.length === 1 && rules[0] === "fit_claim" ? "fails only on fit_claim" : `fails on ${rules.join(", ") || (outcome.close ? "elsewhere" : `fit ${outcome.fit}`)}`;
+  const verdict = outcome.passed ? "passes" : rules.length === 1 && rules[0] === "fit_claim" ? "fails only on fit_claim" : `fails on ${rules.join(", ") || `fit ${outcome.fit}`}`;
   const mended = repairable(outcome.failed);
   // A title short only of its specific goes on once nothing else fails (ruling 2026-10-11, `lacksSpecificOnly`).
   const unmet = (failure: RuleFailure) => failure.detail?.rule === "title" && "faults" in failure.detail && specificOnly(failure.detail.faults);

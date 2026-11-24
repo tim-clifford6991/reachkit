@@ -120,9 +120,8 @@ export const NEAR_DUPLICATE_MAX = 0.85 as const;             // BUILD §8
  *  sites, at `NEAR_DUPLICATE_MAX` — the same bar as the same-site check, so
  *  there is no second threshold here. `months` is the ruling's; `pagesMax`
  *  bounds one read, newest first (a drafted default: a run that reaches it
- *  logs that it did); `noteSentences` is how many of the draft's own shared
- *  sentences the one rewrite is told to avoid. */
-export const ELSEWHERE = Object.freeze({ months: 12, pagesMax: 1000, noteSentences: 12 } as const);
+ *  logs that it did). */
+export const ELSEWHERE = Object.freeze({ months: 12, pagesMax: 1000 } as const);
 
 /** The pinned battery behind `no_machine_address`: an instruction or
  *  assertion directed at an assistant, a crawler or a ranking system about
