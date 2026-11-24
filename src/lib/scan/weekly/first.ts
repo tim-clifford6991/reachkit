@@ -7,7 +7,7 @@ import { WEEK_RESEARCH } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { sendOnboardingMails } from "@/lib/mail/onboarding";
 import { cachedRivalRows, deriveForPass, planFirstWeek } from "@/lib/opportunities";
-import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
+import { claimOnboardingPass, reportSupplyFailed, runScan, spendOnStoredReport } from "../run";
 import { passRunning } from "../pass/row";
 import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
@@ -192,6 +192,7 @@ export async function afterFirstReport(a: {
       // The rivals, re-checked from this pass's own answers before anything is derived against them.
       const { recheckRivalsOf } = await import("../market-conclusion");
       await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report, at: new Date() });
+      let supplyFailed = false;
       try {
         await deriveForPass(cost, {
           tier: "deep",
@@ -203,20 +204,17 @@ export async function afterFirstReport(a: {
           hasActiveAccess: true,
           rivalRows: cachedRivalRows(a.siteId),
         });
+      } catch (error) {
+        supplyFailed = true;
+        throw error;
       } finally {
         // The pass checks its own health last, against the rivals it leaves in force; only a re-measure asks the tracked prompts. Never throws.
         const { recordPassHealth } = await import("../health-record");
-        await recordPassHealth({ scanId: a.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: a.remeasure });
+        await recordPassHealth({ scanId: a.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: a.remeasure, supplyFailed });
       }
     });
   } catch (error) {
-    console.log(
-      JSON.stringify({
-        event: "after_report_failed",
-        scanId: a.scanId,
-        because: error instanceof Error ? error.message : String(error),
-      })
-    );
+    await reportSupplyFailed({ scanId: a.scanId, siteId: a.siteId }, error);
   }
 }
 

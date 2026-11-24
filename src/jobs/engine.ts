@@ -197,8 +197,8 @@ export type Rerun = { readonly key: string; readonly mail: boolean };
 
 /** The week told, after it is judged and committed. A failed pass stored no report, so its week judges nothing. */
 async function tellWeek(a: DueSite & { readonly now: Date; readonly rerun?: Rerun }, outcome: WeeklyOutcome): Promise<EngineResult> {
-  // A week the vendor refused for credit is still due: nothing is judged, planned or told until a pass measures it.
-  if (outcome.ran && outcome.status === "failed" && outcome.because === "vendor_funds") return { degraded: "vendor_funds" };
+  // A week the vendor refused for credit, or whose supply step threw, is still due: nothing is judged, planned or told until a pass measures it.
+  if (outcome.ran && outcome.status === "failed" && outcome.because !== undefined) return { degraded: outcome.because };
   const { sendWeeklyDigest } = await import("@/lib/mail/weekly");
   if (a.rerun !== undefined && !a.rerun.mail) return outcome.ran && outcome.status === "degraded" ? { degraded: outcome.unmeasured.join(",") } : { done: true };
   const told = await sendWeeklyDigest({ siteId: a.siteId, weekStart: a.weekStart, now: a.now });

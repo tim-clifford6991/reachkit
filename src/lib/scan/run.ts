@@ -75,7 +75,7 @@ export interface RunScanArgs {
   failsWhenFundsRefused?: true;
 }
 
-export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus; fundsRefused?: true }> {
+export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status: ScanStatus; fundsRefused?: true; supplyFailed?: true }> {
   const parameters = passParameters(a.tier, a.first === true);
   // A first pass keeps the stored `deep` label on its row, report and reads, so new rows and stored ones read alike.
   const tier: Tier = a.first === true ? "deep" : a.tier;
@@ -269,17 +269,13 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    passes' own step, supplied by their callers rather than decided
   //    here (this file branches on no tier). A hook that throws does not
   //    take the report down with it.
+  let supplyFailed = false;
   if (a.afterReport !== undefined) {
     try {
       await spendOnStoredReport({ scanId, tier: a.tier, first: a.first === true, report: composed.report }, a.afterReport);
     } catch (error) {
-      console.log(
-        JSON.stringify({
-          event: "after_report_failed",
-          scanId,
-          because: error instanceof Error ? error.message : String(error),
-        })
-      );
+      supplyFailed = true;
+      await reportSupplyFailed({ scanId, ...(a.siteId === undefined ? {} : { siteId: a.siteId }) }, error);
     }
   }
 
@@ -312,7 +308,14 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     await reportIncident({ occasion: "market-too-small", scanId, tier });
   }
   // A pass the vendor refused for credit measured nothing it can stand on; its caller decides what that leaves.
-  return spend.fundsRefused ? { ...stored, fundsRefused: true } : stored;
+  return { ...stored, ...(spend.fundsRefused ? { fundsRefused: true as const } : {}), ...(supplyFailed ? { supplyFailed: true as const } : {}) };
+}
+
+/** A pass whose supply step threw: an error line the runtime errors show, and one ops event the daily check reads. Never throws. */
+export async function reportSupplyFailed(a: { scanId: string; siteId?: string }, error: unknown): Promise<void> {
+  console.error(JSON.stringify({ event: "after_report_failed", scanId: a.scanId, because: error instanceof Error ? error.message : String(error) }));
+  const { failureCode, recordOpsEvent } = await import("@/lib/ops/events");
+  await recordOpsEvent("after_report_failed", a.scanId, failureCode(error), a.siteId ?? null);
 }
 
 /** Sends `scan/finish-reads` for a report still reading. A failed send is logged: the line lapses after its window and the report stands. */

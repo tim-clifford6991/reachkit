@@ -176,10 +176,10 @@ export function comparePrecedence(
 export type ClusteredCandidate = Candidate & { clusterKey: string | null; absorbedQueries: readonly string[] };
 
 export interface CollapsePlan {
-  /** Open rows that lost their cluster, and superseded ones; applied first, so the one-open-row index never sees two. */
+  /** Open rows that lost their cluster, and superseded ones; applied last, so a failed write dismisses no topic. */
   dismiss: readonly string[];
   /** Rows that keep their place and take a cluster key or more absorbed searches. */
-  update: readonly { id: string; clusterKey: string; absorbedQueries: readonly string[] }[];
+  update: readonly { id: string; clusterKey: string | null; absorbedQueries: readonly string[] }[];
   insert: readonly ClusteredCandidate[];
 }
 
@@ -283,14 +283,14 @@ export function collapse(a: {
   const words = (q: string) => [clusterKey(q, a.brandTokens), a.market == null ? null : clusterKey(q, a.brandTokens, a.market)];
   const tens = (q: string) => a.topTens?.get(queryKey(q)) ?? [];
   const direct = (own: string, q: string) => words(own).some((k, i) => k !== null && k === words(q)[i]) || shareATopTen(tens(own), tens(q)) || same.has(`${queryKey(own)}\n${queryKey(q)}`);
-  const trimmed: { row: Opportunity; member: Member }[] = [];
+  const trimmed: Opportunity[] = [];
   for (const held of a.existing) {
     if (held.family === "fix" || held.status === "dismissed") continue;
     // A refresh of a page of ours is the update of that page, not a second page on its topic, so it never competes with the page's own row.
     if (isOwnRefresh(held)) continue;
     const kept = held.targetQuery === null ? held.absorbedQueries : held.absorbedQueries.filter((q) => direct(held.targetQuery!, q));
     const row = { ...held, absorbedQueries: kept }, member: Member = { kind: "row", row };
-    if (kept.length !== held.absorbedQueries.length) trimmed.push({ row, member });
+    if (kept.length !== held.absorbedQueries.length) trimmed.push(row);
     add(held.clusterKey ?? clusterKey(held.targetQuery, a.brandTokens), member);
   }
   for (const candidate of a.candidates) {
@@ -314,15 +314,20 @@ export function collapse(a: {
     a.pass.covered.has(key);
 
   const dismiss: string[] = [];
-  const update: { id: string; clusterKey: string; absorbedQueries: string[] }[] = [];
+  const update: { id: string; clusterKey: string | null; absorbedQueries: string[] }[] = [];
   for (const members of groups) {
     const [first, ...others] = [...members].sort(rank);
     if (first === undefined) continue;
-    // The topic takes the first member's own key, so a held survivor keeps its key and the index never sees it move.
-    const key = keyOf.get(first) as string;
     const hadCandidate = members.some((member) => member.kind === "candidate");
     // A live page keeps its searches and its best other member stays as its update, unless a page of it is being written.
-    const survivor = !isLive(first) ? first : others.some((m) => hasAPage(m) && !isLive(m)) ? undefined : others.find((m) => !hasAPage(m));
+    const best = !isLive(first) ? first : others.some((m) => hasAPage(m) && !isLive(m)) ? undefined : others.find((m) => !hasAPage(m));
+    // A candidate for the very target an open row holds is that row: it is written before the row could be dismissed, so the row stands.
+    const twin = best?.kind === "candidate" ? members.find((m) => m.kind === "row" && m.row.status === "open" && m.row.type === best.candidate.type && m.row.targetQuery === best.candidate.targetQuery && m.row.targetRef === best.candidate.targetRef) : undefined;
+    const survivor = twin ?? best;
+    const key = keyOf.get(survivor ?? first) as string;
+    // Losers are dismissed after the survivor is written, so a key another open or queued row holds stays that row's: the survivor keeps its own.
+    const held = new Set(members.flatMap((m) => (m !== survivor && m.kind === "row" && m.row.status !== "done" ? [m.row.clusterKey] : [])));
+    const written = !held.has(key) ? key : survivor?.kind === "row" ? survivor.row.clusterKey : null;
     const rest = members.filter((member) => member !== first && member !== survivor);
     const own = survivor === undefined ? null : (queryOf(survivor)?.trim().toLowerCase() ?? null);
     const absorbed = new Set<string>(survivor?.kind === "row" ? survivor.row.absorbedQueries : []);
@@ -337,16 +342,16 @@ export function collapse(a: {
 
     if (survivor === undefined) continue;
     if (survivor.kind === "candidate") {
-      insert.push({ ...survivor.candidate, clusterKey: key, absorbedQueries });
-    } else if (superseded(survivor.row, key, hadCandidate)) {
+      insert.push({ ...survivor.candidate, clusterKey: written, absorbedQueries });
+    } else if (superseded(survivor.row, keyOf.get(first) as string, hadCandidate)) {
       // The whole cluster goes: its losers are already dismissed above, and the searches they absorbed have nothing to hang on.
       dismiss.push(survivor.row.id);
-    } else if (survivor.row.clusterKey !== key || absorbedQueries.join("\n") !== [...survivor.row.absorbedQueries].sort().join("\n")) {
-      update.push({ id: survivor.row.id, clusterKey: key, absorbedQueries });
+    } else if (survivor.row.clusterKey !== written || absorbedQueries.join("\n") !== [...survivor.row.absorbedQueries].sort().join("\n")) {
+      update.push({ id: survivor.row.id, clusterKey: written, absorbedQueries });
     }
   }
-  for (const { row, member } of trimmed.filter(({ row }) => !dismiss.includes(row.id) && !update.some((u) => u.id === row.id))) {
-    update.push({ id: row.id, clusterKey: keyOf.get(member)!, absorbedQueries: [...row.absorbedQueries].sort() });
+  for (const row of trimmed.filter((row) => !dismiss.includes(row.id) && !update.some((u) => u.id === row.id))) {
+    update.push({ id: row.id, clusterKey: row.clusterKey, absorbedQueries: [...row.absorbedQueries].sort() });
   }
   return { dismiss, update, insert };
 }
