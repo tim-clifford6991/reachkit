@@ -4,6 +4,7 @@ import { opportunityById, type Opportunity } from "@/lib/opportunities";
 import { PLAN_WRITE_AS } from "@/lib/opportunities/types";
 import { FIX_OWED } from "./pipeline/fix-call";
 import { generateStore, type DraftRow } from "./store";
+import { inTest } from "./test-draft";
 import type { DayPageOutcome } from ".";
 
 /** The opportunity a row was written for, as the type it was first written as, never decided again. */
@@ -13,20 +14,21 @@ export async function writtenFor(row: Pick<DraftRow, "opportunity_id" | "meta">)
   return found === null || writtenAs === undefined ? found : { ...found, writeAs: writtenAs };
 }
 
-/** `now` is the run's due hour, which the date's spend so far is read since unless `since` says otherwise. */
-export async function fixOwedPage(a: { draftId: string; now: Date; since?: Date }): Promise<DayPageOutcome> {
+/** `now` is the run's due hour, which the date's spend so far is read since unless `since` says otherwise; an undated test row takes its test's date. */
+export async function fixOwedPage(a: { draftId: string; now: Date; since?: Date; publishDate?: string }): Promise<DayPageOutcome> {
   const store = generateStore();
   const row = await store.draftById(a.draftId);
-  if (row === null || row.scheduled_for === null) return { ok: false, because: "no_draft" };
+  const publishDate = row?.scheduled_for ?? a.publishDate;
+  if (row === null || publishDate === undefined) return { ok: false, because: "no_draft" };
   // A replay after the fix was made, or cut off once it began: nothing is bought again, a page that passed goes to review, and one that did not rests.
   if (!(FIX_OWED in ((row.meta as object | null) ?? {}))) {
     if (row.state !== "generating") return { ok: false, because: "rules", draftId: row.id, attempts: row.hard_rule_attempts };
     if (row.hard_rules_passed === true) return { ok: true, draftId: row.id };
-    await (await import(".")).rest(row.id, row.opportunity_id, "step_failed:fix", a.now, (await store.siteFacts(row.site_id))?.timeZone);
+    if (!inTest()) await (await import(".")).rest(row.id, row.opportunity_id, "step_failed:fix", a.now, (await store.siteFacts(row.site_id))?.timeZone);
     return { ok: false, because: "step_failed", draftId: row.id, step: "fix" };
   }
   const [site, report, opportunity] = await Promise.all([store.siteFacts(row.site_id), store.latestReport(row.site_id), writtenFor(row)]);
   if (site === null || report === null || opportunity === null) return { ok: false, because: "no_draft" };
   const { writeFallback } = await import(".");
-  return writeFallback({ siteId: row.site_id, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id, fixStep: "owed" }, a.now, undefined, a.since);
+  return writeFallback({ siteId: row.site_id, site, report, opportunity, publishDate, draftId: row.id, fixStep: "owed" }, a.now, undefined, a.since);
 }
