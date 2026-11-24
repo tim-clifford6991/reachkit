@@ -7,7 +7,10 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 vi.mock("next/cache", () => ({ revalidateTag: () => undefined }));
 
+import { choose } from "@/lib/opportunities/choose";
+import { oneHead } from "@/lib/opportunities/cluster";
 import { liveTopicVerdict, retireOffTopicPages, type LiveTopicPage, type LiveTopicSite } from "@/lib/opportunities/live-topics";
+import { AT as PANEL_AT, panelSite, rowOf } from "../golden/plan/panel";
 import type { Opportunity } from "@/lib/opportunities/types";
 
 const AT = new Date(Date.UTC(2026, 10, 18, 7, 0, 0));
@@ -92,5 +95,22 @@ describe("a failing live page Google shows", () => {
     expect(liveTopicVerdict(shown, site([shown]), AT)).toMatchObject({ kind: "refresh", signals: expect.arrayContaining(["impressions"]) });
     const unseen = page({ impressions: 0, clicks: 0 });
     expect(liveTopicVerdict(unseen, site([unseen]), AT).kind).toBe("retarget");
+  });
+});
+
+describe("a planned page that names a live page's product, with no top ten read", () => {
+  it("is that page's twin, holds for other businesses, and ranks down within the week without chaining", () => {
+    expect([
+      ["Most Effective Generative Engine Optimization Solutions", "Best generative engine optimization tool: 6 options compared"],
+      ["Ai Search Visibility Checker", "Best AI search visibility tools for founders (2026)"],
+      ["AI Visibility Tool for Founders and Small Businesses", "Best AI search visibility tools for founders (2026)"],
+      ["Leading Answer Engine Optimization Platforms for Ai Products", "Best Answer Engine Optimization Services for AI Visibility"],
+      ["local seo tool", "best seo tools"],
+      ["emergency plumbing services", "emergency plumber near me"],
+      ["best crm software", "best project management software"],
+    ].map(([mine, theirs]) => oneHead([mine], [theirs]))).toEqual([true, true, true, true, false, false, false]);
+    const searches = [["A", "ai visibility tool", 300], ["B", "ai search visibility tool", 200], ["C", "search visibility software", 100], ["D", "local seo agency pricing", 50]] as const;
+    const rows = searches.map(([id, query, volume], n) => ({ ...rowOf("x.com", { query, status: "open", type: "keyword_page", fit: 3, volume, ready: true }, n), id }));
+    expect(choose({ rows, fixRows: [], profile: panelSite("savvycal.com").profile, cited: [], topTens: new Map(), live: [], at: PANEL_AT, from: "2026-10-20", days: 4 }).committed.map((e) => e.opportunityId)).toEqual(["A", "C", "D", "B"]);
   });
 });

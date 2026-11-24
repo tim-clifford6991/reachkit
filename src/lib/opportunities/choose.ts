@@ -5,7 +5,7 @@ import { closestKnown, pageScore } from "@/lib/known-content/match";
 import type { KnownPage } from "@/lib/known-content/types";
 import { SHAPES } from "@/lib/locale/language";
 import { canonicalUrl } from "@/lib/measure/page-reading";
-import { oneQuestion, queryKey, shareATopTen } from "./cluster";
+import { oneHead, oneQuestion, queryKey, shareATopTen } from "./cluster";
 import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
 import { placeFixPages, rankingOf, type RankLoad, type Rejection } from "./rank/open";
 import { timelyFirst } from "@/lib/hot/timely";
@@ -73,10 +73,9 @@ function byResearch(ranked: Joined[], input: ChooseInput): Joined[] {
 
 type Joined = Ranked & Pick<PlanEntry, "set">;
 
-/** SPEC §6 *One URL per question*, at the commit and from stored rows: of two open rows of one topic only the
- *  higher-ranked is a new page, and it absorbs the other's search; a twin of a live page of ours is that page's
- *  update, and waits while the page is younger than the refresh floor. Given neither the market nor the live pages,
- *  the order is the ranking's. */
+/** SPEC §6 *One URL per question*, from stored rows: of two open rows of one topic the higher-ranked is the new page and
+ *  absorbs the other's search, and one naming a kept row's product ranks after the rest; a twin of a live page of ours is
+ *  its update, waiting while the page is younger than the refresh floor. Given no market nor live pages, the ranking's order. */
 function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: Choice["rejected"]): Joined[] {
   if (input.market === undefined && input.live === undefined) return [...ranked];
   const market = input.market ?? null;
@@ -85,7 +84,7 @@ function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: C
   // A page an open refresh already updates takes no second update.
   const updated = new Set([...rows.values()].flatMap((o) => (o.type === "refresh_page" && o.targetRef !== null ? [canonicalUrl(o.targetRef)] : [])));
   const kept: { o: Opportunity; entry: Joined }[] = [];
-  const out: Joined[] = [];
+  const out: Joined[] = [], later: Joined[] = [], first: Opportunity[] = [];
   for (const entry of ranked) {
     const o = rows.get(entry.opportunityId);
     if (o === undefined || (o.family !== "write" && o.family !== "earn")) {
@@ -108,18 +107,20 @@ function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: C
     }
     const held: Joined = page === null ? { ...entry } : { opportunityId: entry.opportunityId, reason: entry.reason, set: updateColumns(asUpdate(o, { page, score: pageScore({ query: o.targetQuery, title: o.title }, page, market) }, input.at)) };
     if (page !== null) updated.add(canonicalUrl(page.url!));
+    // Only a row placed in `out` ranks another down, so a ranked-down row never chains a third.
+    const named = first.some((k) => oneHead([k.targetQuery, k.title], [o.targetQuery, o.title]));
+    (named ? later : out).push(held);
+    if (!named) first.push(o);
     kept.push({ o, entry: held });
-    out.push(held);
   }
-  return out;
+  return [...out, ...later];
 }
 
 const searchesOf = (o: Opportunity): string[] => [o.targetQuery ?? [], ...o.absorbedQueries].flat().map(queryKey);
 
-/** Beside B1's join on its stored row, a live page of ours answers a row's question where either holds a search of the
- *  other, any two of their searches share a top ten, or its title or answer-box question (its first section) is the
- *  row's topic by its own words at `LIVE_TWIN_MIN`: the market's words make every short title of one market alike. Every live page is
- *  compared, with no index narrowing them first. */
+/** Beside B1's join, a live page of ours answers a row's question where either holds a search of the other, two of their
+ *  searches share a top ten, they name one product (`oneHead`), or its title or answer-box question is the row's topic by
+ *  its own words at `LIVE_TWIN_MIN` (the market's words make one market's titles alike). Every live page is compared. */
 export function liveTwin(page: OwnLivePage, o: Opportunity, topTens: ReadonlyMap<string, readonly string[]>): boolean {
   const [mine, theirs] = [searchesOf(o), searchesOf(page.row)];
   if (mine.some((q) => theirs.includes(q))) return true;
@@ -128,6 +129,7 @@ export function liveTwin(page: OwnLivePage, o: Opportunity, topTens: ReadonlyMap
   // A comparison is one question only with the same products, which the keys above already read.
   if ([o.targetQuery ?? "", page.row.targetQuery ?? "", page.title ?? ""].some((text) => SHAPES.comparison.test(text.toLowerCase()))) return false;
   const question = /^##\s+(.+)$/m.exec(page.markdown ?? "")?.[1]?.trim();
+  if (oneHead([o.targetQuery, o.title], [page.row.targetQuery, page.title, question])) return true;
   const known: KnownPage = { source: "reachkit", ref: page.row.id, url: page.url, title: page.title ?? "", headings: question === undefined ? [] : [question], live: true, publishedAt: page.publishedAt };
   return (closestKnown({ query: o.targetQuery, title: o.title }, [known])?.score ?? 0) >= KNOWN_CONTENT.LIVE_TWIN_MIN;
 }
