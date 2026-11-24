@@ -14,7 +14,8 @@ import { whenSaid } from "@/lib/generate/rules/prose";
 import { pageTypeWord } from "@/lib/presentation/page-type";
 import { formatCount, formatDate, formatDateTime, formatShortDay, formatTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
-import { ENGINE_LABEL } from "../_shell/page-target-words";
+import { ENGINE_LABEL, ENGINE_STANDING } from "../_shell/page-target-words";
+import { briefOf, type Brief } from "./brief";
 import { cardLineFor, stateLineOf } from "./DayCard";
 import { cardLabel } from "./card-lines";
 import { CHANGE_COPY_KEY } from "./change-line";
@@ -59,15 +60,17 @@ export type PaneModel =
       title: string;
       titleLabel?: string;
       becameUpdate: string | null;
-      /** A hot page's reason, drawn as the planned pane draws its own. */
+      /** The reason the week stored for it. */
       why: string | null;
+      /** What it adds over Google's top pages, where `meta.adds` is stored. */
+      adds: string | null;
       notes: string[];
       next: string | null;
       /** Said in the body's place where the body could not be read. */
       unread: string | null;
       sources: SourcesModel | null;
     }
-  | { kind: "planned"; date: string; title: string; titleLabel?: string; why: string | null; moved: string | null; facts: PaneFact[]; next: string | null }
+  | { kind: "planned"; date: string; title: string; titleLabel?: string; moved: string | null; facts: PaneFact[]; next: string | null; brief: Brief }
   | { kind: "lines"; date: string; lines: string[] };
 
 export interface SourceEntryModel {
@@ -237,6 +240,8 @@ function plannedFacts(page: PageOnDay): { lines: string[]; facts: PaneFact[] } {
     lines.push(copy("calendar.card.yours", { n }));
     facts.push({ label: copy("calendar.pane.yours"), value: copy("calendar.card.place.now", { n }) });
   }
+  const engines = page.why.engines.flatMap((e) => (e.standing === "unmeasured" ? [] : [copy("calendar.pane.ai.value", { engine: copy(ENGINE_LABEL[e.engine]), status: copy(ENGINE_STANDING[e.standing]) })]));
+  if (engines.length > 0) facts.push({ label: copy("calendar.pane.ai"), value: engines.join(" · ") });
   return { lines, facts };
 }
 
@@ -321,6 +326,7 @@ function cardOf(
     published: ReadonlyMap<string, PublishedPage>;
     bodies: ReadonlySet<string> | null;
     sources: ReadonlyMap<string, PageCitations>;
+    adds: ReadonlyMap<string, string | null>;
   }
 ): CardModel {
   const { week, time } = a;
@@ -393,11 +399,12 @@ function cardOf(
         date,
         title: proposed?.title ?? copy("calendar.pane.planned.title", { search }),
         ...label,
-        why: page.whyLine,
         moved: movedLine(page, cell.day),
-        facts,
+        // The title already says the search where no proposed title is stored.
+        facts: proposed === undefined ? facts.slice(1) : facts,
         // A past day promises nothing, whatever its state.
         next: time === null || cell.day < week.today ? null : copy("calendar.pane.planned.next", { time, day: goesOn }),
+        brief: briefOf(page.plan, search),
       },
     };
   }
@@ -445,7 +452,8 @@ function cardOf(
       title: page.title,
       ...(page.titleLabel === undefined ? {} : { titleLabel: page.titleLabel }),
       becameUpdate: page.becameUpdate === true ? copy("calendar.day.became-update.line") : null,
-      why: page.hotLine == null ? null : page.whyLine,
+      why: page.whyLine,
+      adds: page.draftId === null ? null : (a.adds.get(page.draftId) ?? null),
       notes: [...[movedLine(page, cell.day)].filter((line) => line !== null), ...movedOut(page), ...(needsYou === null ? [] : [copy(needsYou)]), ...(held === null ? [] : [held])],
       next: waiting && time !== null ? copy("calendar.pane.written.next", { time, day: goesOn }) : null,
       unread: page.draftId !== null && a.bodies?.has(page.draftId) === true ? null : copy("calendar.pane.body.unread"),
@@ -488,6 +496,8 @@ export function weekScreen(a: {
   bodies?: ReadonlySet<string> | null;
   /** Each written page's sources, by draft. */
   sources?: ReadonlyMap<string, PageCitations>;
+  /** What each written page adds, by draft. */
+  adds?: ReadonlyMap<string, string | null>;
 }): WeekScreen {
   const { week } = a;
   const time = weekGoesLive(week, a.head.publishTime);
@@ -496,7 +506,7 @@ export function weekScreen(a: {
   const firstSkip = week.cells.find((cell) => cell.day >= week.today && dayStateOf(cell) === "skipped")?.day ?? null;
   const published = new Map((a.published?.pages ?? []).flatMap((page) => (page.draftId === undefined ? [] : [[page.draftId, page] as const])));
   const bodies = a.bodies === undefined ? new Set(writtenDrafts(week)) : a.bodies;
-  const card = (cell: DayCell): CardModel => cardOf(cell, { week, time, next, check, firstSkip: cell.day === firstSkip, published, bodies, sources: a.sources ?? new Map() });
+  const card = (cell: DayCell): CardModel => cardOf(cell, { week, time, next, check, firstSkip: cell.day === firstSkip, published, bodies, sources: a.sources ?? new Map(), adds: a.adds ?? new Map() });
   const cards = [...week.cells].sort((x, y) => x.day.localeCompare(y.day)).map(card);
   const today = cards.find((card) => card.day === week.today);
   const written = cards.find((card) => card.day >= week.today && card.pane.kind === "page");

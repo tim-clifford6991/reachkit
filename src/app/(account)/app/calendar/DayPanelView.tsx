@@ -3,9 +3,9 @@
 //
 //   a written or live page  its title, the existing actions, then the body
 //                           as written, which scrolls inside the pane
-//   a planned day           the search it goes after, why, what is known of
-//                           it, and when it goes live on its own; no control,
-//                           as nothing is written yet
+//   a planned day           the search it goes after, when it goes live on its
+//                           own, why it was chosen, the search, and what has
+//                           been read for it; no control, as nothing is written
 //   any other day           its own lines, and no control
 //
 // Every word is the screen model's (`week-screen.ts`). The commands go to the
@@ -27,6 +27,7 @@ import { TakeDownControl } from "./TakeDown";
 import { stopWords } from "./take-down-words";
 import type { DayCell } from "./month";
 import type { CardModel, PaneModel } from "./week-screen";
+import type { Brief } from "./brief";
 import { SourcedBody } from "./PageSources";
 
 /** This Week draws every stage. */
@@ -63,7 +64,7 @@ function DayActions(p: {
   const actions = actionsFor(p.cell, p.destination).filter((action) => p.commandsOnly !== true || action.kind === "command");
   if (actions.length === 0 && p.takeDown === null) return null;
   return (
-    <div className="flex min-w-0 flex-wrap gap-2" data-testid="day-actions">
+    <div className="flex min-w-0 flex-wrap items-center gap-2" data-testid="day-actions">
       {actions.map((action) => {
         if (action.kind === "link") {
           if (action.key === "calendar.action.view-live-page") {
@@ -74,7 +75,7 @@ function DayActions(p: {
                 href={action.href}
                 target="_blank"
                 rel="noopener"
-                className="btn btn-sm btn-primary"
+                className="btn btn-primary min-h-11"
                 data-testid={`day-action-${action.key}`}
               >
                 <ExternalLink aria-hidden className="size-4" />
@@ -88,7 +89,7 @@ function DayActions(p: {
               key={action.key}
               href={action.href}
               prefetch={true}
-              className={`btn btn-sm ${p.cell.page?.stage === "live" ? "btn-ghost" : "btn-primary"}`}
+              className={`btn min-h-11 ${p.cell.page?.stage === "live" ? "btn-ghost" : "btn-primary"}`}
               data-testid={`day-action-${action.key}`}
             >
               {copy(action.key)}
@@ -100,7 +101,7 @@ function DayActions(p: {
           <button
             key={action.key}
             type="button"
-            className={`btn btn-sm btn-ghost ${stop ? "btn-warning" : ""}`}
+            className={`btn btn-ghost min-h-11 ${stop ? "btn-warning" : ""}`}
             data-testid={`day-action-${action.key}`}
             disabled={p.busy}
             onClick={() => p.onCommand(action.command, action.draftId)}
@@ -200,18 +201,16 @@ export function DayPanelView(p: {
           {pane.title}
         </h2>
         {pane.titleLabel === undefined ? null : <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
-        {pane.why === null ? null : <p className="text-sm">{pane.why}</p>}
-        {pane.moved === null ? null : <p className="text-sm">{pane.moved}</p>}
-        <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm" data-testid="day-facts">
-          {pane.facts.map((fact) => (
-            <div key={fact.label} className="contents">
-              <dt className="text-base-content/70">{fact.label}</dt>
-              <dd className={`min-w-0 wrap-anywhere ${fact.mono === true ? "num" : ""}`}>{fact.value}</dd>
-            </div>
-          ))}
-        </dl>
-        {pane.next === null ? null : <p className="text-sm" data-testid="day-next">{pane.next}</p>}
+        {pane.next === null ? null : <p className="grow-0 text-sm" data-testid="day-next">{pane.next}</p>}
+        {pane.moved === null ? null : <p className="grow-0 text-sm">{pane.moved}</p>}
         <PlannedStop cell={card.cell} />
+        <WhyWeChose brief={pane.brief} />
+        {pane.facts.length === 0 ? null : (
+          <Section heading={copy("calendar.pane.search.heading")}>
+            <Facts facts={pane.facts} testId="day-facts" />
+          </Section>
+        )}
+        <WhatWeRead brief={pane.brief} />
       </Panel>
     );
   }
@@ -219,7 +218,7 @@ export function DayPanelView(p: {
     <Panel {...frame} cell={card.cell} date={pane.date}>
       <div className="flex flex-col gap-2 text-sm" data-testid="day-account">
         {(pane.kind === "lines" ? pane.lines : []).map((line) => (
-          <p key={line} data-testid="day-empty-line">
+          <p key={line} className="grow-0" data-testid="day-empty-line">
             {line}
           </p>
         ))}
@@ -282,17 +281,18 @@ function PageDayPanel(p: {
         {pane.title}
       </h2>
       {pane.titleLabel === undefined ? null : <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
-      {pane.why === null ? null : <p className="text-sm">{pane.why}</p>}
-      {pane.becameUpdate === null ? null : <p className="text-sm" data-testid="day-became-update-line">{pane.becameUpdate}</p>}
+      {pane.becameUpdate === null ? null : <p className="grow-0 text-sm" data-testid="day-became-update-line">{pane.becameUpdate}</p>}
       {pane.notes.map((note) => (
-        <p key={note} className="text-sm" data-testid="day-needs-you-line">
+        <p key={note} className="grow-0 text-sm" data-testid="day-needs-you-line">
           {note}
         </p>
       ))}
+      {pane.next === null ? null : <p className="grow-0 text-sm" data-testid="day-next">{pane.next}</p>}
       <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} pressed={busy ? pressed : null} takeDown={stage === null ? null : takeDown} />
-      {pane.next === null ? null : <p className="text-sm" data-testid="day-next">{pane.next}</p>}
+      {pane.why === null ? null : <p className="grow-0 text-sm">{pane.why}</p>}
+      {pane.adds === null ? null : <p className="grow-0 text-sm" data-testid="day-adds">{pane.adds}</p>}
       {pane.unread !== null ? (
-        <p className="text-sm" data-testid="day-body-unread">
+        <p className="grow-0 text-sm" data-testid="day-body-unread">
           {pane.unread}
         </p>
       ) : p.body === undefined ? null : pane.sources !== null ? (
@@ -310,5 +310,87 @@ function PageDayPanel(p: {
         </div>
       )}
     </Panel>
+  );
+}
+
+/** A titled block of the pane: an `h3` under its `h2`, its lines kept together. */
+function Section(p: { heading: string; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <section className="flex min-w-0 flex-col gap-1">
+      <h3 className="text-sm font-semibold">{p.heading}</h3>
+      {p.children}
+    </section>
+  );
+}
+
+function Facts(p: { facts: readonly { label: string; value: string; mono?: boolean }[]; testId?: string }): React.JSX.Element {
+  return (
+    <dl className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm" data-testid={p.testId}>
+      {p.facts.map((fact) => (
+        <div key={fact.label} className="contents">
+          <dt className="text-base-content/70">{fact.label}</dt>
+          <dd className={`min-w-0 wrap-anywhere ${fact.mono === true ? "num" : ""}`}>{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Each stored reason as one sentence, then the parts that lowered its rank as a quiet note. */
+function WhyWeChose(p: { brief: Brief }): React.JSX.Element | null {
+  const { reasons, notes } = p.brief;
+  if (reasons.length === 0 && notes.length === 0) return null;
+  return (
+    <Section heading={copy("calendar.pane.why.heading")}>
+      <ul className="list min-w-0" data-testid="day-why">
+        {reasons.map((reason) => (
+          <li key={reason.text + (reason.link?.words ?? "")} className="list-row min-w-0 px-0 py-1.5 text-sm">
+            <span className="min-w-0 wrap-anywhere">
+              {reason.text}
+              {reason.link === null ? null : (
+                <>
+                  {/* eslint-disable-next-line local/no-plain-app-link -- the customer's own page, not a screen of the app */}
+                  <a href={reason.link.href} target="_blank" rel="noopener noreferrer" className="link">
+                    {reason.link.words}
+                    <span className="sr-only"> {copy("draft.live.new-tab")}</span>
+                  </a>
+                  {reason.link.after}
+                </>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {notes.map((note) => (
+        <p key={note} className="grow-0 text-xs text-base-content/70">
+          {note}
+        </p>
+      ))}
+    </Section>
+  );
+}
+
+/** What has been read for the search, only where the week stored its research: the counts, then each page's host. */
+function WhatWeRead(p: { brief: Brief }): React.JSX.Element | null {
+  const research = p.brief.research;
+  if (research === null) return null;
+  return (
+    <Section heading={copy("calendar.pane.research.heading")}>
+      {research.line === null ? null : <p className="grow-0 text-sm">{research.line}</p>}
+      {research.counts.length === 0 ? null : <Facts facts={research.counts} />}
+      {research.pages.length === 0 ? null : (
+        <ul className="list min-w-0" aria-label={research.label} data-testid="day-read">
+          {research.pages.map((page) => (
+            <li key={page.url} className="list-row min-w-0 px-0 py-0 text-sm">
+              <a href={page.url} target="_blank" rel="noopener noreferrer" className="link inline-flex min-h-6 min-w-0 items-center wrap-anywhere">
+                {page.host}
+                <span className="sr-only"> {copy("draft.live.new-tab")}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="grow-0 text-xs text-base-content/70">{research.later}</p>
+    </Section>
   );
 }

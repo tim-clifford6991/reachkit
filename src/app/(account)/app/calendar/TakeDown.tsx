@@ -60,7 +60,7 @@ export function TakeDownControl(p: {
       disabled={busy}
       onClick={press}
     >
-      {busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <Icon size={14} strokeWidth={1.75} aria-hidden />}
+      {busy ? <span className="loading loading-spinner loading-xs" aria-hidden /> : <Icon className="size-4" strokeWidth={1.75} aria-hidden />}
       {p.words.action}
     </button>
   );

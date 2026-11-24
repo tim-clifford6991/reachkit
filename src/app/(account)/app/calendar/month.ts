@@ -19,6 +19,7 @@
 // calendar is never padded") are kept by a read that cannot pad.
 import type { SiteCheck } from "@/lib/site-issues/types";
 import type { ContentType } from "@/lib/opportunities/content-type";
+import type { Evidence, PlanReason } from "@/lib/opportunities/types";
 import type { TargetFacts } from "./target";
 import type { DestinationKind, UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
 import type { NeedsYouCause } from "@/lib/publish/record/needs-you";
@@ -135,6 +136,8 @@ export interface DraftOnDay {
   hotLine?: string | null;
   moved?: { from: string; search: string };
   movedOut?: readonly { search: string; day: string }[];
+  /** The reason the week stored for the page and the evidence it was chosen on, which its pane draws. */
+  plan?: { reason: PlanReason | null; evidence: Evidence };
   /** When work on the day began: the day job's stamp, else the draft's insert. */
   startedAt?: Date | null;
   /** The customer took the page off its day, by a transition they made. */
