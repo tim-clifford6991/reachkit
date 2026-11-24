@@ -359,6 +359,7 @@ describe("the pass says how much new-page supply each source gave, at no added c
 });
 
 describe("a write that fails part-way dismisses no topic", () => {
+  // Three derivations, each several seconds on CI.
   it("a candidate insert that throws leaves every held row open with its key, and no key held twice", async () => {
     const { ctx } = fakeCost();
     const held = (await deriveOpportunities(ctx, input())).created[0]!;
@@ -381,5 +382,5 @@ describe("a write that fails part-way dismisses no topic", () => {
     expect(shape(state.rows)).toEqual(before);
     const keys = state.rows.filter((row) => row.status === "open" || row.status === "queued").flatMap((row) => row.cluster_key ?? []);
     expect(new Set(keys).size).toBe(keys.length);
-  });
+  }, 60_000);
 });
