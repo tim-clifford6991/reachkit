@@ -5,21 +5,16 @@
 // body, and was written from a pack no older than a topic's rest. Its stored words go through the same battery a page
 // as written does (`./pipeline/battery.ts`), with every model call refused: the fit check's stored verdict stands for
 // the sentences today's reading still asks about. Before the battery, code mends what it can from the row's own words:
-// the title is re-picked from the writer's stored candidates and code's floor title, never one carrying the business's
-// promise figure (OR4), which is held where none is clean, nor a floor that stops the page as more than a want of a
-// specific; the description is fitted; a FAQ pair or a do-not-claim sentence the rules fail is dropped, and so is a
+// the planned title stands, held where it carries the business's promise figure (OR4); the description is fitted; a FAQ pair or a do-not-claim sentence the rules fail is dropped, and so is a
 // sentence the stored fit verdict named (issue 2375). A page whose one failure left is its title's want of a specific
 // goes on without it, as at stage 4 (ruling 2026-10-11). What still fails, or was never a page to check, is set aside
 // at 0¢ (`needs_attention → skipped`), the row kept and its topic's rest as the stop left it.
 import { TOPIC_REST_DAYS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
-import { claimOpsEvent, opsEventHeld } from "@/lib/ops/events";
-import { needsYouCauseOf, setAsideForStandard, STANDARD_CHANGED } from "@/lib/publish/record/needs-you";
-import { publishTimeOn } from "@/lib/publish/settings/clock";
+import { needsYouCauseOf } from "@/lib/publish/record/needs-you";
 import type { Actor, TransitionRecord } from "@/lib/publish/types";
 import { stillAsked, type FitVerdict } from "./claims/fit";
-import { roomForFix } from "./cost";
 import { readRecordedFact } from "./fact";
 import { batteryBasis, checkPage, siteRulesOf, type BatteryBasis, type CheckedPage } from "./pipeline/battery";
 import { buildComparisonSet } from "./pipeline/comparison";
@@ -28,15 +23,12 @@ import { allowedFacts, readAllFacts, readDemoPhrases, type SourcedFact } from ".
 import type { ContextPack } from "./pipeline/pack";
 import { withoutBrokenPairs, withoutClaimed, withoutUnfit, withoutWriterNotes } from "./pipeline/repair";
 import { languagePack } from "@/lib/locale/language";
-import { floorTitle, promiseFigures, titleRuleFor } from "./pipeline/title";
+import { promiseFigures, titleRuleFor } from "./pipeline/title";
 import { readRecordedRules, readRecordedRun, recordedRulesValue, recordedRunValue, recordedVerdictValue, stops } from "./record";
 import { batteryCleared } from "./rules";
 import { answerBoxOf } from "./rules/blocks";
-import { pickTitle } from "./rules/title";
-import { pageTitle } from "@/lib/presentation/page-title";
 import type { HardRule, RuleFailure, SiteRuleInputs } from "./rules/types";
 import type { StoredReport } from "@/lib/scan/report";
-import { deployedStandard, meetsStandard, type Standard } from "./standard";
 import { generateStore, type DraftPatch, type DraftRow, type SiteFacts } from "./store";
 import { confirmedForWriting } from "./voice/confirmed";
 
@@ -69,12 +61,10 @@ export interface RecheckWorld {
 export type RecheckOutcome =
   | { kind: "skipped"; reason: NotCandidate }
   | { kind: "held"; reason: "title_promise_figure"; figures: string[] }
-  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; fit: FitVerdict["state"]; spentCents: number; standard: Standard; patch: DraftPatch };
+  | { kind: "checked"; passed: boolean; failed: RuleFailure[]; cleared: HardRule[]; fit: FitVerdict["state"]; spentCents: number; patch: DraftPatch };
 
 /** What the re-check mended, as the row records it (`drafts.meta.recheck`). */
 export interface RecheckFixes {
-  titleBefore?: string;
-  title?: string;
   descriptionBefore?: string;
   description?: string;
   faqDropped?: string[];
@@ -118,7 +108,7 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
   };
   const basis = batteryBasis({ pack, opportunity: world.opportunity, site: world.site, facts: world.facts, grounding, ...(world.demoPhrases === undefined ? {} : { demoPhrases: world.demoPhrases }) });
   const stopped = readRecordedRules(row.rule_failures) ?? [];
-  const { page, markdown, fixes, notes } = mend(row, body, pack, basis, stopped);
+  const { page, markdown, fixes } = mend(row, body, pack, basis, stopped);
   const { title } = page;
   const figures = promiseFigures(title, pack);
   if (figures.length > 0) return { kind: "held", reason: "title_promise_figure", figures };
@@ -139,13 +129,10 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
     cleared: [...new Set(stopped.map((failure) => failure.rule))].filter((rule) => !failed.some((failure) => failure.rule === rule)),
     fit: checked.outcome.fit.state,
     spentCents: REFUSED.spentCents(),
-    standard: meetsStandard({ failed, markdown: checked.markdown, sections: page.sections.length, basis, notes }),
     patch: {
-      ...(fixes.title === undefined ? {} : { title }),
       body_md: checked.markdown,
       meta: {
-        // The H1 follows a re-picked title, as an edit's does.
-        ...(fixes.title === undefined ? meta : Object.fromEntries(Object.entries(meta).filter(([key]) => key !== "heading"))),
+        ...meta,
         description: page.description,
         faq: page.faq,
         ...(Object.keys(fixes).length === 0 ? {} : { recheck: { ...(meta.recheck as RecheckFixes | undefined), ...fixes } }),
@@ -159,28 +146,20 @@ export async function checkStoredAt0(row: DraftRow, body: string, world: Recheck
   };
 }
 
-/** The stored page with what code mends from its own words, no word added: the title the picker takes today of the
- *  writer's candidates and the search's own floor title that carry no promise figure, the description fitted (the short answer's where none was
- *  written), and the writer's notes, the FAQ pairs and the do-not-claim sentences the rules fail dropped. */
-function mend(row: DraftRow, written: string, pack: ContextPack, basis: BatteryBasis, stopped: readonly RuleFailure[]): { page: CheckedPage; markdown: string; fixes: RecheckFixes; notes: number } {
+/** The stored page with what code mends from its own words, no word added: its planned title, the description fitted
+ *  (the short answer's where none was written), and the writer's notes, the FAQ pairs and the do-not-claim sentences the
+ *  rules fail dropped. */
+function mend(row: DraftRow, written: string, pack: ContextPack, basis: BatteryBasis, stopped: readonly RuleFailure[]): { page: CheckedPage; markdown: string; fixes: RecheckFixes } {
   const meta = metaOf(row);
   const noted = withoutWriterNotes(written, Array.isArray(meta.faq) ? meta.faq : [], languagePack(pack.locale?.language ?? "en").writerNotes);
   const body = noted.markdown;
-  const stored = row.title ?? "";
+  const title = row.title ?? "";
   const sections = Array.isArray(meta.sections) ? meta.sections : [];
   const before = typeof meta.description === "string" ? meta.description : "";
   const answer = answerBoxOf(body) ?? "";
   const description = fitDescription(before.trim() === "" ? answer : before, answer);
-  const proposed = (Array.isArray(meta.titles) ? (meta.titles as { title?: unknown }[]) : []).flatMap((each) => (typeof each?.title === "string" ? [each.title] : []));
-  const unpromised = (each: string | null): each is string => each !== null && promiseFigures(each, pack).length === 0;
-  const cased = (each: string): string => pageTitle(each, pack.locale?.language);
-  const clean = [...proposed, stored].filter(unpromised).map(cased);
-  const rule = titleRuleFor(pack, { description, sections });
-  // Nothing after the re-check mends a title, so a floor that stops the page as more than a want of a specific is not taken.
-  const floor = [floorTitle(pack)].map((each) => (each === null ? null : cased(each))).find((each) => unpromised(each) && pickTitle([each], rule).candidates.every((one) => one.faults.every((fault) => fault === "specific"))) ?? null;
-  const title = clean.length === 0 && floor === null ? cased(stored) : pickTitle(clean, rule, floor).chosen;
   const faq = withoutBrokenPairs(noted.faq, { min: basis.template.blocks.faq?.min ?? 0, rivals: basis.rivalsNamed, facts: basis.brief.marketFacts });
-  const page: CheckedPage = { title, heading: title === cased(stored) && typeof meta.heading === "string" ? cased(meta.heading) : title, description, sections, faq: faq.faq };
+  const page: CheckedPage = { title, heading: typeof meta.heading === "string" ? meta.heading : title, description, sections, faq: faq.faq };
   const claimed = withoutClaimed(body, basis.site.doNotClaim);
   // Issue 2375: the sentences the stored fit verdict named go as the write's repair drops them; only those today's
   // reading still asks about (a link's label is not one).
@@ -194,12 +173,10 @@ function mend(row: DraftRow, written: string, pack: ContextPack, basis: BatteryB
     page,
     markdown: unfit.markdown,
     fixes: {
-      ...(title === stored ? {} : { titleBefore: stored, title }),
       ...(description === before ? {} : { descriptionBefore: before, description }),
       ...(faq.dropped.length === 0 ? {} : { faqDropped: faq.dropped }),
       ...(dropped.length === 0 ? {} : { sentenceDropped: dropped }),
     },
-    notes: noted.dropped,
   };
 }
 
@@ -306,89 +283,4 @@ async function rescue(a: { siteId: string; publishDate: string; now: Date }): Pr
     return entry.kind === "entered" ? row.id : null;
   }
   return null;
-}
-
-/** Per site: how many waiting drafts the deployed standard set aside. */
-const RESTANDARDED = "drafts_restandarded";
-const HOUR_MS = 3_600_000;
-
-/** A paying site's clock, as the hourly ticks read it. */
-export interface SiteClock { readonly siteId: string; readonly timeZone: string; readonly publishTime: string; readonly vetoHours: number }
-/** Why a waiting draft keeps its date under the deployed standard. */
-export type StandardKept = "current" | "edited" | "too_late" | "no_room" | "met" | "unreadable";
-
-/** Why a waiting draft keeps its date, read before its body; `null` where its body is read. A date whose publish time
- *  comes before the next draft tick could not be written again in time, so it is too late. */
-export function keptBeforeReading(row: DraftRow, a: { now: Date; fingerprint: string; clock: SiteClock }): StandardKept | null {
-  const meta = metaOf(row);
-  if ((meta.standard as { version?: unknown } | undefined)?.version === a.fingerprint) return "current";
-  // The customer's first save stamps this; it is the one mark of an edit read here.
-  if (typeof meta.first_edited_at === "string") return "edited";
-  if (!row.body_md || packOf(row) === null || row.scheduled_for === null) return "unreadable";
-  const settings = { mode: "autopilot" as const, vetoHours: a.clock.vetoHours, publishTime: a.clock.publishTime, timezone: a.clock.timeZone };
-  const publishAt = publishTimeOn(row.scheduled_for, settings).getTime();
-  if (publishAt <= (Math.floor(a.now.getTime() / HOUR_MS) + 1) * HOUR_MS) return "too_late";
-  // The rewrite's cap counts spend from the date's due hour on, so a page written before it would not be counted.
-  const dueHour = Math.floor((publishAt - a.clock.vetoHours * HOUR_MS) / HOUR_MS) * HOUR_MS;
-  if (Date.parse(row.created_at) < dueHour) return "no_room";
-  return roomForFix({ spentCents: () => Number(row.cost_cents) }) ? null : "no_room";
-}
-
-/** SPEC §7: each paying site's waiting drafts read once per standard deploy, at 0¢. One below the standard is set aside
- *  and gives up its date, its topic open again for it; the date's day is marked so the draft tick decides it again.
- *  The claim follows the site's reading, so a reading that never finished is tried again on the next tick. */
-export async function restandardSites(paying: () => Promise<readonly SiteClock[]>, a: { now: Date; step?: <T>(name: string, body: () => Promise<T>) => Promise<T> }): Promise<number | null> {
-  const fingerprint = deployedStandard();
-  if (fingerprint === null) return null;
-  const inStep = <T>(name: string, body: () => Promise<T>) => (a.step === undefined ? body() : a.step(`${name}-${fingerprint}`, body));
-  let setAside = 0;
-  for (const clock of await inStep("restandard-paying", paying)) {
-    if (await inStep(`restandard-held-${clock.siteId}`, () => opsEventHeld(RESTANDARDED, clock.siteId, fingerprint))) continue;
-    const count = await inStep(`restandard-${clock.siteId}`, () => restandardSite(clock, { now: a.now, fingerprint }));
-    await inStep(`restandard-claim-${clock.siteId}`, () => claimOpsEvent(RESTANDARDED, clock.siteId, fingerprint, String(count)));
-    setAside += count;
-  }
-  return setAside;
-}
-
-async function restandardSite(clock: SiteClock, a: { now: Date; fingerprint: string }): Promise<number> {
-  const store = generateStore();
-  const { giveBackClaim, opportunityById } = await import("@/lib/opportunities");
-  const { markStandardRewrite } = await import("@/lib/publish/daily");
-  // The date given up last, so a retry after a failed write finds the set-aside row still holding it and finishes.
-  const release = async (row: Pick<DraftRow, "id" | "opportunity_id" | "scheduled_for">) => {
-    await markStandardRewrite({ siteId: clock.siteId, publishDate: row.scheduled_for!, fingerprint: a.fingerprint, at: a.now });
-    await giveBackClaim(row.opportunity_id);
-    await store.patchDraft(row.id, { scheduled_for: null });
-  };
-  const { publishDb } = await import("@/lib/publish/db");
-  const held = await publishDb().from<Pick<DraftRow, "id" | "opportunity_id" | "scheduled_for" | "transitions">>("drafts").select("id, opportunity_id, scheduled_for, transitions").eq("site_id", clock.siteId).eq("state", "skipped").not("scheduled_for", "is", null);
-  if (held.error !== null) throw new Error(`restandard: ${held.error.message}`);
-  for (const row of (held.data ?? []).filter((each) => setAsideForStandard(each.transitions))) await release(row);
-  const waiting = (await store.draftsShortOfHandOff(clock.siteId, ROWS_READ)).filter((row) => row.state === "in_review");
-  if (waiting.length === 0) return 0;
-  const [site, report] = await Promise.all([store.siteFacts(clock.siteId), store.latestReport(clock.siteId)]);
-  const sets = site === null || report === null ? null : await siteSets(clock.siteId, site, report);
-  const { transition } = await import("@/lib/publish/machine");
-  let setAside = 0;
-  for (const row of waiting) {
-    let kept = keptBeforeReading(row, { ...a, clock });
-    let stops: string[] = [];
-    if (kept === null) {
-      const opportunity = sets === null ? null : await opportunityById(row.opportunity_id);
-      const outcome = opportunity === null ? null : await checkStoredAt0(row, row.body_md!, { ...sets!, opportunity, now: a.now });
-      stops = outcome?.kind === "checked" ? outcome.standard.stops : [];
-      kept = outcome?.kind !== "checked" ? "unreadable" : stops.length === 0 ? "met" : null;
-    }
-    if (kept !== null) {
-      console.log(JSON.stringify({ event: "draft_standard_kept", siteId: clock.siteId, draftId: row.id, reason: kept }));
-      continue;
-    }
-    const date = row.scheduled_for!;
-    if (!(await transition(row.id, "skipped", RECHECK, { at: a.now, reason: STANDARD_CHANGED })).ok) continue;
-    await release(row);
-    console.log(JSON.stringify({ event: "draft_standard_set_aside", siteId: clock.siteId, draftId: row.id, date, stops: stops.join(",") }));
-    setAside++;
-  }
-  return setAside;
 }

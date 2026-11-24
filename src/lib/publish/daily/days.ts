@@ -120,12 +120,6 @@ export async function recordDraftDay(a: {
   }
 }
 
-/** Marks a date whose waiting page a newer standard set aside, so `missedDays` decides it again; the date's own run then
- *  overwrites the mark. Throws, so a mark that failed keeps the set-aside unfinished and its caller tries again. */
-export async function markStandardRewrite(a: { siteId: string; publishDate: string; fingerprint: string; at: Date }): Promise<void> {
-  await draftDays().record({ siteId: a.siteId, publishDate: a.publishDate, outcome: "no_page", reason: `${STANDARD_REWRITE}:${a.fingerprint}`, at: a.at });
-}
-
 /** Why the day's page is held, or `null`: until the address is connected only the first page is written. A day not held
  *  is stamped as started, once, so This Week can say since when it is being worked on. Never throws. */
 export async function startDay(siteId: string, publishDate: string): Promise<string | null> {

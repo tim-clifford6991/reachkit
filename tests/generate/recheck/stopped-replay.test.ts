@@ -81,7 +81,7 @@ async function replay(name: string, [row, world]: [DraftRow, RecheckWorld]): Pro
     const caught = outcome.failed.filter((failure) => JSON.stringify(failure.detail ?? {}).includes(url)).map((failure) => failure.rule);
     return `- A price linked to the site's own page, which no passage read there states, ${link}: ${caught.length === 0 ? "caught by no rule" : `caught by ${caught.join(", ")}`}`;
   });
-  return [...head, `- Today: ${verdict}, ${outcome.spentCents}¢`, ...(fixes.title === undefined ? [] : [`- Title: "${fixes.titleBefore}" → "${fixes.title}"`]), ...dropped, ...fails, ...priced, ""].join("\n");
+  return [...head, `- Today: ${verdict}, ${outcome.spentCents}¢`, ...dropped, ...fails, ...priced, ""].join("\n");
 }
 
 it("the morning re-check over stored stopped drafts gives each row's stored outcome and failing rules, at 0¢", async () => {

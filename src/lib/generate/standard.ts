@@ -29,7 +29,7 @@ export interface Standard { parts: PartMark[]; met: boolean; pending: boolean; s
 /** The deployed standard's fingerprint (`RK_STANDARD`), or `null` where the build carried none. */
 export const deployedStandard = (): string | null => process.env.RK_STANDARD || null;
 
-/** The parts a waiting draft is set aside for after a standard deploy (`restandardSites`, `./recheck.ts`). */
+/** The parts a page short of the standard is short in. */
 const STOPPING: ReadonlySet<Part> = new Set<Part>(["sections", "sources", "words"]);
 
 /** The part each pack need sources: the page's sections, its outside sources, or its facts and figures. */
