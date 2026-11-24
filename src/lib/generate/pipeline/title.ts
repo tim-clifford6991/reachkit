@@ -1,12 +1,9 @@
 // SPEC §7 (owner, D51, issue 1266; revised by issue 1389) — what a page's
 // title is held to, read off its context pack.
 //
-// A row planned with a title keeps it, held only to its figures. On a row
-// with none, the writer is told it (`./write.ts`), code picks among the
-// titles the writer proposes by it, and stage 4 checks it
-// (`../rules/title.ts`) — from this one reading, so the title a writer is
-// asked for, the title code picks and the title the check passes are one
-// description.
+// A row planned with a title keeps it, held only to its figures. Else the writer is told it (`./write.ts`), code
+// picks among the titles the writer proposes by it, and stage 4 checks it (`../rules/title.ts`) — from this one
+// reading, so the title asked for, picked and passed are one description.
 import { SHAPES } from "@/lib/locale/language";
 import { TITLE } from "@/lib/config/constants";
 import { brandOf } from "@/lib/market/questions/select";
