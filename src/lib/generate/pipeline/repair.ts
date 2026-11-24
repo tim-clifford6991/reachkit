@@ -3,8 +3,8 @@
 // Two things, both read off the battery's own failures:
 //
 //   1. **A repair in code** for the rules whose breach is mechanical. Nothing here writes a word: a repair drops a
-//      sentence (and what refers back to it) or a heading, links a figure to the page that states it, or splits and
-//      joins the opening. The battery then reads the repaired text again, so a repair is never trusted.
+//      sentence (and what refers back to it) or a heading, or links a figure to the page that states it. The battery
+//      then reads the repaired text again, so a repair is never trusted.
 //
 //   2. **What the next attempt is told** (`fixNotes`): each rule the page broke and the sentences that broke it, so a
 //      regeneration is written against its failures rather than from the same inputs blind.
@@ -13,7 +13,6 @@
 // used here, so a repair and the check that reads it cannot disagree about where a sentence ends.
 import { literalClaimMatch } from "../claims/literal";
 import { widenNumberLinks } from "../links/text";
-import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import {
   INVENTED_PROVENANCE_RES,
   INVENTED_TEST_RES,
@@ -25,11 +24,11 @@ import {
   type BriefRuleInputs,
 } from "../rules/brief";
 import { ownMeasurementIn } from "../rules/figures";
-import { PAGE_BLOCKS, PROSE } from "@/lib/config/constants";
+import { PAGE_BLOCKS } from "@/lib/config/constants";
 import { answerBoxOf, renumberSteps } from "../rules/blocks";
 import { brandTokens, namesBrand } from "../rules/brand";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
-import { proseScore, sentenceKey, type ProseRuleInputs } from "../rules/prose";
+import type { ProseRuleInputs } from "../rules/prose";
 import { checkRivalNegative, checkRivalScope, checkRivalSource, deniedRivals, factPageKeys, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
 import {
   blocksOf,
@@ -51,8 +50,7 @@ import type { ContextPack } from "./pack";
 import { linkedPassage } from "./compose";
 import type { PageParts } from "./write";
 
-/** The rules a repair in code is tried for, in the order it is applied. The
- *  opening is last because dropping a sentence can change what opens. */
+/** The rules a repair in code is tried for, in the order it is applied. */
 export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
   // An invented case study is dropped; the rest of what it catches takes a writer.
   "nothing_invented",
@@ -60,13 +58,11 @@ export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
   // A rival's figure left without its page is linked to the fact's page that states it; a sentence still unsourced, or
   // one that denies a rival something no source says, is dropped. The FAQ is the fix call's.
   "rival_claim",
-  // Issue 2375: a sentence the fit check named is dropped, unless it is the
+  // A sentence the fit check named, or every business sentence where it could not run, is dropped unless it is the
   // whole short answer. No word is written.
   "fit_claim",
-  // Issue 1390: a sentence said a third time is dropped. The rest of what
-  // the prose check counts takes a writer, and goes to the fix call.
-  "plain_prose",
-  "first_block_answers",
+  // A sentence stating a do-not-claim entry word for word is dropped, so the customer's no costs no fix call.
+  "do_not_claim",
 ] as const);
 
 /** A rule the first attempt broke and the sentences that broke it, as the
@@ -106,6 +102,8 @@ export interface RepairInputs {
   prose?: ProseRuleInputs;
   /** The sentences the fit check named (`fit_claim`'s `detail.sentences`). */
   fit?: readonly string[];
+  /** The customer's do-not-claim list. */
+  doNotClaim?: readonly string[];
 }
 
 /** A table's row, and the rule under its header. */
@@ -240,99 +238,6 @@ function withoutRivalBreaches(markdown: string, fails: (piece: string) => boolea
   return mapSentences(withoutRows(markdown, (_, raw) => fails(raw)).markdown, (piece) => (fails(piece) ? null : piece), language);
 }
 
-function fits(paragraph: string): boolean {
-  return wordsOf(paragraph).length <= ANSWER_FIRST_BLOCK_CHARS.max;
-}
-
-/** The opening, made a paragraph inside the answer bound: an opening list's
- *  leading items are joined into one, and an over-long paragraph is split
- *  after the sentences that fit. Nothing is dropped. */
-function repairFirstBlock(markdown: string): string {
-  // A short-answer box is counted in words and written again by the model
-  // that wrote it (`answerBoxRewrite`); cutting it here would cut an answer.
-  if (answerBoxOf(markdown) !== null) return markdown;
-  const source = sourceBlocksOf(markdown);
-  const blocks = blocksOf(markdown);
-  const first = blocks.findIndex((block) => !block.heading);
-  const block = blocks[first];
-  if (block === undefined || block.quoted) return markdown;
-
-  if (block.listItem) {
-    let end = first;
-    while (blocks[end + 1]?.listItem === true) end++;
-    const items = source.slice(first, end + 1).map((item) => {
-      const text = item.raw.slice(MARKER_RE.exec(item.raw)?.[0].length ?? 0).trim();
-      return /[.!?]$/.test(text) ? text : `${text}.`;
-    });
-    let taken = 0;
-    while (taken < items.length && fits(items.slice(0, taken + 1).join(" "))) taken++;
-    const lead = items.slice(0, taken).join(" ");
-    if (taken === 0 || wordsOf(lead).length < ANSWER_FIRST_BLOCK_CHARS.min) return markdown;
-    // The items left over stay a list, a blank line below the paragraph.
-    const rest = taken <= end - first ? "\n" : "";
-    return applyEdits(markdown, [{ from: source[first]!.from, to: source[first + taken - 1]!.to, text: lead + rest }]);
-  }
-
-  if (block.text.length <= ANSWER_FIRST_BLOCK_CHARS.max) return markdown;
-  const sentences = splitSentences(source[first]!.raw);
-  let taken = 0;
-  while (taken < sentences.length && fits(sentences.slice(0, taken + 1).join(" "))) taken++;
-  const lead = sentences.slice(0, taken).join(" ");
-  if (taken === 0 || wordsOf(lead).length < ANSWER_FIRST_BLOCK_CHARS.min) return markdown;
-  return applyEdits(markdown, [
-    { from: source[first]!.from, to: source[first]!.to, text: `${lead}\n\n${sentences.slice(taken).join(" ")}` },
-  ]);
-}
-
-/** The page without a sentence's third saying and every one after it: the
- *  tagline cap (`PAGE_BLOCKS.taglineRepeats`), held in code. A heading, a
- *  table row and a pull quote are not sentences of the writer's. A phrase
- *  the prose check counts too often goes the same way: the sentences that
- *  carry it past `PROSE.repeatedPhrase`'s count are dropped, the first ones
- *  and the opening's kept. */
-function dropSaidAgain(markdown: string, phrases: readonly string[]): string {
-  const said = new Map<string, number>();
-  const carried = new Map<string, number>();
-  const { longWords, longTimes, shortTimes } = PROSE.repeatedPhrase;
-  const allowed = (phrase: string): number => (phrase.split(" ").length >= longWords ? longTimes : shortTimes) - 1;
-  const edits: Edit[] = [];
-  let opening = true;
-  for (const block of sourceBlocksOf(markdown)) {
-    if (block.quoted || /^[ \t]*#{1,6}[ \t]+/.test(block.raw) || block.raw.trimStart().startsWith("|")) continue;
-    const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
-    const pieces = splitSentences(block.raw.slice(marker.length));
-    const kept = pieces.filter((piece) => {
-      const key = sentenceKey(wordsOf(piece));
-      if (key === null) return true;
-      const count = (said.get(key) ?? 0) + 1;
-      said.set(key, count);
-      const over = phrases.filter((phrase) => ` ${key} `.includes(` ${phrase} `));
-      for (const phrase of over) carried.set(phrase, (carried.get(phrase) ?? 0) + 1);
-      // The opening answers the search, so a later saying goes instead.
-      if (opening) return true;
-      return count <= PAGE_BLOCKS.taglineRepeats && over.every((phrase) => carried.get(phrase)! <= allowed(phrase));
-    });
-    opening = false;
-    if (kept.length !== pieces.length) edits.push({ from: block.from, to: block.to, text: kept.length === 0 ? "" : marker + kept.join(" ") });
-  }
-  return applyEdits(markdown, edits);
-}
-
-/** A tagline's shorter core is counted only once the whole tagline is no
- *  longer said too often, so the prose check is read again after each pass. */
-const PHRASE_PASSES = 3;
-
-function dropRepeats(markdown: string, prose: ProseRuleInputs | undefined): string {
-  let out = dropSaidAgain(markdown, []);
-  for (let pass = 0; prose !== undefined && pass < PHRASE_PASSES; pass++) {
-    const phrases = proseScore(out, prose).repeatedPhrases.map((phrase) => phrase.text);
-    const next = phrases.length === 0 ? out : dropSaidAgain(out, phrases);
-    if (next === out) break;
-    out = next;
-  }
-  return out;
-}
-
 /** The repairable rules among a battery's failures, in repair order. */
 export function repairable(failed: readonly RuleFailure[]): HardRule[] {
   const rules = new Set(failed.map((failure) => failure.rule));
@@ -369,10 +274,10 @@ export function repairRecorded(
       const unfit = withoutUnfit(out, inputs.fit ?? [], language);
       out = unfit.markdown;
       if (unfit.dropped.length > 0) dropped.fit_claim = unfit.dropped;
-    } else if (rule === "plain_prose") {
-      out = dropRepeats(out, inputs.prose);
     } else {
-      out = repairFirstBlock(out);
+      const claimed = withoutClaimed(out, inputs.doNotClaim ?? []);
+      out = claimed.markdown;
+      if (claimed.dropped.length > 0) dropped.do_not_claim = claimed.dropped;
     }
     // A section left opening on a sentence that leans on one the repair dropped is a new fault: that repair is not made.
     if (out !== prior && leaned(out).some((heading) => !leaned(prior).includes(heading))) out = prior;

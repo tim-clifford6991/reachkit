@@ -4,7 +4,6 @@
 import "../env";
 import { describe, expect, it } from "vitest";
 import {
-  checkFirstBlockAnswers,
   checkInventedProvenance,
   checkTraceableNumerals,
   type BriefRuleInputs,
@@ -34,18 +33,6 @@ describe("repairMechanical", () => {
     const repaired = repairMechanical(markdown, ["nothing_invented"], { brief: BRIEF, sources: [] });
     expect(repaired).toBe(`${OPENING}\n\n## Why does this matter?\n\nSeats decide the price.`);
     expect(checkInventedProvenance({ markdown: repaired, brief: BRIEF })).toBeNull();
-  });
-
-  it("joins an opening list into a paragraph and splits an over-long opening", () => {
-    const listed = "- Count the people who open it daily\n- Check the plan's seat limit\n\n## What decides it\n\nText.";
-    const joined = repairMechanical(listed, ["first_block_answers"], { brief: BRIEF, sources: [] });
-    expect(joined.startsWith("Count the people who open it daily. Check the plan's seat limit.\n\n")).toBe(true);
-    expect(checkFirstBlockAnswers({ markdown: joined })).toBeNull();
-
-    const long = `${OPENING} ${OPENING} ${OPENING} ${OPENING}`;
-    const split = repairMechanical(long, ["first_block_answers"], { brief: BRIEF, sources: [] });
-    expect(checkFirstBlockAnswers({ markdown: split })).toBeNull();
-    expect(split.replace(/\s+/g, " ")).toBe(long);
   });
 
   it("links a rival's figure only to a page stating it as the sentence does, the rival's own first", () => {
