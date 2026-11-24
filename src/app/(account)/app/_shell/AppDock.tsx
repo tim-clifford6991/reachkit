@@ -17,9 +17,9 @@
 // second copy of the same three links would be a second navigation.
 //
 // A client component for one reason: the pathname that marks the current
-// item. Each item is a `next/link` with `prefetch` (SPEC §4, 2026-10-08,
-// issue 1341): the destination is loaded before the tap, and the shell
-// around it stays mounted.
+// item. Each item is a `next/link` with the default prefetch: the
+// destination's loading screen is ready before the tap, and the shell around
+// it stays mounted.
 "use client";
 
 import type React from "react";
@@ -73,7 +73,6 @@ export function AppDock(p: {
           <Link
             key={destination}
             href={DESTINATION_HREF[destination]}
-            prefetch={true}
             className={here ? "dock-active text-primary" : ""}
             aria-current={here ? "page" : undefined}
             data-testid={`shell-docklink-${destination}`}

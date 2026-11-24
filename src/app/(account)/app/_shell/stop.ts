@@ -19,6 +19,7 @@
 // today" with the switch off and 4.41¢ of 5000¢ spent. That site is the
 // market-too-small state, which the calendar's supply arms and the
 // onboarding panel already state from their own reads.
+import { unstable_cache } from "next/cache";
 import { now as clock } from "@/lib/config/now";
 import { stopCause, type WorkStop } from "@/lib/presentation/stopped";
 
@@ -31,6 +32,19 @@ async function dayCeilingReached(at: Date): Promise<boolean> {
   const { readDaySpendCents, readDayCeilingCents, ceilingReached } = await import("@/lib/costs/daily");
   const [spent, ceilingCents] = await Promise.all([readDaySpendCents(at), readDayCeilingCents(at)]);
   return spent !== null && ceilingReached(spent, ceilingCents);
+}
+
+// Product-wide, so one value serves every site; a minute late is nothing beside a spend read on every render.
+const cachedCeilingReached = unstable_cache(async () => dayCeilingReached(clock()), ["day-ceiling-reached"], { revalidate: 60 });
+
+async function ceilingReachedNow(): Promise<boolean> {
+  try {
+    return await cachedCeilingReached();
+  } catch (error) {
+    // Outside a Next request there is no data cache to hold it, so the read runs uncached.
+    if (!(error instanceof Error && error.message.includes("incrementalCache missing"))) throw error;
+    return dayCeilingReached(clock());
+  }
 }
 
 /**
@@ -47,7 +61,7 @@ async function dayCeilingReached(at: Date): Promise<boolean> {
 export async function readStop(): Promise<WorkStop | null> {
   const { reachKitStopped } = await import("@/lib/publish/switch");
   const foundAt = clock();
-  const [killSwitch, capHit] = await Promise.all([reachKitStopped(), dayCeilingReached(foundAt)]);
+  const [killSwitch, capHit] = await Promise.all([reachKitStopped(), ceilingReachedNow()]);
   const cause = stopCause({ capHit, killSwitch });
   if (cause === null) return null;
   return {

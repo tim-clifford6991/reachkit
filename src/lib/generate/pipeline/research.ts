@@ -684,21 +684,21 @@ export async function researchMarket(
   const found: (ReadPage & Wanted)[] = recent === null ? [] : [...recent.pages];
   // Nobody's sales page, no paid press-release wire, and no site the week already cites enough; its readable results in their order.
   const eligible = (row: SerpOrganicRow): boolean => notOurs(row.url) && googleWrapper(row.url) === null && !pressWire(row.url) && !taken.has(row.url) && ![...inForce, ...rivalDomains, ...capped].some((rival) => sameSite(hostOf(row.url), rival));
-  const readRows = async (read: SerpRead): Promise<ReadPage[]> => {
+  const readRows = async (read: SerpRead): Promise<{ rows: number; pages: ReadPage[] }> => {
     const serp = await serpOrganic(c, read), rows = serp.kind === "unmeasured" ? [] : serp.value.organic;
     for (const site of rows.map((row) => registrableDomain(row.url) ?? hostOf(row.url))) if (capped.has(site)) skipped.add(site);
-    return (await Promise.all(rows.filter(eligible).map((row) => fetchPage(row.url, row.publishedAt)))).flatMap((read) => (read === null ? [] : [read.page]));
+    return { rows: rows.length, pages: (await Promise.all(rows.filter(eligible).map((row) => fetchPage(row.url, row.publishedAt)))).flatMap((read) => (read === null ? [] : [read.page])) };
   };
   if (studyRead !== undefined && !c.capHit()) {
     // A primary source leads, then a page that says how it found what it found (a survey, a sample), in the search's order otherwise.
     const primary = (url: string): boolean => a.guidance === true && primaryAddress(url, rivalDomains);
     const rank = (page: ReadPage): number => (primary(page.url) ? 2 : 0) + (languagePack(a.locale.language).studyMethod.test(page.text) ? 1 : 0);
-    const studyReads = (await readRows(studyRead)).sort((x, y) => rank(y) - rank(x)), studies = studyReads.slice(0, RESEARCH.studies);
+    const studyReads = (await readRows(studyRead)).pages.sort((x, y) => rank(y) - rank(x)), studies = studyReads.slice(0, RESEARCH.studies);
     // No credible study page: a credible one already read takes the second slot, else the first readable result of one search on credible hosts.
     const credible = (page: ReadPage): boolean => credibleAt(page.url, a.locale.language, [...inForce, ...rivalDomains]);
     const search = credibleSearch(studyRead, studySubject({ target, market: a.marketWords?.[0], options: a.options }));
-    const backup = studies.some(credible) ? undefined : ([...studyReads.slice(RESEARCH.studies), ...readable.slice(RESEARCH.topResults).map((read) => read.page)].find(credible) ?? (c.capHit() ? undefined : (await readRows(search)).find(credible)));
-    if (!studies.some(credible) && backup === undefined) console.warn(JSON.stringify({ event: "draft_credible_none", siteId: a.siteId }));
+    const held = studies.some(credible) ? undefined : [...studyReads.slice(RESEARCH.studies), ...readable.slice(RESEARCH.topResults).map((read) => read.page)].find(credible), searched = studies.some(credible) || held !== undefined || c.capHit() ? null : await readRows(search), backup = held ?? searched?.pages.find(credible);
+    if (!studies.some(credible) && backup === undefined) console.warn(JSON.stringify({ event: "draft_credible_none", siteId: a.siteId, query: search.query, rows: searched?.rows ?? 0, read: searched?.pages.length ?? 0, refused: searched === null }));
     found.push(...[...studies.slice(0, backup === undefined ? RESEARCH.studies : RESEARCH.studies - 1), ...(backup === undefined ? [] : [backup])].map((page) => ({ ...page, kind: primary(page.url) ? ("primary" as const) : ("study" as const) })));
   }
 

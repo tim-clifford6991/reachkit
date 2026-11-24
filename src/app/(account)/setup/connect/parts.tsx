@@ -109,7 +109,7 @@ const ONWARD = { later: "setup.connect.later", live: "setup.connect.onward.live"
 /** Doing it later, or going on once connected: setup's `onLater` saves the step first; without it this is a plain link to the app. */
 function Onward(p: { words: CopyKey; className: string; onLater?: () => void; busy?: boolean }): React.JSX.Element {
   return p.onLater === undefined ? (
-    <Link className={p.className} href={APP_PATH} prefetch={true} data-testid="setup-connect-later-action">
+    <Link className={p.className} href={APP_PATH} data-testid="setup-connect-later-action">
       {copy(p.words)}
     </Link>
   ) : (

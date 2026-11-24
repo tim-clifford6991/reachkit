@@ -15,7 +15,7 @@
 // nothing.
 //
 // **The control is a plain `<a>`, not `next/link`** (issue 1341). Every
-// other in-app link is a prefetched client transition (SPEC §4,
+// other in-app link is a client transition (SPEC §4,
 // 2026-10-08). This one is the exception because Next's error boundary
 // clears its error only when the pathname changes: a client transition
 // from a failed `/app` to `/app` would leave this screen standing and the

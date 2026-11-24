@@ -36,7 +36,7 @@ function RivalsCard(p: { card: PresenceCard }): React.JSX.Element | null {
   const m = formatCount(card.of);
   const top = card.noRival ? undefined : [...card.rivals].sort((a, b) => b.count - a.count)[0];
   return (
-    <Link className={`card card-border min-w-0 bg-base-100 ${CARD_LIFT} hover:border-primary`} href="/app/rivals" prefetch={true} data-testid="google-rivals">
+    <Link className={`card card-border min-w-0 bg-base-100 ${CARD_LIFT} hover:border-primary`} href="/app/rivals" data-testid="google-rivals">
       <span className="card-body min-w-0 gap-1.5 p-4 sm:p-5">
         <span className="card-title text-base">{copy("google.rivals.title")}</span>
         <span className="break-words">
