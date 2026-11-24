@@ -209,8 +209,7 @@ function firesOn(
 const BLOCK_RULES: readonly string[] = [
   "no_private_figure",
   "nothing_invented",
-  "no_hidden_text",
-  "no_machine_address",
+  "unsafe_markup",
 ];
 
 function ownPageFires(domain: string): { blocks: number; fires: Record<string, number>; samples: Record<string, string[]> } {

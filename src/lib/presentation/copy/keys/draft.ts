@@ -211,6 +211,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.checks.count.fixed": "{n} fixed automatically",
   "draft.checks.status.skipped": "Not needed for this page",
   "draft.checks.status.failed": "Not passed",
+  "draft.checks.status.warned": "Could be better. This alone doesn’t stop the page.",
   "draft.checks.rule.grounding": "States a fact read from your own site",
   "draft.checks.rule.traceable-numerals": "Every number traces to a source",
   "draft.checks.rule.rival-source": "Every figure about a competitor links to its source",
@@ -228,6 +229,7 @@ export const DRAFT_COPY = Object.freeze({
   "draft.checks.rule.rival-negative": "Nothing a competitor lacks unless a source says so",
   "draft.checks.rule.no-hidden-text": "No hidden text",
   "draft.checks.rule.no-machine-address": "No instructions aimed at AI",
+  "draft.checks.rule.unsafe-markup": "No hidden text or instructions aimed at AI",
   // A title's specific detail is tried for and never stops a page (SPEC §7, 2026-10-11): this row names what it stops on.
   "draft.checks.rule.title": "Title fits, and the heading matches",
   "draft.checks.rule.first-block-answers": "Answers its own question in the first lines",
@@ -341,7 +343,6 @@ export const DRAFT_COPY = Object.freeze({
   // added. The first is marked as it is typed; the second is the save's,
   // which holds the site's demo phrases and menu lines.
   "draft.editor.break.no-placeholder-cell": "A table cell is empty or says “unknown”. Fill it with a fact, or remove that row or column.",
-  "draft.editor.break.no-demo-text": "A sentence here is copied from your site’s menu or sample text. Remove it to continue.",
   // The sources list a page ends with (SPEC §7, 2026-09-29, *Two pools of
   // facts*; issue 1135): its heading, and what follows each linked page
   // title. Written into the page's own body, so a reader of the published

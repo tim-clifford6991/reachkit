@@ -40,15 +40,12 @@ export const CHECKS: Readonly<Record<HardRule, { key: CopyKey }>> = Object.freez
   nothing_invented: { key: "draft.checks.rule.nothing-invented" },
   do_not_claim: { key: "draft.checks.rule.do-not-claim" },
   fit_claim: { key: "draft.checks.rule.fit-claim" },
-  honest_row: { key: "draft.checks.rule.honest-row" },
-  no_hidden_text: { key: "draft.checks.rule.no-hidden-text" },
-  no_machine_address: { key: "draft.checks.rule.no-machine-address" },
+  unsafe_markup: { key: "draft.checks.rule.unsafe-markup" },
   near_duplicate: { key: "draft.checks.rule.near-duplicate" },
   title: { key: "draft.checks.rule.title" },
   first_block_answers: { key: "draft.checks.rule.first-block-answers" },
   required_blocks: { key: "draft.checks.rule.required-blocks" },
   distinct_headings: { key: "draft.checks.rule.distinct-headings" },
-  no_demo_text: { key: "draft.checks.rule.no-demo-text" },
   plain_prose: { key: "draft.checks.rule.plain-prose" },
   standalone_lead: { key: "draft.checks.rule.standalone-lead" },
 });
@@ -62,6 +59,10 @@ const KIND_KEY: Readonly<Record<string, CopyKey>> = Object.freeze({
   ranked: "draft.checks.rule.self-ranked",
   test: "draft.checks.rule.no-invented-test",
   provenance: "draft.checks.rule.no-invented-provenance",
+  hidden: "draft.checks.rule.no-hidden-text",
+  machine: "draft.checks.rule.no-machine-address",
+  demo: "draft.checks.rule.no-demo-text",
+  business_row: "draft.checks.rule.honest-row",
 });
 
 export type CheckStatus = "passed" | "skipped" | "failed" | "pending";
@@ -131,6 +132,8 @@ function statusOf(
 ): CheckStatus | null {
   if (rule === "grounding") return a.grounded ? "passed" : null;
   if (rule === "do_not_claim") {
+    // Demo text is recorded by the battery alone: the claim check reads only the customer's list.
+    if (a.recorded.kinds?.do_not_claim === "demo") return "failed";
     if (a.claim.state === "passed") return "passed";
     if (a.claim.state === "nothing_to_check") return "skipped";
     return a.claim.state === "outstanding" ? "pending" : "failed";

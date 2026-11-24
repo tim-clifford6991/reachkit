@@ -3,7 +3,8 @@
 // "A table never ships with an empty or 'not stated' cell" (owner,
 // 2026-10-02, round 1). The page pass takes such a cell's row or column out
 // before the checks read the page (`../pipeline/sources.ts`); this is the
-// check that a cell did not survive it — and what an edit is held to. The
+// warning that a cell survived it, an edit's included: it never stops a page
+// (owner rulings 97–99, #2722). The
 // test of a cell is this file's `isPlaceholderCell`, which the pass uses, so what is taken
 // out and what is stopped cannot part.
 import { renderOf } from "./text";

@@ -1,6 +1,9 @@
-// BUILD §8 hard rule 7, and BUILD §14's standing line — nothing in the
-// text handed to a destination that a
-// reader of the published page would not see.
+// BUILD §8 hard rules 6 and 7, from BUILD §14's one standing line ("no
+// prompt-shaped tricks, no hidden instructions, in any generated page"):
+// `unsafe_markup`, of two kinds. `hidden`: nothing in the text handed to a
+// destination that a reader of the published page would not see. `machine`:
+// no sentence addressed to a machine reader, by the pinned pattern battery
+// `MACHINE_ADDRESS_PATTERNS` (a form found later is added there).
 //
 // This rule runs over the **Markdown and the markup embedded in it**, not
 // over the rendered text, because it is about what ReachKit would hand to
@@ -12,9 +15,10 @@
 // **A hyperlink and its address are exempt**, because §8's sourcing rules
 // require a draft to carry links: a rule that failed on an address would
 // make two of §8's rules unsatisfiable together.
+import { MACHINE_ADDRESS_PATTERNS } from "@/lib/config/constants";
 import type { RuleFailure } from "./types";
 
-const FAILURE: RuleFailure = { rule: "no_hidden_text" };
+const FAILURE: RuleFailure = { rule: "unsafe_markup", detail: { rule: "unsafe_markup", kind: "hidden" } };
 
 /** An HTML comment reaches the destination and no reader. */
 const COMMENT_RE = /<!--[\s\S]*?-->/;
@@ -74,4 +78,8 @@ export function checkHiddenText(a: { markdown: string }): RuleFailure | null {
   if (!everyLabelDescriptive(a.markdown, IMAGE_ALT_RE)) return FAILURE;
   if (!everyLabelDescriptive(a.markdown, LINK_TITLE_RE)) return FAILURE;
   return null;
+}
+
+export function checkMachineAddress(a: { rendered: string }): RuleFailure | null {
+  return MACHINE_ADDRESS_PATTERNS.some((pattern) => pattern.test(a.rendered)) ? { rule: "unsafe_markup", detail: { rule: "unsafe_markup", kind: "machine" } } : null;
 }

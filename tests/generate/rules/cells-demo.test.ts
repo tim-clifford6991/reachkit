@@ -21,14 +21,14 @@ describe("no_placeholder_cell", () => {
   });
 });
 
-describe("no_demo_text", () => {
+describe("demo text, held by do_not_claim", () => {
   const phrases = ["Demo data · An example business", "Pricing", "Sign in"];
 
   it("a sentence that is one of the site's demo phrases, whole, stops the page", () => {
     const markdown = "The dashboard shows the week.\n\nDemo data: an example business.";
     expect(checkDemoText({ markdown, phrases })).toEqual({
-      rule: "no_demo_text",
-      detail: { rule: "no_demo_text", sentence: "Demo data: an example business." },
+      rule: "do_not_claim",
+      detail: { rule: "do_not_claim", matchedEntry: "Demo data: an example business.", source: "demo" },
     });
   });
 

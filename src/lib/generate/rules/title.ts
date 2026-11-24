@@ -91,10 +91,6 @@ export type TitleFault =
   | "heading"
   /** The page has no meta description; its length never stops one. */
   | "description"
-  /** Issue 1507: the description states a figure the body does not. */
-  | "description_figures"
-  /** A figure beside a rival's name that no owner the title names holds. */
-  | "figure_owner"
   /** A price leads a page that is no offering and answers no price or comparison search. */
   | "promise_figure"
   /** A list or comparison title that joins a claim about the business on after its break. */
@@ -251,14 +247,14 @@ function hasSpecific(title: string, a: TitleRuleInputs): boolean {
   return addedNames(a, [...TITLE.engines, ...a.rivals, ...a.places]).some((name) => names(title, name));
 }
 
-/** Whether a title that names a rival states a figure no owner it names holds, nor the page counts. */
-function figureUnowned(title: string, a: TitleRuleInputs): boolean {
+/** A figure a title that names a rival states that no owner it names holds, nor the page counts. */
+function figureUnowned(title: string, a: TitleRuleInputs): string | null {
   const owners = a.owners;
   const named = (owner: FigureOwner) => owner.names.some((name) => names(title, name));
-  if (owners === undefined || !owners.rivals.some(named)) return false;
+  if (owners === undefined || !owners.rivals.some(named)) return null;
   const language = languageOf(a);
   const held = [...owners.rivals.filter(named), ...(named(owners.business) ? [owners.business] : [])].map((owner) => heldIn(`${owner.holds}\n${owners.page}`, language));
-  return statedIn(title, language).some((figure) => !held.some((holds) => holds(figure)));
+  return statedIn(title, language).find((figure) => !held.some((holds) => holds(figure)))?.figure ?? null;
 }
 
 /** What a title says after the search: past its first colon, question mark or dash; else all of it. */
@@ -375,7 +371,6 @@ function wordingFaults(title: string, a: TitleRuleInputs): TitleFault[] {
     counted !== null && (a.options === undefined ? a.counts?.includes(counted) === false : counted !== a.options) && "count",
     clauseCut(title, a) && "clause",
     a.business !== undefined && a.business.length > 0 && !a.business.some((name) => names(title, name)) && "business",
-    figureUnowned(title, a) && "figure_owner",
     a.type !== "offering" && a.terms.length > 0 && a.terms.every((term) => priceLed(title, term)) && "promise_figure",
     a.terms.some((term) => appendsClaim(title, term)) && "claim",
   ];
@@ -416,35 +411,34 @@ const figureReading = (a: TitleRuleInputs): { language: Language; years: number[
 /** What the title, the H1 and the description fail, in a fixed order. The
  *  H1 is the title: another wording passes only where it is the title's near
  *  twin and holds every rule the title holds. */
-export function titleFaults(title: string, a: TitleRuleInputs, heading: string = title, markdown?: string): TitleFault[] {
+export function titleFaults(title: string, a: TitleRuleInputs, heading: string = title): TitleFault[] {
   const apart = heading.trim() !== title.trim() && (titleOverlap(heading, title) < TITLE.headingMin || wordingFaults(heading, a).length > 0);
   return [
     ...wordingFaults(title, a),
     ...(apart ? (["heading"] as const) : []),
     ...(a.description.trim() === "" ? (["description"] as const) : []),
-    ...(markdown !== undefined && descriptionFiguresMissing(a.description, markdown, figureReading(a)).length > 0 ? (["description_figures"] as const) : []),
+  ];
+}
+
+/** The figures the title or its description states that no source holds, each with what the fix call is told:
+ *  `traceable_numerals` reads them beside the body's. An update's live title is not read again. */
+export function titleFigures(title: string, a: TitleRuleInputs, markdown: string): { figure: string; note: string }[] {
+  const owned = a.type === "update" ? null : figureUnowned(title, a);
+  const missing = descriptionFiguresMissing(a.description, markdown, figureReading(a));
+  return [
+    ...(owned === null ? [] : [{ figure: owned, note: "title: a figure beside a product's name must be one that product's own pages state, or the business's own where the title names the business too; state no figure that belongs to another" }]),
+    ...missing.map((figure) => ({ figure, note: `description: every figure it states is one the body states; "${figure}" is not in the body` })),
   ];
 }
 
 /** Whether a title lacks its specific and nothing else. */
 export const specificOnly = (faults: readonly TitleFault[]): boolean => faults.length === 1 && faults[0] === "specific";
 
-export function checkTitle(a: {
-  title: string;
-  heading?: string;
-  rule: TitleRuleInputs | null;
-  /** The body the description is held to (issue 1507). Absent, its figures
-   *  are not read. */
-  markdown?: string;
-}): RuleFailure | null {
+export function checkTitle(a: { title: string; heading?: string; rule: TitleRuleInputs | null }): RuleFailure | null {
   if (a.rule === null) return null;
   const rule = a.rule;
-  const unheld = a.markdown !== undefined && descriptionFiguresMissing(rule.description, a.markdown, figureReading(rule)).length > 0;
-  // A planned title stands: only a figure no source holds stops the page, and an update's live title is not read again.
-  const all: TitleFault[] =
-    rule.planned === true || rule.type === "update"
-      ? [...(rule.type !== "update" && figureUnowned(a.title, rule) ? (["figure_owner"] as const) : []), ...(unheld ? (["description_figures"] as const) : [])]
-      : titleFaults(a.title, rule, a.heading, a.markdown);
+  // A planned title stands, and an update's live title is not read again.
+  const all: TitleFault[] = rule.planned === true || rule.type === "update" ? [] : titleFaults(a.title, rule, a.heading);
   // The specific is tried for and never stops a page on its own.
   const faults = rule.settled === true && specificOnly(all) ? [] : all;
   return faults.length === 0 ? null : { rule: "title", detail: { rule: "title", faults } };
@@ -492,12 +486,14 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs, floor
     return { title, faults: wordingFaults(title, a), closeness: Math.round(closeness * 100) / 100 };
   });
   const aimed = (title: string): number => ([...title].length >= TITLE.aim.min && [...title].length <= TITLE.aim.max ? 0 : 1);
-  const stopping = (each: TitleCandidate): number => each.faults.filter((fault) => fault !== "specific").length;
+  // A figure no owner holds is `traceable_numerals`' stop, so it ranks as a fault here too.
+  const unowned = (each: TitleCandidate): number => Number(figureUnowned(each.title, a) !== null);
+  const stopping = (each: TitleCandidate): number => each.faults.filter((fault) => fault !== "specific").length + unowned(each);
   const ranked = [...candidates].sort(
     (left, right) =>
       stopping(left) - stopping(right) ||
       Number(built.includes(left.title)) - Number(built.includes(right.title)) ||
-      left.faults.length - right.faults.length ||
+      left.faults.length + unowned(left) - right.faults.length - unowned(right) ||
       right.closeness - left.closeness ||
       aimed(left.title) - aimed(right.title) ||
       Number(asksQuestion(left.title, language)) - Number(asksQuestion(right.title, language))
@@ -506,7 +502,7 @@ export function pickTitle(proposed: readonly string[], a: TitleRuleInputs, floor
 }
 
 /** What the one fix call is told of each fault. Model-facing, never shown. */
-export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly TitleFault[], markdown = ""): string[] {
+export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly TitleFault[]): string[] {
   const close = closestTitle(title, a.titles);
   const pack = languagePack(languageOf(a));
   const twice = saidTwice(title, languageOf(a));
@@ -528,12 +524,8 @@ export function titleNotes(title: string, a: TitleRuleInputs, faults: readonly T
     business: `title: the search compares products, and this page is the business's own: the title names it, as "${a.business?.[0] ?? ""}", beside the products the search names`,
     heading: "heading: the H1 is the title itself",
     description: `description: write one of ${TITLE.description.min} to ${TITLE.description.max} characters, opening with the answer`,
-    figure_owner: "title: a figure beside a product's name must be one that product's own pages state, or the business's own where the title names the business too; state no figure that belongs to another",
     promise_figure: "title: a price is no promise on this page; state what the reader gets, and leave the business's price or a rival's plan to the body",
     claim: "title: after the break it names the decision the comparison helps the reader make, never a clause joined on with \"and\", \"including\" or \"plus\" about one option",
-    description_figures: `description: every figure it states is one the body states; ${descriptionFiguresMissing(a.description, markdown, figureReading(a))
-      .map((figure) => `"${figure}"`)
-      .join(", ")} is not in the body`,
   };
   return faults.map((fault) => said[fault]);
 }

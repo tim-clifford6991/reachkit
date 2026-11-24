@@ -20,7 +20,7 @@ import type { HardRule } from "./types";
 export interface BriefLineInputs {
   pack: ContextPack;
   pageType: PageType | null;
-  /** The site's demo phrases (issue 1249), which `no_demo_text` reads. */
+  /** The site's demo phrases (issue 1249), which `do_not_claim` reads beside the customer's list. */
   demoPhrases?: readonly string[];
   /** The title's reading (`../pipeline/title.ts`); absent, the title's lines are the title brief's alone. */
   titleRule?: TitleRuleInputs;
@@ -42,16 +42,16 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
     "A claim with a `plan` is true of that plan only: name the plan in the sentence that states it (\"its free trial includes …\"), and never present a trial, a starter tier or one plan's limits as the whole product. Where `pack.claims` holds a competitor's own page, cite that page for it and no other page's claim about it.",
     "Never say a competitor has no, lacks or does not offer something unless a claim in `pack.claims` says so, linked in that same sentence. A page that does not mention a thing is not a page saying the product lacks it.",
   ],
-  nothing_invented: () => [
+  nothing_invented: (a) => [
     "Never invent a byline, an author biography, a persona or a quotation. The page prints its own byline and dates: write neither.",
     "Never invent a testimonial or a review.",
     "Never say the page's claims were tested, trialled or benchmarked.",
     "Never invent a case study.",
+    ...(a.pageType === "market_comparison"
+      ? ["`honesty` holds on this market comparison: this business has its own row in the comparison table, beside the others on the same criteria, and no title, heading, row or sentence ranks it \"#1\" or the best."]
+      : []),
   ],
-  honest_row: () =>
-    "`honesty` holds on this market comparison: this business has its own row in the comparison table, beside the others on the same criteria, and no title, heading, row or sentence ranks it \"#1\" or the best.",
-  no_hidden_text: () => "No raw HTML, no images, no comments.",
-  no_machine_address: () => "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
+  unsafe_markup: () => ["No raw HTML, no images, no comments.", "Write for a human reader only: never address an assistant, a crawler or a ranking system."],
   near_duplicate: () =>
     "`pack.pages` are the pages this site has published or planned: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it.",
   traceable_numerals: () => `Write no number of ${REGISTER_FLOOR} or more that \`pack\` or the target search do not contain; a year is not a number for this rule.`,
@@ -62,12 +62,6 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
     `\`takeaways\`: ${PAGE_BLOCKS.takeaways.min} to ${PAGE_BLOCKS.takeaways.max} key takeaways, one sentence each. \`closing\`: one line that points the reader to the one action this page's reader should take, linking the page in \`pack.links\` where they take it.`,
   no_placeholder_cell: () =>
     "A table cell is never a blank, \"not stated\", \"not linked\", \"n/a\", \"unknown\" or any other words that say a value is missing: where a fact is missing for one product, leave that row out for every product, or leave that product out.",
-  no_demo_text: (a) => {
-    const phrases = (a.demoPhrases ?? []).slice(0, DEMO_PHRASES_TOLD);
-    return phrases.length === 0
-      ? null
-      : `These are the site's demo, example and menu lines: never repeat one of them whole, and write no caption of a demo or example and no menu or navigation text: ${quoted(phrases)}.`;
-  },
   distinct_headings: () =>
     `No two section headings ask the same thing: none shares ${Math.round(DISTINCT_HEADINGS.overlap * 100)}% of another's words or opens with the same ${DISTINCT_HEADINGS.opening} words.`,
   // Moved from the title brief (issue 2374), word for word.
@@ -110,7 +104,13 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
   // Issue 2375: the fit check's own definition, so the page is written to what it is checked against.
   fit_claim: () =>
     `${UNSUPPORTED_CLAIM} What is known about this business is \`pack.profile\`. Never make an unsupported claim, and never call it "#1" or the best of a category.`,
-  do_not_claim: (a) => `Never write any of the phrases in \`pack.neverClaim\`, in those words or any others: ${quoted(a.pack.neverClaim)}.`,
+  do_not_claim: (a) => {
+    const phrases = (a.demoPhrases ?? []).slice(0, DEMO_PHRASES_TOLD);
+    return [
+      ...(a.pack.neverClaim.length === 0 ? [] : [`Never write any of the phrases in \`pack.neverClaim\`, in those words or any others: ${quoted(a.pack.neverClaim)}.`]),
+      ...(phrases.length === 0 ? [] : [`These are the site's demo, example and menu lines: never repeat one of them whole, and write no caption of a demo or example and no menu or navigation text: ${quoted(phrases)}.`]),
+    ];
+  },
 });
 
 /** One rule's lines, as a list. */

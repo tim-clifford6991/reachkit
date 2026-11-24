@@ -41,11 +41,9 @@
 //                        form (issue 1266) and, like `required_blocks`,
 //                        asks nothing of a founder's own title.
 //
-//   `no_demo_text`      reads the site's demo phrases and menu lines (issue
-//                        1249), which the save holds and this screen does
-//                        not. It has its sentence below, for the surface
-//                        that states a recorded failure; `liveBreaks`
-//                        never returns it.
+//   The site's demo phrases and menu lines (issue 1249), which
+//                        `do_not_claim` reads beside the customer's list,
+//                        are the save's: this screen does not hold them.
 //
 // The first two still run on every save, where they always have, and both
 // still hold the page. What this file changes is *when the founder hears
@@ -68,9 +66,8 @@
 //      blocks are `sourceBlocksOf`'s — the splitter the rules themselves
 //      use, now carrying the offsets it always computed.
 //   3. **Not at all.** A rule whose answer is about the page rather than a
-//      sentence — `honest_row` reads the title, the headings and the
-//      comparison table together — gets a mark at the head of the
-//      document and a sentence that says so. Guessing a span for one of
+//      sentence — a self-ranked "#1" in the title — gets a mark at the
+//      head of the document and a sentence that says so. Guessing a span for one of
 //      those would be the rule implemented a second time, badly.
 "use client";
 
@@ -84,9 +81,8 @@ import {
   type BriefRuleInputs,
 } from "@/lib/generate/rules/brief";
 import { checkPlaceholderCell } from "@/lib/generate/rules/cells";
-import { checkHonestRow, checkSelfRanked } from "@/lib/generate/rules/honest";
-import { checkHiddenText } from "@/lib/generate/rules/hidden";
-import { checkMachineAddress } from "@/lib/generate/rules/machine";
+import { checkSelfRanked } from "@/lib/generate/rules/honest";
+import { checkHiddenText, checkMachineAddress } from "@/lib/generate/rules/hidden";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "@/lib/generate/rules/people";
 import { checkRivalSource } from "@/lib/generate/rules/rivals";
 import { renderOf, sourceBlocksOf, withoutReferenceLists } from "@/lib/generate/rules/text";
@@ -103,7 +99,7 @@ import type { PageType } from "@/lib/opportunities/types";
  * which is the whole reason those rules are the save's.
  */
 export interface MarkInputs {
-  /** The title as it now stands. The honest row reads it. */
+  /** The title as it now stands. The self-ranked "#1" reads it. */
   title: string;
   businessName: string | null;
   domain: string;
@@ -123,20 +119,15 @@ export interface MarkInputs {
  * sentence is a compile error rather than a mark that underlines a
  * sentence and says nothing about why. Four the save keeps are
  * deliberately absent: this screen never speaks for a check it did not
- * run, which is `checks.ts`'s own rule applied to a lint mark. The fifth,
- * `no_demo_text`, has its sentence here and is never among `liveBreaks`'
- * answers (issue 1252; the header says why).
+ * run, which is `checks.ts`'s own rule applied to a lint mark.
  */
 export const BREAK_COPY_KEY = Object.freeze({
   rival_claim: "draft.editor.break.rival-source",
   nothing_invented: "draft.editor.break.no-invented-people",
-  honest_row: "draft.editor.break.honest-row",
-  no_hidden_text: "draft.editor.break.no-hidden-text",
-  no_machine_address: "draft.editor.break.no-machine-address",
+  unsafe_markup: "draft.editor.break.no-hidden-text",
   traceable_numerals: "draft.editor.break.traceable-numerals",
   first_block_answers: "draft.editor.break.first-block-answers",
   no_placeholder_cell: "draft.editor.break.no-placeholder-cell",
-  no_demo_text: "draft.editor.break.no-demo-text",
   do_not_claim: "draft.editor.break.do-not-claim",
 } as const satisfies Readonly<Partial<Record<HardRule, CopyKey>>>);
 
@@ -147,6 +138,8 @@ const KIND_BREAK_KEY: Readonly<Record<string, CopyKey>> = Object.freeze({
   ranked: "draft.editor.break.honest-row",
   test: "draft.editor.break.no-invented-test",
   provenance: "draft.editor.break.no-invented-provenance",
+  hidden: "draft.editor.break.no-hidden-text",
+  machine: "draft.editor.break.no-machine-address",
 });
 
 /** The rules the editor decides live. Its members are exactly the keys
@@ -236,8 +229,8 @@ function placeValue(markdown: string, value: string): { from: number; to: number
  *  block it reports in isolation is a block it reported in the whole. */
 const BLOCK_SCOPED: Readonly<Record<string, (markdown: string) => RuleFailure | null>> =
   Object.freeze({
-    no_hidden_text: (markdown) => checkHiddenText({ markdown }),
-    no_machine_address: (markdown) => checkMachineAddress({ rendered: renderOf(markdown) }),
+    hidden: (markdown) => checkHiddenText({ markdown }),
+    machine: (markdown) => checkMachineAddress({ rendered: renderOf(markdown) }),
     testimonial: (markdown) => checkUnsourcedTestimonial({ markdown }),
     // A table is one block, so the block the rule still reports is the table.
     no_placeholder_cell: (markdown) => checkPlaceholderCell({ markdown }),
@@ -300,9 +293,8 @@ export function liveBreaks(source: string, inputs: MarkInputs): Break[] {
   push(checkRivalSource({ markdown: body, rivals: [...inputs.rivals] }));
   push(checkInventedPeople({ markdown: body, businessName: inputs.businessName }));
   push(checkUnsourcedTestimonial({ markdown: body }));
-  push(checkHonestRow({ title: inputs.title, markdown: body, ...site, rivals: inputs.rivals, pageType: inputs.pageType }) ?? checkSelfRanked({ title: inputs.title, markdown: body, ...site, pageType: inputs.pageType }));
-  push(checkHiddenText({ markdown: body }));
-  push(checkMachineAddress({ rendered }));
+  push(checkSelfRanked({ title: inputs.title, markdown: body, ...site, pageType: inputs.pageType }));
+  push(checkHiddenText({ markdown: body }) ?? checkMachineAddress({ rendered }));
   // The three that read the brief's **passages** run only where the brief
   // was recorded. Empty is "not recorded", never "no facts": against an
   // empty list `checkTraceableNumerals` reports every figure on the page

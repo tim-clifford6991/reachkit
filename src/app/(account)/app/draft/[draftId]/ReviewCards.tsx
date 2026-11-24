@@ -5,7 +5,8 @@
 // a value and carries `.num`, so where it will not fit the box grows taller
 // (`src/ui/type.css` states that rule and why).
 import type React from "react";
-import { Check, LoaderCircle, Minus, X } from "lucide-react";
+import { Check, Info, LoaderCircle, Minus, X } from "lucide-react";
+import { WARNING_RULES } from "@/lib/generate/rules/types";
 import { copy } from "@/lib/presentation/copy";
 import type { CheckList, CheckRow, CheckStatus } from "./checks";
 import { pageLinksEmpty, type LinkGroup, type LinkLive, type PageLink, type PageLinks } from "./links-panel";
@@ -274,8 +275,10 @@ function statusLine(status: CheckStatus): string | null {
 }
 
 function CheckItem(p: { row: CheckRow }): React.JSX.Element {
-  const { ring, Icon } = MARK[p.row.status];
-  const status = statusLine(p.row.status);
+  // A warning failed is not a stop: its glyph and its line say so, not its colour alone.
+  const warned = p.row.status === "failed" && WARNING_RULES.has(p.row.rule);
+  const { ring, Icon } = warned ? { ring: QUIET, Icon: Info } : MARK[p.row.status];
+  const status = warned ? copy("draft.checks.status.warned") : statusLine(p.row.status);
   return (
     <li className="flex items-start gap-2.5" data-testid={`draft-check-${p.row.rule}`} data-status={p.row.status}>
       <span className={ring} aria-hidden>

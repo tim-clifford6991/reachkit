@@ -33,7 +33,7 @@ import { HARD_RULES, type HardRule } from "@/lib/generate/rules/types";
 import type { DraftFacts, RuleFacts, WrittenFrom } from "./model";
 
 /** The rules the fixture page's run was not asked. */
-const FIXTURE_SKIPPED: readonly HardRule[] = ["honest_row", "no_demo_text", "fit_claim"];
+const FIXTURE_SKIPPED: readonly HardRule[] = ["fit_claim"];
 
 // The zone and the publishing mode are the *site's*, not this screen's, so
 // they are read from the one fixture that already declares them rather

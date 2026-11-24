@@ -8,17 +8,17 @@
 // follows the page's type (`@/lib/opportunities/page-type`): on a page
 // anchored on the product it is the subject, and no rule here speaks.
 //
-// **What this rule says**, on a market comparison only. Favourable framing
+// **What it says**, on a market comparison only. Favourable framing
 // is allowed: the business may lead the table and the verdict. Two things
-// are not; the second is `nothing_invented`'s (`checkSelfRanked`) —
+// are not —
 //
-//   1. *a comparison the business is not in.* A table that names one of the
+//   1. *a comparison the business is not in*, a `required_blocks` warning
+//      (`business_row`). A table that names one of the
 //      site's rivals compares the market, and the business has a row (or a
 //      column) in it, beside the others, on the same criteria. A table that
 //      names no rival — the business's own plans, a list of steps — is not
-//      that comparison and is not read. Whether the page owes a table at
-//      all is its structure, and `required_blocks` asks that (`./blocks.ts`);
-//   2. *a self-ranked "#1 best".* The page never ranks the business first
+//      that comparison and is not read;
+//   2. *a self-ranked "#1 best"*, a `nothing_invented` stop. The page never ranks the business first
 //      by its own word: not "the best X" or "#1" in the title or a heading
 //      that names it, and not in a sentence or a table row that does.
 //
@@ -138,7 +138,7 @@ export function checkHonestRow(a: HonestRowInputs): RuleFailure | null {
   const rivals = a.rivals.flatMap((rival) =>
     rival.includes(".") ? brandTokens({ businessName: null, domain: rival }) : [rival]
   );
-  return rows.some((row) => namesBrand(row, rivals)) && !rows.some((row) => namesBrand(row, tokens)) ? { rule: "honest_row" } : null;
+  return rows.some((row) => namesBrand(row, rivals)) && !rows.some((row) => namesBrand(row, tokens)) ? { rule: "required_blocks", detail: { rule: "required_blocks", block: "business_row" } } : null;
 }
 
 /** A market comparison that ranks the business first by its own word is `nothing_invented`'s. */

@@ -1,10 +1,9 @@
 // BUILD §8 · SPEC §7 (D41 stage 4) — the closed hard-rule vocabulary.
 //
-// Stage 4 is five checks — blocks, numbers, no placeholder cell, no
-// near-repeat, no demo or navigation text — and D51's `title`, beside the
-// guards D27 names:
-// nothing invented, no unsafe markup, D20's honest row, and the never-claim
-// list matched by its own words (D45). Every one is code. The one rule a
+// Stage 4 is four checks — blocks, numbers, no placeholder cell, no
+// near-repeat — and D51's `title`, beside the guards D27 names:
+// nothing invented, no unsafe markup, and the never-claim list matched by
+// its own words (D45), which holds the site's demo text too. Every one is code. The one rule a
 // model decides is `fit_claim`, kept by D44 for a listicle or comparison
 // alone. `no_new_question_heading` retired with the outline it guarded (D41).
 // `no_private_figure` went with issue 1187: `./figures.ts` says why.
@@ -42,10 +41,8 @@ export type HardRule =
   | "rival_claim"
   /** SPEC §7: no invented person, review, test, case study or self-ranked "#1" (`./people.ts`, `./brief.ts`, `./honest.ts`). */
   | "nothing_invented"
-  /** SPEC §7 (D20, issue 1136): on a market comparison the business is in the table (`./honest.ts`). */
-  | "honest_row"
-  | "no_hidden_text"
-  | "no_machine_address"
+  /** SPEC §7: nothing hidden from the reader and nothing addressed to a machine (`./hidden.ts`); the kind goes in `detail`. */
+  | "unsafe_markup"
   | "near_duplicate"
   /** SPEC §7 · issue 475: the rules that read what the brief handed the model (`./brief.ts`). */
   | "traceable_numerals"
@@ -54,11 +51,8 @@ export type HardRule =
    *  carries (`./blocks.ts`). The one rule about structure. */
   | "required_blocks"
   /** SPEC §7 (D41 stage 4, issue 1250): no table cell is empty or says a
-   *  value is missing (`./cells.ts`). */
+   *  value is missing (`./cells.ts`). A warning. */
   | "no_placeholder_cell"
-  /** SPEC §7 (D41 stage 4, issue 1249): no sentence from the site's
-   *  demo-phrase list (`./demo.ts`). */
-  | "no_demo_text"
   /** SPEC §7 (owner, D61; issue 1295): no two H2s of a Q&A share most of
    *  their words or their opening (`./headings.ts`). */
   | "distinct_headings"
@@ -87,15 +81,12 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "grounding",
   "rival_claim",
   "nothing_invented",
-  "honest_row",
-  "no_hidden_text",
-  "no_machine_address",
+  "unsafe_markup",
   "near_duplicate",
   "traceable_numerals",
   "first_block_answers",
   "required_blocks",
   "no_placeholder_cell",
-  "no_demo_text",
   "distinct_headings",
   "title",
   "plain_prose",
@@ -107,7 +98,7 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
 
 /** The rules that only warn (owner, 2026-11-08): recorded on the draft and shown in its Checks list, never a stop.
  *  Every other rule is harm and stops the page, so a new rule stops until it is named here. */
-export const WARNING_RULES: ReadonlySet<HardRule> = new Set<HardRule>(["first_block_answers", "required_blocks", "distinct_headings", "title", "plain_prose", "cites_market", "standalone_lead"]);
+export const WARNING_RULES: ReadonlySet<HardRule> = new Set<HardRule>(["first_block_answers", "required_blocks", "no_placeholder_cell", "distinct_headings", "title", "plain_prose", "cites_market", "standalone_lead"]);
 
 /** The two rules a new site's shortfall shows as (owner, 2026-11-18): recorded and counted in `meta.standard`, never drawn. */
 export const HIDDEN_RULES: readonly HardRule[] = Object.freeze(["required_blocks", "cites_market"] as const);
@@ -115,9 +106,7 @@ export const HIDDEN_RULES: readonly HardRule[] = Object.freeze(["required_blocks
 /** The rules a caller switches on, each by an input it hands over or leaves
  *  out (`rulesAsked`, `./index.ts`). Every other rule reads every page. */
 export const SWITCHED_RULES: readonly HardRule[] = Object.freeze([
-  "honest_row",
   "required_blocks",
-  "no_demo_text",
   "distinct_headings",
   "title",
   "plain_prose",
@@ -180,8 +169,9 @@ export interface RuleFailure {
         duplicateOf: { kind: DuplicateKind; ref: string; title: string };
         similarity: number;
       }
-    /** The customer's own recorded words, read back from their list. */
-    | { rule: "do_not_claim"; matchedEntry: string }
+    /** The customer's own recorded words, read back from their list; `demo`, a whole sentence of the site's demo or
+     *  menu text, or a fact the customer switched off. */
+    | { rule: "do_not_claim"; matchedEntry: string; source?: "demo" }
     /** The page's own sentences that claim a fit, as written. */
     | { rule: "fit_claim"; sentences: string[] }
     /** A rival's figure without its page, as the draft has it, or what the sentence got wrong about the rival's source
@@ -190,13 +180,13 @@ export interface RuleFailure {
     /** The page's own sentence that denies a rival something. */
     | { rule: "rival_claim"; kind: "negative"; sentence: string }
     | { rule: "nothing_invented"; kind: InventedKind }
+    /** What the markup hides from a reader, or a sentence addressed to a machine. */
+    | { rule: "unsafe_markup"; kind: "hidden" | "machine" }
     | { rule: "traceable_numerals"; figure: string }
     /** Which block the page lacks — a handle, never a sentence; `over`, its length is past the ceiling rather than under the floor. */
     | { rule: "required_blocks"; block: RequiredBlock; length?: true; over?: true }
     /** The cell's words, as the page has them. */
     | { rule: "no_placeholder_cell"; cell: string }
-    /** The page's own sentence that is a demo or menu phrase. */
-    | { rule: "no_demo_text"; sentence: string }
     /** The two headings that are too alike, as the page has them. */
     | { rule: "distinct_headings"; headings: [string, string] }
     /** What the title or its description fails — handles, never a sentence. */
