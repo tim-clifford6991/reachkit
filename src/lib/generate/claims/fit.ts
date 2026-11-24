@@ -63,8 +63,9 @@ export function brandSentences(a: {
   const tokens = brandTokens(a);
   const pack = a.language === undefined ? undefined : languagePack(a.language), own = pack?.ownVoice;
   const rivals = (a.claims ?? []).flatMap((claim) => [claim.product, claim.about].flatMap((name) => (name ? [{ domain: URL.canParse(claim.url) && name === claim.product ? new URL(claim.url).hostname.replace(/^www\./, "") : name.toLowerCase(), name }] : [])));
-  const head = (text: string): string => text.slice(0, pack?.prefersRival.exec(text)?.index ?? 0);
-  const conceded = (text: string): boolean => rivalsNamedIn(head(text), rivals).length > 0 && !namesBrand(head(text), tokens) && own?.test(head(text)) !== true;
+  // After the concession the business may only be what the rival is compared with; any other claim is still checked.
+  const conceded = (text: string, at = pack?.prefersRival.exec(text)?.index ?? 0): boolean =>
+    rivalsNamedIn(text.slice(0, at), rivals).length > 0 && ![text.slice(0, at), text.slice(at).replace(/\b(?:than|over)\s+\S+/gi, "")].some((part) => namesBrand(part, tokens) || own?.test(part) === true);
   const out: string[] = [];
   const lines = a.markdown.split("\n");
   const prose = lines.filter((line) => !TABLE_LINE_RE.test(line) && !LINK_LINE_RE.test(line)).join("\n");

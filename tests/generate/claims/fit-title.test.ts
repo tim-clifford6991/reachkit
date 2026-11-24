@@ -71,5 +71,7 @@ describe("a title the title rule makes name the business is not a fit claim", ()
     const said = "Otterly is the better pick than ReachKit if all you want is a low-cost daily check on a small prompt list.";
     const claims = [{ url: "https://otterly.ai/pricing", passage: "Lite €29, 16 prompts, daily", product: "Otterly.AI" }];
     expect(brandSentences({ ...SITE, title: "", markdown: `${said} ${CLAIM}`, language: "en", claims })).toEqual([CLAIM]);
+    const tail = "Otterly is the better pick for monitoring only, while ReachKit also writes and publishes your pages.";
+    expect(brandSentences({ ...SITE, title: "", markdown: tail, language: "en", claims })).toEqual([tail]);
   });
 });
