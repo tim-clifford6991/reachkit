@@ -16,7 +16,6 @@ import { titleRuleFor } from "@/lib/generate/pipeline/title";
 import { writePage } from "@/lib/generate/pipeline/write";
 import { pickTitle } from "@/lib/generate/rules/title";
 import { pageTitle } from "@/lib/presentation/page-title";
-import { completenessFor } from "@/lib/generate/record";
 import { runHardRules } from "@/lib/generate/rules";
 import { renderOf } from "@/lib/generate/rules/text";
 import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-type";
@@ -87,8 +86,7 @@ export const writeLeadPage: DraftWriter = async (a) => {
   const profile = report.market.value.profile;
   const businessName = profile.brandTokens[0] ?? null;
   const rivals = report.rivals.kind === "unmeasured" ? [] : report.rivals.value.map((rival) => rival.domain);
-  // The free page has no fix call, so what it lacks of its sections or words is only ever recorded.
-  const site = { businessName, domain: report.domain, doNotClaim: [], rivals, completeness: completenessFor("lead") };
+  const site = { businessName, domain: report.domain, doNotClaim: [], rivals };
 
   // Stage 2: the pack. No confirmed profile: a lead has nobody who could confirm, and the crawl's reading would put words in their mouth.
   const packOf = (type: ContentType) =>
