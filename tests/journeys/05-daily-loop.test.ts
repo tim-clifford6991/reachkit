@@ -127,6 +127,8 @@ const livePage = {
   html: "",
   status: 200,
   sitemapHasIt: true,
+  /** A host whose own site does not answer. */
+  down: "",
 };
 
 const SITE_DOMAIN = "acme.example";
@@ -168,6 +170,7 @@ vi.mock("@/lib/egress", () => ({
   }),
   safeFetch: async (url: string, opts: Record<string, unknown> = {}) => {
     const parsed = new URL(url);
+    if (parsed.host === livePage.down) throw new Error("unreachable");
 
     // The customer's WordPress, at the one door its REST client has.
     if (parsed.pathname.startsWith("/wp-json")) {
@@ -293,8 +296,8 @@ const { CAPS, VETO, PUBLISH_VERIFY_DELAY_H, PUBLISH_RETRY_BACKOFF_MIN } =
   await import("../../src/lib/config/constants");
 const { isDraftDue, nextPublishDate, localClock } = await import("../../src/jobs/site-clock");
 const engine = await import("../../src/jobs/engine");
-const { generateDayPage, setGenerateStore } = await import("../../src/lib/generate");
-const { setOpportunityStore } = await import("../../src/lib/opportunities");
+const { generateDayPage, setGenerateStore, PageStopped } = await import("../../src/lib/generate");
+const { pageForDay, setOpportunityStore } = await import("../../src/lib/opportunities");
 const { transition, toMachineDraft } = await import("../../src/lib/publish/machine");
 const { publish } = await import("../../src/lib/publish/attempt");
 const {
@@ -400,29 +403,8 @@ function joinedGenerateStore(): ReturnType<typeof generateFixtures.memoryStore> 
 
   inner.insertDraft = async (row) => {
     const id = await insertDraft(row);
-    db.seed("drafts", [
-      ...db.rows("drafts"),
-      {
-        id,
-        site_id: SITE_ID,
-        opportunity_id: row.opportunity_id,
-        state: row.state,
-        title: row.title,
-        body_md: row.body_md,
-        meta: {},
-        transitions: [],
-        hard_rules_passed: false,
-        publishable_since: null,
-        veto_deadline: null,
-        approved_at: null,
-        approved_by: null,
-        told: null,
-        veto_token_hash: null,
-        veto_token_expires_at: null,
-        veto_token_used_at: null,
-        scheduled_for: row.scheduled_for,
-      },
-    ]);
+    const machine = { publishable_since: null, veto_deadline: null, approved_at: null, approved_by: null, told: null, veto_token_hash: null, veto_token_expires_at: null, veto_token_used_at: null };
+    db.seed("drafts", [...db.rows("drafts"), { id, site_id: SITE_ID, opportunity_id: row.opportunity_id, state: row.state, title: row.title, body_md: row.body_md, meta: {}, transitions: [], hard_rules_passed: false, ...machine, scheduled_for: row.scheduled_for }]);
     return id;
   };
 
@@ -485,37 +467,16 @@ beforeEach(async () => {
   installRedeemRpc(db);
   modelCalls.length = 0;
   inbox.length = 0;
-  wordpress.requests.length = 0;
-  wordpress.posts.length = 0;
-  wordpress.nextId = 500;
-  wordpress.failCreates = false;
+  Object.assign(wordpress, { requests: [], posts: [], nextId: 500, failCreates: false });
   jobEvents.length = 0;
   livePage.status = 200;
   livePage.sitemapHasIt = true;
+  livePage.down = "";
   payingCustomer();
 
   db.seed("users", [{ id: USER_ID, email: EMAIL, notify: null }]);
-  db.seed("sites", [
-    {
-      id: SITE_ID,
-      user_id: USER_ID,
-      domain: SITE_DOMAIN,
-      mode: "autopilot",
-      veto_hours: VETO.defaultHours,
-      publish_time: null,
-      publishing_enabled: true,
-      timezone: TIME_ZONE,
-    },
-  ]);
-  db.seed("destinations", [
-    {
-      id: DEST_ID,
-      site_id: SITE_ID,
-      kind: "wordpress",
-      health: "ok",
-      config: seal({ baseUrl: WP_BASE, username: "reachkit", applicationPassword: "abcd efgh ijkl mnop" }),
-    },
-  ]);
+  db.seed("sites", [{ id: SITE_ID, user_id: USER_ID, domain: SITE_DOMAIN, mode: "autopilot", veto_hours: VETO.defaultHours, publish_time: null, publishing_enabled: true, timezone: TIME_ZONE }]);
+  db.seed("destinations", [{ id: DEST_ID, site_id: SITE_ID, kind: "wordpress", health: "ok", config: seal({ baseUrl: WP_BASE, username: "reachkit", applicationPassword: "abcd efgh ijkl mnop" }) }]);
   db.seed("drafts", []);
   db.seed("publications", []);
   // The scan that grounds the day's page, and the one own-document read
@@ -555,14 +516,16 @@ afterEach(() => {
 
 /** The opportunity §7 left for this site — yesterday's supply, which is
  *  what the evening tick picks from. */
-async function seedOneOpportunity(): Promise<string> {
+async function seedOneOpportunity(search = TARGET_SEARCH, over: { type?: "refresh_page"; shortfall?: object } = {}): Promise<string> {
   // A plain search: the shared fixture's "best …" is a listicle, a type the
   // mix leaves out for now (D46), so it would fill no day.
   const base = generateFixtures.opportunity();
   const seedRow = generateFixtures.opportunity({
-    targetQuery: TARGET_SEARCH,
-    evidence: { ...base.evidence, query: TARGET_SEARCH } as typeof base.evidence,
-    acceptance: { form: "top20", query: TARGET_SEARCH },
+    targetQuery: search,
+    ...(search === TARGET_SEARCH ? {} : { targetRef: search.replace(/ /g, "-") }),
+    ...(over.type === undefined ? {} : { type: over.type }),
+    evidence: { ...base.evidence, query: search, ...(over.shortfall === undefined ? {} : { shortfall: over.shortfall }) } as typeof base.evidence,
+    acceptance: { form: "top20", query: search },
   });
   const inserted = await opportunityDoubles.memoryStore(opportunities).insert({
     site_id: SITE_ID,
@@ -584,7 +547,7 @@ async function seedOneOpportunity(): Promise<string> {
   // §9 reads the page's slug off `opportunities`, through the embedding its
   // own delivery select uses. It is the same row §7's store holds; here the
   // two views are two doubles, joined once, under the id §7 minted.
-  db.seed("opportunities", [{ id: inserted.row.id, proposed_slug: seedRow.targetRef }]);
+  db.seed("opportunities", [...db.rows("opportunities"), { id: inserted.row.id, proposed_slug: seedRow.targetRef }]);
   return inserted.row.id;
 }
 
@@ -1242,6 +1205,24 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     },
     JOURNEY_TIMEOUT_MS
   );
+  it.each(["rested at decide", "set aside", "stopped by the customer"] as const)("a day whose first topic is %s writes its spare through the one loop: one page on the date", async (path) => {
+    const date = nextPublishDate(EVENING, SITE_CLOCK);
+    if (path === "rested at decide") [generateStore.site.rivals, livePage.down] = [["asana.com", "trello.com"], "asana.com"];
+    const first = await seedOneOpportunity(path === "rested at decide" ? "asana vs trello" : "task tracking for agencies", path === "set aside" ? { type: "refresh_page", shortfall: { kind: "due", cause: "link" } } : {});
+    const spare = await seedOneOpportunity();
+    const row = (id: string) => opportunities.rows.find((each) => each.id === id)!;
+    // The week as committed: the first topic holds the date, written as its spare is, and the spare is its one spare.
+    await pageForDay(SITE_ID, date, EVENING);
+    Object.assign(row(first), { plan_place: 1, planned_for: date, plan_write_as: row(spare).plan_write_as, ready: true, unready_reason: null });
+    Object.assign(row(spare), { plan_place: 2, planned_for: null, ready: true, unready_reason: null });
+    const insert = generateStore.insertDraft;
+    // The customer stops the first page as it is saved: no row, and the topic is theirs.
+    if (path === "stopped by the customer") generateStore.insertDraft = async (draft) => (draft.opportunity_id === first ? ((row(first).status = "dismissed"), Promise.reject(new PageStopped(first))) : insert(draft));
+    expect(await engine.generateDraft({ siteId: SITE_ID, publishDate: date, now: EVENING })).toEqual({ done: true });
+    const drafts = db.rows("drafts");
+    expect({ onDate: drafts.filter((d) => d.scheduled_for === date).map((d) => d.opportunity_id), drafts: drafts.length, firstRested: row(first).unready_reason === "resting" })
+      .toEqual({ onDate: [spare], drafts: path === "set aside" ? 2 : 1, firstRested: path === "rested at decide" });
+  }, JOURNEY_TIMEOUT_MS);
   it("a list sent as text is read, and one still unread is logged without its text and bought once", async () => {
     const opportunityId = await seedOneOpportunity();
     const day = { siteId: SITE_ID, publishDate: nextPublishDate(EVENING, SITE_CLOCK) }, warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
