@@ -1,69 +1,31 @@
-// SPEC §7 (owner, D51, issue 1266; revised by issue 1389) — the stage-4
-// `title` check.
+// SPEC §7 — the stage-4 `title` check. A page's `<title>` is its search form and its H1 is the same words. Code holds
+// the title to its length (fitted, never a stop), the search's wording near its head, one specific the pack holds, a
+// question only where the search is one, the year's place, no banned pattern, not another page's title, the business on
+// a page that compares products, an H1 that is the title, and a meta description that is there at all.
 //
-// A page's `<title>` is its search form and its H1 is the same words. Code
-// holds the title to ten things: its length, the search's own wording near
-// its head, one specific the pack holds, a question only where the search is
-// one, the year's place, no banned pattern, not the title of another page of
-// the site, the business on a page that compares products, an H1 that is
-// the title, and a meta description that is there at all — code fits its
-// length, which never stops a page (owner R-A).
+// A planned title (a kept angle's, or an update's live page's) stands, held only to its figures: one beside a rival no
+// owner holds, and a description figure the body never states. Otherwise the writer proposes several and `pickTitle`
+// chooses by these same rules: no model judges a title. A founder's own edit is asked nothing.
 //
-// A row planned with a title (its kept angle's, or an update's live page's)
-// keeps it, and is held only to its figures: a figure beside a rival no owner
-// holds, and a description figure the body never states. On a row with none,
-// the writer proposes several titles and `pickTitle` chooses among them by
-// these same rules (issue 1389): no model judges a title.
-//
-// It asks nothing of a founder's own edit.
-//
-// How code reads the ruling's words (drafted, the owner may correct):
-//   * **The search's wording in the first 30 characters.** Of D49's
-//     `searchTerm`, the target query or a question buyers were seen to ask,
-//     whichever the title carries: the wording's first three words that are
-//     not filler ("best", "for", "the") are all in the title, and the first
-//     of them starts inside its first 30 characters.
-//   * **A specific, from the pack.** A number the pack states or the page
-//     counts out, a year aside; a price is such a number, and "free" where
-//     the pack says it; an engine's name; on a comparison, a rival the pack
-//     names; the place the business serves. A name the search itself
-//     carries is the search and no detail added to it. Asking a question is
-//     not one, and neither is who the page is for. A number that only counts
-//     an episode, an issue, a volume or a chapter ("ep. 16") is not one.
-//     The picker and the fix call try for it, and it does not stop a page:
-//     where it is all the title still lacks after the fix call, the title
-//     goes on (owner's autopilot rule, 2026-10-08; ruling 2026-10-11).
-//   * **A question** is a title that opens as one ("How to", "What is") or
-//     carries a question mark. It stands only where the search is one.
-//   * **A bare tail** is a title that ends on the year with no bracket.
-//   * **A word repeated** is a word of three letters or more, filler aside.
-//   * **A banned pattern the search itself carries** is the searcher's word
-//     and no trope: "how to unlock a phone" may be titled with "unlock".
-//   * **Token overlap** is the share of the two titles' words they have in
-//     common (Jaccard), the measure `./similarity.ts` uses for a page.
-//   * **The count** (issue 1508): on a page that counts options, a bare
-//     whole number among the title's first three words ("7 Squarespace
-//     alternatives", "Top 5 …", "Die 5 besten …") is how many it counts.
-//     It must be the options the page counts, the baseline of an
-//     alternatives page not among them.
-//   * **The business** (issue 1552): a page whose search sets products
-//     against each other, or asks for one's alternatives, names the
-//     business — its name or its domain's label — as one of them. A search
-//     that compares category terms ("aeo vs geo") names no product, and is
-//     not held to it.
-//   * **A whole clause** (owner, 2026-11-17): a figure the title states,
-//     its count aside, stands in the clause after the search's colon, a
-//     question mark or a dash, of three words or more and not ending on a
-//     stop word: "…: up from 25% in" is cut, "…: AI traffic up 693%" whole.
-//   * **A count** on a page that counts no options leads its title only
-//     where two of the top results' titles do, and as its questions or steps.
-//   * **A figure's owner** (seo-master, 2026-10-31): a title that names a
-//     rival states a figure only where that rival's own pages hold it, or
-//     the business's own where the title names the business too, or the
-//     page counts it. "Profound …: 12 Google searches weekly" gives the
-//     business's figure to a rival, and stops the page.
-//   * **A price lead** (SEO review §2.4): a price stands in the title only on
-//     an offering, or where the search asks a price or compares products.
+// How code reads the rules (drafted, the owner may correct):
+//   * **The search's wording in the first 30 characters:** the first three non-filler words of the target query or a
+//     buyer's question, whichever the title carries, are all in it, the first starting inside 30 characters.
+//   * **A specific, from the pack:** a number the pack states or the page counts out (a year, or a count of episodes,
+//     issues or chapters, aside), a price, "free" where the pack says it, an engine's name, on a comparison a rival
+//     the pack names, the place served. A name the search carries, a question or an audience is none. It is tried
+//     for and never stops a page on its own.
+//   * **A question** opens as one ("How to", "What is") or carries a "?". **A bare tail** ends on the year unbracketed.
+//   * **A word repeated** has three letters or more, filler aside. **A banned pattern** the search carries is the
+//     searcher's own word, no trope. **Token overlap** is the two titles' Jaccard share, as `./similarity.ts` reads a page.
+//   * **The count:** a bare whole number among the first three words ("Top 5 …") is the options the page counts, an
+//     alternatives page's baseline aside; on a page counting no options it leads only where two top titles do.
+//   * **The business:** a search setting products against each other, or asking one's alternatives, names the business
+//     among them; one comparing category terms ("aeo vs geo") names no product and is not held to it.
+//   * **A whole clause:** a figure, its count aside, stands in a clause after the colon, "?" or dash of three words or
+//     more not ending on a stop word: "…: up from 25% in" is cut, "…: AI traffic up 693%" whole.
+//   * **A figure's owner:** a title naming a rival states a figure only where that rival's pages hold it, or the
+//     business's where the title names it too, or the page counts it.
+//   * **A price lead** stands only on an offering, or where the search asks a price or compares products.
 //
 // Deterministic, no I/O. A failure carries handles, never a sentence.
 import { languagePack, SHAPES } from "@/lib/locale/language";
@@ -154,7 +116,6 @@ const WORD_RE = /[\p{L}\p{N}]+/gu;
 
 const languageOf = (a: Pick<TitleRuleInputs, "language">): Language => a.language ?? "en";
 
-/** A whole word or phrase of `alternation`, at the start or anywhere. */
 /** The language's news words as one whole-word pattern: what a hot page's title and its angle never say. */
 export function newsWords(language: Language): RegExp {
   return wordsPattern(languagePack(language).title.news.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), false);
@@ -309,22 +270,18 @@ export function appendsClaim(title: string, search: string): boolean {
   return lead !== null && SHAPES.listicle.test(lowered(search)) && SHAPES.appended.test(lowered(title.slice(lead.index + lead[0].length)));
 }
 
-/** On a list or comparison search, a clause run on straight after the search's own words ("… alternatives that write
- *  pages") is the same claim with no break. */
+/** On a list or comparison search, a clause run on after the search's words with no break ("… alternatives that write pages"). */
 function runsOnClaim(title: string, search: string, language: Language): boolean {
-  const placed = placedWords(title, language);
-  const firsts = subjectOf(search, language).map((word) => placed.find((at) => at.word === word));
+  const firsts = subjectOf(search, language).map((word) => placedWords(title, language).find((at) => at.word === word));
   if (firsts.length === 0 || firsts.some((at) => at === undefined) || !SHAPES.listicle.test(lowered(search))) return false;
-  const end = Math.max(...firsts.map((at) => at!.at + at!.word.length));
-  const tail = title.slice(end).replace(/^[\p{L}\p{N}]*/u, "");
+  const tail = title.slice(Math.max(...firsts.map((at) => at!.at + at!.word.length))).replace(/^[\p{L}\p{N}]*/u, "");
   return !/^\s*(?:[:?—–]|-\s)/u.test(tail) && SHAPES.runOn.test(lowered(tail));
 }
 
-/** A short name written in capitals ("AI") said more often than the search says it; `saidTwice` skips short words. */
+/** A short name in capitals ("AI") said more often than the search says it, which `saidTwice` skips. */
 function nameTwice(title: string, search: string): boolean {
   const said = (text: string, name: string): number => text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((word) => word === name).length;
-  const names = (title.match(/(?<![\p{L}\p{N}])\p{Lu}{2}(?![\p{L}\p{N}])/gu) ?? []).map((name) => name.toLowerCase());
-  return names.some((name) => said(title, name) > Math.max(1, said(search, name)));
+  return (title.match(/(?<![\p{L}\p{N}])\p{Lu}{2}(?![\p{L}\p{N}])/gu) ?? []).some((name) => said(title, name.toLowerCase()) > Math.max(1, said(search, name.toLowerCase())));
 }
 
 /** What a planned angle's title fails of the writer's own wording rules: the lead, the banned phrases, tropes and a word
