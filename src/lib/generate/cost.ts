@@ -19,6 +19,7 @@ import { untypedFetches, type FetchesRow } from "@/lib/costs/ledger";
 import { dbAdmin } from "@/lib/db";
 import { CAPS, INFERENCE_MAX_OUTPUT_TOKENS } from "@/lib/config/constants";
 import { costCentsFor } from "@/lib/llm/tiers";
+import { testSpend } from "./test-draft";
 
 /** The cache-invalidation generation this engine's `recordFetch` reads are
  *  keyed against. Nothing in the product pins a "current generation policy"
@@ -48,11 +49,16 @@ export function withDraftCost<T>(
 }
 
 /** The day's one `CAP_DRAFT` context, opened at what the site's drafts ledgered since the run's due hour, so a replayed
- *  attempt spends only what its date has left. A ledger it cannot read leaves it nothing: not measured is never 0. */
+ *  attempt spends only what its date has left. A ledger it cannot read leaves it nothing: not measured is never 0.
+ *  A test draft's opens at its own spend alone, since tests sent together share the site's ledger. */
 export async function openDayCost<T>(a: { scanId: string; siteId: string; since: Date }, body: (cost: CostContext) => Promise<T>): Promise<T> {
-  const priorCents = await draftSpendSince(a.siteId, a.since).catch(() => null);
+  const test = testSpend();
+  const priorCents = test !== undefined ? test.cents : await draftSpendSince(a.siteId, a.since).catch(() => null);
   if (priorCents === null) console.warn(JSON.stringify({ event: "draft_spend_unread", siteId: a.siteId }));
-  return withCostContext({ scanId: a.scanId, cap: "DRAFT", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", priorCents: priorCents ?? CAPS.DRAFT_C }, body);
+  const prior = priorCents ?? CAPS.DRAFT_C;
+  return withCostContext({ scanId: a.scanId, cap: "DRAFT", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", priorCents: prior }, (cost) =>
+    test === undefined ? body(cost) : body(cost).finally(() => void (test.cents += cost.spentCents() - prior))
+  );
 }
 
 export async function draftSpendSince(siteId: string, since: Date): Promise<number | null> {

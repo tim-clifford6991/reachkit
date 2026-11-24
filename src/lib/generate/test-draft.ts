@@ -4,20 +4,29 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Actor } from "@/lib/publish/types";
 
-const scope = new AsyncLocalStorage<true>();
+// What this test's own cost contexts have spent so far: a step adds its calls, and its result carries the total on.
+const scope = new AsyncLocalStorage<{ cents: number }>();
 const BY: Actor = { kind: "system", job: "draft/test" };
 
 /** Whether the write running now is a test draft. */
-export const inTest = (): boolean => scope.getStore() === true;
+export const inTest = (): boolean => scope.getStore() !== undefined;
+
+/** The running write's own spend, where it is a test draft. */
+export const testSpend = (): { cents: number } | undefined => scope.getStore();
 
 type Step = <T>(name: string, body: () => Promise<T>) => Promise<T>;
 
-/** One owner-sent test write: refused at 0¢ off the list or at a full day, else the date's page as a test draft, and one ops row. */
+/** One owner-sent test write: refused at 0¢ off the list or at a full day, else the date's page as a test draft, and one ops row
+ *  with what its own calls cost. */
 export async function writeTestDraft(a: { siteId: string; publishDate: string; key: string; now: Date; step: Step }): Promise<{ outcome: string; draftId: string | null; step?: string }> {
   const { isTestSite, dayRefused } = await import("@/lib/scan/weekly/rerun");
-  const testing = <T>(name: string, body: () => Promise<T>) => a.step(name, () => scope.run(true, body));
+  let cents = 0;
+  const testing: Step = async (name, body) => {
+    const done = await a.step(name, async () => { const own = { cents }; return { value: await scope.run(own, body), cents: own.cents }; });
+    cents = done.cents;
+    return done.value;
+  };
   const ran = !isTestSite(a.siteId) ? { outcome: "not_a_test_site", draftId: null } : (await a.step("ceiling", () => dayRefused(a.siteId, a.now))) ? { outcome: "spend_ceiling", draftId: null } : await write(a, testing);
-  const cents = ran.outcome === "not_a_test_site" || ran.outcome === "spend_ceiling" ? 0 : await a.step("cost", async () => (await import("./cost")).draftSpendSince(a.siteId, a.now));
   const { recordOpsEvent } = await import("@/lib/ops/events");
   await a.step("record", () => recordOpsEvent("draft_test", JSON.stringify({ key: a.key, publishDate: a.publishDate, ...ran, cents }), a.publishDate, a.siteId).then(() => null));
   return ran;
@@ -33,7 +42,9 @@ async function write(a: { siteId: string; publishDate: string; now: Date }, test
   let left = await testing("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
   for (let round = 1; left > 0 && round <= COLLECT.rounds; round++) left = await testing(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   if (left > 0) return { outcome: "research_pending", draftId: null };
-  const written = await testing("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
+  const wrote = await testing("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
+  // A write with no room left for its fix owes it, and makes it in its own step, as the date's run does.
+  const written = !wrote.ok && wrote.because === "fix_owed" ? await testing("fix", async () => (await import("./fix-step")).fixOwedPage({ draftId: wrote.draftId, now: a.now, publishDate: a.publishDate })) : wrote;
   const draftId = "draftId" in written ? written.draftId : null;
   // A short pack reads as one, with the step that names what it lacked, never as a failed step.
   const step = "step" in written ? written.step : undefined;

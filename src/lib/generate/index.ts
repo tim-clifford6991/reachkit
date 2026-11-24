@@ -198,7 +198,7 @@ export async function generateDayPage(a: {
                 : // A topic this loop picked meets the select's 0¢ rival check before its research is bought.
                   (topic > 1 || a.opportunityId === undefined) && !(await rivalsAnswer(page, opportunity))
                   ? { ok: false, because: "step_failed", draftId: null, step: "pack:rival_evidence" }
-                  : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now(), ...(inTest() ? {} : { fixStep: "owe" as const }) }, own);
+                  : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS, startedAt: topic === 1 ? startedAt : Date.now(), fixStep: "owe" }, own);
         } catch (error) {
           // The customer stopped this page while it was written: nothing was saved, and the day takes its next topic.
           if (!(error instanceof PageStopped)) throw error;
@@ -331,6 +331,8 @@ interface PageInput {
  * weekly commit, since a stop is not the customer's no. A run that wrote no row moves neither.
  */
 async function settle(outcome: DayPageOutcome, opportunityId: string, now: Date, { domain, timeZone }: SiteFacts): Promise<void> {
+  // A test draft moves no topic and mails no one: `writeTestDraft` ends its row.
+  if (inTest()) return;
   if (outcome.ok) {
     await queueForDraft(opportunityId);
     return;
