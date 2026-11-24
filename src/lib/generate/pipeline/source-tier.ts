@@ -3,7 +3,7 @@
 import { languagePack, SHAPES } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { brandOf } from "@/lib/market/questions/select";
-import { nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
+import { isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { MarketFact } from "./research";
 
 export type SourceTier = "primary" | "original" | "publication" | "review" | "vendor" | "other" | "wire";
@@ -123,20 +123,20 @@ function secondHanded(fact: MarketFact, reported: RegExp): MarketFact {
   return Object.fromEntries(Object.entries({ ...fact, secondHand: true }).filter(([key]) => !["publishedAt", "modifiedAt", "datedBy", "ageAt"].includes(key))) as unknown as MarketFact;
 }
 
-/** The hosts one credible search looks on: those the site's drafts of the last two weeks tiered primary, original or publication, the most
- *  tiered first, then the hosts the language's tier rule names official. A host that never read is never tiered, so none is here. */
+/** The hosts the language's tier rule names official, read off its pattern. */
+export const officialOf = (language: Language): string[] => /\(\?:([^()]+)\)\$$/.exec(languagePack(language).officialHosts.source)?.[1]?.split("|").map((host) => host.replace(/\\\./g, ".")) ?? [];
+/** The hosts one credible search looks on: those the site's drafts of the last two weeks tiered primary, original or publication, never a
+ *  user-content platform, the most tiered first, then the official hosts. A host that never read is never tiered, so none is here. */
 export async function credibleHosts(siteId: string, language: Language, today: Date): Promise<string[]> {
   const rows = (await import("../store").then(({ generateStore }) => generateStore().citedFrom?.(siteId, new Date(today.getTime() - 14 * 86_400_000).toISOString().slice(0, 10))).catch(() => undefined)) ?? [];
-  const seen = rows.flatMap((row) => (Array.isArray(row.claims) ? (row.claims as { url?: unknown; tier?: SourceTier }[]) : [])).flatMap((claim) => (typeof claim?.url === "string" && ["primary", "original", "publication"].includes(claim.tier ?? "") ? [hostOf(claim.url)] : []));
-  const official = /\(\?:([^()]+)\)\$$/.exec(languagePack(language).officialHosts.source)?.[1]?.split("|").map((host) => host.replace(/\\\./g, ".")) ?? [];
+  const seen = rows.flatMap((row) => (Array.isArray(row.claims) ? (row.claims as { url?: unknown; tier?: SourceTier }[]) : [])).flatMap((claim) => (typeof claim?.url === "string" && ["primary", "original", "publication"].includes(claim.tier ?? "") ? [hostOf(claim.url)] : [])).filter((host) => !isPlatformDomain(host));
   const count = (host: string): number => seen.filter((each) => each === host).length;
-  return [...new Set([...[...new Set(seen)].sort((x, y) => count(y) - count(x) || x.localeCompare(y)), ...official])].filter(Boolean).slice(0, 10);
+  return [...new Set([...[...new Set(seen)].sort((x, y) => count(y) - count(x) || x.localeCompare(y)), ...officialOf(language)])].filter(Boolean).slice(0, 10);
 }
-/** A page a credible host, or the tier rule's own address test, stands behind. */
-export const credibleAt = (url: string, hosts: readonly string[], rivals: readonly string[] = []): boolean => primaryAddress(url, rivals) || hosts.some((host) => sameSite(hostOf(url), host));
+/** A page the tier rule's own address test, an official host or its subdomain, or a learnt host exactly, stands behind. */
+export const credibleAt = (url: string, hosts: readonly string[], rivals: readonly string[] = [], official: readonly string[] = []): boolean => primaryAddress(url, rivals) || official.some((host) => sameSite(hostOf(url), host)) || hosts.includes(hostOf(url));
 /** The one search on credible hosts for the page's market question, on the study search's queue and filter; none without a host. */
-export const credibleSearch = <R extends { query: string }>(study: R, subject: string, hosts: readonly string[]): R | undefined =>
-  hosts.length === 0 ? undefined : { ...study, query: `${subject} (${hosts.map((host) => `site:${host}`).join(" OR ")})` };
+export const credibleSearch = <R extends { query: string }>(study: R, subject: string, hosts: readonly string[]): R | undefined => hosts.length === 0 ? undefined : { ...study, query: `${subject} (${hosts.map((host) => `site:${host}`).join(" OR ")})` };
 
 /** Distinct sites at `review` or better among the claims whose address the written page cites. */
 export function citedIndependent(claims: readonly Pick<MarketFact, "url" | "tier">[], cited: (url: string) => boolean): number {
