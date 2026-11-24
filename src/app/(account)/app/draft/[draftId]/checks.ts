@@ -34,17 +34,13 @@ import type { ClaimState, KnownCheck } from "./model";
 export const CHECKS: Readonly<Record<HardRule, { key: CopyKey }>> = Object.freeze({
   grounding: { key: "draft.checks.rule.grounding" },
   traceable_numerals: { key: "draft.checks.rule.traceable-numerals" },
-  rival_source: { key: "draft.checks.rule.rival-source" },
+  rival_claim: { key: "draft.checks.rule.rival-source" },
   cites_market: { key: "draft.checks.rule.cites-market" },
-  no_invented_test: { key: "draft.checks.rule.no-invented-test" },
-  no_invented_provenance: { key: "draft.checks.rule.no-invented-provenance" },
   no_placeholder_cell: { key: "draft.checks.rule.no-placeholder-cell" },
-  no_invented_people: { key: "draft.checks.rule.no-invented-people" },
-  no_unsourced_testimonial: { key: "draft.checks.rule.no-unsourced-testimonial" },
+  nothing_invented: { key: "draft.checks.rule.no-invented-people" },
   do_not_claim: { key: "draft.checks.rule.do-not-claim" },
   fit_claim: { key: "draft.checks.rule.fit-claim" },
   honest_row: { key: "draft.checks.rule.honest-row" },
-  rival_negative: { key: "draft.checks.rule.rival-negative" },
   no_hidden_text: { key: "draft.checks.rule.no-hidden-text" },
   no_machine_address: { key: "draft.checks.rule.no-machine-address" },
   near_duplicate: { key: "draft.checks.rule.near-duplicate" },
@@ -55,6 +51,17 @@ export const CHECKS: Readonly<Record<HardRule, { key: CopyKey }>> = Object.freez
   no_demo_text: { key: "draft.checks.rule.no-demo-text" },
   plain_prose: { key: "draft.checks.rule.plain-prose" },
   standalone_lead: { key: "draft.checks.rule.standalone-lead" },
+});
+
+/** A merged rule's failed row says the kind that fired (`RecordedChecks.kinds`). */
+const KIND_KEY: Readonly<Record<string, CopyKey>> = Object.freeze({
+  source: "draft.checks.rule.rival-source",
+  negative: "draft.checks.rule.rival-negative",
+  people: "draft.checks.rule.no-invented-people",
+  testimonial: "draft.checks.rule.no-unsourced-testimonial",
+  ranked: "draft.checks.rule.honest-row",
+  test: "draft.checks.rule.no-invented-test",
+  provenance: "draft.checks.rule.no-invented-provenance",
 });
 
 export type CheckStatus = "passed" | "skipped" | "failed" | "pending";
@@ -99,7 +106,7 @@ export function checkList(a: {
     rows.push(
       rule === "near_duplicate"
         ? { rule, status, ...nearDuplicate(status, a.known ?? null) }
-        : { rule, status, key: CHECKS[rule].key }
+        : { rule, status, key: (status === "failed" ? KIND_KEY[a.recorded.kinds?.[rule] ?? ""] : undefined) ?? CHECKS[rule].key }
     );
   }
   const count = (status: CheckStatus): number => rows.filter((row) => row.status === status).length;

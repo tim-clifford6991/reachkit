@@ -95,7 +95,7 @@ export function checkInventedPeople(a: {
     const name = attributedName(block.text);
     if (name === null) continue;
     if (isTheCustomer(name, a.businessName)) continue;
-    return { rule: "no_invented_people" };
+    return { rule: "nothing_invented", detail: { rule: "nothing_invented", kind: "people" } };
   }
   return null;
 }
@@ -127,6 +127,8 @@ function isQuotation(raw: string, quotable: readonly string[]): boolean {
   });
 }
 
+const TESTIMONIAL: RuleFailure = { rule: "nothing_invented", detail: { rule: "nothing_invented", kind: "testimonial" } };
+
 export function checkUnsourcedTestimonial(a: {
   markdown: string;
   /** Every passage the page was handed, from either pool. Absent on a page
@@ -139,19 +141,19 @@ export function checkUnsourcedTestimonial(a: {
     // A linked block quote is admitted only word for word.
     if (block.quoted && block.hasLink && a.quotable !== undefined) {
       if (block.text.trim().length >= REMARK_MIN_CHARS && !isQuotation(sources[index]!.raw, a.quotable)) {
-        return { rule: "no_unsourced_testimonial" };
+        return TESTIMONIAL;
       }
       continue;
     }
     if (block.hasLink) continue;
     if (TESTIMONIAL_RES.some((pattern) => pattern.test(block.text))) {
-      return { rule: "no_unsourced_testimonial" };
+      return TESTIMONIAL;
     }
     // A block quote long enough to be a remark, carrying no link, is a
     // reported remark whether or not it names its speaker — the `>` is the
     // quotation, so no quotation mark is looked for inside it.
     if (block.quoted && block.text.trim().length >= REMARK_MIN_CHARS) {
-      return { rule: "no_unsourced_testimonial" };
+      return TESTIMONIAL;
     }
   }
   return null;

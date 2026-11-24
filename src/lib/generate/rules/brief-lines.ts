@@ -36,24 +36,24 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
     "Write from `pack` only. `pack.facts` are this business's own words, read off its pages; `pack.claims` are claims read off public pages; `pack.profile` is what the business sells and how. State nothing about the business, the market, a competitor or a price that none of them carries.",
     "State a business fact word for word and link it to its `url`. A business fact used word for word may stand as a one-paragraph blockquote ending with a Markdown link to its `url` — at most three blockquotes on the page, each a whole sentence a reader can follow on its own, never a fragment of a table, a menu or a screen.",
   ],
-  rival_source: () => [
+  rival_claim: () => [
     "State a claim from `pack.claims` in your own sentence or quote it exactly, and link its `url` in that same sentence.",
     "Name a competing product only where `pack.claims` holds a claim from that product's own page (`pack.products` lists them), and say what that page says. Never state a figure about a competitor without linking the page it was read from.",
     "A claim with a `plan` is true of that plan only: name the plan in the sentence that states it (\"its free trial includes …\"), and never present a trial, a starter tier or one plan's limits as the whole product. Where `pack.claims` holds a competitor's own page, cite that page for it and no other page's claim about it.",
-  ],
-  rival_negative: () =>
     "Never say a competitor has no, lacks or does not offer something unless a claim in `pack.claims` says so, linked in that same sentence. A page that does not mention a thing is not a page saying the product lacks it.",
-  no_invented_people: () =>
+  ],
+  nothing_invented: () => [
     "Never invent a byline, an author biography, a persona or a quotation. The page prints its own byline and dates: write neither.",
-  no_unsourced_testimonial: () => "Never invent a testimonial or a review.",
+    "Never invent a testimonial or a review.",
+    "Never say the page's claims were tested, trialled or benchmarked.",
+    "Never invent a case study.",
+  ],
   honest_row: () =>
     "`honesty` holds on this market comparison: this business has its own row in the comparison table, beside the others on the same criteria, and no title, heading, row or sentence ranks it \"#1\" or the best.",
   no_hidden_text: () => "No raw HTML, no images, no comments.",
   no_machine_address: () => "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
   near_duplicate: () =>
     "`pack.pages` are the pages this site has published or planned: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it.",
-  no_invented_test: () => "Never say the page's claims were tested, trialled or benchmarked.",
-  no_invented_provenance: () => "Never invent a case study.",
   traceable_numerals: () => `Write no number of ${REGISTER_FLOOR} or more that \`pack\` or the target search do not contain; a year is not a number for this rule.`,
   first_block_answers: (a) =>
     `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target plainly — write 45 to 55, in two or three sentences, and count them: outside ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} the page is stopped.` +

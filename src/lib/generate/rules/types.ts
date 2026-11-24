@@ -37,22 +37,17 @@ import type { TitleFault } from "./title";
  *  directory. */
 export type HardRule =
   | "grounding"
-  | "rival_source"
-  /** SPEC §7 (issue 1485): no "X has no / doesn't / lacks Y" about a rival
-   *  unless a stored source says so (`./rivals.ts`). */
-  | "rival_negative"
-  | "no_invented_people"
-  | "no_unsourced_testimonial"
-  /** SPEC §7 (D20, issue 1136): on a market comparison the business is in
-   *  the table and never ranks itself "#1 best" (`./honest.ts`). */
+  /** SPEC §7: a rival's claim links the rival's own page and keeps its plan, and nothing is denied of a rival that no
+   *  stored source denies (`./rivals.ts`). */
+  | "rival_claim"
+  /** SPEC §7: no invented person, review, test, case study or self-ranked "#1" (`./people.ts`, `./brief.ts`, `./honest.ts`). */
+  | "nothing_invented"
+  /** SPEC §7 (D20, issue 1136): on a market comparison the business is in the table (`./honest.ts`). */
   | "honest_row"
   | "no_hidden_text"
   | "no_machine_address"
   | "near_duplicate"
-  /** SPEC §7 · issue 475: rules 8–12, which read what the brief handed the
-   *  model (`./brief.ts`). */
-  | "no_invented_test"
-  | "no_invented_provenance"
+  /** SPEC §7 · issue 475: the rules that read what the brief handed the model (`./brief.ts`). */
   | "traceable_numerals"
   | "first_block_answers"
   /** SPEC §7 (2026-09-29, issue 1137): the blocks every generated page
@@ -90,16 +85,12 @@ export type HardRule =
  *  list is comparable across runs. */
 export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "grounding",
-  "rival_source",
-  "rival_negative",
-  "no_invented_people",
-  "no_unsourced_testimonial",
+  "rival_claim",
+  "nothing_invented",
   "honest_row",
   "no_hidden_text",
   "no_machine_address",
   "near_duplicate",
-  "no_invented_test",
-  "no_invented_provenance",
   "traceable_numerals",
   "first_block_answers",
   "required_blocks",
@@ -149,6 +140,8 @@ export interface RecordedChecks {
   fixed: number;
   /** The rules recorded but not drawn (`HIDDEN_RULES`), which no total counts. Absent reads as none. */
   hidden?: readonly HardRule[];
+  /** A failed rule's `detail.kind`, where its failure records one. Absent reads as none. */
+  kinds?: Readonly<Partial<Record<HardRule, string>>>;
 }
 
 /** Nothing recorded: a row no battery has touched, or text not yet re-checked. */
@@ -174,6 +167,9 @@ export interface GroundedFact {
  *  sites (D13), whose member is never named: its `ref` and `title` are empty. */
 export type DuplicateKind = "published" | "measured" | "queued" | "elsewhere";
 
+/** Which of `nothing_invented`'s faults a page has: a person, a review, a self-ranked "#1", a test or a case study. */
+export type InventedKind = "people" | "testimonial" | "ranked" | "test" | "provenance";
+
 export interface RuleFailure {
   rule: HardRule;
   /** Only ever a stored value or a handle — never a sentence and never
@@ -188,14 +184,12 @@ export interface RuleFailure {
     | { rule: "do_not_claim"; matchedEntry: string }
     /** The page's own sentences that claim a fit, as written. */
     | { rule: "fit_claim"; sentences: string[] }
-    /** The numeral as it appears in the draft. */
-    /** The numeral as it appears in the draft; since issue 1485, also what
-     *  the sentence got wrong about the rival's source — a third party's
-     *  page where the rival's own was read, or a claim without its plan —
-     *  and the page's own sentence. */
-    | { rule: "rival_source"; figure: string; fault?: "third_party" | "plan"; sentence?: string }
+    /** A rival's figure without its page, as the draft has it, or what the sentence got wrong about the rival's source
+     *  (a third party's page where the rival's own was read, or a claim without its plan) and the page's own sentence. */
+    | { rule: "rival_claim"; kind: "source"; figure: string; fault?: "third_party" | "plan"; sentence?: string }
     /** The page's own sentence that denies a rival something. */
-    | { rule: "rival_negative"; sentence: string }
+    | { rule: "rival_claim"; kind: "negative"; sentence: string }
+    | { rule: "nothing_invented"; kind: InventedKind }
     | { rule: "traceable_numerals"; figure: string }
     /** Which block the page lacks — a handle, never a sentence; `over`, its length is past the ceiling rather than under the floor. */
     | { rule: "required_blocks"; block: RequiredBlock; length?: true; over?: true }

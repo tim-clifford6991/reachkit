@@ -54,14 +54,12 @@ import type { PageParts } from "./write";
 /** The rules a repair in code is tried for, in the order it is applied. The
  *  opening is last because dropping a sentence can change what opens. */
 export const MECHANICAL_RULES: readonly HardRule[] = Object.freeze([
-  "no_invented_provenance",
+  // An invented case study is dropped; the rest of what it catches takes a writer.
+  "nothing_invented",
   "traceable_numerals",
-  // Issue 1135: a rival's figure left without its page is linked to the
-  // fact's page that states it; a sentence still unsourced is dropped.
-  "rival_source",
-  // Issue 1485: a sentence that denies a rival something no source says is
-  // dropped. The FAQ is the fix call's.
-  "rival_negative",
+  // A rival's figure left without its page is linked to the fact's page that states it; a sentence still unsourced, or
+  // one that denies a rival something no source says, is dropped. The FAQ is the fix call's.
+  "rival_claim",
   // Issue 2375: a sentence the fit check named is dropped, unless it is the
   // whole short answer. No word is written.
   "fit_claim",
@@ -226,7 +224,7 @@ function repairRivalFigures(markdown: string, inputs: RepairInputs): string {
   });
 }
 
-/** The page without each sentence `rival_source` still fails when handed it alone. */
+/** The page without each sentence whose rival figure or source `rival_claim` still fails when handed it alone. */
 function withoutUnsourcedRivals(markdown: string, inputs: RepairInputs): string {
   const rivals = inputs.rivals ?? [];
   const named = inputs.rivalsNamed ?? namedRivals(rivals, null);
@@ -356,14 +354,13 @@ export function repairRecorded(
   for (const rule of MECHANICAL_RULES) {
     if (!rules.includes(rule)) continue;
     const prior = out;
-    if (rule === "no_invented_provenance") {
+    if (rule === "nothing_invented") {
       out = mapSentences(out, (piece) => (isPhraseBreach({ raw: piece, text: wordsOf(piece) }, INVENTED_PROVENANCE_RES, inputs.brief) ? null : piece), language);
     } else if (rule === "traceable_numerals") {
       out = repairNumerals(out, inputs);
-    } else if (rule === "rival_source") {
-      out = withoutUnsourcedRivals(repairRivalFigures(out, inputs), inputs);
-    } else if (rule === "rival_negative") {
+    } else if (rule === "rival_claim") {
       const rivals = inputs.rivalsNamed ?? namedRivals(inputs.rivals ?? [], null);
+      out = withoutUnsourcedRivals(repairRivalFigures(out, inputs), inputs);
       out = withoutRivalBreaches(out, (piece) => deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null, language);
     } else if (rule === "fit_claim") {
       const unfit = withoutUnfit(out, inputs.fit ?? [], language);
@@ -480,18 +477,19 @@ function sentencesFor(
   switch (failure.rule) {
     // The rule is its own oracle: the blocks it still fails when handed each
     // alone are the ones that broke it.
-    case "no_invented_people":
-      return blocksOf(markdown)
-        .filter((_, index) => checkInventedPeople({ markdown: sourceBlocksOf(markdown)[index]!.raw, businessName: site?.businessName ?? null }) !== null)
-        .map((block) => block.text);
-    case "no_unsourced_testimonial":
-      return blocksOf(markdown)
-        .filter((_, index) => checkUnsourcedTestimonial({ markdown: sourceBlocksOf(markdown)[index]!.raw, ...(brief.marketFacts === undefined ? {} : { quotable: poolPassages(brief) }) }) !== null)
-        .map((block) => block.text);
-    case "no_invented_test":
-      return sentences.filter((s) => isPhraseBreach(s, INVENTED_TEST_RES, brief)).map((s) => s.text);
-    case "no_invented_provenance":
-      return sentences.filter((s) => isPhraseBreach(s, INVENTED_PROVENANCE_RES, brief)).map((s) => s.text);
+    // Every kind's own breaches; a self-ranked "#1" only where that was the kind, since only a comparison is read for it.
+    case "nothing_invented": {
+      const raw = sourceBlocksOf(markdown);
+      const quotable = brief.marketFacts === undefined ? {} : { quotable: poolPassages(brief) };
+      const ranked = failure.detail?.rule === "nothing_invented" && failure.detail.kind === "ranked" && site !== undefined;
+      return [
+        ...blocksOf(markdown)
+          .filter((_, index) => checkInventedPeople({ markdown: raw[index]!.raw, businessName: site?.businessName ?? null }) !== null || checkUnsourcedTestimonial({ markdown: raw[index]!.raw, ...quotable }) !== null)
+          .map((block) => block.text),
+        ...(ranked ? selfRankedIn({ ...site, title: title ?? "", markdown, pageType: "market_comparison" }) : []),
+        ...sentences.filter((s) => isPhraseBreach(s, [...INVENTED_TEST_RES, ...INVENTED_PROVENANCE_RES], brief)).map((s) => s.text),
+      ];
+    }
     case "traceable_numerals": {
       const traceable = pageTraceableNumerals(markdown, brief);
       const withheld = withheldMeasurements(brief);
@@ -500,10 +498,8 @@ function sentencesFor(
         .filter((piece) => untraceable(piece, traceable).length > 0 || ownMeasurementIn(wordsOf(piece), withheld) !== null)
         .map(wordsOf);
     }
-    case "rival_negative":
-      return failure.detail !== undefined && failure.detail.rule === "rival_negative" ? [failure.detail.sentence] : [];
-    case "rival_source": {
-      const said = failure.detail !== undefined && failure.detail.rule === "rival_source" ? failure.detail.sentence : undefined;
+    case "rival_claim": {
+      const said = failure.detail?.rule === "rival_claim" ? failure.detail.sentence : undefined;
       if (said !== undefined) return [said];
       const figure = failure.detail !== undefined && "figure" in failure.detail ? failure.detail.figure : null;
       if (figure === null) return [];
@@ -521,12 +517,6 @@ function sentencesFor(
       return failure.detail !== undefined && "matchedEntry" in failure.detail ? [failure.detail.matchedEntry] : [];
     case "fit_claim":
       return failure.detail !== undefined && "sentences" in failure.detail ? failure.detail.sentences : [];
-    case "honest_row":
-      // Empty where the page ranked nothing: the business is then missing
-      // from the comparison table, which `honesty` tells the writer to build.
-      return site === undefined
-        ? []
-        : selfRankedIn({ ...site, title: title ?? "", markdown, pageType: "market_comparison" });
     case "first_block_answers": {
       const first = blocksOf(markdown).find((block) => !block.heading);
       return first === undefined ? [] : [first.text];
@@ -552,7 +542,7 @@ export function fixNotes(
   failed: readonly RuleFailure[],
   brief: BriefRuleInputs,
   site?: SiteNames,
-  /** The title as written, which `honest_row` reads beside the text. */
+  /** The title as written, which a self-ranked "#1" is read in beside the text. */
   title?: string
 ): FixNote[] {
   return failed.map((failure) => ({

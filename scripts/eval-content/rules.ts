@@ -208,8 +208,7 @@ function firesOn(
  *  single block. */
 const BLOCK_RULES: readonly string[] = [
   "no_private_figure",
-  "no_invented_people",
-  "no_unsourced_testimonial",
+  "nothing_invented",
   "no_hidden_text",
   "no_machine_address",
 ];
