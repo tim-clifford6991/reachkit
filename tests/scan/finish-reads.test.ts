@@ -247,7 +247,7 @@ describe("one attempt: a search that fails again stays unmeasured with its reaso
 
 describe("a weekly pass's searches whose queued task outlived its ceiling", () => {
   it("reads only those and writes them into the report", async () => {
-    const report = { ...zeroOfTwelve(), tier: "weekly", finishingReads: undefined };
+    const report: Record<string, unknown> = { ...zeroOfTwelve(), tier: "weekly", finishingReads: undefined };
     report.serps = KEYWORDS.map((keyword, i) => (i < 5 ? measured(serpFor(keyword), NOW) : unmeasured("undeterminable", NOW, "deadline")));
     const db = storeOf(report);
     const v = vendorOf({ spentCents: 0, centsPerRead: 0, answer: (query) => (query === KEYWORDS[11] ? unmeasured("undeterminable", NOW) : measured(serpFor(query), NOW)) });
