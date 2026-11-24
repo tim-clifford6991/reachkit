@@ -75,7 +75,7 @@ export function checkRivalSource(a: {
   for (const sentence of sentencesOf(a.markdown)) {
     const figure = unsourcedRivalFigure(sentence, a.rivals, pages);
     if (figure === null) continue;
-    return { rule: "rival_source", detail: { rule: "rival_source", figure } };
+    return { rule: "rival_claim", detail: { rule: "rival_claim", kind: "source", figure } };
   }
   return null;
 }
@@ -87,7 +87,7 @@ export function checkRivalSource(a: {
 // product, a third-party "$99" stood beside Profound's own pricing page, and
 // the FAQ said Profound has no free tier — which its own page contradicts.
 //
-// Two faults of `rival_source`, and one rule of its own:
+// Three faults of `rival_claim`, beside a figure without its page:
 //
 //   * **its own page first.** A sentence that names a rival and links a page
 //     that is not that rival's, where the page was handed a claim from the
@@ -97,7 +97,7 @@ export function checkRivalSource(a: {
 //     fails. A claim from a rival's price list recorded before plans were
 //     has no plan to name, and is used only where its own words name the
 //     plan they price ("Standard $ 189 /month").
-//   * **`rival_negative`.** "X has no / doesn't / lacks Y" about a rival
+//   * **a denial.** "X has no / doesn't / lacks Y" about a rival
 //     fails unless a stored fact about that rival says so: one read off its
 //     own page or naming it, that denies something too and shares a word
 //     with what the sentence denies.
@@ -224,7 +224,7 @@ export function checkRivalScope(a: {
   for (const sentence of sentencesOf(a.markdown)) {
     const fault = rivalScopeBreach(sentence, a.rivals, a.facts);
     if (fault === null) continue;
-    return { rule: "rival_source", detail: { rule: "rival_source", figure: firstFigure(sentence.text) ?? "", fault, sentence: sentence.text } };
+    return { rule: "rival_claim", detail: { rule: "rival_claim", kind: "source", figure: firstFigure(sentence.text) ?? "", fault, sentence: sentence.text } };
   }
   return null;
 }
@@ -298,7 +298,7 @@ export function checkRivalNegative(a: {
     // A sentence's other clauses say what its denial is about ("doesn't
     // publish a number, … pricing is tailored").
     if (denials(sentence, a.rivals).some((each) => !supported(each.rival, sentence, facts))) {
-      return { rule: "rival_negative", detail: { rule: "rival_negative", sentence } };
+      return { rule: "rival_claim", detail: { rule: "rival_claim", kind: "negative", sentence } };
     }
   }
   return null;

@@ -64,7 +64,7 @@ import { copy } from "@/lib/presentation/copy";
 import { PREVIEW_DEBOUNCE_MS } from "@/lib/config/constants";
 import { HOSTED_BODY_CLASSES } from "@/app/(hosted)/hosted-page/body-classes";
 import { markPassage, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
-import { BREAK_COPY_KEY, isPlaced, liveBreaks, type Break, type MarkInputs } from "./marks";
+import { isPlaced, liveBreaks, type Break, type MarkInputs } from "./marks";
 import { useDebounced } from "./useDebounced";
 import { AddressBar } from "./PublishedPageView";
 
@@ -282,10 +282,7 @@ export function applyFormat(
  *  founder is owed the sentence either way, and the gutter is where a
  *  diagnostic with no span belongs. */
 function diagnosticOf(found: Break, length: number): Diagnostic {
-  const message =
-    found.rule === "do_not_claim"
-      ? copy(BREAK_COPY_KEY.do_not_claim, { entry: found.entry ?? "" })
-      : copy(BREAK_COPY_KEY[found.rule]);
+  const message = copy(found.key, found.rule === "do_not_claim" ? { entry: found.entry ?? "" } : undefined);
   const from = Math.min(found.from, length);
   const to = Math.min(Math.max(found.to, from), length);
   return { from, to, severity: "warning", message };

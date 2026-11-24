@@ -4,10 +4,10 @@
   "testFiles": { "live": 609, "layout": 17 },
   "lines": {
     "fileMax": 600,
-    "areas": { "src/lib/opportunities": 9000, "src/lib/generate": 17157, "src/lib/publish": 12936 },
+    "areas": { "src/lib/opportunities": 9000, "src/lib/generate": 17156, "src/lib/publish": 12936 },
     "tests": { "share": 0.3333, "floor": 200 }
   },
   "ratchets": { "dbAdminCasts": 81, "minimalClients": 63, "fixtureBranches": 32 },
-  "lists": { "hardRules": 23, "stoppingRules": 16, "mechanicalRules": 7, "pipelineSteps": 6 },
+  "lists": { "hardRules": 19, "stoppingRules": 12, "mechanicalRules": 6, "pipelineSteps": 6 },
   "blockRules": { "§0": 5, "§1": 0, "§2": 0, "§3": 0, "§4": 0, "§5": 0, "§6": 0, "§7": 0, "§8": 0, "§9": 0, "§11": 0, "§12": 0 }
 }

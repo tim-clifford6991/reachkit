@@ -56,13 +56,13 @@ describe("§8 hard rule 6 — every rival claim links its public source", () => 
     const markdown =
       "Rival.example serves 400 teams. The number is on [their about page](https://rival.example/about).";
     const failure = checkRivalSource({ markdown, rivals });
-    expect(failure?.rule).toBe("rival_source");
-    expect(failure?.detail).toEqual({ rule: "rival_source", figure: "400" });
+    expect(failure?.rule).toBe("rival_claim");
+    expect(failure?.detail).toEqual({ rule: "rival_claim", kind: "source", figure: "400" });
   });
 
   it("a rival named by its name, not its domain, is still a rival", () => {
     expect(checkRivalSource({ markdown: "Northwind charges 30% more.", rivals })?.rule).toBe(
-      "rival_source"
+      "rival_claim"
     );
   });
 

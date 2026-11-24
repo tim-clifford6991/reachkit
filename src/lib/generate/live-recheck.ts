@@ -4,8 +4,8 @@
 // trial out as the product, cited a reviewer's "$99" beside Profound's own
 // pricing page, and its FAQ said Profound has no free tier. The rules that
 // would have stopped it are new (`./rules/rivals.ts`): a rival's claim keeps
-// its plan and its own page (`rival_source`), and nothing is denied of a
-// rival that no source denies (`rival_negative`).
+// its plan and its own page, and nothing is denied of a
+// rival that no source denies (`rival_claim`).
 //
 // A page written before them is read again here, **from its own row** — the
 // body, the FAQ beside it and the market facts its pack recorded, each with

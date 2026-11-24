@@ -34,7 +34,7 @@ import { checkDemoText } from "./demo";
 import { fitCheck, type FitVerdict } from "../claims/fit";
 import type { PromptKnowledge } from "../voice/profile-block";
 import { checkDistinctHeadings } from "./headings";
-import { checkHonestRow } from "./honest";
+import { checkHonestRow, checkSelfRanked } from "./honest";
 import { checkGrounding } from "./grounding";
 import { checkHiddenText } from "./hidden";
 import { checkMachineAddress } from "./machine";
@@ -190,39 +190,35 @@ export function runDeterministicRules(
   given: DeterministicInputs
 ): Record<Exclude<HardRule, ModelRule>, RuleFailure | null> {
   const a = withoutSources(given);
+  // The H1 is a heading of the page: read as its first one.
+  const headed = a.heading === undefined || a.heading === a.title ? a.markdown : `# ${a.heading}\n\n${a.markdown}`;
+  const honest = { title: a.title, markdown: headed, businessName: a.site.businessName, domain: a.site.domain, pageType: a.pageType };
   return {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
-    rival_source:
+    rival_claim:
       checkRivalSource({
         markdown: a.markdown,
         rivals: a.site.rivals,
         ...(a.brief.marketFacts === undefined
           ? {}
           : { factPages: [...(a.factPages ?? []), ...a.brief.marketFacts.map((fact) => fact.url)] }),
-      }) ?? checkRivalScope({ markdown: a.markdown, rivals: rivals(a), facts: a.brief.marketFacts }),
-    rival_negative: checkRivalNegative({ markdown: a.markdown, faq: a.blocks?.faq ?? [], rivals: rivals(a), facts: a.brief.marketFacts }),
-    no_invented_people: checkInventedPeople({
-      markdown: a.markdown,
-      businessName: a.site.businessName,
-    }),
-    no_unsourced_testimonial: checkUnsourcedTestimonial({
-      markdown: a.markdown,
-      ...(a.brief.marketFacts === undefined ? {} : { quotable: poolPassages(a.brief) }),
-    }),
-    honest_row: checkHonestRow({
-      title: a.title,
-      // The H1 is a heading of the page: read as its first one.
-      markdown: a.heading === undefined || a.heading === a.title ? a.markdown : `# ${a.heading}\n\n${a.markdown}`,
-      businessName: a.site.businessName,
-      domain: a.site.domain,
-      rivals: a.site.rivals,
-      pageType: a.pageType,
-    }),
+      }) ??
+      checkRivalScope({ markdown: a.markdown, rivals: rivals(a), facts: a.brief.marketFacts }) ??
+      checkRivalNegative({ markdown: a.markdown, faq: a.blocks?.faq ?? [], rivals: rivals(a), facts: a.brief.marketFacts }),
+    // A self-ranked "#1" first: the fix note names its sentences only when it is the kind recorded.
+    nothing_invented:
+      checkSelfRanked(honest) ??
+      checkInventedPeople({ markdown: a.markdown, businessName: a.site.businessName }) ??
+      checkUnsourcedTestimonial({
+        markdown: a.markdown,
+        ...(a.brief.marketFacts === undefined ? {} : { quotable: poolPassages(a.brief) }),
+      }) ??
+      checkInventedTest({ markdown: a.markdown, brief: a.brief }) ??
+      checkInventedProvenance({ markdown: a.markdown, brief: a.brief }),
+    honest_row: checkHonestRow({ ...honest, rivals: a.site.rivals }),
     no_hidden_text: checkHiddenText({ markdown: a.laid ?? a.markdown }),
     no_machine_address: checkMachineAddress({ rendered: a.rendered }),
     near_duplicate: checkNearDuplicate({ rendered: a.rendered, comparison: a.comparison }),
-    no_invented_test: checkInventedTest({ markdown: a.markdown, brief: a.brief }),
-    no_invented_provenance: checkInventedProvenance({ markdown: a.markdown, brief: a.brief }),
     traceable_numerals: checkTraceableNumerals({ markdown: a.markdown, brief: a.brief }),
     first_block_answers: checkFirstBlockAnswers({ markdown: a.markdown }),
     required_blocks: checkRequiredBlocks({ markdown: a.laid ?? a.markdown, title: a.title, blocks: a.blocks ?? null }),

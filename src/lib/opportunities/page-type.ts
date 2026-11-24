@@ -8,7 +8,7 @@
 //                        product is the subject.
 //   `market_comparison`  the market compared — a "best X", a "top X", a
 //                        comparison no brand anchors. Favourable framing,
-//                        never a self-ranked "#1 best" (`honest_row`).
+//                        never a self-ranked "#1 best" (`nothing_invented`).
 //   `answer`             a question answered — "X vs Y" between two
 //                        category terms included (issue 1506), and a
 //                        question buyers were seen asking (issue 1519).

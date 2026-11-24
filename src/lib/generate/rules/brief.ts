@@ -5,8 +5,8 @@
 // targets. (`no_new_question_heading` retired with the outline, D41.) A draft can only state what those carry, so
 // each rule fails a page that reaches past them:
 //
-//   no_invented_test         "we tested", "in our trials" — a test nobody ran;
-//   no_invented_provenance   a case study — a history the page was never
+//   nothing_invented, test   "we tested", "in our trials" — a test nobody ran;
+//   nothing_invented, case   a case study — a history the page was never
 //                            given. (A byline and the page's dates are the
 //                            page's own since SPEC §7 of 2026-09-29: setup
 //                            records the one, publishing the other.)
@@ -114,22 +114,22 @@ export function isPhraseBreach(
 }
 
 function phraseRule(
-  rule: "no_invented_test" | "no_invented_provenance",
+  kind: "test" | "provenance",
   patterns: readonly RegExp[],
   a: { markdown: string; brief: BriefRuleInputs }
 ): RuleFailure | null {
-  return sentencesOf(a.markdown).some((sentence) => isPhraseBreach(sentence, patterns, a.brief)) ? { rule } : null;
+  return sentencesOf(a.markdown).some((sentence) => isPhraseBreach(sentence, patterns, a.brief)) ? { rule: "nothing_invented", detail: { rule: "nothing_invented", kind } } : null;
 }
 
 export function checkInventedTest(a: { markdown: string; brief: BriefRuleInputs }): RuleFailure | null {
-  return phraseRule("no_invented_test", INVENTED_TEST_RES, a);
+  return phraseRule("test", INVENTED_TEST_RES, a);
 }
 
 export function checkInventedProvenance(a: {
   markdown: string;
   brief: BriefRuleInputs;
 }): RuleFailure | null {
-  return phraseRule("no_invented_provenance", INVENTED_PROVENANCE_RES, a);
+  return phraseRule("provenance", INVENTED_PROVENANCE_RES, a);
 }
 
 /** Every numeral a fact of either pool or a target search states, normalised. */
