@@ -36,4 +36,8 @@ describe("a study page is credible by its host, never by a tier one passage earn
     expect([press, "https://www.scalenut.com/blogs/trends-in-generative-engine-optimization"].map((url) => credibleAt(url, "en"))).toEqual([true, false]);
     expect(tiered([fact(press, 0)], { rivals, products: rivals, language: "en", pages: [{ url: press, text: "claim 0" }], capped: new Set() })[0]?.tier).toBe("publication");
   });
+  it("tiers Peec AI's sponsored post on SEJ (production, 24 Nov) as its sponsor's, never publication", () => {
+    const spa = "https://www.searchenginejournal.com/win-generative-engine-optimization-peecai-spa/550612/", text = "How to win generative engine optimization with Peec AI. claim 0";
+    expect([credibleAt(spa, "en"), tiered([fact(spa, 0)], { rivals, products: rivals, names: [{ domain: "peec.ai", name: "Peec AI" }], language: "en", pages: [{ url: spa, text }], capped: new Set() })[0]?.tier]).toEqual([false, "vendor"]);
+  });
 });

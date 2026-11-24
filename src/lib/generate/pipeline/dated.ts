@@ -133,14 +133,17 @@ export function datesOf(from: ClaimDates): ClaimDates {
   return out;
 }
 
-/** The one date a Sources line names (SPEC §7): the update where it falls in a later month than the publication. */
-export type SourceDate = { said: "published" | "updated"; at: string } | "undated";
+/** The date a Sources line names (SPEC §7): the update where it falls in a later month than the publication, both where
+ *  they are over twelve months apart, so an old page never reads as new. */
+export type SourceDate = { said: "published" | "updated"; at: string; updated?: string } | "undated";
 
 /** A source's line date: `undated` where it was looked for and none counts, `null` on one read before it was looked for. */
 export function sourceDate(source: ClaimDates): SourceDate | null {
   if (source.datedBy === undefined && source.timeliness === undefined) return null;
   if (source.publishedAt === undefined && source.modifiedAt !== undefined) return { said: "updated", at: source.modifiedAt };
   if (source.publishedAt === undefined) return "undated";
-  const updated = source.modifiedAt !== undefined && source.modifiedAt.slice(0, 7) > source.publishedAt.slice(0, 7);
-  return updated ? { said: "updated", at: source.modifiedAt! } : { said: "published", at: source.publishedAt };
+  const months = (at: string): number => Number(at.slice(0, 4)) * 12 + Number(at.slice(5, 7));
+  const apart = source.modifiedAt === undefined ? 0 : months(source.modifiedAt) - months(source.publishedAt);
+  if (apart > 12) return { said: "published", at: source.publishedAt, updated: source.modifiedAt };
+  return apart > 0 ? { said: "updated", at: source.modifiedAt! } : { said: "published", at: source.publishedAt };
 }

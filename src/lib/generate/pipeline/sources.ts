@@ -88,7 +88,7 @@ export function withSources(markdown: string, sources: readonly CitedSource[], a
   if (cited.length === 0) return body === markdown.replace(/\s+$/, "") ? markdown : `${body}\n`;
   const items = cited.map((source) => {
     const dated = sourceDate(source);
-    const own = dated === null ? [] : [dated === "undated" ? say("body.sources.undated") : say(`body.sources.${dated.said}`, { month: whenSaid(dated.at, as.language) })];
+    const own = dated === null ? [] : dated === "undated" ? [say("body.sources.undated")] : [say(`body.sources.${dated.said}`, { month: whenSaid(dated.at, as.language) }), ...(dated.updated === undefined ? [] : [say("body.sources.updated", { month: whenSaid(dated.updated, as.language) })])];
     const read = say("body.sources.read", { date: writePageDate(source.readAt, as.timeZone, as.tag) });
     return `- ${[`[${safeLabel(source.title)}](${safeHref(source.url)})`, ...own, read].join(" · ")}`;
   });
