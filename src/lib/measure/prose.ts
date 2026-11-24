@@ -119,6 +119,11 @@ export function prose(html: string): Prose {
   for (const element of root.querySelectorAll(CHROME)) {
     if (element.getAttribute("aria-hidden") !== "false") element.remove();
   }
+  // Two elements of several words each with nothing between are laid out apart ("Day 2" over "Your first page…").
+  for (const element of root.querySelectorAll("*")) {
+    const next = element.nextSibling;
+    if (next?.nodeType === 1 && /\s/.test(element.text.trim()) && /\s/.test(next.text.trim())) element.insertAdjacentHTML("afterend", "<div></div>");
+  }
   const said: string[] = [];
   for (const element of examplesIn(root)) {
     said.push(...blockLines(element.structuredText));

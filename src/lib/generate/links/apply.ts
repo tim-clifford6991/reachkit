@@ -55,15 +55,12 @@ export function applyLinks(
      *  D41): a fact is linked to its source, so a link to one of them
      *  stands. */
     factUrls?: readonly string[];
-    /** `false` holds the text to the chosen pages without appending the
-     *  ones it did not reach — for a line that is not the body (issue 1137:
-     *  the page's closing line, laid out after the body's links). */
+    /** `false` appends no unreached page: for a line that is not the body, such as the closing. */
     appendMissing?: boolean;
-    /** The heading of the section the unreached pages are listed under —
-     *  the page's own section on how the business handles the question
-     *  (SPEC §7, 2026-09-29: "with links to its product, pricing and the
-     *  cluster's hub page"). Absent, or not found, they close the body. */
+    /** The heading of the business's own section the unreached pages are listed under; absent or not found, they close the body. */
     appendUnder?: string;
+    /** The line the unreached pages are listed under, so they never stand as a bare list. */
+    appendLead?: string;
   }
 ): string {
   const chosen = new Map<string, LinkTarget>();
@@ -122,7 +119,7 @@ export function applyLinks(
   });
   if (missing.length === 0 || a.appendMissing === false) return dedupeLinks(lines.join("\n"));
 
-  const list = missing.map((target) => `- [${safeLabel(target.label)}](${safeHref(target.url)})`);
+  const list = [...(a.appendLead === undefined ? [] : [a.appendLead, ""]), ...missing.map((target) => `- [${safeLabel(target.label)}](${safeHref(target.url)})`)];
   const under = a.appendUnder === undefined ? -1 : lines.findIndex((line) => line.trim() === `## ${a.appendUnder}`);
   if (under >= 0) {
     // The end of that section: the next H2, or the end of the body.

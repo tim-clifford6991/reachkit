@@ -190,6 +190,10 @@ export interface LanguagePack {
   backReferences: readonly string[];
   /** A sentence that refers to the one before it, by its opening or a word that points back: it goes with a sentence a repair drops. */
   refersBack: RegExp;
+  /** Where a sentence makes the product it names first the better pick for a need ("Otterly is the better pick if…"). */
+  prefersRival: RegExp;
+  /** The line over the related pages a page lists at its end, so they never stand as a bare list. */
+  relatedLead: string;
   /** The words a page speaks in as its business (the first person plural): a sentence in them is the business's claim. */
   ownVoice?: RegExp;
   /** A sentence about the writer's own inputs, or one that corrects itself mid-line, rather than to the reader; a language without one drops none. */

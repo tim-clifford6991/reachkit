@@ -66,4 +66,10 @@ describe("a title the title rule makes name the business is not a fit claim", ()
       CLAIM,
     ]);
   });
+
+  it("keeps an honest 'a rival is the better pick' sentence out of the fit check when the rival's facts are in the pack", () => {
+    const said = "Otterly is the better pick than ReachKit if all you want is a low-cost daily check on a small prompt list.";
+    const claims = [{ url: "https://otterly.ai/pricing", passage: "Lite €29, 16 prompts, daily", product: "Otterly.AI" }];
+    expect(brandSentences({ ...SITE, title: "", markdown: `${said} ${CLAIM}`, language: "en", claims })).toEqual([CLAIM]);
+  });
 });
