@@ -84,7 +84,7 @@ export type PipelineStep =
   | "page_read"
   | "page_fix";
 
-/** The two needs that stop a page  before it is written; every other need is written short. */
+/** The two needs that stop a page before it is written; every other need is written short. */
 const STOPS_BEFORE: ReadonlySet<PackNeed> = new Set<PackNeed>(["rival_evidence", "live_page"]);
 
 /** The state a row this function writes is left in. The edge into
