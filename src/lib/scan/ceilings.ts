@@ -243,11 +243,11 @@ export async function withScanBounds<T>(
 
 /** The context a paid pass spends in once its report is stored (the §6.3 opportunity typing): keyed to the pass's row, so it counts in `scans.cost_cents` and against the same cap. */
 export function withStoredPassSpend<T>(
-  a: { scanId: string; cap: CapName },
+  a: { scanId: string; cap: CapName; holdBackCents?: number },
   body: (c: CostContext) => Promise<T>
 ): Promise<T> {
   return withCostContext(
-    { scanId: a.scanId, cap: a.cap, policyVersion: FREE_SCAN_POLICY_VERSION, rollUp: "add" },
+    { scanId: a.scanId, cap: a.cap, policyVersion: FREE_SCAN_POLICY_VERSION, rollUp: "add", holdBackCents: a.holdBackCents ?? 0 },
     body
   );
 }

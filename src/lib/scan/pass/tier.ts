@@ -1,5 +1,5 @@
 // src/lib/scan/pass/tier.ts — the tier's parameters: one frozen table, so the pass never branches on tier.
-import { BATTERY, CACHE_WINDOWS_D, SELECTION, WEEKLY_RIVAL_RESIZES, TIMING, TYPING_RESERVE_C, VENDOR } from "@/lib/config/constants";
+import { BATTERY, CACHE_WINDOWS_D, SELECTION, WEEKLY_RIVAL_RESIZES, TIMING, TYPING_RESERVE_C, VENDOR, WEEK_AFTER_C } from "@/lib/config/constants";
 import type { CapName } from "@/lib/costs";
 import { PAID_SERP_FANOUT } from "../budgets";
 import type { Tier } from "../report";
@@ -81,6 +81,8 @@ export interface TierParameters {
   measuresStatedPlace: boolean;
   /** The cents of the cap the stages leave for the typing after the stored report. */
   typingReserveC: number;
+  /** The cents of the cap the pass and the spend on its stored report leave for the week's steps after them (`WEEK_AFTER_C`). */
+  afterC: number;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -115,6 +117,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     finishesReads: true,
     measuresStatedPlace: true,
     typingReserveC: 0,
+    afterC: 0,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -146,6 +149,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     finishesReads: false,
     measuresStatedPlace: false,
     typingReserveC: TYPING_RESERVE_C,
+    afterC: 0,
   }),
   weekly: Object.freeze({
     cap: "WEEK",
@@ -176,5 +180,6 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     finishesReads: false,
     measuresStatedPlace: false,
     typingReserveC: TYPING_RESERVE_C,
+    afterC: WEEK_AFTER_C,
   }),
 } as const);

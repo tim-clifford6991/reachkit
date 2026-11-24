@@ -54,7 +54,7 @@ export const PRICE_BOOK = Object.freeze({
 export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150,
   /** SPEC §6 *Weekly cap*: everything a site's week buys (the pass, its top-up, the Monday research, market changes and
-   *  the hot offer) spends from this one sum, the order of the steps being the only reservation. */
+   *  the hot offer) spends from this one sum; only `WEEK_AFTER_C` is held for the steps after the pass. */
   WEEK_C: 59,
   /** A day's pages on Opus 5.5, reserved at the vendor's own input count (`INFERENCE_INPUT_RESERVE`): research on
    *  Sonnet 5.5 (two calls of ~7.3¢ reserved, ~13¢ billed), a write reserved at its 12 288-token cap (~36¢, ~23¢
@@ -63,6 +63,10 @@ export const CAPS = Object.freeze({
   DRAFT_C: 116,
   DAILY_SITE_C: 550,
 } as const);
+
+/** Cents of `CAPS.WEEK_C` the weekly pass, its typing and its top-up leave unspent, so the steps that must run after
+ *  them always find room: the week's titles (~3¢ reserved) and the Monday commit's target SERPs (2¢). */
+export const WEEK_AFTER_C = 5;
 
 /** The product-wide ceiling for one UTC day, in cents: `baseC` plus
  *  `perPayingSiteC` for each site with active access at the day's start, so

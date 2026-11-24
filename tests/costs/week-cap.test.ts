@@ -1,7 +1,7 @@
 // The week's one sum (SPEC §6 *Weekly cap*, CAPS.WEEK_C): the real cost seam, with only the network answered here.
 import "../generate/env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CAPS } from "@/lib/config/constants";
+import { CAPS, WEEK_AFTER_C } from "@/lib/config/constants";
 import { DEFAULT_LOCALE } from "@/lib/locale/locales";
 import type { Profile } from "@/lib/market/questions/profile-types";
 
@@ -44,17 +44,27 @@ beforeEach(() => {
 });
 
 describe("a site's week spends from one sum", () => {
-  it("the pass and its top-up share the week's sum, a later step reads it off the row and is refused at WEEK_C, and a re-run's row reads its own", async () => {
-    rows.set(WEEK, { cost_cents: CAPS.WEEK_C - 3, tier: "weekly" });
+  it("the pass and its top-up share the week's sum and stop short of the steps after them, which still buy; a re-run's row reads its own", async () => {
+    const { withStoredPassSpend } = await import("@/lib/scan/ceilings");
+    const { TIER_PARAMETERS } = await import("@/lib/scan/pass/tier");
+    const passLine = CAPS.WEEK_C - WEEK_AFTER_C;
+    rows.set(WEEK, { cost_cents: passLine - 3, tier: "weekly" });
     rows.set(RERUN, { cost_cents: 0, tier: "weekly" });
     await withCostContext({ scanId: WEEK, cap: "WEEK", policyVersion: 1, rollUp: "add" }, async (pass) => {
       expect((await topUpSpend(WEEK, 1)(buy)).seeds).toEqual(["plumber"]);
-      expect(pass.spentCents()).toBeCloseTo(CAPS.WEEK_C - 1.2, 6);
+      expect(pass.spentCents()).toBeCloseTo(passLine - 1.2, 6);
       expect((await topUpSpend(WEEK, 1)(buy)).degraded).toBe("topup_cap");
     });
-    rows.set(WEEK, { cost_cents: CAPS.WEEK_C, tier: "weekly" });
-    expect((await topUpSpend(WEEK, 1)(buy)).degraded).toBe("topup_cap");
+    rows.set(WEEK, { cost_cents: passLine, tier: "weekly" });
+    await withStoredPassSpend({ scanId: WEEK, cap: "WEEK", holdBackCents: TIER_PARAMETERS.weekly.afterC }, async (pass) => {
+      expect(pass.capHit()).toBe(true);
+      expect((await topUpSpend(WEEK, 1)(buy)).degraded).toBe("topup_cap");
+    });
     expect(calls.rows.map((row) => row.activity)).toEqual(["topup"]);
+    const titles = await withCostContext({ scanId: WEEK, cap: "WEEK", policyVersion: 1, rollUp: "none", activity: "weekly" }, (c) =>
+      c.recordFetch({ source: "llm.topic-title", cacheKey: "titles", freshnessDays: 0, costCents: 3, run: async () => ({}) })
+    );
+    expect(titles).not.toEqual({ skipped: "cap" });
     expect((await topUpSpend(RERUN, 1)(buy)).seeds).toEqual(["plumber"]);
   });
 
