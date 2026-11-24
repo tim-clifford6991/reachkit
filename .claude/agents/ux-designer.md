@@ -177,7 +177,7 @@ Then return a summary of **under 400 words**:
   - **owner ruling needed?** (yes or no, and why: it changes a board, a SPEC line, DESIGN.md, or spend);
   - the lens and evidence label;
   - the code area it lands in;
-  - the proof under `docs/PROCESS.md` rule 6: the CI layout or axe gate, or the PR body; never a new test for UI or copy;
+  - the proof under `docs/PROCESS.md` rule 6: the CI layout or axe gate, or the PR body; an alignment, spacing or look is proven on the free dev smoke after merge or in the `UX check`, as the layout gate proves only overflow, axe and its measured rules; never a new test for UI or copy;
   - its overlap with open issues or registry parents (#1457 app, #1458 public, #1127 content).
 - **What to remove**, if anything.
 - **Questions for seo-master**, if any.

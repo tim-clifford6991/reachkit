@@ -148,7 +148,7 @@ const SCHEDULE: Readonly<Record<DayKey, State>> = {
   "2026-09-12": "skipped", // → empties its date (page_cannot_go_live)
   "2026-09-14": "published",
   "2026-09-15": "in_review", // today
-  "2026-09-16": "approved",
+  "2026-09-16": "generating", // being written, a day ahead
   "2026-09-17": "approved",
   "2026-09-18": "planned",
   // 2026-09-19 holds an instruction.
@@ -223,6 +223,7 @@ const PARTS: PlanReason["parts"] = (["fit", "demand", "ai_gap", "rising", "new_s
 const URLS = ["https://www.pipedrive.com/en/blog/crm-adoption", "https://blog.hubspot.com/sales/crm-adoption", "https://www.reddit.com/r/sales/comments/crm_adoption"];
 const PLANS: Readonly<Record<DayKey, DraftOnDay["plan"]>> = {
   "2026-09-18": { evidence: EVIDENCE, reason: { points: 6, parts: PARTS, rule: "best", research: { state: "met", R: 6, Q: 4, F: 2, estWords: 1400, urls: URLS } } },
+  "2026-09-16": { evidence: { family: "write", query: "moving from spreadsheets to a crm", volume: measured(140, MEASURED_AT), rival: null, trend: { quarterly: 18, at: MEASURED_AT } }, reason: { points: 4, parts: PARTS.slice(0, 2), rule: "best", research: { state: "short", R: 2, Q: 0, F: 0, estWords: 900, urls: URLS.slice(0, 2) } } },
   "2026-09-20": { evidence: { ...EVIDENCE, fitFact: null, angle: { ...EVIDENCE.angle!, gap: 0 } }, reason: { ...NEWS, research: { state: "queued", R: null, Q: null, F: null, estWords: null, urls: [] } } },
 };
 const HOT: Readonly<Record<DayKey, Partial<DraftOnDay>>> = {
@@ -293,6 +294,7 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     whyLine: whySentenceOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: index % 2 === 0 ? "demand" : "ai_gap", n: 2 }], rule: "best" }),
     ...HOT[day],
     ...(PLANS[day] === undefined ? {} : { plan: PLANS[day] }),
+    ...(state === "generating" ? { startedAt: new Date(Date.UTC(2026, 8, 15, 11, 0, 0)) } : {}),
   };
 });
 
