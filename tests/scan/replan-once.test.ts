@@ -1,5 +1,6 @@
 // After a planner deploy the `scan/rescore` tick re-commits a paying site's week once however many ticks run, and mails
-// the owner once the committed week as stored (a hand-set one included) beside the new one.
+// the owner once the committed week as stored (a hand-set one included) beside the new one. The weekly market step
+// claims its week before any spend: a second run of the same pass buys nothing, an owner's re-run takes the week over.
 import "../opportunities/env";
 import { beforeEach, expect, it, vi } from "vitest";
 import { fakeDb } from "../publish/harness";
@@ -49,6 +50,14 @@ beforeEach(async () => {
 const replay = <T>(body: (step: <S>(name: string, run: () => Promise<S>) => Promise<S>) => Promise<T>, memo = new Map<string, unknown>()): Promise<T> => body(async <S,>(name: string, run: () => Promise<S>) => (memo.has(name) ? (memo.get(name) as S) : Promise.reject(memo.set(name, await run())))).catch((e: unknown) => (e === memo ? replay(body, memo) : Promise.reject(e)));
 const tick = (hours: number) => replay((step) => replanSites(paying, { now: new Date(AT.getTime() + hours * HOUR), step }));
 const events = (kind: string) => db.rows("ops_events").filter((row) => row.kind === kind);
+
+it("claims a market week once per pass, and again for a re-run's own pass", async () => {
+  [cut, db.uniqueIndexes] = [0, [...db.uniqueIndexes, { table: "market_changes", columns: ["site_id", "week_start"] }]];
+  const { claimMarketWeek } = await import("@/lib/scan/weekly/store");
+  const week = { siteId: "site-1", weekStart: "2026-11-23" };
+  expect([await claimMarketWeek({ ...week, scanId: "monday" }), await claimMarketWeek({ ...week, scanId: "monday" })]).toEqual([true, false]);
+  expect([await claimMarketWeek({ ...week, scanId: "rerun" }), await claimMarketWeek({ ...week, scanId: "rerun" })]).toEqual([true, false]);
+});
 
 it("re-commits the week once per planner, after an apply cut short too, and tells the owner once, with the committed week as it stood", async () => {
   const handSet = (await opportunityStore().plannedRows(SITE_ID)).find((row) => row.planned_for === "2026-10-20")!;
