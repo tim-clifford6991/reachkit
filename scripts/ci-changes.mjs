@@ -71,7 +71,7 @@ const DB = [
   // What the live-schema suites import at run time; the test walks them.
   /^src\/lib\/config\/((env|now|constants)\.ts$|constants\/)/,
   /^src\/lib\/opportunities\/(verdicts\/)?types\.ts$/,
-  /^src\/lib\/opportunities\/store\.ts$/,
+  /^src\/lib\/(opportunities\/store|hot\/offer)\.ts$/,
   /^src\/lib\/ops\/events\.ts$/,
   /^scripts\/lib\/budgets\.mjs$/,
   /^src\/lib\/costs\/(index|daily|ledger)\.ts$/,
