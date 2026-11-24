@@ -34,7 +34,7 @@ async function write(a: { siteId: string; publishDate: string; now: Date }, test
   let left = await testing("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
   for (let round = 1; left > 0 && round <= COLLECT.rounds; round++) left = await testing(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   if (left > 0) return { outcome: "research_pending", draftId: null };
-  const written = await testing("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
+  const written = await testing("write", () => generateDayPage({ ...day, opportunityId: research.opportunityId }));
   const draftId = "draftId" in written ? written.draftId : null;
   // A short pack reads as one, with the step that names what it lacked, never as a failed step.
   const step = "step" in written ? written.step : undefined;
