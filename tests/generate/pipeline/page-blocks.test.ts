@@ -12,7 +12,8 @@ import { applyLinks } from "../../../src/lib/generate/links/apply";
 import { bodyWords, lengthRangeFor } from "../../../src/lib/generate/length";
 import { missingBlock, withoutBrokenLinks } from "../../../src/lib/generate/rules/blocks";
 import { TEMPLATES, type Template } from "../../../src/lib/generate/templates";
-import type { PageParts } from "../../../src/lib/generate/pipeline/write";
+import { closingWithoutNote, type PageParts } from "../../../src/lib/generate/pipeline/write";
+import { languagePack } from "../../../src/lib/locale/language";
 import { CLEAN_MARKDOWN, GROUNDED, pageParts, prose } from "../fixtures";
 
 const TIDY = { facts: [GROUNDED.passage], promises: [], queries: ["which plan fits a small team"], names: ["Acme"] };
@@ -75,6 +76,11 @@ describe("what the writer got nearly right is put right in code", () => {
     expect(out).toBe(
       "## How is it handled here?\n\nOpenly.\n\n- [Pricing](https://example.com/pricing)\n\n## What next?\n\nCount."
     );
+  });
+
+  it("draft 477c61f0's closing loses its self-correction and keeps its link", () => {
+    const closing = "Compare the one plan and start from our [pricing page](https://reachkit.app/pricing) — wait, see the plan and sign up on our pricing page.";
+    expect(closingWithoutNote(closing, languagePack("en").writerNotes)).toBe("Compare the one plan and start from our [pricing page](https://reachkit.app/pricing).");
   });
 });
 

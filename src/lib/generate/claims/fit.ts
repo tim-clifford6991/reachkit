@@ -1,38 +1,21 @@
-// SPEC §7 *honesty by page type* (owner, 2026-09-29; D20, 2026-10-02; issue
-// 1136) — the fit check.
+// SPEC §7 *honesty by page type* — the fit check: the page never claims a fit or a promise the knowledge base does not
+// support.
 //
-// "The page never claims a fit the knowledge base does not support." Every
-// page ReachKit writes is read for it, whatever its type — a Write or an Earn
-// page, and an update too: the draft this check was built to stop, "ReachKit
-// is the best local SEO software" (2026-09-28), was a refresh of a page
-// ReachKit had written, and the knowledge base says ReachKit is no local SEO
-// software at all.
+// **What is asked, and of what.** The sentences that name the business or speak as it ("we", "our") — its title
+// included, unless the title rule makes it name the business — are sent, numbered, beside the knowledge base. The small
+// tier answers with the indexes of those that claim a use, an audience or a category, or promise a step, a timeline or
+// a result, the knowledge base does not support: the sentences named back are the page's own, and no word the model
+// wrote is kept.
 //
-// **What is asked, and of what.** Only the sentences that name the business
-// — its title included, unless the title rule makes it name the business —
-// are sent, numbered, beside the knowledge base. A
-// sentence that does not name it claims nothing about it. The small tier
-// answers with the indexes of the sentences that claim a use, an audience or
-// a category the knowledge base does not support, and nothing else: the
-// sentences named back are the page's own, read out of the list by index,
-// and no word the model wrote is kept.
-//
-// **A check that cannot decide does not fail a page.** No knowledge base, no
-// recorded brand, or a page that never names the business — each passes at no
-// cost.
-//
-// **"We could not check" is not "it passed"** — `claims/check.ts`'s own
-// rule. A model that did not answer and the spend ceiling both resolve to
-// `unrun`, and an unrun check holds the page without consuming the one
-// automatic regeneration.
-//
-// This is the check SPEC §7's critic makes for fit to the business (*Length
-// and the writer*, 2026-09-29). The critic pass itself is issue 1138's; when
-// it lands, this is the part of it that stops a page.
+// **A check that cannot decide does not fail a page.** No knowledge base, or no such sentence, passes at no cost. A
+// model that did not answer and the spend ceiling both resolve to `unrun` (`claims/check.ts`), which holds the page
+// without consuming the one automatic regeneration.
 import { z } from "zod";
 import { FIT_CHECK_MAX_SENTENCES } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
+import { languagePack } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import { brandTokens, namesBrand } from "../rules/brand";
 import { renderOf, sentencesOf } from "../rules/text";
 import type { PromptKnowledge } from "../voice/profile-block";
@@ -52,7 +35,8 @@ export const FIT_CHECK_CALL_SITE = "generate.fit_check";
 export const UNSUPPORTED_CLAIM =
   "An unsupported claim says the business itself is a kind of product, or is for a use, an audience or a market, " +
   "that what is known about the business does not support — for example, calling it the best software of a category " +
-  "what is known about it never places it in.";
+  "what is known about it never places it in; or promises the reader a step, a timeline or a result from the business " +
+  "that what is known about the business does not state.";
 
 /** `claims` is the category or use the sentence puts the business in, in a
  *  few words. It is asked for because naming it is what makes the model
@@ -66,7 +50,7 @@ const TABLE_RULE_RE = /^[ \t|:-]+$/;
 const LINK_LINE_RE = /^[ \t]*(?:[-*+]|\d+\.)?[ \t]*\[[^\]]+\]\([^)]+\)[ \t]*$/;
 
 /** The sentences a fit check reads: the title and every sentence of the
- *  body that names the business, once each, in order. A title the title rule
+ *  body that names the business or speaks as it, once each, in order. A title the title rule
  *  makes name the business ("ReachKit vs Seobility") claims no fit and is
  *  left out, and so is a line that is only a link: its label is another
  *  page's title, not a claim of this one. A table is read row
@@ -78,8 +62,11 @@ export function brandSentences(a: {
   businessName: string | null;
   domain: string;
   titleOwed?: boolean;
+  /** The page's language: a sentence in its business's own voice ("we", "our") is read too. */
+  language?: Language;
 }): string[] {
   const tokens = brandTokens(a);
+  const own = a.language === undefined ? undefined : languagePack(a.language).ownVoice;
   const out: string[] = [];
   const lines = a.markdown.split("\n");
   const prose = lines.filter((line) => !TABLE_LINE_RE.test(line) && !LINK_LINE_RE.test(line)).join("\n");
@@ -87,7 +74,7 @@ export function brandSentences(a: {
     .filter((line) => TABLE_LINE_RE.test(line) && !TABLE_RULE_RE.test(line))
     .map((line) => renderOf(line).replace(/\s+/g, " ").trim());
   for (const text of [...(a.titleOwed === true ? [] : [a.title]), ...sentencesOf(prose).map((sentence) => sentence.text), ...rows]) {
-    if (namesBrand(text, tokens) && !out.includes(text)) out.push(text);
+    if ((namesBrand(text, tokens) || own?.test(text) === true) && !out.includes(text)) out.push(text);
   }
   return out.slice(0, FIT_CHECK_MAX_SENTENCES);
 }
@@ -101,6 +88,7 @@ export async function fitCheck(
     domain: string;
     /** The title rule requires the title to name the business. */
     titleOwed?: boolean;
+    language?: Language;
     /** The knowledge base the writer was handed, or absent where nothing was
      *  read or said of the business. */
     knowledge: PromptKnowledge | undefined;
@@ -130,11 +118,11 @@ export async function fitCheck(
         "the business in that market or among its named rivals is supported. " +
         UNSUPPORTED_CLAIM +
         " What is known about `business` is `knowledge`. Find the sentences that make an unsupported claim. " +
-        "Judge only what a sentence claims about `business`: what it says about any other product, " +
+        "Judge only what a sentence claims about `business`, which a sentence in the first person speaks as: what it says about any other product, " +
         "or about the market, is not your concern. A sentence that describes `business` doing what " +
         "`knowledge` says it does, in other words, is supported. Where you are not sure, do not list " +
         "it. Answer only with the JSON object {unsupported}: for each such sentence its 0-based " +
-        "`index` and, in `claims`, the unsupported category or use in a few words; an empty list " +
+        "`index` and, in `claims`, the unsupported category, use or promise in a few words; an empty list " +
         "where there is none.",
       business: { name: a.businessName, domain: a.domain },
       knowledge: a.knowledge,

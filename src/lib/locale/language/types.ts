@@ -190,7 +190,9 @@ export interface LanguagePack {
   backReferences: readonly string[];
   /** A sentence that refers to the one before it, by its opening or a word that points back: it goes with a sentence a repair drops. */
   refersBack: RegExp;
-  /** A sentence about the writer's own inputs rather than to the reader; a language without one drops none. */
+  /** The words a page speaks in as its business (the first person plural): a sentence in them is the business's claim. */
+  ownVoice?: RegExp;
+  /** A sentence about the writer's own inputs, or one that corrects itself mid-line, rather than to the reader; a language without one drops none. */
   writerNotes?: RegExp;
 
   // ── Questions and prompts ───────────────────────────────────────────────
