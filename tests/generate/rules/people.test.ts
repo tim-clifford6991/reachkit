@@ -15,7 +15,7 @@ import {
 describe("§8 hard rule 2 — a quoted remark attributed to someone must link a page naming them", () => {
   it("a block quote attributed to a named third party with no link fails", () => {
     const markdown = "> This changed how our whole team works, week one.\n> — Dana Whitfield";
-    expect(checkInventedPeople({ markdown, businessName: "Acme" })?.rule).toBe("no_invented_people");
+    expect(checkInventedPeople({ markdown, businessName: "Acme" })?.rule).toBe("nothing_invented");
   });
 
   it("the same block with a link in the same block passes", () => {
@@ -31,12 +31,12 @@ describe("§8 hard rule 2 — a quoted remark attributed to someone must link a 
 
   it("the same quotation attributed to a stranger fails", () => {
     const markdown = '"We built the seat limit in on purpose, and we keep it," says Dana Whitfield.';
-    expect(checkInventedPeople({ markdown, businessName: "Acme" })?.rule).toBe("no_invented_people");
+    expect(checkInventedPeople({ markdown, businessName: "Acme" })?.rule).toBe("nothing_invented");
   });
 
   it("a site with no recorded name has nobody who needs no link — an attribution still fails", () => {
     const markdown = '"We built the seat limit in on purpose, and we keep it," says Acme.';
-    expect(checkInventedPeople({ markdown, businessName: null })?.rule).toBe("no_invented_people");
+    expect(checkInventedPeople({ markdown, businessName: null })?.rule).toBe("nothing_invented");
   });
 
   it("ordinary prose naming a person, with no quotation, is not this rule's business", () => {
@@ -48,7 +48,7 @@ describe("§8 hard rule 2 — a quoted remark attributed to someone must link a 
 describe("§8 hard rule 2 — an unsourced testimonial fails whether or not it names a speaker", () => {
   it("an endorsement-shaped block naming nobody and linking nothing fails", () => {
     const markdown = "Our customers say it pays for itself in a month.";
-    expect(checkUnsourcedTestimonial({ markdown })?.rule).toBe("no_unsourced_testimonial");
+    expect(checkUnsourcedTestimonial({ markdown })?.rule).toBe("nothing_invented");
   });
 
   it("a review-shaped block with a link in the same block passes", () => {
@@ -58,7 +58,7 @@ describe("§8 hard rule 2 — an unsourced testimonial fails whether or not it n
 
   it("an unattributed block quote that is a remark still fails — a reported remark is a testimonial", () => {
     const markdown = "> It took about ten minutes to move everything across and nothing broke.";
-    expect(checkUnsourcedTestimonial({ markdown })?.rule).toBe("no_unsourced_testimonial");
+    expect(checkUnsourcedTestimonial({ markdown })?.rule).toBe("nothing_invented");
   });
 
   it("a page with no remark and no endorsement passes", () => {
@@ -81,7 +81,7 @@ describe("words that are not a testimonial, and a dash that is not an attributio
 
   it("still fails what customers are said to say, with no link", () => {
     expect(checkUnsourcedTestimonial({ markdown: "Customers say it paid for itself in a month." })).toEqual({
-      rule: "no_unsourced_testimonial",
+      rule: "nothing_invented", detail: { rule: "nothing_invented", kind: "testimonial" },
     });
   });
 
@@ -96,5 +96,5 @@ describe("words that are not a testimonial, and a dash that is not an attributio
 it.each(["> [P](https://acme.example/how)", "> P [How it works](https://acme.example/how)"])("a handed passage quoted as %j passes", (shape) => {
   const markdown = shape.replace("P", "Acme writes each page from what your own site says.");
   const [handed, without] = [["Acme writes each page from what your own site says."], []].map((quotable) => checkUnsourcedTestimonial({ markdown, quotable }));
-  expect([handed, without]).toEqual([null, { rule: "no_unsourced_testimonial" }]);
+  expect([handed, without]).toEqual([null, { rule: "nothing_invented", detail: { rule: "nothing_invented", kind: "testimonial" } }]);
 });

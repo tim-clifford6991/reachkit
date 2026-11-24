@@ -142,10 +142,17 @@ export function readRecordedRules(payload: unknown): RuleFailure[] | null {
     if (member === null || typeof member !== "object") continue;
     const blob = member as Record<string, unknown>;
     if (typeof blob.rule !== "string") continue;
-    out.push(blob as unknown as RuleFailure);
+    const old = RENAMED[blob.rule];
+    out.push((old === undefined ? blob : { ...blob, rule: old[0], detail: { ...(blob.detail as object | undefined), rule: old[0], kind: old[1] } }) as unknown as RuleFailure);
   }
   return out;
 }
+
+/** A rule name stored before its rule was merged, read as the rule that took it and the kind it now is. */
+const RENAMED: Readonly<Record<string, readonly [HardRule, string]>> = Object.freeze({
+  rival_source: ["rival_claim", "source"], rival_negative: ["rival_claim", "negative"], no_invented_people: ["nothing_invented", "people"],
+  no_unsourced_testimonial: ["nothing_invented", "testimonial"], no_invented_test: ["nothing_invented", "test"], no_invented_provenance: ["nothing_invented", "provenance"],
+});
 
 // ── Which rules a run asked, and which it put right (issue 1394) ────────
 
@@ -159,7 +166,7 @@ export interface RecordedRun {
 }
 
 const rulesIn = (value: unknown): HardRule[] =>
-  Array.isArray(value) ? HARD_RULES.filter((rule) => value.includes(rule)) : [];
+  Array.isArray(value) ? HARD_RULES.filter((rule) => value.some((name) => (RENAMED[name]?.[0] ?? name) === rule)) : [];
 
 /** What the pipeline and an edit's re-check store in `drafts.meta.checks`.
  *  `broken` is every rule the run failed at any point; the ones the page no
@@ -192,11 +199,13 @@ export function recordedChecks(ruleFailures: unknown, run: RecordedRun | null): 
   const failed = shown(rulesIn(failures.map((failure) => failure.rule)));
   const asked = run === null ? HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule)) : shown(run.asked);
   const passed = asked.filter((rule) => !failed.includes(rule));
+  const kinds = Object.fromEntries(failures.flatMap((failure) => (failure.detail !== undefined && "kind" in failure.detail ? [[failure.rule, failure.detail.kind]] : [])).reverse());
   return {
     passed,
     failed,
     skipped: run === null ? null : shown(HARD_RULES.filter((rule) => !run.asked.includes(rule) && !failed.includes(rule))),
     fixed: run === null ? 0 : run.fixed.filter((rule) => passed.includes(rule)).length,
     ...(hidden.length === 0 ? {} : { hidden }),
+    ...(Object.keys(kinds).length === 0 ? {} : { kinds }),
   };
 }

@@ -10,7 +10,7 @@
 //
 // **What this rule says**, on a market comparison only. Favourable framing
 // is allowed: the business may lead the table and the verdict. Two things
-// are not —
+// are not; the second is `nothing_invented`'s (`checkSelfRanked`) —
 //
 //   1. *a comparison the business is not in.* A table that names one of the
 //      site's rivals compares the market, and the business has a row (or a
@@ -138,8 +138,10 @@ export function checkHonestRow(a: HonestRowInputs): RuleFailure | null {
   const rivals = a.rivals.flatMap((rival) =>
     rival.includes(".") ? brandTokens({ businessName: null, domain: rival }) : [rival]
   );
-  if (rows.some((row) => namesBrand(row, rivals)) && !rows.some((row) => namesBrand(row, tokens))) {
-    return { rule: "honest_row" };
-  }
-  return selfRankedIn(a).length > 0 ? { rule: "honest_row" } : null;
+  return rows.some((row) => namesBrand(row, rivals)) && !rows.some((row) => namesBrand(row, tokens)) ? { rule: "honest_row" } : null;
+}
+
+/** A market comparison that ranks the business first by its own word is `nothing_invented`'s. */
+export function checkSelfRanked(a: Omit<HonestRowInputs, "rivals">): RuleFailure | null {
+  return a.pageType === "market_comparison" && selfRankedIn(a).length > 0 ? { rule: "nothing_invented", detail: { rule: "nothing_invented", kind: "ranked" } } : null;
 }

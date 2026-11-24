@@ -199,7 +199,7 @@ const BODY = [
   "Pick the tier whose first ceiling is furthest from your next twelve months, not the one with " +
     "the longest feature list. The list is the same everywhere; the ceilings are not.",
   "",
-  // **Short, and it has to be** (issue 932). §8's `no_unsourced_testimonial`
+  // **Short, and it has to be** (issue 932). §8's `nothing_invented`
   // stops a block quote of 25 characters or more that carries no address:
   // the `>` is the quotation, so the rule reads it as a reported remark
   // whether or not it names a speaker. This fixture claims the page passed

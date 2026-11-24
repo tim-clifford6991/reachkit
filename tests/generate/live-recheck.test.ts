@@ -27,12 +27,12 @@ const [PROFOUND, AEO] = STORED.pages.map((row) => storedLivePage({ ...row, compe
 describe("the live pages, re-read from their rows", () => {
   it("profound-alternatives fails both: a reviewer's $99 beside Profound's own page, and a denial no source makes", () => {
     const failed = recheckLivePage(PROFOUND);
-    expect(failed.map((failure) => failure.rule)).toEqual(["rival_source", "rival_negative"]);
+    expect(failed.map((failure) => failure.rule)).toEqual(["rival_claim", "rival_claim"]);
     expect(failed[0]!.detail).toMatchObject({ fault: "third_party" });
     expect(failed[0]!.detail).toHaveProperty("sentence", expect.stringContaining("Profound's entry package starts at $99"));
     // The FAQ alone is enough: "Profound and Otterly do not list a free tier".
     expect(recheckLivePage({ ...PROFOUND, markdown: "" })).toEqual([
-      { rule: "rival_negative", detail: { rule: "rival_negative", sentence: expect.stringContaining("do not list a free tier") } },
+      { rule: "rival_claim", detail: { rule: "rival_claim", kind: "negative", sentence: expect.stringContaining("do not list a free tier") } },
     ]);
   });
 
@@ -40,7 +40,7 @@ describe("the live pages, re-read from their rows", () => {
     // Profound's pricing-page line was recorded before plans were: it names
     // no plan, so no sentence can state it truthfully.
     const sentence = "Profound runs [50 prompts run daily for 7 days](https://www.tryprofound.com/pricing).";
-    expect(recheckLivePage({ ...PROFOUND, markdown: sentence, faq: [] })[0]?.detail).toMatchObject({ rule: "rival_source", fault: "plan" });
+    expect(recheckLivePage({ ...PROFOUND, markdown: sentence, faq: [] })[0]?.detail).toMatchObject({ rule: "rival_claim", fault: "plan" });
   });
 
   it("a live page whose rival claims hold stays live", () => {
@@ -68,7 +68,7 @@ describe("the live pages, re-read from their rows", () => {
     expect(taken).toEqual([PROFOUND.draftId, "older-version"]);
     expect(outcome).toEqual({
       checked: 2,
-      withdrawn: [{ draftId: PROFOUND.draftId, liveUrl: "https://content.reachkit.app/profound-alternatives", rules: ["rival_source", "rival_negative"] }],
+      withdrawn: [{ draftId: PROFOUND.draftId, liveUrl: "https://content.reachkit.app/profound-alternatives", rules: ["rival_claim", "rival_claim"] }],
       stillLive: [],
     });
   });

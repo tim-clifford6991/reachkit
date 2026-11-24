@@ -57,7 +57,7 @@
 // ways, in this order:
 //
 //   1. **By the value it names.** `do_not_claim` names the customer's own
-//      entry; `rival_source` and `traceable_numerals`
+//      entry; `rival_claim` and `traceable_numerals`
 //      name the numeral as it appears. The value is found in the source and
 //      the mark is widened to the sentence holding it. That is the one the
 //      done-when asks for: "typing a never-claim phrase underlines it".
@@ -84,7 +84,7 @@ import {
   type BriefRuleInputs,
 } from "@/lib/generate/rules/brief";
 import { checkPlaceholderCell } from "@/lib/generate/rules/cells";
-import { checkHonestRow } from "@/lib/generate/rules/honest";
+import { checkHonestRow, checkSelfRanked } from "@/lib/generate/rules/honest";
 import { checkHiddenText } from "@/lib/generate/rules/hidden";
 import { checkMachineAddress } from "@/lib/generate/rules/machine";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "@/lib/generate/rules/people";
@@ -128,20 +128,26 @@ export interface MarkInputs {
  * answers (issue 1252; the header says why).
  */
 export const BREAK_COPY_KEY = Object.freeze({
-  rival_source: "draft.editor.break.rival-source",
-  no_invented_people: "draft.editor.break.no-invented-people",
-  no_unsourced_testimonial: "draft.editor.break.no-unsourced-testimonial",
+  rival_claim: "draft.editor.break.rival-source",
+  nothing_invented: "draft.editor.break.no-invented-people",
   honest_row: "draft.editor.break.honest-row",
   no_hidden_text: "draft.editor.break.no-hidden-text",
   no_machine_address: "draft.editor.break.no-machine-address",
-  no_invented_test: "draft.editor.break.no-invented-test",
-  no_invented_provenance: "draft.editor.break.no-invented-provenance",
   traceable_numerals: "draft.editor.break.traceable-numerals",
   first_block_answers: "draft.editor.break.first-block-answers",
   no_placeholder_cell: "draft.editor.break.no-placeholder-cell",
   no_demo_text: "draft.editor.break.no-demo-text",
   do_not_claim: "draft.editor.break.do-not-claim",
 } as const satisfies Readonly<Partial<Record<HardRule, CopyKey>>>);
+
+/** A merged rule's break says the kind that fired (`detail.kind`). */
+const KIND_BREAK_KEY: Readonly<Record<string, CopyKey>> = Object.freeze({
+  people: "draft.editor.break.no-invented-people",
+  testimonial: "draft.editor.break.no-unsourced-testimonial",
+  ranked: "draft.editor.break.honest-row",
+  test: "draft.editor.break.no-invented-test",
+  provenance: "draft.editor.break.no-invented-provenance",
+});
 
 /** The rules the editor decides live. Its members are exactly the keys
  *  above, so the two cannot drift. */
@@ -150,6 +156,8 @@ export type LiveRule = keyof typeof BREAK_COPY_KEY;
 /** One rule this text breaks, and where it stands. */
 export interface Break {
   rule: LiveRule;
+  /** What the break says: the rule's sentence, or its kind's. */
+  key: CopyKey;
   /** The span in the Markdown. `from === to === 0` is a rule that speaks
    *  for the page rather than for a sentence (see the header, case 3). */
   from: number;
@@ -226,17 +234,17 @@ function placeValue(markdown: string, value: string): { from: number; to: number
 /** A rule this product places by asking the rule itself about one block at
  *  a time — every member's own implementation iterates `blocksOf`, so a
  *  block it reports in isolation is a block it reported in the whole. */
-const BLOCK_SCOPED: Readonly<Partial<Record<HardRule, (markdown: string) => RuleFailure | null>>> =
+const BLOCK_SCOPED: Readonly<Record<string, (markdown: string) => RuleFailure | null>> =
   Object.freeze({
     no_hidden_text: (markdown) => checkHiddenText({ markdown }),
     no_machine_address: (markdown) => checkMachineAddress({ rendered: renderOf(markdown) }),
-    no_unsourced_testimonial: (markdown) => checkUnsourcedTestimonial({ markdown }),
+    testimonial: (markdown) => checkUnsourcedTestimonial({ markdown }),
     // A table is one block, so the block the rule still reports is the table.
     no_placeholder_cell: (markdown) => checkPlaceholderCell({ markdown }),
   });
 
-/** The first block the rule still reports when handed that block alone. */
-function placeByAsking(markdown: string, rule: HardRule, inputs: MarkInputs): { from: number; to: number } | null {
+/** The first block the rule, or its kind, still reports when handed that block alone. */
+function placeByAsking(markdown: string, rule: string, inputs: MarkInputs): { from: number; to: number } | null {
   const ask = BLOCK_SCOPED[rule] ?? askWithInputs(rule, inputs);
   if (ask === undefined) return null;
   for (const block of sourceBlocksOf(markdown)) {
@@ -248,16 +256,16 @@ function placeByAsking(markdown: string, rule: HardRule, inputs: MarkInputs): { 
 /** The block-scoped rules that need a site fact as well as the text. Kept
  *  apart from the table above only because they close over `inputs`. */
 function askWithInputs(
-  rule: HardRule,
+  rule: string,
   inputs: MarkInputs
 ): ((markdown: string) => RuleFailure | null) | undefined {
-  if (rule === "no_invented_people") {
+  if (rule === "people") {
     return (markdown) => checkInventedPeople({ markdown, businessName: inputs.businessName });
   }
-  if (rule === "no_invented_test") {
+  if (rule === "test") {
     return (markdown) => checkInventedTest({ markdown, brief: inputs.brief });
   }
-  if (rule === "no_invented_provenance") {
+  if (rule === "provenance") {
     return (markdown) => checkInventedProvenance({ markdown, brief: inputs.brief });
   }
   if (rule === "traceable_numerals") {
@@ -292,7 +300,7 @@ export function liveBreaks(source: string, inputs: MarkInputs): Break[] {
   push(checkRivalSource({ markdown: body, rivals: [...inputs.rivals] }));
   push(checkInventedPeople({ markdown: body, businessName: inputs.businessName }));
   push(checkUnsourcedTestimonial({ markdown: body }));
-  push(checkHonestRow({ title: inputs.title, markdown: body, ...site, rivals: inputs.rivals, pageType: inputs.pageType }));
+  push(checkHonestRow({ title: inputs.title, markdown: body, ...site, rivals: inputs.rivals, pageType: inputs.pageType }) ?? checkSelfRanked({ title: inputs.title, markdown: body, ...site, pageType: inputs.pageType }));
   push(checkHiddenText({ markdown: body }));
   push(checkMachineAddress({ rendered }));
   // The three that read the brief's **passages** run only where the brief
@@ -319,7 +327,7 @@ export function liveBreaks(source: string, inputs: MarkInputs): Break[] {
   const matched = literalClaimMatch(body, inputs.doNotClaim);
   if (matched !== null) {
     const at = placeValue(body, matched);
-    breaks.push({ rule: "do_not_claim", entry: matched, from: at?.from ?? 0, to: at?.to ?? 0 });
+    breaks.push({ rule: "do_not_claim", key: BREAK_COPY_KEY.do_not_claim, entry: matched, from: at?.from ?? 0, to: at?.to ?? 0 });
   }
   return breaks;
 }
@@ -328,6 +336,7 @@ export function liveBreaks(source: string, inputs: MarkInputs): Break[] {
 function place(markdown: string, failure: RuleFailure, inputs: MarkInputs): Break {
   const figure =
     failure.detail !== undefined && "figure" in failure.detail ? failure.detail.figure : undefined;
+  const kind = failure.detail !== undefined && "kind" in failure.detail ? failure.detail.kind : undefined;
 
   const at =
     figure !== undefined
@@ -336,7 +345,7 @@ function place(markdown: string, failure: RuleFailure, inputs: MarkInputs): Brea
         ? // Its own subject, by definition: "the first block that is not a
           // heading" is what the rule looks at and is where the break is.
           (sourceBlocksOf(markdown).find((block) => !/^[ \t]*#{1,6}[ \t]+/.test(block.raw)) ?? null)
-        : placeByAsking(markdown, failure.rule, inputs);
-
-  return { rule: failure.rule as LiveRule, figure, from: at?.from ?? 0, to: at?.to ?? 0 };
+        : placeByAsking(markdown, kind ?? failure.rule, inputs);
+  const rule = failure.rule as LiveRule;
+  return { rule, key: KIND_BREAK_KEY[kind ?? ""] ?? BREAK_COPY_KEY[rule], figure, from: at?.from ?? 0, to: at?.to ?? 0 };
 }

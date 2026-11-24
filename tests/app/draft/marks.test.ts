@@ -119,7 +119,7 @@ describe("where a break is placed", () => {
     // §8's rival-source rule: a figure about a rival, in a sentence with no
     // address a reader could open.
     const md = `${CLEAN}\n\nhubspot.com caps custom properties at 10 per object.`;
-    const found = liveBreaks(md, INPUTS).find((b) => b.rule === "rival_source");
+    const found = liveBreaks(md, INPUTS).find((b) => b.rule === "rival_claim");
     expect(found?.figure).toBe("10");
     expect(md.slice(found?.from ?? 0, found?.to ?? 0)).toBe(
       "hubspot.com caps custom properties at 10 per object."
@@ -132,7 +132,7 @@ describe("where a break is placed", () => {
       "",
       "> A quotation long enough to read as a remark, with nobody to answer for it.",
     ].join("\n");
-    const found = liveBreaks(md, INPUTS).find((b) => b.rule === "no_unsourced_testimonial");
+    const found = liveBreaks(md, INPUTS).find((b) => b.rule === "nothing_invented");
     expect(found && isPlaced(found)).toBe(true);
     expect(md.slice(found?.from ?? 0, found?.to ?? 0)).toBe(
       "> A quotation long enough to read as a remark, with nobody to answer for it."
