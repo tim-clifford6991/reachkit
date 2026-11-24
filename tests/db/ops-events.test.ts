@@ -79,6 +79,8 @@ describe("ops_events — the daily check's count of failed Settings reads", () =
     expect(await claim(site, "2026-11-02", "2026-11-06")).toBe(false);
     expect(await claim(other, "2026-11-02", "2026-11-06")).toBe(true);
     expect(await claim(site, "2026-11-09", "2026-11-10")).toBe(true);
+    await events.releaseOpsEvent("week_recommitted", site, "2026-11-09");
+    expect(await claim(site, "2026-11-09", "2026-11-10")).toBe(true);
     expect(value(`select count(*) from ops_events where kind = 'week_recommitted' and site_id = '${site}';`)).toBe("2");
   });
 });
