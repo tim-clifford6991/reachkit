@@ -53,7 +53,7 @@ import { batteryCleared, type BatteryOutcome } from "../rules";
 import { renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf } from "../rules/text";
-import { titleNotes, type TitleCandidate } from "../rules/title";
+import { titleFigures, titleNotes, type TitleCandidate } from "../rules/title";
 import { brandTokens, namesBrand } from "../rules/brand";
 import { RIVAL_SCOPE_VERSION } from "../live-recheck";
 import { HARD_RULES, type GroundedFact, type HardRule, type RuleFailure, type SiteRuleInputs } from "../rules/types";
@@ -422,10 +422,11 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     if (stopped.outcome.passed) return [];
     return fixNotes(stopped.page.writer, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title, { rivals: basis.rivalsNamed, faq: stopped.page.laid.faq }).map((note) => {
       const title = stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
-      if (note.rule === "title" && title !== undefined && title.rule === "title") {
-        const body = stopped.page.laid.body;
-        return { ...note, sentences: titleNotes(body.title, titleRuleFor(pack, { description: body.description, sections: stopped.page.laid.sections }), title.faults, stopped.page.markdown) };
-      }
+      const body = stopped.page.laid.body;
+      const titleRule = () => titleRuleFor(pack, { description: body.description, sections: stopped.page.laid.sections });
+      if (note.rule === "title" && title !== undefined && title.rule === "title") return { ...note, sentences: titleNotes(body.title, titleRule(), title.faults) };
+      // A figure the title or description states that no source holds is told as the title brief words it.
+      if (note.rule === "traceable_numerals") return { ...note, sentences: [...note.sentences, ...titleFigures(body.title, titleRule(), stopped.page.markdown).map((each) => each.note)] };
       if (note.rule === "distinct_headings") {
         return { ...note, sentences: [`headings: ${note.sentences.map((heading) => `"${heading}"`).join(" and ")} ask almost the same thing; each section must ask a different question of \`pack.questions\`, in different words`] };
       }

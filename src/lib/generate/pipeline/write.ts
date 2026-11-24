@@ -279,7 +279,7 @@ export interface WriteInputs {
   tier?: Tier;
   /** The lead's free page (SPEC §2), whose one call is sized to fit `CAPS.FREE_C`. */
   free?: boolean;
-  /** The site's demo phrases (issue 1249): the phrases `no_demo_text` reads, named to the writer (issue 2378). */
+  /** The site's demo phrases (issue 1249): the phrases `do_not_claim` reads beside the list, named to the writer (issue 2378). */
   demoPhrases?: readonly string[];
   /** The competitor this page's question was found winning (`competitorOf`). */
   competitor?: string;

@@ -107,13 +107,9 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
 
 // ── Hard rules 1–3, 5–7: the battery's own record ───────────────────────
 
-/** The figure faults of a title stay harm, since an unsourced figure is one whatever the line it stands in. */
-const FIGURE_FAULTS: ReadonlySet<string> = new Set(["description_figures", "figure_owner"]);
-
 /** Whether a failure stops the page: the one predicate every verdict on a generated or edited page reads. A page short
  *  on sections, sources or words is only ever a warning. */
 export function stops(failure: RuleFailure): boolean {
-  if (failure.detail?.rule === "title") return failure.detail.faults.some((fault) => FIGURE_FAULTS.has(fault));
   return !WARNING_RULES.has(failure.rule);
 }
 
@@ -142,17 +138,29 @@ export function readRecordedRules(payload: unknown): RuleFailure[] | null {
     if (member === null || typeof member !== "object") continue;
     const blob = member as Record<string, unknown>;
     if (typeof blob.rule !== "string") continue;
-    const old = RENAMED[blob.rule];
-    out.push((old === undefined ? blob : { ...blob, rule: old[0], detail: { ...(blob.detail as object | undefined), rule: old[0], kind: old[1] } }) as unknown as RuleFailure);
+    const faults = (blob.detail as { faults?: unknown } | undefined)?.faults;
+    // A title figure no source held was stored as a title fault, and is read as the numerals stop it now is.
+    const name = blob.rule === "title" && Array.isArray(faults) && faults.some((fault) => fault === "description_figures" || fault === "figure_owner") ? "title_figure" : blob.rule;
+    const old = RENAMED[name];
+    out.push((old === undefined ? blob : { ...blob, rule: old[0], detail: { ...(blob.detail as object | undefined), rule: old[0], ...old[1] } }) as unknown as RuleFailure);
   }
   return out;
 }
 
-/** A rule name stored before its rule was merged, read as the rule that took it and the kind it now is. */
-const RENAMED: Readonly<Record<string, readonly [HardRule, string]>> = Object.freeze({
-  rival_source: ["rival_claim", "source"], rival_negative: ["rival_claim", "negative"], no_invented_people: ["nothing_invented", "people"],
-  no_unsourced_testimonial: ["nothing_invented", "testimonial"], no_invented_test: ["nothing_invented", "test"], no_invented_provenance: ["nothing_invented", "provenance"],
+/** A rule name stored before its rule was merged, read as the rule that took it and what its detail now says. */
+const RENAMED: Readonly<Record<string, readonly [HardRule, Readonly<Record<string, string>>]>> = Object.freeze({
+  rival_source: ["rival_claim", { kind: "source" }], rival_negative: ["rival_claim", { kind: "negative" }], no_invented_people: ["nothing_invented", { kind: "people" }],
+  no_unsourced_testimonial: ["nothing_invented", { kind: "testimonial" }], no_invented_test: ["nothing_invented", { kind: "test" }], no_invented_provenance: ["nothing_invented", { kind: "provenance" }],
+  no_hidden_text: ["unsafe_markup", { kind: "hidden" }], no_machine_address: ["unsafe_markup", { kind: "machine" }], no_demo_text: ["do_not_claim", { source: "demo" }],
+  honest_row: ["required_blocks", { block: "business_row" }], title_figure: ["traceable_numerals", {}],
 });
+
+/** A failed rule's kind as the Checks list names it: a merged rule's `kind`, demo text, or a comparison's missing row. */
+function kindOf(failure: RuleFailure): [HardRule, string][] {
+  const d = failure.detail;
+  const kind = d === undefined ? undefined : "kind" in d ? d.kind : "source" in d ? d.source : "block" in d && d.block === "business_row" ? d.block : undefined;
+  return kind === undefined ? [] : [[failure.rule, kind]];
+}
 
 // ── Which rules a run asked, and which it put right (issue 1394) ────────
 
@@ -199,7 +207,7 @@ export function recordedChecks(ruleFailures: unknown, run: RecordedRun | null): 
   const failed = shown(rulesIn(failures.map((failure) => failure.rule)));
   const asked = run === null ? HARD_RULES.filter((rule) => !SWITCHED_RULES.includes(rule)) : shown(run.asked);
   const passed = asked.filter((rule) => !failed.includes(rule));
-  const kinds = Object.fromEntries(failures.flatMap((failure) => (failure.detail !== undefined && "kind" in failure.detail ? [[failure.rule, failure.detail.kind]] : [])).reverse());
+  const kinds = Object.fromEntries(failures.flatMap((failure) => kindOf(failure)).reverse());
   return {
     passed,
     failed,

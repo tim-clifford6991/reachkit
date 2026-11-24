@@ -146,13 +146,10 @@ describe("where a break is placed", () => {
   });
 
   it("a rule whose answer is about the page carries no span rather than a guessed one", () => {
-    // `honest_row` reads the title, the headings and the comparison table
-    // together: a comparison table with no row for the business names no
-    // sentence, and inventing one would be the rule implemented a second
-    // time.
-    const md = `${CLEAN}\n\n| Tool | Seats |\n| --- | --- |\n| HubSpot | Unlimited |`;
-    const found = liveBreaks(md, { ...INPUTS, pageType: "market_comparison" }).find(
-      (b) => b.rule === "honest_row"
+    // A self-ranked "#1" in the title names no sentence of the body, and
+    // inventing one would be the rule implemented a second time.
+    const found = liveBreaks(CLEAN, { ...INPUTS, title: "Example is the #1 CRM for small teams", pageType: "market_comparison" }).find(
+      (b) => b.rule === "nothing_invented"
     );
     expect(found).toBeDefined();
     expect(found && isPlaced(found)).toBe(false);

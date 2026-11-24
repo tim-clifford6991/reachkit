@@ -35,15 +35,14 @@ import type { PromptKnowledge } from "../voice/profile-block";
 import { checkDistinctHeadings } from "./headings";
 import { checkHonestRow, checkSelfRanked } from "./honest";
 import { checkGrounding } from "./grounding";
-import { checkHiddenText } from "./hidden";
-import { checkMachineAddress } from "./machine";
+import { checkHiddenText, checkMachineAddress } from "./hidden";
 import { checkNearDuplicate } from "./nearduplicate";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
 import { checkProse, proseText, type ProseRuleInputs } from "./prose";
 import { checkRivalNegative, checkRivalScope, checkRivalSource, namedRivals, type NamedRival } from "./rivals";
 import { renderOf, withoutReferenceLists } from "./text";
 import { checkStandaloneLead } from "./standalone";
-import { checkTitle, type TitleRuleInputs } from "./title";
+import { checkTitle, titleFigures, type TitleRuleInputs } from "./title";
 import { stops } from "../record";
 import { HARD_RULES, SWITCHED_RULES } from "./types";
 import type { ComparisonSet, GroundedFact, HardRule, ModelRule, RuleFailure, SiteRuleInputs } from "./types";
@@ -70,12 +69,10 @@ export interface BatteryOutcome {
  */
 export function rulesAsked(a: RuleSwitches, verdicts: { fit: FitVerdict; fitAsked: boolean }): HardRule[] {
   const on: Record<string, boolean> = {
-    honest_row: a.pageType === "market_comparison",
     required_blocks: a.blocks != null,
-    no_demo_text: (a.demoPhrases ?? []).length > 0,
     distinct_headings: a.distinctHeadings === true,
     fit_claim: verdicts.fitAsked && verdicts.fit.state !== "unrun",
-    do_not_claim: a.site.doNotClaim.length > 0,
+    do_not_claim: a.site.doNotClaim.length > 0 || (a.demoPhrases ?? []).length > 0,
     // An update is asked its description's figures alone (issue 1507).
     title: a.titleRule != null,
     plain_prose: a.prose != null,
@@ -119,18 +116,18 @@ export interface DeterministicInputs {
   /** The writer's words, before code lays out its table, sources, closing and links: what every rule reads but the
    *  page-level ones. */
   markdown: string;
-  /** The page as code laid it out, where it differs: what the page-level rules read (hidden text, a machine address,
-   *  a near duplicate, its blocks). Absent, they read `markdown`. */
+  /** The page as code laid it out, where it differs: what the page-level rules read (unsafe markup, a near duplicate,
+   *  its blocks). Absent, they read `markdown`. */
   laid?: string;
   /** The title as written. The honest row and the fit check read it: a
    *  title is the first place a page says what the business is. */
   title: string;
   /** What a reader of the published page meets: `laid` rendered. */
   rendered: string;
-  /** The page's type (SPEC §7, issue 1136), which chooses the rule set:
-   *  `honest_row` reads a market comparison. `null` where the page has
-   *  none — an Improve page, or a caller that holds no row — and then
-   *  that rule decides nothing. */
+  /** The page's type (SPEC §7, issue 1136): a market comparison's table is
+   *  held to the business's own row, and its words to no self-ranked "#1".
+   *  `null` where the page has none — an Improve page, or a caller that
+   *  holds no row — and then neither is read. */
   pageType: PageType | null;
   site: SiteRuleInputs;
   comparison: ComparisonSet;
@@ -214,21 +211,26 @@ export function runDeterministicRules(
       }) ??
       checkInventedTest({ markdown: a.markdown, brief: a.brief }) ??
       checkInventedProvenance({ markdown: a.markdown, brief: a.brief }),
-    honest_row: checkHonestRow({ ...honest, rivals: a.site.rivals }),
-    no_hidden_text: checkHiddenText({ markdown: a.laid ?? a.markdown }),
-    no_machine_address: checkMachineAddress({ rendered: a.rendered }),
+    unsafe_markup: checkHiddenText({ markdown: a.laid ?? a.markdown }) ?? checkMachineAddress({ rendered: a.rendered }),
     near_duplicate: checkNearDuplicate({ rendered: a.rendered, comparison: a.comparison }),
-    traceable_numerals: checkTraceableNumerals({ markdown: a.markdown, brief: a.brief }),
+    traceable_numerals: checkTraceableNumerals({ markdown: a.markdown, brief: a.brief }) ?? titleFigure(a),
     first_block_answers: checkFirstBlockAnswers({ markdown: a.markdown }),
-    required_blocks: checkRequiredBlocks({ markdown: a.laid ?? a.markdown, title: a.title, blocks: a.blocks ?? null }),
+    required_blocks:
+      checkRequiredBlocks({ markdown: a.laid ?? a.markdown, title: a.title, blocks: a.blocks ?? null }) ??
+      (a.blocks == null ? null : checkHonestRow({ ...honest, rivals: a.site.rivals })),
     no_placeholder_cell: checkPlaceholderCell({ markdown: a.markdown }),
-    no_demo_text: checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases }),
     distinct_headings: checkDistinctHeadings({ markdown: a.markdown, apply: a.distinctHeadings === true }),
-    title: checkTitle({ title: a.title, ...(a.heading === undefined ? {} : { heading: a.heading }), rule: a.titleRule ?? null, markdown: a.markdown }),
+    title: checkTitle({ title: a.title, ...(a.heading === undefined ? {} : { heading: a.heading }), rule: a.titleRule ?? null }),
     plain_prose: checkProse({ markdown: a.markdown, prose: a.prose ?? null }),
     cites_market: checkCitesMarket({ markdown: a.markdown, cites: a.cites ?? null }),
     standalone_lead: checkStandaloneLead({ markdown: a.markdown, language: a.prose?.language ?? null }),
   };
+}
+
+/** A figure the title or its description states that no source holds (issue 1507). */
+function titleFigure(a: DeterministicInputs): RuleFailure | null {
+  const figure = a.titleRule == null ? undefined : titleFigures(a.title, a.titleRule, a.markdown)[0]?.figure;
+  return figure === undefined ? null : { rule: "traceable_numerals", detail: { rule: "traceable_numerals", figure } };
 }
 
 function rivals(a: DeterministicInputs): readonly NamedRival[] {
@@ -289,16 +291,14 @@ export async function runHardRules(
   const fit: FitVerdict = verdict.state !== "unrun" ? verdict : unread.length === 0 ? { state: "passed" } : { state: "failed", sentences: unread };
   // D45: a literal match of the list's own words, in the title and the body.
   const claim = claimCheck({ text: [a.title, ...(a.heading === undefined ? [] : [a.heading]), a.markdown].join("\n"), list: a.site.doNotClaim });
+  // The site's demo text and the facts the customer switched off are the same no, by whole sentence.
+  const demo = checkDemoText({ markdown: a.markdown, phrases: a.demoPhrases });
 
   const failed: RuleFailure[] = [];
   for (const rule of HARD_RULES) {
     if (rule === "do_not_claim") {
-      if (claim.state === "failed") {
-        failed.push({
-          rule: "do_not_claim",
-          detail: { rule: "do_not_claim", matchedEntry: claim.matchedEntry },
-        });
-      }
+      if (claim.state === "failed") failed.push({ rule: "do_not_claim", detail: { rule: "do_not_claim", matchedEntry: claim.matchedEntry } });
+      else if (demo !== null) failed.push(demo);
       continue;
     }
     if (rule === "fit_claim") {

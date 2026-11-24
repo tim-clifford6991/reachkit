@@ -1,9 +1,10 @@
-// SPEC §7 (D41 stage 4) — no demo text.
+// SPEC §7 (D41 stage 4) — demo text, held by `do_not_claim` with `source: "demo"`.
 //
 // A site's demo widget is not the business speaking: "Demo data · An example
 // business" read off a page is furniture, and a page that repeats one has
 // quoted it. The site's demo phrases are kept with its knowledge base; a
-// sentence of the page that is one of them, whole, stops the page. Menus are
+// sentence of the page that is one of them, whole, stops the page, as a fact
+// the customer switched off does. Menus are
 // not read: a nav label like "How it works" is also an honest heading.
 //
 // Whole sentences only, and only phrases long enough to be told from prose
@@ -28,7 +29,7 @@ export function checkDemoText(a: { markdown: string; phrases: readonly string[] 
   if (phrases.size === 0) return null;
   for (const sentence of sentencesOf(a.markdown)) {
     if (phrases.has(fold(sentence.text))) {
-      return { rule: "no_demo_text", detail: { rule: "no_demo_text", sentence: sentence.text } };
+      return { rule: "do_not_claim", detail: { rule: "do_not_claim", matchedEntry: sentence.text, source: "demo" } };
     }
   }
   return null;

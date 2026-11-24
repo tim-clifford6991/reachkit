@@ -62,7 +62,7 @@ describe("the outcome names the rules it asked (issue 1394)", () => {
     const outcome = await run(CLEAN_MARKDOWN);
     // An answer page handed no blocks, no title rule, no demo phrases, no
     // knowledge base and an empty never-claim list.
-    for (const rule of ["honest_row", "required_blocks", "title", "no_demo_text", "distinct_headings", "cites_market", "fit_claim", "do_not_claim"]) {
+    for (const rule of ["required_blocks", "title", "distinct_headings", "cites_market", "fit_claim", "do_not_claim"]) {
       expect(outcome.asked, rule).not.toContain(rule);
     }
     expect(outcome.asked).toEqual(expect.arrayContaining(["grounding", "near_duplicate", "traceable_numerals"]));
@@ -71,7 +71,7 @@ describe("the outcome names the rules it asked (issue 1394)", () => {
 });
 
 describe("every rule runs, and the list carries all of them in `HARD_RULES` order", () => {
-  it("a draft failing three rules reports all three, in order", async () => {
+  it("a draft failing two rules reports both, in order", async () => {
     const markdown = [
       "Acme is the answer.",
       "",
@@ -82,8 +82,7 @@ describe("every rule runs, and the list carries all of them in `HARD_RULES` orde
     const outcome = await run(markdown);
     expect(outcome.passed).toBe(false);
     expect(outcome.passed === false && outcome.failed.map((failure) => failure.rule)).toEqual([
-      "no_hidden_text",
-      "no_machine_address",
+      "unsafe_markup",
       "first_block_answers",
     ]);
   });

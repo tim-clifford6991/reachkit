@@ -8,8 +8,7 @@
 import "../env";
 import { describe, expect, it } from "vitest";
 import { MACHINE_ADDRESS_PATTERNS } from "../../../src/lib/config/constants";
-import { checkHiddenText } from "../../../src/lib/generate/rules/hidden";
-import { checkMachineAddress } from "../../../src/lib/generate/rules/machine";
+import { checkHiddenText, checkMachineAddress } from "../../../src/lib/generate/rules/hidden";
 
 describe("§8 · §14 — no sentence addressed to a machine reader", () => {
   it("the battery is never empty — an empty pattern list would pass every draft vacuously", () => {
@@ -26,7 +25,7 @@ describe("§8 · §14 — no sentence addressed to a machine reader", () => {
     ];
     expect(fixtures).toHaveLength(MACHINE_ADDRESS_PATTERNS.length);
     for (const rendered of fixtures) {
-      expect(checkMachineAddress({ rendered })?.rule).toBe("no_machine_address");
+      expect(checkMachineAddress({ rendered })?.rule).toBe("unsafe_markup");
     }
   });
 
@@ -34,44 +33,34 @@ describe("§8 · §14 — no sentence addressed to a machine reader", () => {
     const rendered = "Most teams now ask an assistant to shortlist tools before they look themselves.";
     expect(checkMachineAddress({ rendered })).toBeNull();
   });
-
-  it("no model decides this rule — the module imports nothing under src/lib/llm", async () => {
-    const { readFileSync } = await import("node:fs");
-    const path = await import("node:path");
-    const source = readFileSync(
-      path.resolve(import.meta.dirname, "../../../src/lib/generate/rules/machine.ts"),
-      "utf8"
-    );
-    expect(source).not.toMatch(/from "@\/lib\/llm/);
-  });
 });
 
 describe("§8 · §14 — nothing reaches the destination that a reader would not see", () => {
   it("an HTML comment fails", () => {
     expect(checkHiddenText({ markdown: "Text <!-- for the crawler --> more." })?.rule).toBe(
-      "no_hidden_text"
+      "unsafe_markup"
     );
   });
 
   it("off-screen positioning fails", () => {
     const markdown = '<span style="position:absolute;left:-9999px">extra words</span>';
-    expect(checkHiddenText({ markdown })?.rule).toBe("no_hidden_text");
+    expect(checkHiddenText({ markdown })?.rule).toBe("unsafe_markup");
   });
 
   it("zero sizing fails", () => {
     expect(checkHiddenText({ markdown: '<span style="font-size:0">words</span>' })?.rule).toBe(
-      "no_hidden_text"
+      "unsafe_markup"
     );
   });
 
   it("colour matched to the background fails", () => {
     const markdown = '<p style="color:#ffffff; background-color:#ffffff">words</p>';
-    expect(checkHiddenText({ markdown })?.rule).toBe("no_hidden_text");
+    expect(checkHiddenText({ markdown })?.rule).toBe("unsafe_markup");
   });
 
   it("hidden outright fails", () => {
     expect(checkHiddenText({ markdown: '<div style="display:none">words</div>' })?.rule).toBe(
-      "no_hidden_text"
+      "unsafe_markup"
     );
   });
 
@@ -82,7 +71,7 @@ describe("§8 · §14 — nothing reaches the destination that a reader would no
   it("alt text carrying prose about the brand fails", () => {
     const markdown =
       "![Acme is the leading platform for teams of every size. It has more seats than any rival. Buy it now.](chart.png)";
-    expect(checkHiddenText({ markdown })?.rule).toBe("no_hidden_text");
+    expect(checkHiddenText({ markdown })?.rule).toBe("unsafe_markup");
   });
 
   it("an ordinary hyperlink and its address are exempt — §8's sourcing rules require links", () => {

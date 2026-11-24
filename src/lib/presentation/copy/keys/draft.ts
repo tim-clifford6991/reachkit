@@ -341,7 +341,6 @@ export const DRAFT_COPY = Object.freeze({
   // added. The first is marked as it is typed; the second is the save's,
   // which holds the site's demo phrases and menu lines.
   "draft.editor.break.no-placeholder-cell": "A table cell is empty or says “unknown”. Fill it with a fact, or remove that row or column.",
-  "draft.editor.break.no-demo-text": "A sentence here is copied from your site’s menu or sample text. Remove it to continue.",
   // The sources list a page ends with (SPEC §7, 2026-09-29, *Two pools of
   // facts*; issue 1135): its heading, and what follows each linked page
   // title. Written into the page's own body, so a reader of the published

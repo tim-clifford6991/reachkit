@@ -5,8 +5,7 @@
 | grounding | passed | passed |
 | rival_claim | passed | passed |
 | nothing_invented | passed | passed |
-| no_hidden_text | passed | passed |
-| no_machine_address | passed | passed |
+| unsafe_markup | passed | passed |
 | near_duplicate | passed | passed |
 | traceable_numerals | failed {"figure":"11"} | passed |
 | first_block_answers | passed | passed |

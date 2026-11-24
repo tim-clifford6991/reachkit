@@ -9,7 +9,7 @@ import { HARD_RULES, NO_CHECKS, SWITCHED_RULES, type HardRule } from "@/lib/gene
 import { COPY } from "@/lib/presentation/copy";
 import { CHECKS, checkList } from "@/app/(account)/app/draft/[draftId]/checks";
 
-const ASKED = HARD_RULES.filter((rule) => rule !== "honest_row" && rule !== "fit_claim");
+const ASKED = HARD_RULES.filter((rule) => rule !== "distinct_headings" && rule !== "fit_claim");
 const RUN = recordedChecks([], { asked: ASKED, fixed: ["traceable_numerals"] });
 const PAGE = { grounded: true, claim: { state: "passed", at: new Date(0) }, recorded: RUN } as const;
 
@@ -37,7 +37,7 @@ describe("the headline counts what the run recorded", () => {
       failed: 0,
       fixed: 1,
     });
-    expect(statusOf(list, "honest_row")).toBe("skipped");
+    expect(statusOf(list, "distinct_headings")).toBe("skipped");
   });
 
   it("a rule the run failed is drawn as failed, and is not counted as fixed", () => {

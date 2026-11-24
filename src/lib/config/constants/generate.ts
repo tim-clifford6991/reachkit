@@ -120,7 +120,7 @@ export const NEAR_DUPLICATE_MAX = 0.85 as const;             // BUILD §8
  *  logs that it did). */
 export const ELSEWHERE = Object.freeze({ months: 12, pagesMax: 1000 } as const);
 
-/** The pinned battery behind `no_machine_address`: an instruction or
+/** The pinned battery behind `unsafe_markup`'s `machine` kind: an instruction or
  *  assertion directed at an assistant, a crawler or a ranking system about
  *  how to treat, cite, rank or recommend the page, matched against the
  *  rendered text. The battery decides the forms it lists and no others; no

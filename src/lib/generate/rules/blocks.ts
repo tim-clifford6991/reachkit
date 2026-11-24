@@ -57,6 +57,8 @@ export type RequiredBlock =
   | "dated_sources"
   | "verdict"
   | "business_section"
+  /** A market comparison's table without the business's own row (`./honest.ts`). */
+  | "business_row"
   | "faq"
   | "closing"
   | "length";

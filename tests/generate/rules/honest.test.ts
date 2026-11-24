@@ -59,7 +59,7 @@ describe("the honest row", () => {
   });
 
   it("stops a comparison whose table has no row for the business", () => {
-    expect(check("| Tool | Writes pages |\n| --- | --- |\n| Meltwater | No |")?.rule).toBe("honest_row");
+    expect(check("| Tool | Writes pages |\n| --- | --- |\n| Meltwater | No |")?.rule).toBe("required_blocks");
     // Whether a page owes a table at all is `required_blocks`' question, and
     // a table of the business's own plans is not the market's comparison.
     expect(check("ReachKit and Meltwater both measure AI answers.")).toBeNull();

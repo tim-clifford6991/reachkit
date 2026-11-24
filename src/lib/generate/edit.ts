@@ -271,7 +271,7 @@ async function recheck(
       rendered: renderOf(a.bodyMd),
       // No knowledge base is handed over: a founder's own edit is the
       // founder's word about their business, so the fit check decides
-      // nothing here and `honest_row` still reads the page.
+      // nothing here and the self-ranked "#1" still reads the page.
       pageType: opportunity === null ? null : pageTypeOf(opportunity),
       site: siteInputs,
       comparison: await buildComparisonSet({ siteId: a.siteId, exceptDraftId: a.draftId, ...(await ownVersions(a.siteId, opportunity)) }),
