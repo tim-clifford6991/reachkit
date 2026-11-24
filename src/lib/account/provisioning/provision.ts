@@ -144,7 +144,7 @@ export async function provisionFromPayment(sessionId: string, paidAt?: Date): Pr
   });
   const siteId = site.ok ? site.id : null;
 
-  // 4. The lead converted, and the nurture sequence stopped.
+  // 4. The lead converted, so the nurture sequence stops at its next touch.
   await convertLead(facts.email, new Date());
 
   // 5. The sign-in link, inside REQ-024 c1's minute.

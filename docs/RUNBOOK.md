@@ -905,10 +905,8 @@ must be one somebody reads. Resend's dashboard shows what left; the runtime log 
 **Bounces and complaints** (owner or release QA, once per environment): Resend → Webhooks → Add
 endpoint `https://<host>/api/mail/webhook` with the events `email.bounced`, `email.complained`,
 `email.suppressed` and `suppression.added`, then paste its signing secret into `RESEND_WEBHOOK_SECRET`
-on that Vercel target. A hard bounce, a complaint or a vendor suppression writes the address into
-`email_suppressions` (cause `bounced` or `complained`); a paying account's address gets `OWNER_EMAILS` one mail per cause, and a sign-in asked for by a stopped address is refused on screen and mailed once as `sign-in-blocked`: confirm the customer by another channel, then remove the address at Resend → Suppressions and its `email_suppressions` row by hand, or change the account's email. A soft bounce changes nothing. Smoke on dev: send to `bounced@resend.dev` and `complained@resend.dev`, then
-`select cause from email_suppressions where email in ('bounced@resend.dev','complained@resend.dev');`;
-Resend → Webhooks → the event → Resend shows a second 200 and no second row or mail. A request with
+on that Vercel target. Resend keeps bounced and complained addresses on its own list and refuses them at send time; the webhook
+writes no row. A paying account's address gets `OWNER_EMAILS` one mail per cause, and a sign-in asked for by an address on Resend's list is refused on screen and mailed once as `sign-in-blocked`: confirm the customer by another channel, then remove the address at Resend → Suppressions, or change the account's email. `email_suppressions` is read only for `opt_out`. Smoke on dev: `suppressions.add` an address (free), ask for a sign-in link with it and see the notice; a normal address gets its link. A signed `email.bounced` test event is answered 200 and writes no row. A request with
 a bad signature is answered 400.
 
 The free sender picture is a Google account on `hello@reachkit.app` with `public/brand/mark-512.png`

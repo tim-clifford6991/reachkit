@@ -4,6 +4,7 @@
 // Logs carry no address or body; a truncated digest correlates sends without reaching anyone.
 import https from "node:https";
 import { createHash } from "node:crypto";
+import { Resend } from "resend";
 import { env } from "@/lib/config/env";
 import { copy } from "@/lib/presentation/copy";
 import type { VendorResult, VendorSend } from "./types";
@@ -13,6 +14,19 @@ const RESEND_PATH = "/emails";
 
 /** Long enough for a transactional mail API, short enough that no job is held by one send. */
 const SEND_TIMEOUT_MS = 10_000;
+
+/** Short, because a person is waiting on the sign-in screen while it runs. */
+const SUPPRESSION_READ_MS = 3_000;
+
+/** Whether the vendor refuses this address (a hard bounce or a complaint). A failed, slow or rate-limited read answers no, so the mail is still tried. */
+export async function onVendorSuppressionList(address: string): Promise<boolean> {
+  try {
+    const read = await new Resend(env.RESEND_API_KEY).suppressions.get(address, { signal: AbortSignal.timeout(SUPPRESSION_READ_MS) });
+    return read.data !== null;
+  } catch {
+    return false;
+  }
+}
 
 /** Enough of a recipient to correlate sends, never enough to reach one. */
 export function recipientDigest(address: string): string {

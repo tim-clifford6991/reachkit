@@ -19,12 +19,11 @@ import type {
   LeadStore,
   ScanFirstPage,
   SequenceState,
-  SuppressionCause,
 } from "../../../src/lib/mail/leads/store";
 
 export interface MemoryState {
   leads: LeadRow[];
-  suppressions: Map<string, SuppressionCause>;
+  suppressions: Map<string, string>;
   scans: Map<string, string>;
   reports: Map<string, unknown>;
   /** The scans' stored free pages (issue 826); absent reads as unclaimed. */
@@ -145,14 +144,14 @@ export function memoryStore(state: MemoryState): LeadStore {
 
     async isSuppressed(email) {
       if (state.failSuppressionRead) return { ok: false };
-      return { ok: true, suppressed: state.suppressions.has(email.toLowerCase()), cause: state.suppressions.get(email.toLowerCase()) };
+      return { ok: true, suppressed: state.suppressions.get(email.toLowerCase()) === "opt_out" };
     },
 
-    async addSuppression(email, cause) {
+    async addSuppression(email) {
       if (state.failSuppressionWrite) return { ok: false };
       // Idempotent on the primary key: a second click writes nothing.
       const address = email.toLowerCase();
-      if (!state.suppressions.has(address)) state.suppressions.set(address, cause);
+      state.suppressions.set(address, "opt_out");
       return { ok: true };
     },
 

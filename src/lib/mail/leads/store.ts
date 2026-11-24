@@ -9,7 +9,8 @@ export type SequenceState = "waiting" | "running" | "finished" | "dropped" | "st
 /** Criterion 8's two owed things, each written-but-unsent state, and the terminal state where neither arrived. */
 export type FirstPageState = "pending" | "written" | "sent" | "notice_sent" | "abandoned";
 
-export type SuppressionCause = "opt_out" | "subscribed" | "bounced" | "complained";
+/** The one cause read and written; older rows with other causes stay in the table and are never read. */
+const OPT_OUT = "opt_out";
 
 /** The report's one free page, on the scan. `writing` is a claim, `written` carries the page, `refused` is recorded once; unclaimed is `null`. */
 export type ScanFirstPage =
@@ -86,13 +87,10 @@ export interface LeadStore {
 
   leadsForAddress(email: string): Promise<{ ok: true; leads: readonly LeadRow[] } | { ok: false }>;
 
-  isSuppressed(email: string): Promise<{ ok: true; suppressed: boolean; cause?: SuppressionCause } | { ok: false }>;
+  isSuppressed(email: string): Promise<{ ok: true; suppressed: boolean } | { ok: false }>;
 
-  /** Idempotent on the primary key: a second opt-out writes nothing and succeeds. */
-  addSuppression(
-    email: string,
-    cause: SuppressionCause
-  ): Promise<{ ok: true } | { ok: false }>;
+  /** Idempotent: a second opt-out succeeds, and an older row of another cause becomes an opt-out. */
+  addSuppression(email: string): Promise<{ ok: true } | { ok: false }>;
 
   /** Written onto the lead at capture, since a unique index cannot reach through `scan_id` to `scans.domain`. */
   scanDomain(scanId: string): Promise<{ ok: true; domain: string | null } | { ok: false }>;
@@ -239,20 +237,20 @@ export function supabaseLeadStore(): LeadStore {
 
     async isSuppressed(email) {
       const { data, error } = await untyped()
-        .from<{ email: string; cause: SuppressionCause }>("email_suppressions")
-        .select("email, cause")
+        .from<{ email: string }>("email_suppressions")
+        .select("email")
         .eq("email", email)
+        .eq("cause", OPT_OUT)
         .limit(1);
       if (error) return { ok: false };
-      const row = data?.[0];
-      return row === undefined ? { ok: true, suppressed: false } : { ok: true, suppressed: true, cause: row.cause };
+      return { ok: true, suppressed: (data ?? []).length > 0 };
     },
 
-    async addSuppression(email, cause) {
-      // Idempotent on the primary key, so an old opt-out link is safe to press twice.
+    async addSuppression(email) {
+      // An upsert on the primary key, so an old opt-out link is safe to press twice and an older cause never outranks the opt-out.
       const { error } = await untyped()
         .from<{ email: string }>("email_suppressions")
-        .upsert({ email, cause }, { onConflict: "email", ignoreDuplicates: true });
+        .upsert({ email, cause: OPT_OUT }, { onConflict: "email" });
       return error ? { ok: false } : { ok: true };
     },
 

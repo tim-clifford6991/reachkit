@@ -112,6 +112,7 @@ const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { deadLinkPath, LANDING_QUERY_KEY } = await import("../../src/lib/account/identity/addresses");
 const { unwireSignInLinkIssuer } = await import("../../src/lib/account/identity/wire");
 const { setLeadStore } = await import("../../src/lib/mail/leads/store");
+const { advanceSequences } = await import("../../src/lib/mail/leads/sequence");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { MAIL_KINDS } = await import("../../src/lib/mail/kinds");
 const { SETUP_PATH, APP_PATH, setupRedirectFor } = await import(
@@ -234,8 +235,6 @@ beforeEach(async () => {
 
   accounts = newMemoryAccounts();
   accounts.scans.set(SCAN_ID, { status: "done", domain: DOMAIN });
-  // The `leads` row §13 stamps `converted_at` on; its twin in the leads store below is the same row.
-  accounts.leads.push({ email: NORMALISED, converted_at: null });
   identity = newMemoryIdentity();
   auth = newFakeAuth();
   billing = newMemoryBilling();
@@ -252,8 +251,10 @@ beforeEach(async () => {
       sequence_state: "running",
       touch_count: 1,
       page_delivered_at: new Date("2026-09-02T12:00:00.000Z").toISOString(),
+      next_touch_at: new Date("2026-09-03T12:00:00.000Z").toISOString(),
     })
   );
+  accounts.leads.push(...leads.leads); // the `leads` row §13 stamps, one row in both stores
 
   setAccountStore(joinedAccountStore());
   setIdentityStore(memoryIdentityStore(identity));
@@ -515,10 +516,9 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(billing.users[0]?.paid_through).toBe(PAID_THROUGH.toISOString());
     expect(billing.users[0]?.stripe_subscription_id).toBe(SUBSCRIPTION_ID);
 
-    // The lead is converted and the follow-up is stopped, in the one
-    // transition that does both (§4.2 c10, ADR-042).
+    // The lead is converted, so its next due touch sends nothing and stops (§4.2 c10); no suppression row is written.
     expect(accounts.leads[0]?.converted_at).not.toBeNull();
-    expect(leads.suppressions.get(NORMALISED)).toBe("subscribed");
+    expect((await advanceSequences(new Date())).sent).toBe(0);
     expect(leads.leads[0]?.sequence_state).toBe("stopped");
 
     // Nothing on the payment path spends: no pass has started.
