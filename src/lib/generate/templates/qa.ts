@@ -22,6 +22,7 @@ export const qa: Template = {
   blocks: { faq: null },
   length: { floor: 1200, target: 1500, ceiling: 2100, kept: 1400, keptAim: { floor: 900, target: 1100 } },
   research: true,
+  sources: CITES_MARKET.min,
   // A page with no business fact stands on research alone (owner, #2511).
   packMustHold: [{ need: "buyer_questions", min: 5 }, { need: "outside_sources", min: CITES_MARKET.min }],
 };

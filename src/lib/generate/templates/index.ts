@@ -49,3 +49,6 @@ export function sectionBounds(template: Template): { min: number; max: number } 
     { min: 0, max: 0 }
   );
 }
+
+/** The one "enough sources" number of a type's page: its own, or its query's own type's where the ladder fell from one that asks more. */
+export const sourcesNeed = (type: ContentType, own?: ContentType): number => Math.max(TEMPLATES[type].sources, own === undefined ? 0 : TEMPLATES[own].sources);

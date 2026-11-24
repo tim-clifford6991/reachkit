@@ -51,6 +51,7 @@ export const howTo: Template = {
   blocks: { steps: { min: 3, max: 10, own: 1 }, faq: { min: 3, max: 6 } },
   length: { floor: 1400, target: 1900, ceiling: 3000, kept: 2000, keptAim: { floor: 1200, target: 1600 } },
   research: true,
+  sources: CITES_MARKET.min,
   // Issue 1486: the steps are the outside sources'; a page with no business
   // fact stands on them alone (owner, #2511).
   packMustHold: [{ need: "outside_sources", min: CITES_MARKET.min }],

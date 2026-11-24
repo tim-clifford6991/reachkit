@@ -20,6 +20,7 @@
 - Title: "Best AI search visibility tools for small businesses (2026)" → "Best AI Search Visibility Tools for Small Businesses (2026)"
 - Warns required_blocks: {"block":"sections","length":true}
 - Warns title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
+- Warns cites_market: {"cited":0,"min":1}
 - A price linked to the site's own page, which no passage read there states, [$29](https://reachkit.app/compare/seositecheckup): caught by no rule
 
 ## ecf4f99d: qa, "is seo dead now with ai"
@@ -37,6 +38,7 @@
 - Dropped: "The limit from its own description: it frames itself around measuring and improving presence, which reads as tracking plus guidance rather than ReachKit's own page publishing."
 - Warns required_blocks: {"block":"faq","length":true}
 - Warns title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
+- Warns cites_market: {"cited":0,"min":1}
 - Warns standalone_lead: {"headings":["How do these options compare at a glance?","How were these tools compared?"]}
 - A price linked to the site's own page, which no passage read there states, [$29](https://reachkit.app/compare/seositecheckup): caught by no rule
 - A price linked to the site's own page, which no passage read there states, [€49 a month](https://reachkit.app/pricing): caught by no rule
