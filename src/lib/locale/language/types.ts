@@ -51,6 +51,8 @@ export interface ShapeWords {
   appended: string;
   /** The same anywhere in a tail: "also", "too", "instead". */
   addedOn: string;
+  /** A clause run on after a title's search with no break: "that", "which", "who" at the start. */
+  relative: string;
 }
 
 /** The tracked buyer prompts' wording (SPEC §6, D19), one language's. Each

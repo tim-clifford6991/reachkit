@@ -15,7 +15,6 @@ import type { Locale } from "@/lib/locale/locales";
 import { ANGLE_ASK, ANGLE_PATTERNS, angleGates, casedTitle, pickAngle, repairedAngle, type AngleContext, type ProposedAngle } from "@/lib/market/questions/angle";
 import { plannedTitleFaults } from "@/lib/generate/rules/title";
 import { canonicalUrl } from "@/lib/measure/page-reading";
-import { pageTitle } from "@/lib/presentation/page-title";
 import { queryKey, topTenRowsOf } from "@/lib/opportunities/cluster";
 import { addressKey, ownLivePages } from "@/lib/opportunities/refresh";
 import { opportunityStore, readOpportunity, type OpportunityRow } from "@/lib/opportunities/store";
@@ -34,7 +33,7 @@ const SCHEMA = z.strictObject({
 const TASK = [`Each of \`searches\` is a page this business will write this week. For each, give \`angles\`: ${ANGLE_ASK.pages}`, ANGLE_ASK.title].join(" ");
 const RETRY = [
   TASK,
-  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; fact, its passage was not shown. Give new angles that pass them.",
+  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the search's words, with or without a break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; fact, its passage was not shown. Give new angles that pass them.",
 ].join(" ");
 
 /** Titles the open rows of the site's committed week that have none, or a new page's that fails today's title checks,
@@ -144,13 +143,13 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
   return titled;
 }
 
-/** A stored title to ask again: none, or one that fails the writer's wording rules or misspells a name the sources
- *  write in its own casing ("Ai" for AI). Its search in Title Case, the last fallback, is never asked again. */
+/** A stored title to ask again: none, or one that fails the writer's wording rules or is not its own Title Case with
+ *  each name in its sources' casing. Its search in Title Case, the last fallback, is never asked again. */
 export function staleTitle(stored: string, a: AngleContext): boolean {
   const title = stored.trim();
   if (title === "") return true;
   if (title === casedTitle(a.search, a)) return false;
-  return plannedTitleFaults(title, a.search, a.language).length > 0 || casedTitle(title, a) !== pageTitle(title, a.language ?? "en");
+  return plannedTitleFaults(title, a.search, a.language).length > 0 || title !== casedTitle(title, a);
 }
 
 /** The titles of the search's top results as the commit's research read them, at 0¢; none where none is held. */

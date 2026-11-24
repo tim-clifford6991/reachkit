@@ -58,6 +58,7 @@ export const EN: LanguagePack = {
     wordSense: "synonyms?|antonyms?|another word|other words?|word for|words?|meaning|define|definition|pronounce|pronunciation|thesaurus|dictionary|crossword",
     appended: "and|plus|including|but|or|instead",
     addedOn: "also|too|instead|not just|not only|rather than|more than",
+    relative: "that|which|who",
   },
   stopWords: new Set([
     "a", "an", "the", "and", "or", "of", "for", "to", "in", "on", "at", "by",
