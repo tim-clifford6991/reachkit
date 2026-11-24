@@ -26,8 +26,7 @@
 // text version (`RK_TEXT_VERSION`) that keys a stored read's text (`fetch_text`).
 // From `src/lib/opportunities/plan.ts` it is the planner (`RK_PLANNER`): the code a
 // week is chosen with, so the `scan/rescore` tick re-commits each site's week once it moves.
-// From `src/lib/generate/standard.ts` it is the content standard (`RK_STANDARD`), so the same tick reads each waiting
-// draft again once it moves.
+// From `src/lib/generate/standard.ts` it is the content standard (`RK_STANDARD`) a written page's record names.
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";

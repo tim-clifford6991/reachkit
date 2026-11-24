@@ -36,7 +36,6 @@ export const scanRescore: JobDefinition = {
   concurrency: [{ limit: 1 }],
   async run(input): Promise<Outcome> {
     const replanned = await replanWeeks(input);
-    await restandard(input);
     const rescored = await rescore(input);
     if (replanned.outcome !== "degraded") return rescored.outcome === "skipped" ? replanned : rescored;
     return rescored.outcome === "degraded" ? { ...rescored, step: `${rescored.step},${replanned.step}` } : replanned;
@@ -73,11 +72,3 @@ async function replanWeeks(input: JobInput): Promise<Outcome> {
   return stood === "" ? { outcome: "ran", subjectId: null } : { outcome: "degraded", subjectId: null, step: stood };
 }
 
-/** SPEC §7: each paying site's waiting drafts read once per standard deploy, at 0¢; after the re-plan, so a freed date keeps its topic. */
-async function restandard(input: JobInput): Promise<void> {
-  const { restandardSites } = await import("@/lib/generate/recheck");
-  // A failed reading never stops the hour's re-plan or re-score; the next tick reads again.
-  await restandardSites(async () => (await activeSites()).sites, { now: input.now, ...(input.step === undefined ? {} : { step: input.step }) }).catch((error: unknown) =>
-    console.warn(JSON.stringify({ event: "draft_standard_failed", errorClass: error instanceof Error ? error.name : "unknown" }))
-  );
-}

@@ -4,7 +4,6 @@
 
 - Stopped on: no_demo_text, title
 - Today: passes, 0¢
-- Title: "Answer engine optimization tool: up to 7 pages a week" → "How to Answer Engine Optimization"
 - Warns required_blocks: {"block":"faq","length":true}
 - Warns standalone_lead: {"headings":["What do you do next?"]}
 
@@ -17,7 +16,6 @@
 
 - Stopped on: rival_negative, required_blocks, no_demo_text, title
 - Today: passes, 0¢
-- Title: "Best AI search visibility tools for small businesses (2026)" → "Best AI Search Visibility Tools for Small Businesses (2026)"
 - Warns required_blocks: {"block":"sections","length":true}
 - Warns title: {"faults":["specific"]} (goes on at 0¢ once it is the only failure)
 - Warns cites_market: {"cited":0,"min":1}
@@ -27,13 +25,11 @@
 
 - Stopped on: title
 - Today: passes, 0¢
-- Title: "Generative engine optimization examples: 4 AI engines compared" → "Generative Engine Optimization Examples"
 
 ## 0f95686d: listicle, "best ai search visibility tools"
 
 - Stopped on: plain_prose, fit_claim
 - Today: passes, 0¢
-- Title: "5 AI search visibility tools for founders (2026)" → "Best AI Search Visibility Tools (2026)"
 - Dropped: "ReachKit and Analyze AI are the two that name writers or pages as part of what you get, which matters if your actual problem is empty pages rather than a missing dashboard."
 - Dropped: "The limit from its own description: it frames itself around measuring and improving presence, which reads as tracking plus guidance rather than ReachKit's own page publishing."
 - Warns required_blocks: {"block":"faq","length":true}
@@ -54,7 +50,6 @@
 
 - Stopped on: nothing recorded
 - Today: passes, 0¢
-- Title: "How to learn JavaScript as a complete beginner" → "How to Learn JavaScript as a Complete Beginner"
 - Warns required_blocks: {"block":"own_steps","length":true}
 - Warns title: {"faults":["specific","question"]}
 - Warns cites_market: {"cited":0,"min":2}
