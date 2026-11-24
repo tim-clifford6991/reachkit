@@ -136,16 +136,17 @@ async function dayReady(siteId: string, publishDate: string): Promise<NoPage | {
   return { ok: true, site, report };
 }
 
-/** D41's decide stage alone, at 0¢: the topic the day's page is written on, or why the day has none. `null` where its
- *  rival check rested it before its research was bought, and the write step's loop takes the next. */
-export async function decideDayPage(a: { siteId: string; publishDate: string; now: Date }): Promise<NoPage | { ok: true; opportunityId: string | null }> {
+/** D41's decide stage alone, at 0¢: the topic the day's page is written on, or why the day has none. A topic whose rival
+ *  check fails is rested and the next taken here, at most `DAY_TOPICS_MAX` times, so the research asked next is the written topic's. */
+export async function decideDayPage(a: { siteId: string; publishDate: string; now: Date }): Promise<NoPage | { ok: true; opportunityId: string }> {
   const ready = await dayReady(a.siteId, a.publishDate);
   if (!ready.ok) return ready;
-  const first = inTest() ? await plannedTopic(a.siteId, a.publishDate) : await pageForDay(a.siteId, a.publishDate, a.now);
-  if (first === null) return { ok: false, because: "no_opportunity" };
-  if (await rivalsAnswer(ready, first)) return { ok: true, opportunityId: first.id };
-  await restTopic(first.id, a.now, { zone: ready.site.timeZone });
-  return { ok: true, opportunityId: null };
+  let first = inTest() ? await plannedTopic(a.siteId, a.publishDate) : await pageForDay(a.siteId, a.publishDate, a.now);
+  for (let tries = 0; first !== null && tries < DAY_TOPICS_MAX && !(await rivalsAnswer(ready, first)); tries++) {
+    await restTopic(first.id, a.now, { zone: ready.site.timeZone });
+    first = await pageForDay(a.siteId, a.publishDate, a.now);
+  }
+  return first === null ? { ok: false, because: "no_opportunity" } : { ok: true, opportunityId: first.id };
 }
 
 /** #813: a write call that did not answer is tried once more. D41's one fix call is the pipeline's own, not one. */

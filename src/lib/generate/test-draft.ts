@@ -28,13 +28,12 @@ async function write(a: { siteId: string; publishDate: string; now: Date }, test
   const { askDayResearch, COLLECT } = await import("./research-queue");
   const day = { siteId: a.siteId, publishDate: a.publishDate, now: a.now, since: a.now };
   const decided = await testing("select", () => decideDayPage(day));
-  // A test write's topic is never rested, so it always has one.
-  if (!decided.ok || decided.opportunityId === null) return { outcome: decided.ok ? "no_opportunity" : decided.because, draftId: null };
+  if (!decided.ok) return { outcome: decided.because, draftId: null };
   const research = { siteId: a.siteId, opportunityId: decided.opportunityId, now: a.now, since: a.now };
   let left = await testing("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
   for (let round = 1; left > 0 && round <= COLLECT.rounds; round++) left = await testing(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   if (left > 0) return { outcome: "research_pending", draftId: null };
-  const written = await testing("write", () => generateDayPage({ ...day, opportunityId: research.opportunityId }));
+  const written = await testing("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   const draftId = "draftId" in written ? written.draftId : null;
   // A short pack reads as one, with the step that names what it lacked, never as a failed step.
   const step = "step" in written ? written.step : undefined;

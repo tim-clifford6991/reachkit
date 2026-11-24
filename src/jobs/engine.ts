@@ -479,18 +479,17 @@ export async function generateDraft(a: {
     return "done" in reviewed ? { done: true, instead: `refresh:${trigger}` } : reviewed;
   };
   if (!decided.ok) return decided.because === "already_drafted" ? { done: true } : instead(`generate:${decided.because}`, "select", null);
-  // Research SERPs are queued before the write, which reads them at 0¢; run inline (the first draft), no step waits. A topic the
-  // select rested has none: the write's loop takes the next and reads its own.
+  // Research SERPs are queued before the write, which reads them at 0¢; run inline (the first draft), no step waits.
   const { askDayResearch, COLLECT } = await import("@/lib/generate/research-queue");
-  const id = decided.opportunityId ?? undefined, research = { siteId: a.siteId, opportunityId: id ?? "", now: a.now, since: day.since };
-  let left = id === undefined ? 0 : await step("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
+  const research = { siteId: a.siteId, opportunityId: decided.opportunityId, now: a.now, since: day.since };
+  let left = await step("research-post", () => askDayResearch({ ...research, waitMs: COLLECT.askMs }));
   for (let round = 1; a.step !== undefined && left > 0 && round <= COLLECT.rounds; round++) left = await step(`research-collect-${round}`, () => askDayResearch({ ...research, waitMs: COLLECT.stepMs }));
   // The write never waits on the queue: research still out is no page today and no rest, and the next tick asks again.
-  if (left > 0) return instead("generate:research_pending", "select", null, `;topic:${id}`);
-  const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: id }));
+  if (left > 0) return instead("generate:research_pending", "select", null, `;topic:${decided.opportunityId}`);
+  const outcome = await step("write", () => generateDayPage({ ...day, opportunityId: decided.opportunityId }));
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
   const reviewed = await step("review", () => reviewWritten(outcome, a.now, day.since));
-  return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null, `;topic:${id ?? ""}`);
+  return !("degraded" in reviewed) || !reviewed.degraded.startsWith("generate:") ? reviewed : instead(reviewed.degraded, "write", !outcome.ok && "draftId" in outcome ? outcome.draftId : null, `;topic:${decided.opportunityId}`);
 }
 
 /** Of these site days, the ones owed and no due hour recorded an ending for, and those to decide `again`. */
