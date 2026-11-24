@@ -17,14 +17,14 @@ vi.mock("@anthropic-ai/sdk", () => ({ default: class { messages = { create: crea
 const { withCostContext } = await import("../../src/lib/costs/index");
 const { llm } = await import("../../src/lib/llm/index");
 const { tryFix } = await import("../../src/lib/generate/pipeline/fix-call");
-const { CAPS } = await import("../../src/lib/config/constants");
+const { CAPS, INFERENCE_MAX_OUTPUT_TOKENS } = await import("../../src/lib/config/constants");
 
 const DRAFT_C = CAPS.DRAFT_C;
 const SCHEMA = z.object({ page: z.string() });
 /** A fix call's input the size of 11-04's, about 12,000 tokens. */
 const INPUT = { page: "x".repeat(48_000) };
 const INPUT_TOKENS = Math.ceil(JSON.stringify(INPUT).length / 4);
-const FIX_OUT = 8192;
+const FIX_OUT = INFERENCE_MAX_OUTPUT_TOKENS["generate.fix"];
 /** One attempt at the writer's list price, Opus 5.5's 400¢ in and 2000¢ out per million, recomputed here. */
 const ONE_ATTEMPT = (INPUT_TOKENS / 1e6) * 400 + (FIX_OUT / 1e6) * 2000;
 /** The most a day's research has cost before its write. */
@@ -50,8 +50,8 @@ afterEach(() => {
 });
 
 describe("a model call reserves one attempt at a time", () => {
-  it("a day that paid its research, a write cut off at its ceiling and the retry is still admitted the fix, though not two", async () => {
-    const prior = RESEARCH_C + 2 * ONE_ATTEMPT;
+  it("a day that paid its research and a write billed at its ceiling is still admitted the fix, though not two", async () => {
+    const prior = RESEARCH_C + (INPUT_TOKENS * 1.56 / 1e6) * 400 + (INFERENCE_MAX_OUTPUT_TOKENS["generate.write"] / 1e6) * 2000;
     expect(2 * ONE_ATTEMPT).toBeGreaterThan(DRAFT_C - prior);
     createMock.mockResolvedValueOnce(toolUseMessage({ page: "fixed" }, INPUT_TOKENS, 2700, "generate_fix"));
 
