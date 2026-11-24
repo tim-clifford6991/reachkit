@@ -25,7 +25,7 @@ beforeEach(async () => {
   vi.stubEnv("RK_PLANNER", "0fa1");
   vi.spyOn(console, "log").mockImplementation(() => {});
   __setVendorTransportForTesting(async (payload) => (mails.push(JSON.stringify(payload)), { status: 200, headers: {}, body: '{"id":"m"}' }));
-  db.reset();
+  [db.reset(), cut = 0];
   db.seed("sites", [{ id: SITE_ID, domain: "savvycal.com" }]);
   const site = panelSite("savvycal.com");
   state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows, weeklyCommit: "2026-10-19" });
@@ -77,4 +77,12 @@ it("claims a week that dates no day empty, commits nothing, and does not dry-run
   expect(await tick(1)).toEqual({ replanned: [], held: [], empty: [SITE_ID] });
   const dryRuns = vi.mocked(console.log).mock.calls.filter(([line]) => String(line).includes("week_replan_dry_run")).length;
   expect([commits, dryRuns, events("week_replanned").map((row) => row.read)]).toEqual([0, 1, ["empty"]]);
+});
+
+it("keeps the commit's research verdict and write-as on every committed row it re-plans", async () => {
+  const research = { state: "met" as const, R: 4, Q: 6, F: 2, estWords: 1200, urls: ["https://a.example/"] };
+  const committed = state.rows.filter((row) => row.plan_place != null);
+  for (const row of committed) Object.assign(row, { plan_write_as: "listicle", plan_reason: { ...row.plan_reason, research } });
+  await tick(0).catch(() => tick(1));
+  expect(committed.filter((row) => row.plan_place != null).map((row) => [row.plan_reason?.research?.state, row.plan_write_as])).toEqual(committed.map(() => ["met", "listicle"]));
 });

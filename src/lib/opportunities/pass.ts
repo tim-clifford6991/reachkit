@@ -13,6 +13,7 @@ import { assessFixPages } from "./fix-page";
 import type { KnownMatch } from "@/lib/known-content/types";
 import { deriveOpportunities, type DeriveInput } from "./derive";
 import { afterReadiness } from "./derive/ledger";
+import { liveTwinIds } from "./plan";
 import { assessReadiness, canUpdateFrom } from "./readiness";
 import { opportunityStore, readOpportunity } from "./store";
 import { rankedCountsFromSizes, type RankedCounts } from "./winnability/counts";
@@ -119,7 +120,7 @@ export async function deriveForPass(
   const known = await knownGateFor({ siteId: a.siteId, report: a.report, market });
   const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
   const rivalRows = await a.rivalRows?.([...(market?.rivals.map((rival) => rival.domain) ?? []), ...competitors, ...searchRivals]).catch(() => undefined);
-  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null, ...(a.tier === "weekly" ? { topUp: a.topUp === undefined ? {} : { spend: a.topUp } } : {}), ...(rivalRows === undefined ? {} : { rivalRows }) };
+  const input = { ...inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known, market, knowledge, competitors, prompts: prompts ?? [] }), area: area ?? null, ...(a.tier === "weekly" ? { topUp: a.topUp === undefined ? {} : { spend: a.topUp }, liveTwins: await liveTwinIds(a.siteId, a.report.verdict.measuredAt) } : {}), ...(rivalRows === undefined ? {} : { rivalRows }) };
 
   // Fixes this scan shows cleared retire first, so a fixed page is not re-derived beside its closed row.
   await assessFixPages(a.siteId, { report: a.report });
@@ -132,7 +133,9 @@ export async function deriveForPass(
   const added = derived?.created.length ?? 0;
   // Supply is what can fill a day: readiness decides it before it is counted, so a row a live page covers is not supply.
   if (derived !== null) await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
-  const supply = derived === null ? null : afterReadiness(derived.supply, (await store.openRankable(a.siteId)).map(readOpportunity));
+  // Supply counts what the commit can place: a live page's twin it refuses is no place.
+  const twins = derived === null ? new Set<string>() : await liveTwinIds(a.siteId, a.report.verdict.measuredAt);
+  const supply = derived === null ? null : afterReadiness(derived.supply, (await store.openRankable(a.siteId)).filter((row) => !twins.has(row.id)).map(readOpportunity));
   // `spentCents` tells a spent reserve (at the cap) from a day or site ceiling (below it), which `capHit()` lumps.
   const derivation =
     supply === null

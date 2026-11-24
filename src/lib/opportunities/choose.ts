@@ -21,6 +21,8 @@ export interface ChooseInput extends RankLoad {
   days?: number; // dated days the week holds, `WEEK_PLAN.days` where absent
   /** The cached research of the best-ranked rows; absent, the order is the ranking's. */
   research?: ReadonlyMap<string, ResearchRead | null>;
+  /** The committed week's stored verdicts, which a re-plan keeps for a row `research` does not hold. */
+  verdicts?: ReadonlyMap<string, Pick<PlanEntry, "writeAs" | "reason">>;
   /** Committed dates by row: a row the rules still rank keeps its date (a short one does not), and only the other dates are filled. */
   keep?: ReadonlyMap<string, string>;
 }
@@ -51,7 +53,9 @@ export function choose(input: ChooseInput): Choice {
 function byResearch(ranked: Joined[], input: ChooseInput): Joined[] {
   if (input.research === undefined) return ranked;
   const rows = new Map(input.rows.map((row) => [row.id, readOpportunity(row)]));
+  const stored = (entry: Joined, kept = input.research!.has(entry.opportunityId) ? undefined : input.verdicts?.get(entry.opportunityId)): Joined | undefined => (kept?.reason.research == null ? undefined : { ...entry, ...(kept.writeAs == null ? {} : { writeAs: kept.writeAs }), reason: { ...entry.reason, research: kept.reason.research } });
   const head = ranked.slice(0, WEEK_RESEARCH.rowsMax).map((entry): Joined => {
+    if (stored(entry) !== undefined) return stored(entry)!;
     const o = rows.get(entry.opportunityId), read = input.research!.get(entry.opportunityId);
     const type = entry.set?.type === undefined && o !== undefined ? typeTheResearchFills(o, read ?? null) : null;
     const standard = read === undefined || type === null ? { parts: [], met: true, pending: false } : meetsStandard({ type, read, demand: mustShowDemand(o!, type) });
@@ -63,7 +67,7 @@ function byResearch(ranked: Joined[], input: ChooseInput): Joined[] {
     return { ...entry, ...(filled ? { writeAs: filled } : {}), reason: { ...entry.reason, research: { state, R: read?.R ?? null, Q: read?.Q ?? null, F: read?.F ?? null, estWords: words, urls: read?.urls ?? [], ...(state === "short" ? { short: standard.parts.filter((part) => part.state === "short").map((part) => part.part) } : {}) } } };
   });
   const tier = (entry: Joined) => TIERS.indexOf(entry.reason.research?.state ?? "met");
-  return [...head.sort((a, b) => tier(a) - tier(b)), ...ranked.slice(WEEK_RESEARCH.rowsMax)];
+  return [...head.sort((a, b) => tier(a) - tier(b)), ...ranked.slice(WEEK_RESEARCH.rowsMax).map((entry) => stored(entry) ?? entry)];
 }
 
 type Joined = Ranked & Pick<PlanEntry, "set">;
@@ -96,18 +100,12 @@ function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: C
       continue;
     }
     const live = (input.live ?? []).find((page) => joined(page.row, o) || liveTwin(page, o, input.topTens));
-    const page: KnownPage | null =
-      live === undefined
-        ? null
-        : { source: "reachkit", ref: live.row.id, url: live.url, title: live.title ?? live.row.title ?? "", headings: [], live: true, publishedAt: live.publishedAt };
+    const page: KnownPage | null = live === undefined ? null : { source: "reachkit", ref: live.row.id, url: live.url, title: live.title ?? live.row.title ?? "", headings: [], live: true, publishedAt: live.publishedAt };
     if (page !== null && (tooYoungToRefresh(page, input.at) || updated.has(canonicalUrl(page.url!)))) {
       rejected.push({ opportunityId: o.id, reason: "live_twin" });
       continue;
     }
-    const held: Joined =
-      page === null
-        ? { ...entry }
-        : { opportunityId: entry.opportunityId, reason: entry.reason, set: updateColumns(asUpdate(o, { page, score: pageScore({ query: o.targetQuery, title: o.title }, page, market) }, input.at)) };
+    const held: Joined = page === null ? { ...entry } : { opportunityId: entry.opportunityId, reason: entry.reason, set: updateColumns(asUpdate(o, { page, score: pageScore({ query: o.targetQuery, title: o.title }, page, market) }, input.at)) };
     if (page !== null) updated.add(canonicalUrl(page.url!));
     kept.push({ o, entry: held });
     out.push(held);

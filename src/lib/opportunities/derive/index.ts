@@ -64,6 +64,8 @@ export interface DeriveInput {
   area?: MarketConclusion["serves"];
   /** The weekly pass may top a short site up, buying under its own cap (SPEC §7 *Pages left*); the deep pass and the evening never do. */
   topUp?: { spend?: TopUpSpend };
+  /** The held rows the commit refuses as a live page's twin, which supply does not count. */
+  liveTwins?: ReadonlySet<string>;
   /** Each competitor's ranked rows as its sizing cached them; absent reads as none read. */
   rivalRows?: ReadonlyMap<string, readonly RankedRow[]>;
 }
@@ -204,7 +206,7 @@ export async function deriveOpportunities(
   const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
   // SPEC §6 (owner, 2026-11-16): an earlier healthy pass's answers, as this pass checks its health after deriving and its late answers land later still.
   const answered = await import("@/lib/scan/health-record").then(({ healthyPrompts }) => healthyPrompts(a.siteId)).catch(() => null);
-  const have = held.filter((row) => !gone.has(row.id) && writable(row)).length;
+  const have = held.filter((row) => !gone.has(row.id) && !a.liveTwins?.has(row.id) && writable(row)).length;
   const topUp = a.topUp === undefined ? undefined : topUpRecord(have);
   const topping: TopUpTopic[] = topUp === undefined ? [] : await topUpWithPurchase(a.topUp?.spend, { record: topUp, report: a.report, market, ownRanked, language: locale.language, locale, ...named, written, asked: askedTopics(seen, a.report.verdict.measuredAt, Infinity), taken, area: a.area ?? null, max: room });
   const toppedUp = new Set<unknown>(topping);
@@ -237,15 +239,7 @@ export async function deriveOpportunities(
 
   // "Would a buyer search this?" over every unmeasured search; a seen-asked search needs no check, as Google showed it.
   const unmeasuredOffers = offered.filter((topic) => topic.volume === null && topic.asked === undefined);
-  const unmeasuredRows = held.filter(
-    (row) =>
-      row.status === "open" &&
-      !gone.has(row.id) &&
-      row.family === "write" &&
-      row.targetQuery !== null &&
-      row.source !== "ai_gap" &&
-      (row.volume === null || row.volume.kind === "unmeasured")
-  );
+  const unmeasuredRows = held.filter((row) => row.status === "open" && !gone.has(row.id) && row.family === "write" && row.targetQuery !== null && row.source !== "ai_gap" && (row.volume === null || row.volume.kind === "unmeasured"));
   const typed = await judgeTyped(c, {
     searches: [...unmeasuredOffers.map((topic) => topic.query), ...unmeasuredRows.map((row) => row.targetQuery!)],
     market,
