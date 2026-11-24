@@ -29,7 +29,8 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
         const [report, held, locale] = await (read ??= context());
         if (report === null) break;
         const profile = report.market.kind === "unmeasured" ? null : report.market.value.profile;
-        const angle = await angleFor(c, { event, locale, market: held.market, profile, domain: report.domain, knowledge: held.knowledge ?? null });
+        const judged = await angleFor(c, { event, locale, market: held.market, profile, domain: report.domain, knowledge: held.knowledge ?? null });
+        const angle = "miss" in judged ? null : judged;
         const reason = { signal: event.signal, event: event.event, date: event.date, a: event.a, b: event.b, key: event.key, detectedOn: day };
         const inserted = angle === null ? null : await store.insert({
           site_id: a.siteId, scan_id: report.scanId, type: "keyword_page", family: "write", target_query: angle.search, target_ref: slugify(angle.search, measuredLocale(report).language), proposed_slug: null, title: angle.title, volume: null,
@@ -37,7 +38,7 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
           acceptance: { form: "top20", query: angle.search }, fit_band: "reach", business_fit: angle.fit, source: "category", effort: EFFORT_BY_TYPE.keyword_page,
         });
         if (inserted?.outcome === "created") added++;
-        console.log(JSON.stringify({ event: "hot_topic_judged", siteId: a.siteId, day, signal: event.signal, result: angle === null ? "no_angle" : (inserted?.outcome ?? "none"), fit: angle?.fit ?? null }));
+        console.log(JSON.stringify({ event: "hot_topic_judged", siteId: a.siteId, day, signal: event.signal, result: angle === null ? "no_angle" : (inserted?.outcome ?? "none"), fit: angle?.fit ?? null, ...("miss" in judged ? { miss: judged.miss } : {}), angles: judged.angles }));
       }
       return added;
     });
