@@ -34,10 +34,10 @@ import type { ClaimState, KnownCheck } from "./model";
 export const CHECKS: Readonly<Record<HardRule, { key: CopyKey }>> = Object.freeze({
   grounding: { key: "draft.checks.rule.grounding" },
   traceable_numerals: { key: "draft.checks.rule.traceable-numerals" },
-  rival_claim: { key: "draft.checks.rule.rival-source" },
+  rival_claim: { key: "draft.checks.rule.rival-claim" },
   cites_market: { key: "draft.checks.rule.cites-market" },
   no_placeholder_cell: { key: "draft.checks.rule.no-placeholder-cell" },
-  nothing_invented: { key: "draft.checks.rule.no-invented-people" },
+  nothing_invented: { key: "draft.checks.rule.nothing-invented" },
   do_not_claim: { key: "draft.checks.rule.do-not-claim" },
   fit_claim: { key: "draft.checks.rule.fit-claim" },
   honest_row: { key: "draft.checks.rule.honest-row" },
@@ -59,7 +59,7 @@ const KIND_KEY: Readonly<Record<string, CopyKey>> = Object.freeze({
   negative: "draft.checks.rule.rival-negative",
   people: "draft.checks.rule.no-invented-people",
   testimonial: "draft.checks.rule.no-unsourced-testimonial",
-  ranked: "draft.checks.rule.honest-row",
+  ranked: "draft.checks.rule.self-ranked",
   test: "draft.checks.rule.no-invented-test",
   provenance: "draft.checks.rule.no-invented-provenance",
 });
