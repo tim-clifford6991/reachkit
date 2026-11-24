@@ -1,7 +1,7 @@
 // SPEC §7 *Two pools of facts*: in production a list of alternatives cited 24 of 24 claims off the rivals' own pages, 0 independent.
 import { describe, expect, it } from "vitest";
 import type { MarketFact } from "../../../src/lib/generate/pipeline/research";
-import { byTier, citedIndependent, tiered, withRoom } from "../../../src/lib/generate/pipeline/source-tier";
+import { byTier, citedIndependent, credibleAt, tiered, withRoom } from "../../../src/lib/generate/pipeline/source-tier";
 
 const rivals = ["otterly.ai", "peec.ai", "tryprofound.com", "tryanalyze.ai"];
 const fact = (url: string, at: number, product?: string) => ({ url, passage: `claim ${at}`, kind: product === undefined ? "study" : "rival_pricing", ...(product === undefined ? {} : { product }) }) as unknown as MarketFact;
@@ -27,5 +27,13 @@ describe("a directory and a vendor's blog are never original for a method word e
     const facts = tiered([{ ...fact(dir, 0), passage: stars }, { ...fact(blog, 0), passage: ahrefs, publishedAt: "2026-10-19", ageAt: "2026-10-19" }], { rivals: [], products: rivals, names: [{ domain: "otterly.ai", name: "Otterly AI" }, { domain: "tryprofound.com", name: "Profound" }], language: "en", pages: read, capped: new Set() });
     expect(facts.map((each) => [each.tier, each.secondHand, each.ageAt, each.publishedAt])).toEqual([["review", undefined, undefined, undefined], ["other", true, undefined, undefined]]);
     expect(citedIndependent(facts, (url) => url === blog)).toBe(0);
+  });
+});
+
+describe("a study page is credible by its host, never by a tier one passage earned", () => {
+  it("passes a publication and not a vendor's blog, and tiers the publication's own claim publication", () => {
+    const press = "https://searchengineland.com/ai-search-study-1234";
+    expect([press, "https://www.scalenut.com/blogs/trends-in-generative-engine-optimization"].map((url) => credibleAt(url, "en"))).toEqual([true, false]);
+    expect(tiered([fact(press, 0)], { rivals, products: rivals, language: "en", pages: [{ url: press, text: "claim 0" }], capped: new Set() })[0]?.tier).toBe("publication");
   });
 });

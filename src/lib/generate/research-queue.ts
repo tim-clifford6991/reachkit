@@ -23,7 +23,7 @@ import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { competitorOf, targetSearches } from "./pipeline";
 import { builtFromOutside, fellTo, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "./standard";
-import { credibleAt, credibleHosts, credibleSearch, officialOf, studySubject } from "./pipeline/source-tier";
+import { credibleAt, credibleSearch, studySubject } from "./pipeline/source-tier";
 import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchMarket, researchSerps, rivalPage, sitemapOf, storedAsk, type MarketResearch } from "./pipeline/research";
 import { knowledgeTexts, shares, topicWords } from "./pipeline/pack";
 import { alikeHeadings } from "./rules/headings";
@@ -57,8 +57,8 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
     // Together, since every read waits to the one `untilMs`; the update's read never holds the day's own write.
     await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure: (failed) => void (waiting += failed.taskId === undefined ? 0 : 1) })), ...beside.map((read) => serpOrganic(cost, read))]);
     // A study search with no credible host among its results posts the credible one beside it, for the write to read; never waited on.
-    const study = reads[1] === undefined ? null : await cachedSerp(reads[1], DRAFT_POLICY_VERSION).catch(() => null), hosts = study === null ? [] : await credibleHosts(a.siteId, locale.language, a.now);
-    const credible = study === null || study.organic.some((row) => credibleAt(row.url, hosts, [], officialOf(locale.language))) ? undefined : credibleSearch(reads[1]!, studySubject(asked), hosts);
+    const study = reads[1] === undefined ? null : await cachedSerp(reads[1], DRAFT_POLICY_VERSION).catch(() => null);
+    const credible = study === null || study.organic.some((row) => credibleAt(row.url, locale.language)) ? undefined : credibleSearch(reads[1]!, studySubject(asked));
     if (credible !== undefined && !cost.capHit()) await serpOrganic(cost, credible);
     return waiting;
   });

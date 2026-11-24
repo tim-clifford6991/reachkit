@@ -3,7 +3,7 @@
 import { languagePack, SHAPES } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { brandOf } from "@/lib/market/questions/select";
-import { isPlatformDomain, nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
+import { nameLetters, registrableDomain } from "@/lib/market/rivals/domains";
 import type { MarketFact } from "./research";
 
 export type SourceTier = "primary" | "original" | "publication" | "review" | "vendor" | "other" | "wire";
@@ -48,6 +48,19 @@ export function primaryAddress(url: string, rivals: readonly string[] = []): boo
 // A paid press-release wire, by its name in the address or the syndicated text: the seller's own word, never independent.
 const WIRE_RE = /(?<![a-z])(?:pr ?newswire|business ?wire|globe ?newswire|accesswire|ein ?presswire|einnews|ab ?newswire|getnews|newsfile ?corp|prweb|openpr|prlog|issuewire|marketersmedia|send2press|24-7pressrelease|presswire)(?![a-z])/i;
 export const pressWire = (url: string, text = ""): boolean => WIRE_RE.test(url) || WIRE_RE.test(text);
+
+// General publications and analysts, and review platforms, that a bot can read: an outside page here is independent by its host.
+const PUBLICATIONS = ["searchengineland.com", "searchenginejournal.com", "digiday.com", "techcrunch.com", "theverge.com", "axios.com", "bbc.co.uk", "pewresearch.org", "forrester.com", "gartner.com"];
+const REVIEWS = ["g2.com", "capterra.com", "trustradius.com", "omr.com"];
+
+/** The tier an address alone gives a page's first-hand claims, or none where only its words can say. */
+export function addressTier(url: string, language: Language, rivals: readonly string[] = []): SourceTier | undefined {
+  const host = hostOf(url), on = (hosts: readonly string[]): boolean => hosts.some((each) => sameSite(host, each));
+  if (on(rivals)) return "vendor";
+  if (pressWire(url)) return "wire";
+  if (primaryAddress(url) || languagePack(language).officialHosts.test(host)) return "primary";
+  return on(PUBLICATIONS) ? "publication" : on(REVIEWS) ? "review" : undefined;
+}
 
 /** How far either side of a claim's passage its page may state the method it was found by. */
 const BESIDE = 400;
@@ -103,13 +116,14 @@ export function tiered(facts: readonly MarketFact[], a: { rivals: readonly strin
   const citers = new Map<string, Set<string>>();
   for (const fact of facts) if (fact.via !== undefined) citers.set(siteOf(fact.url), (citers.get(siteOf(fact.url)) ?? new Set()).add(siteOf(fact.via)));
   const tierOf = (fact: MarketFact): SourceTier => {
-    const host = hostOf(fact.url);
-    if (fact.product !== undefined || a.rivals.some((rival) => sameSite(host, rival))) return "vendor";
-    if (wire.has(fact.url) || pressWire(fact.url)) return "wire";
-    if (fact.kind === "primary" || primaryAddress(fact.url) || pack.officialHosts.test(host)) return "primary";
+    const host = hostOf(fact.url), byAddress = addressTier(fact.url, a.language, a.rivals);
+    if (fact.product !== undefined || byAddress === "vendor") return "vendor";
+    if (wire.has(fact.url) || byAddress === "wire") return "wire";
+    if (fact.kind === "primary" || byAddress === "primary") return "primary";
     if (fact.via !== undefined) return "original";
     if (a.products.some((product) => sameSite(host, product))) return "vendor";
     if (!review.has(fact.url) && fact.secondHand !== true && methodBeside(fact)) return "original";
+    if (byAddress !== undefined && fact.secondHand !== true) return byAddress;
     if (fact.kind === "recent" || (citers.get(siteOf(fact.url))?.size ?? 0) >= 2) return "publication";
     return review.has(fact.url) ? "review" : "other";
   };
@@ -123,20 +137,10 @@ function secondHanded(fact: MarketFact, reported: RegExp): MarketFact {
   return Object.fromEntries(Object.entries({ ...fact, secondHand: true }).filter(([key]) => !["publishedAt", "modifiedAt", "datedBy", "ageAt"].includes(key))) as unknown as MarketFact;
 }
 
-/** The hosts the language's tier rule names official, read off its pattern. */
-export const officialOf = (language: Language): string[] => /\(\?:([^()]+)\)\$$/.exec(languagePack(language).officialHosts.source)?.[1]?.split("|").map((host) => host.replace(/\\\./g, ".")) ?? [];
-/** The hosts one credible search looks on: those the site's drafts of the last two weeks tiered primary, original or publication, never a
- *  user-content platform, the most tiered first, then the official hosts. A host that never read is never tiered, so none is here. */
-export async function credibleHosts(siteId: string, language: Language, today: Date): Promise<string[]> {
-  const rows = (await import("../store").then(({ generateStore }) => generateStore().citedFrom?.(siteId, new Date(today.getTime() - 14 * 86_400_000).toISOString().slice(0, 10))).catch(() => undefined)) ?? [];
-  const seen = rows.flatMap((row) => (Array.isArray(row.claims) ? (row.claims as { url?: unknown; tier?: SourceTier }[]) : [])).flatMap((claim) => (typeof claim?.url === "string" && ["primary", "original", "publication"].includes(claim.tier ?? "") ? [hostOf(claim.url)] : [])).filter((host) => !isPlatformDomain(host));
-  const count = (host: string): number => seen.filter((each) => each === host).length;
-  return [...new Set([...[...new Set(seen)].sort((x, y) => count(y) - count(x) || x.localeCompare(y)), ...officialOf(language)])].filter(Boolean).slice(0, 10);
-}
-/** A page the tier rule's own address test, an official host or its subdomain, or a learnt host exactly, stands behind. */
-export const credibleAt = (url: string, hosts: readonly string[], rivals: readonly string[] = [], official: readonly string[] = []): boolean => primaryAddress(url, rivals) || official.some((host) => sameSite(hostOf(url), host)) || hosts.includes(hostOf(url));
-/** The one search on credible hosts for the page's market question, on the study search's queue and filter; none without a host. */
-export const credibleSearch = <R extends { query: string }>(study: R, subject: string, hosts: readonly string[]): R | undefined => hosts.length === 0 ? undefined : { ...study, query: `${subject} (${hosts.map((host) => `site:${host}`).join(" OR ")})` };
+/** A study page that stands as credible by its address alone: its first-hand claims tier primary or publication. */
+export const credibleAt = (url: string, language: Language, rivals: readonly string[] = []): boolean => ["primary", "publication"].includes(addressTier(url, language, rivals) ?? "other");
+/** The one search on the publications for the page's market question, on the study search's queue and filter. */
+export const credibleSearch = <R extends { query: string }>(study: R, subject: string): R => ({ ...study, query: `${subject} (${PUBLICATIONS.map((host) => `site:${host}`).join(" OR ")})` });
 
 /** Distinct sites at `review` or better among the claims whose address the written page cites. */
 export function citedIndependent(claims: readonly Pick<MarketFact, "url" | "tier">[], cited: (url: string) => boolean): number {

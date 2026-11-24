@@ -86,7 +86,7 @@ import { googleWrapper, isPlatformDomain, nameLetters, registrableDomain } from 
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow, SerpOrganicRow } from "@/lib/vendors/dataforseo/types";
 import { inTurn, newestCredible, ownPagesFirst } from "./claims";
-import { byTier, cappedSites, compares, credibleAt, credibleHosts, credibleSearch, hostOf, officialOf, mixOf, namedIn, pressWire, primaryAddress, rivalsInScope, sameSite, studySubject, tiered, withRoom, type SourceMix, type SourceTier } from "./source-tier";
+import { byTier, cappedSites, compares, credibleAt, credibleSearch, hostOf, mixOf, namedIn, pressWire, primaryAddress, rivalsInScope, sameSite, studySubject, tiered, withRoom, type SourceMix, type SourceTier } from "./source-tier";
 import { readClaims } from "./claims-read";
 import { sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
 import { datedOf, datesOf, type ClaimDates, type PageDates } from "./dated";
@@ -695,10 +695,10 @@ export async function researchMarket(
     const rank = (page: ReadPage): number => (primary(page.url) ? 2 : 0) + (languagePack(a.locale.language).studyMethod.test(page.text) ? 1 : 0);
     const studyReads = (await readRows(studyRead)).sort((x, y) => rank(y) - rank(x)), studies = studyReads.slice(0, RESEARCH.studies);
     // No credible study page: a credible one already read takes the second slot, else the first readable result of one search on credible hosts.
-    const hosts = await credibleHosts(a.siteId, a.locale.language, a.today), credible = (page: ReadPage): boolean => credibleAt(page.url, hosts, [...inForce, ...rivalDomains], officialOf(a.locale.language));
-    const search = credibleSearch(studyRead, studySubject({ target, market: a.marketWords?.[0], options: a.options }), hosts);
-    const backup = studies.some(credible) ? undefined : ([...studyReads.slice(RESEARCH.studies), ...readable.slice(RESEARCH.topResults).map((read) => read.page)].find(credible) ?? (search === undefined || c.capHit() ? undefined : (await readRows(search)).find(credible)));
-    if (!studies.some(credible) && backup === undefined) console.warn(JSON.stringify({ event: "draft_credible_none", siteId: a.siteId, hosts: hosts.length }));
+    const credible = (page: ReadPage): boolean => credibleAt(page.url, a.locale.language, [...inForce, ...rivalDomains]);
+    const search = credibleSearch(studyRead, studySubject({ target, market: a.marketWords?.[0], options: a.options }));
+    const backup = studies.some(credible) ? undefined : ([...studyReads.slice(RESEARCH.studies), ...readable.slice(RESEARCH.topResults).map((read) => read.page)].find(credible) ?? (c.capHit() ? undefined : (await readRows(search)).find(credible)));
+    if (!studies.some(credible) && backup === undefined) console.warn(JSON.stringify({ event: "draft_credible_none", siteId: a.siteId }));
     found.push(...[...studies.slice(0, backup === undefined ? RESEARCH.studies : RESEARCH.studies - 1), ...(backup === undefined ? [] : [backup])].map((page) => ({ ...page, kind: primary(page.url) ? ("primary" as const) : ("study" as const) })));
   }
 
