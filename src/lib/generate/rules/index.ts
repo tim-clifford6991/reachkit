@@ -315,5 +315,5 @@ export async function runHardRules(
 
   logBattery({ failed, claimState: claim.state, fitState: fit.state });
   const asked = rulesAsked(a, { fit, fitAsked: a.knowledge !== undefined });
-  return { passed: !failed.some((failure) => stops(failure, a.site.completeness)), asked, failed, claim, fit };
+  return { passed: !failed.some((failure) => stops(failure)), asked, failed, claim, fit };
 }

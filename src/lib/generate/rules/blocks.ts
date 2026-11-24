@@ -259,8 +259,6 @@ function tablesOf(lines: readonly string[]): string[][] {
   return out;
 }
 
-const wordCount = (text: string): number => (text.match(/\S+/g) ?? []).length;
-
 interface Container {
   name: string;
   lines: string[];
@@ -296,12 +294,6 @@ export function answerBoxOf(markdown: string): string | null {
   if (first < 0 || FENCE_RE.exec(lines[first]!)?.[1] !== "answer") return null;
   const box = containersOf(lines)[0];
   return box === undefined ? null : box.lines.join(" ").replace(/\s+/g, " ").trim();
-}
-
-/** How many words the short-answer box holds; 0 where there is none. */
-export function answerBoxWords(markdown: string): number {
-  const box = answerBoxOf(markdown);
-  return box === null ? 0 : wordCount(box);
 }
 
 interface Section {
@@ -348,14 +340,6 @@ function namesBusiness(raw: string, blocks: Pick<BlockRuleInputs, "domain" | "bu
   const label = blocks.domain.replace(/^www\./, "").split(".")[0]?.toLowerCase() ?? "";
   const name = (blocks.businessName ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   return [name, label].some((word) => word.length > 2 && said.includes(` ${word} `));
-}
-
-/** The fix call's note for `own_steps`: the writer counted a step citing the business's own pages as not its own, so the note names each step that counted and the claims still unlinked. */
-export function ownStepsNote(a: { markdown: string; domain: string; businessName: string | null; own: number; claims: readonly { url: string }[] }): string {
-  const own = sourceBlocksOf(a.markdown).filter((block) => NUMBERED_RE.test(block.raw) && namesBusiness(block.raw, a)).map((block) => block.raw.trim().split(/[.)]/)[0]);
-  const unused = [...new Set(a.claims.map((claim) => claim.url))].filter((url) => !a.markdown.includes(url));
-  const left = unused.length === 0 ? "" : `; the claims not yet linked are ${unused.join(", ")}`;
-  return `steps: steps ${own.join(", ")} are this business's own, because each names it or links ${a.domain}; at most ${a.own} may be, so write the others as the task as \`pack.claims\` describe it, each linking its claim's url${left}`;
 }
 
 /** The first required block the page lacks, or `null` where it has all. */

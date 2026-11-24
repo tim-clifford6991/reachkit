@@ -2,7 +2,7 @@
 import { siteLocale } from "@/lib/locale/site";
 import { sitePagesFor, type Opportunity } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
-import { completenessOf } from "./day-refresh";
+import { newSite } from "./day-refresh";
 import { clusterLinkTargets, knownLinkTargets as knownContentTargets, siteLinkTargets, urlKey, type LinkTarget } from "./links/select";
 import { targetSearches } from "./pipeline";
 import { siteRulesOf } from "./pipeline/battery";
@@ -22,11 +22,11 @@ export function linkBackOf(opportunity: Opportunity): { url: string; title: stri
   return { url: link.url, title: link.title, ...(typeof link.replaces === "string" ? { replaces: link.replaces } : {}) };
 }
 
-export async function dayInputs(a: { siteId: string; site: SiteFacts; report: StoredReport; opportunity: Opportunity; completeness?: "warn" }) {
+export async function dayInputs(a: { siteId: string; site: SiteFacts; report: StoredReport; opportunity: Opportunity }) {
   const store = generateStore();
   const { site, report, opportunity } = a;
 
-  const ruleInputs = siteRulesOf(site, report, await completenessOf(a.siteId, new Date(), a.completeness === "warn"));
+  const ruleInputs = siteRulesOf(site, report, await newSite(a.siteId, new Date()));
   // The confirmed business profile, the customer's corrections over the crawl, as both screens read it, once for the day.
   const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
   // D66: the page is researched and written in the site's own country and language.

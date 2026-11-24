@@ -118,10 +118,6 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
  *  Every other rule is harm and stops the page, so a new rule stops until it is named here. */
 export const WARNING_RULES: ReadonlySet<HardRule> = new Set<HardRule>(["first_block_answers", "required_blocks", "distinct_headings", "title", "plain_prose", "cites_market", "standalone_lead"]);
 
-/** What a page still missing its sections, sources or words after its fix call meets (`completenessFor`, `../record.ts`).
- *  `hidden` warns too, and the customer's Checks list draws no row for `HIDDEN_RULES`: a young site's pages are short by nature. */
-export type Completeness = "stop" | "warn" | "hidden";
-
 /** The two rules a new site's shortfall shows as (owner, 2026-11-18): recorded and counted in `meta.standard`, never drawn. */
 export const HIDDEN_RULES: readonly HardRule[] = Object.freeze(["required_blocks", "cites_market"] as const);
 
@@ -233,8 +229,8 @@ export interface SiteRuleInputs {
   rivals: string[];
   /** `sites.timezone`, the zone a page's Sources list writes its read dates in. Absent reads as UTC. */
   timeZone?: string | null;
-  /** What an incomplete page meets, so every verdict on it is one answer. Absent, the product's own (`completenessFor`). */
-  completeness?: Completeness;
+  /** A site with no page past the refresh floor: its pages are short by nature, so the Checks list draws no `HIDDEN_RULES` row. */
+  young?: true;
 }
 
 /** The three sets a candidate is compared against, all this customer's.

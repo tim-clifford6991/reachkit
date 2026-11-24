@@ -12,9 +12,6 @@ export const PIPELINE = Object.freeze({
   nextTopicBeforeMs: 120_000,
 } as const);
 
-/** SPEC §7 — whether a page still missing its sections, sources or words after its fix call stops, or is only recorded. */
-export const COMPLETENESS_STOPS: boolean = false;
-
 /** What a context pack carries at most (SPEC §7, D41 stage 2): the business
  *  passages handed to the writer, the site's published and planned pages
  *  (D36: at most 100), and a Q&A page's questions (D42: 5–8). A business
