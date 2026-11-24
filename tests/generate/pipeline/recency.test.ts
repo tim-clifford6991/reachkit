@@ -23,11 +23,11 @@ describe("the newest credible source on a subject is cited first", () => {
     expect(withSources(`See [it](${url}).`, claims, { language: "en", tag: "en-GB", timeZone: "UTC" })).toMatch(/· published October 2025 ·/);
     expect(agesOf(newestCredible(claims, now), now).oldest).toEqual({ url, days: 388 });
   });
-  it("ages a 2023 'after 2021' claim (production, 24 Nov) by its published day, not a 2026 modified one, and names both", () => {
+  it("ages a 2023 'after 2021' claim (production, 24 Nov) by its published day, not a 2026 modified one, and dates its line so", () => {
     const url = "https://digimor.in/chatgpt-seo/", quote = "ChatGPT loses its ability to give information about events after 2021.";
     const page = { url, title: "ChatGPT for SEO", text: quote, readAt: now.toISOString(), kind: "top_result" as const, publishedAt: "2023-04-28", modifiedAt: "2026-11-20", datedBy: "jsonld" as const };
     const [claim] = admittedClaims([{ page: 1, quote, year: null, about: "other" as const, plan: null, rival: null }], [page], now);
     expect(claim).toMatchObject({ timeliness: "dated", ageAt: "2023-04-28" });
-    expect(withSources(`See [it](${url}).`, [claim!], { language: "en", tag: "en-GB", timeZone: "UTC" })).toMatch(/· published April 2023 · updated November 2026 ·/);
+    expect(withSources(`See [it](${url}).`, [claim!], { language: "en", tag: "en-GB", timeZone: "UTC" })).toMatch(/· published April 2023 · read on/);
   });
 });
