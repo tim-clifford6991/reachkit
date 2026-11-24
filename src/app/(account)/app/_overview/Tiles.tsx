@@ -107,7 +107,7 @@ export function Tiles(p: { model: TilesModel; dates: TileDates }): React.JSX.Ele
             <li key={tile.key} className="flex min-w-0">
               <Link className={`${CARD} ${LIFT}`} href={TILE_HREF[tile.key]} prefetch={true} data-testid={`overview-tile-${tile.key}`}>
                 <span className="card-body min-w-0 gap-1.5 p-3 sm:p-5">
-                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold lg:min-h-11">
                     <Icon className="size-4 shrink-0 text-primary" aria-hidden />
                     <span className="min-w-0">{copy(TILE_NAME[tile.key])}</span>
                     <ChevronRight className="ms-auto hidden size-4 shrink-0 text-base-content/50 sm:block" aria-hidden />
@@ -159,7 +159,7 @@ export function DetailTiles(p: { model: TilesModel | null; tab: TileKey }): Reac
                       <Figure tile={tile} className="font-semibold tabular-nums" />
                     </span>
                     <span className="card-body hidden min-w-0 gap-1 p-3 lg:flex">
-                      <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                      <span className="flex min-w-0 items-center gap-2 text-sm font-semibold lg:min-h-11">
                         <Icon className="size-4 shrink-0 text-primary" aria-hidden />
                         <span className="min-w-0">{copy(TILE_NAME[tile.key])}</span>
                       </span>

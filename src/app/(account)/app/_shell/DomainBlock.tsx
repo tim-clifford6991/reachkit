@@ -35,7 +35,7 @@ export function DomainBlock(p: { shell: ShellModel }): React.JSX.Element {
   const { shell } = p;
   const line = domainLine(shell);
   return (
-    <div className="flex min-w-0 flex-col gap-1" data-testid="shell-domain">
+    <div className="flex min-w-0 flex-col gap-1 px-3" data-testid="shell-domain">
       <p className="flex min-w-0 items-center gap-2 text-sm">
         <SiteMark domain={shell.domain} hasLogo={shell.hasLogo} size={20} />
         {/* A domain is a URL-shaped value: mono. */}

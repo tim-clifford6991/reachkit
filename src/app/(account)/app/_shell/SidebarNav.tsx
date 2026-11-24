@@ -119,7 +119,7 @@ export function SidebarNav(p: {
                 // carries the word itself and needs neither.
                 className={[
                   here ? HERE : "",
-                  rail ? "tooltip tooltip-right relative size-12 content-center items-center justify-center p-0" : "min-h-11 items-center",
+                  rail ? "tooltip tooltip-right relative grid size-12 place-items-center content-center items-center justify-center p-0" : "min-h-11 content-center items-center",
                 ]
                   .filter(Boolean)
                   .join(" ")}

@@ -166,7 +166,7 @@ function DangerStep(p: {
           <div className={DIALOG_BOX}>
             <div className="flex min-w-0 items-start gap-2">
               <h3 id={`${id}-title`} className="min-w-0 grow font-semibold wrap-anywhere">{copy(p.row.label)}</h3>
-              <button type="button" className="btn btn-ghost btn-square min-h-11 shrink-0" aria-label={copy("settings.close")} onClick={() => dialog.current?.close()}>
+              <button type="button" className="btn btn-ghost btn-square -my-2.5 size-11 shrink-0" aria-label={copy("settings.close")} onClick={() => dialog.current?.close()}>
                 <X size={16} strokeWidth={1.75} aria-hidden />
               </button>
             </div>

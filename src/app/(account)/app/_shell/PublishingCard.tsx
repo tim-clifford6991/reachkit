@@ -59,7 +59,7 @@ export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
 
   return (
     <section className="card card-sm bg-base-200 min-w-0" data-testid="shell-publishing">
-      <div className="card-body min-w-0 gap-1">
+      <div className="card-body min-w-0 gap-1 px-3">
         {/* Board Main states the mode once, as "Publishing on"; an "Autopilot" eyebrow above it said it twice. */}
         {state === null ? null : (
           <p className="text-sm font-semibold" data-testid="shell-publishing-state">

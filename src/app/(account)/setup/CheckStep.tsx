@@ -129,7 +129,7 @@ function Section(p: {
           <p.icon strokeWidth={1.75} size={18} />
         </span>
         <span className="flex min-w-0 flex-col gap-1">
-          <strong className="text-(length:--t-body) font-bold">{p.title}</strong>
+          <strong className="text-(length:--t-body) leading-8 font-bold">{p.title}</strong>
           {summary === "" ? null : <span className={`wrap-anywhere ${QUIET}`}>{summary}</span>}
         </span>
         <ChevronDown

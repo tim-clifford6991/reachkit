@@ -64,7 +64,7 @@ function AsksDialog(p: { label: string; knowledge: KnowledgeBase; answers: Found
     >
       <ul className="list min-w-0">
         {p.knowledge.questions.map((item) => (
-          <li key={item.text} className="list-row min-w-0 flex-col items-start gap-1 px-0">
+          <li key={item.text} className="list-row flex min-w-0 flex-col items-start gap-1 px-0">
             <span className="min-w-0 wrap-anywhere">{item.text}</span>
             {item.source.kind === "founder" ? (
               <span className="badge badge-ghost badge-sm">{copy("settings.knowledge.from-you")}</span>

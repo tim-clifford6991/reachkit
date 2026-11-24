@@ -38,9 +38,9 @@ const KIND_COPY_KEY: Record<DestinationKind, CopyKey> = {
 };
 
 const HEALTH_BADGE: Record<DestinationHealth, string> = {
-  ok: "badge badge-success badge-soft",
-  expired: "badge badge-warning badge-soft",
-  error: "badge badge-error badge-soft",
+  ok: "badge badge-success badge-soft badge-sm",
+  expired: "badge badge-warning badge-soft badge-sm",
+  error: "badge badge-error badge-soft badge-sm",
 };
 
 function needsCredential(action: DestinationAction): action is CredentialAction {
@@ -112,7 +112,7 @@ function Where(p: { destination: SettingsDestination }): React.JSX.Element {
       action={
         <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           {d.kind !== "hosted" ? null : (
-            <span className={live ? "badge badge-success badge-soft" : "badge badge-warning badge-soft"}>
+            <span className={live ? "badge badge-success badge-soft badge-sm" : "badge badge-warning badge-soft badge-sm"}>
               {live ? <Check size={14} strokeWidth={1.75} aria-hidden /> : null}
               {copy(live ? "settings.destination.hostname.live" : "settings.destination.hostname.waiting")}
             </span>
@@ -176,7 +176,7 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
               {copy(writer.busy ? "settings.publishing.saving" : enabled ? "settings.publishing.on.lead" : "settings.publishing.off.lead")}
             </p>
           </div>
-          <label className="flex min-h-11 shrink-0 cursor-pointer items-center lg:min-h-8" data-testid="setting-publishing_enabled">
+          <label className="flex min-h-11 shrink-0 cursor-pointer items-start pt-1 lg:min-h-8" data-testid="setting-publishing_enabled">
             <input
               type="checkbox"
               role="switch"
@@ -195,7 +195,7 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
             {copy("settings.publishing.flow.none", { window: stop, time })}
           </p>
         ) : (
-          <ul className="timeline timeline-vertical timeline-compact min-w-0" aria-label={copy("settings.publishing.flow.title")} data-testid="publishing-timeline">
+          <ul className="timeline timeline-vertical timeline-compact timeline-snap-icon min-w-0 [&>li]:[--timeline-col-start:0]" aria-label={copy("settings.publishing.flow.title")} data-testid="publishing-timeline">
             <Moment icon={<Mail {...icon} />} title={copy("settings.publishing.flow.written")} first>
               <span className="num text-base-content/70">{next.written}</span>
             </Moment>

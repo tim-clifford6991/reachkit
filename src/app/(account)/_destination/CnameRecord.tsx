@@ -104,7 +104,7 @@ export function CnameRecord(p: {
         {view.rows.map((row) => {
           const text = "word" in row ? copy(row.word) : row.text;
           return (
-            <li key={row.label} className="list-row min-w-0 flex-col items-stretch gap-1 sm:flex-row sm:items-center" data-testid="dns-field">
+            <li key={row.label} className="list-row min-w-0 max-sm:flex flex-col items-stretch gap-1 sm:flex-row sm:items-center" data-testid="dns-field">
               <span className="text-sm font-semibold sm:w-20 sm:shrink-0" data-testid="dns-field-label">
                 {copy(row.label)}
               </span>
