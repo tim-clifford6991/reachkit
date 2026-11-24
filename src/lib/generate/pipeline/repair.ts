@@ -564,11 +564,11 @@ export function fixNotes(
 const wordCount = (text: string): number => (text.match(/\S+/g) ?? []).length;
 
 /** The short answer with a linked business passage after the writer's leading sentences that leave room for it: the fit
- *  fact where it has a page, else the first of the pack's own that fits. Unchanged where it links one already or none fits. */
-function answerWithFact(answer: string, pack: ContextPack): string {
+ *  fact where it has a page and `withFit`, else the first of the pack's own that fits. Unchanged where it links one already or none fits. */
+function answerWithFact(answer: string, pack: ContextPack, withFit: boolean): string {
   const fit = pack.fitFact?.url == null ? [] : [{ passage: pack.fitFact.passage, url: pack.fitFact.url }];
-  const linked = [...fit, ...pack.facts];
-  const own = new Set(linked.flatMap((fact) => urlKey(fact.url) ?? []));
+  const linked = withFit ? [...fit, ...pack.facts] : pack.facts.filter((fact) => fact.passage !== pack.fitFact?.passage);
+  const own = new Set([...fit, ...linked].flatMap((fact) => urlKey(fact.url) ?? []));
   if (linksOf(answer).some((url) => own.has(urlKey(url) ?? ""))) return answer;
   const sentences = splitSentences(answer.trim());
   const { min, max } = PAGE_BLOCKS.answerWords;
@@ -582,16 +582,17 @@ function answerWithFact(answer: string, pack: ContextPack): string {
 }
 
 /** Owner P2b and P3 (2026-11-16): a page whose row names its fit fact states a business passage, word for word and
- *  linked, in its short answer, and the fit fact in its business section. Code adds what the writer left out and writes
- *  no other word but the section's heading. A founder's fact has no page to link, so its section is left to the writer. */
+ *  linked, in its short answer, and the fit fact in its business section, never twice. Code adds what the writer left
+ *  out and writes no other word but the section's heading. A founder's fact has no page to link, so its section is left to the writer. */
 export function withFitFact(parts: PageParts, a: { pack: ContextPack; template: Pick<Template, "sections">; businessName: string | null }): PageParts {
   const fit = a.pack.fitFact;
   if (fit === undefined) return parts;
-  const answer = answerWithFact(parts.answer, a.pack);
-  if (fit.url === null) return { ...parts, answer };
   const asked = a.template.sections.some((slot) => slot.key === "business");
   const written = parts.sections.some((section) => section.key === "business" && section.body.trim() !== "");
-  if (!asked || written || a.businessName === null) return { ...parts, answer };
+  // The pitch is said once: where the business section states the fit fact, the box takes another of the pack's.
+  const inSection = fit.url !== null && asked && (written || a.businessName !== null);
+  const answer = answerWithFact(parts.answer, a.pack, !inSection && a.pack.type !== "listicle");
+  if (!inSection || written || fit.url === null || a.businessName === null) return { ...parts, answer };
   const heading = languagePack(a.pack.locale?.language ?? "en").businessHeading(a.businessName);
   const sections = [...parts.sections.filter((section) => section.key !== "business"), { key: "business", heading, body: `> ${linkedPassage(fit.passage, fit.url)}` }];
   return { ...parts, answer, sections };

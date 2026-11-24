@@ -20,6 +20,7 @@ import { HEADING_GAPS, RESEARCH, RIVAL_PRICE_MAX_AGE_D, TITLE, VOICE, WRITE_AIM_
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/llm/tiers";
+import { languagePack } from "@/lib/locale/language";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { Opportunity, PageType } from "@/lib/opportunities/types";
 import { briefLines } from "../rules/brief-lines";
@@ -68,12 +69,8 @@ const shaped = (list: ListName, value: unknown): unknown =>
 const shapeOf = (value: unknown): string =>
   Array.isArray(value) ? `array<${[...new Set(value.map(shapeOf))].join("|")}>` : isObject(value) ? `object{${Object.keys(value).sort().join(",")}}` : value === null ? "null" : typeof value;
 
-/** A list as the model's tool call returns it. On a long answer the model
- *  sometimes hands a list back as its JSON text (seen 2026-10-04: a whole
- *  page lost twice to `sections` arriving as a string), so the text is
- *  admitted here and parsed against the list's own schema by `partsOf`.
- *  Other readable shapes are reshaped before the schema judges them, so the
- *  tool's schema is unchanged and a shape still refused is logged. */
+/** A list as the tool call returns it: a list sent as its JSON text is admitted and parsed by `partsOf`, other readable
+ *  shapes are reshaped before the schema judges them, and a shape still refused is logged. */
 const listOrText = <T extends z.ZodType>(list: ListName, schema: T) =>
   z.preprocess((value) => {
     const out = shaped(list, value);
@@ -218,26 +215,19 @@ const WRITTEN_TABLE_RULE =
 const BUILT_TABLE_RULE =
   "`table` is this page's comparison table, built from `pack` and placed in the at-a-glance section as it is: it is the table `honesty` and `template.blocks` ask for. Write no table anywhere on the page, and say nothing of an option that `table` or `pack` does not carry. Where an option's row leaves a criterion out, `pack` holds no fact for it: never guess the value, and never write that it is missing.";
 
-/** Issue 1508: what a listicle counts. Model-facing, never shown. */
+/** What a listicle counts. Model-facing, never shown. */
 const COUNTED_OPTIONS_RULE =
   "`options` are the options this page counts, this business first, and no others: write one `option` section for each, in that order, and never one for a product `options` does not hold. A number in the title or the page that counts the options is exactly how many `options` holds, and `which_to_choose` chooses among them only. Where `alternativesTo` names a product, the page lists alternatives to it: its row in `table` is marked as the one compared against, the `baseline` section says what it offers, and it is never counted, written as an `option` or chosen in the verdict. Where `alternativesTo` is null, write no `baseline` section.";
 
-/** Issue 1508: a listicle that counts fewer options than the pages it
- *  competes with says why, in its method section. Model-facing. */
+/** A listicle that counts fewer options than the pages it competes with says why, in its method section. */
 const fewOptionsRule = (count: number): string =>
   `Only ${count} options qualified. In \`how_we_compared\`, say so in one plain sentence: an option is listed only where its own pricing or product page stated a fact, and only where it sells what this market buys, so the other products searchers see named were left out. Never name a product \`options\` does not hold.`;
 
-/** Issue 1536: a product whose price the pack does not hold is one the page
- *  says nothing about the price of. Model-facing, never shown. */
+/** A product whose price the pack does not hold is one the page says nothing about the price of. Model-facing. */
 const UNPRICED_RULE =
   "`unpriced` are products named in `pack.products` whose price `pack.claims` does not hold. Say nothing about the price of any of them, in the body or in `faq`: no figure, no comparison of cost that includes them, and never how they charge or that their price is missing, unstated, unpublished or not among the facts.";
 
-/**
- * Issue 1536: the researched products that have no `rival_pricing` claim in
- * the pack, by name where the market names them. A comparison of two
- * products with one price between them read "Peec AI's own pricing page
- * does not state a plan price", and `rival_negative` stopped it twice.
- */
+/** The researched products with no `rival_pricing` claim in the pack, by name where the market names them. */
 export function unpricedProducts(pack: Pick<ContextPack, "products" | "claims" | "business">): string[] {
   const rivals = (pack.business.market as { rivals?: unknown } | null)?.rivals;
   const named = Array.isArray(rivals) ? (rivals as { name?: unknown; domain?: unknown }[]) : [];
@@ -249,13 +239,11 @@ export function unpricedProducts(pack: Pick<ContextPack, "products" | "claims" |
     });
 }
 
-/** SPEC §7 (owner, 2026-10-10; issue 1390): a section is headed by the
- *  question buyers were seen to ask, where the pack holds one it answers. */
+/** SPEC §7: a section is headed by the question buyers were seen to ask, where the pack holds one it answers. */
 const ASKED_HEADINGS_RULE =
   "`pack.questions` are questions buyers were seen to ask about this topic. Where one is what a section answers, use it as that section's `heading`, in the buyer's words, tidied into a sentence; use each at most once. A section none of them fits keeps a heading in the reader's own words, and no two sections ask the same thing.";
 
-/** Issue 1539: a fact of the business an AI answer misstated is stated
- *  plainly on the page that owns it. Model-facing, never shown. */
+/** A fact of the business an AI answer misstated is stated plainly on the page that owns it. Model-facing. */
 const CORRECTIONS_RULE =
   "`pack.corrections` are facts about this business that AI answers state wrongly: `says` is what an answer said, `site` is what the business's own page at `url` states. State each `site` fact plainly, in one sentence of its own, with its figure or place as `site` gives it, in the section that speaks most to it. Never repeat, quote or mention what `says` said, and never say an AI answer was wrong.";
 
@@ -263,12 +251,11 @@ const CORRECTIONS_RULE =
 const OWN_DATA_RULE =
   "`pack.ownData` is this business's own measurement. State it once, in one sentence of your own in the section it fits best, as our measurements with its date and its figures exactly as `passage` gives them. Say only what was measured: never what it proves, causes or will lead to, and never who else measured it.";
 
-/** Issue 1521 (owner, 2026-10-18, amends D42 #7): what a growing refresh
- *  may add. */
+/** What a growing refresh may add. */
 const GAPS_TASK =
   `\`pack.gaps\` are subtopics the pages ranked above this one cover, or searches Google already shows it for, that it does not answer. Add at most ${HEADING_GAPS.sectionsMax} new sections, each on one of them: headed by that gap's \`heading\`, worded as a reader asks it, placed where it fits among the live sections, written only from the \`pack.claims\` whose \`url\` is in that gap's \`claims\`, and linking at least one of those urls. On a gap whose heading is one of \`pack.live.queries\`, head its section with that search as the question a searcher asks, and answer it in the section's first sentence. Add none on a gap those claims give nothing to say about, and say in \`updated\` which sections were added.`;
 
-/** Issue 1521: a comparison whose rival prices are older than D59 allows. */
+/** A comparison whose rival prices are older than D59 allows. */
 const STALE_PRICES_TASK =
   `The live page states rival prices read more than ${RIVAL_PRICE_MAX_AGE_D} days ago: state each rival's price as \`pack.claims\` now give it, and drop a rival price no claim in \`pack\` states.`;
 
@@ -343,7 +330,7 @@ function taskFor(a: WriteInputs): string {
       ? "`faq` is empty: this page's own questions are its buyer questions."
       : faq.max === 0
       ? "`faq` is empty: no buyer question this pack can answer was asked, so the page carries none."
-      : `\`faq\`: ${faq.min} to ${faq.max} questions, each one of \`pack.questions\` in its own words, those the headings do not already ask first, and never a question about the business, its product or this site; each is answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,
+      : `\`faq\`: ${faq.min} to ${faq.max} questions, each one of \`pack.questions\` as the buyer asked it, tidied into a sentence, those the headings do not already ask first, and never a question about the business, its product or this site; each is answered in two or three sentences under the same \`rules\`; they are stored with the page, not printed in it.`,
     a.pack.type === "update"
       ? a.pack.live?.linkTo?.replaces !== undefined
         ? "`pack.live` is the page as it is live, its link to a page that moved already pointed in code at that page's new address (`pack.live.linkTo.url`) and named `pack.live.linkTo.title`. Return every section of it under its own heading, as it stands, that link included. Change nothing else, and say in `updated`, in one sentence, that a link now points at the page's new address."
@@ -400,10 +387,20 @@ function inputFor(a: WriteInputs, extra: Record<string, unknown> = {}): Record<s
 /** The writer's own instructions; `pack`, the title brief built from it, the voice and the page travel apart as quoted material. */
 const INSTRUCTIONS = ["task", "template", "honesty", "avoid", "rules", "locale"] as const;
 
+/** The closing up to where the writer corrects itself (`writerNotes`): the words before carry its link; with none, it goes. */
+export function closingWithoutNote(closing: string, notes: RegExp | undefined): string {
+  const at = notes === undefined ? -1 : closing.search(notes);
+  const kept = closing.slice(0, Math.max(at, 0)).replace(/[\s,;:—–.!?-]+$/, "");
+  return at < 0 ? closing : /\]\(/.test(kept) ? `${kept}.` : "";
+}
+
+const closed = (a: WriteInputs, parts: Measured<PageParts>): Measured<PageParts> =>
+  parts.kind === "unmeasured" ? parts : { ...parts, value: { ...parts.value, closing: closingWithoutNote(parts.value.closing, languagePack(a.pack.locale?.language ?? "en").writerNotes) } };
+
 /** Stage 3: the page, in one call. */
 export async function writePage(c: CostContext, a: WriteInputs): Promise<Measured<PageParts>> {
   if (c.capHit()) return unmeasured("not_attempted", new Date());
-  return partsOf(
+  return closed(a, partsOf(
     await llm(c, {
       site: a.free === true ? "generate.write_free" : "generate.write",
       tier: a.tier ?? "writer",
@@ -412,7 +409,7 @@ export async function writePage(c: CostContext, a: WriteInputs): Promise<Measure
       instructions: INSTRUCTIONS,
       ...(a.pack.locale === undefined ? {} : { locale: a.pack.locale }),
     })
-  );
+  ));
 }
 
 /** Stage 4's one fix call: the page as written, each check it failed and the sentences that failed it. */
@@ -421,7 +418,7 @@ export async function fixPage(
   a: WriteInputs & { parts: PageParts; fix: readonly FixNote[] }
 ): Promise<Measured<PageParts>> {
   if (c.capHit()) return unmeasured("not_attempted", new Date());
-  const fixed = partsOf(await llm(c, {
+  const fixed = closed(a, partsOf(await llm(c, {
     site: "generate.fix",
     tier: a.tier ?? "writer",
     schema: ANSWER_SCHEMA,
@@ -438,7 +435,7 @@ export async function fixPage(
       page: a.parts,
       fix: a.fix,
     }),
-  }));
+  })));
   return fixed.kind === "measured" && padded(a.parts, fixed.value, a.pack.claims) ? unmeasured("undeterminable", fixed.at, "padded") : fixed;
 }
 

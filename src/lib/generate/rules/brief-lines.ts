@@ -55,8 +55,9 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
   no_invented_test: () => "Never say the page's claims were tested, trialled or benchmarked.",
   no_invented_provenance: () => "Never invent a case study.",
   traceable_numerals: () => `Write no number of ${REGISTER_FLOOR} or more that \`pack\` or the target search do not contain; a year is not a number for this rule.`,
-  first_block_answers: () =>
-    `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target plainly — write 45 to 55, in two or three sentences, and count them: outside ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} the page is stopped.`,
+  first_block_answers: (a) =>
+    `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target plainly — write 45 to 55, in two or three sentences, and count them: outside ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} the page is stopped.` +
+    (a.pack.type === "listicle" ? " It answers for the whole field: name the real options and how they differ, and this business as one of them, the publisher's own, never as the answer. It never quotes `pack.fitFact`: the business section does, once." : ""),
   required_blocks: () =>
     `\`takeaways\`: ${PAGE_BLOCKS.takeaways.min} to ${PAGE_BLOCKS.takeaways.max} key takeaways, one sentence each. \`closing\`: one line that points the reader to the one action this page's reader should take, linking the page in \`pack.links\` where they take it.`,
   no_placeholder_cell: () =>
@@ -105,7 +106,7 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
       : `Link at least ${pages} that \`pack.claims\` were read from, each in the sentence that states what it says.`;
   },
   standalone_lead: (a) =>
-    `Open each section's \`body\` with a sentence that answers its heading on its own, in the heading's words: never open on ${quoted(languagePack(a.pack.locale?.language ?? "en").backReferences)} or any other word that leans on an earlier sentence.`,
+    `Open each section's \`body\` with a sentence that answers its heading on its own, in the heading's words: never open on ${quoted(languagePack(a.pack.locale?.language ?? "en").backReferences)} or any other word that leans on an earlier sentence, and never on a bare yes or no.`,
   // Issue 2375: the fit check's own definition, so the page is written to what it is checked against.
   fit_claim: () =>
     `${UNSUPPORTED_CLAIM} What is known about this business is \`pack.profile\`. Never make an unsupported claim, and never call it "#1" or the best of a category.`,

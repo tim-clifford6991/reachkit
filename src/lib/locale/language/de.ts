@@ -201,6 +201,7 @@ export const DE: LanguagePack = {
   reported: /^(?!.*\b(?:wir|unsere?[mnrs]?)\b).*(?:\blaut\b|\bzufolge\b|\b(?:berichtet|berichtete|fand|ergab|schätzt|schätzte|zeigte|kam zu dem Schluss),? dass\b)/is,
   guidanceSearch: (target) => `${target} offizielle Anleitung`,
   businessHeading: (name) => `So macht es ${name}`,
+  ownVoice: /\b(?:[Ww]ir|[Uu]ns(?:er|ere|erem|eren|erer|eres)?)\b/,
   backReferences: ["dies", "diese", "es", "wie erwähnt", "auch"],
   refersBack: /^(?:es|dies|diese|dieser|dieses|jene|solche|beide|auch|wie erwähnt)(?![\p{L}])|(?<![\p{L}])(?:jene|so viel|ebenfalls|derselbe|dieselbe|dasselbe)(?![\p{L}])/iu,
 

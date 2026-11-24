@@ -286,6 +286,7 @@ export async function runHardRules(
     businessName: a.site.businessName,
     domain: a.site.domain,
     titleOwed: (a.titleRule?.business?.length ?? 0) > 0,
+    ...(a.prose === undefined ? {} : { language: a.prose.language }),
     knowledge: a.knowledge,
     market: given.market,
   });
