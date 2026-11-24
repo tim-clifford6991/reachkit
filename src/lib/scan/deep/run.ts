@@ -8,8 +8,7 @@ import { dbAdmin } from "@/lib/db";
 import { sendOnboardingMails } from "@/lib/mail/onboarding";
 import { cachedRivalRows, deriveForPass, planFirstWeek } from "@/lib/opportunities";
 import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
-import { parseDomain } from "../domain";
-import { adoptClaimedRow } from "../pass/row";
+import { passRunning } from "../pass/row";
 import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
 import { releaseToApp, type ReleaseReason } from "./release";
@@ -229,10 +228,8 @@ async function measure(a: {
 }): Promise<{ scanId: string; status: ScanStatus }> {
   if (a.remeasure !== true) {
     // The row setup claimed, or claimed now at the address setup committed; the pass adopts it and inserts no second. A throw is the job's to retry.
-    await claimOnboardingPass({ siteId: a.siteId, domain: a.domain });
-    // A second send after the pass ended finds no running row: it resets no stage and buys nothing.
-    const domain = parseDomain(a.domain);
-    if (!domain.ok || (await adoptClaimedRow({ domain: domain.domain, tier: "deep", siteId: a.siteId })) === null) return { scanId: "", status: "failed" };
+    // A second send after the pass ended finds its own row ended, whatever re-measure runs beside it: it resets no stage and buys nothing.
+    if (!(await passRunning(await claimOnboardingPass({ siteId: a.siteId, domain: a.domain })))) return { scanId: "", status: "failed" };
     // Cleared here, not on the first stage, so this file need not name the pipeline's stage order. A re-measure's request already cleared them and wrote its stage.
     await recordStage(a.siteId, null, { reset: true });
   }

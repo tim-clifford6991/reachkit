@@ -103,6 +103,13 @@ export async function claimOnboardingPass(a: { siteId: string; domain: string })
   return scanId;
 }
 
+/** Whether this one row is still `running`. */
+export async function passRunning(scanId: string): Promise<boolean> {
+  const { data, error } = await untyped(dbAdmin()).from<{ id: string }>("scans").select("id").eq("id", scanId).eq("status", "running").limit(1);
+  if (error) throw new Error(`passRunning: could not read ${scanId}: ${error.message}`);
+  return (data ?? []).length > 0;
+}
+
 /** A UUID named by the site (the version-5 layout over SHA-1): the same
  *  site always names the same row, and no two sites name one. */
 async function onboardingPassId(siteId: string): Promise<string> {
