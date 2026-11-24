@@ -309,14 +309,33 @@ export function appendsClaim(title: string, search: string): boolean {
   return lead !== null && SHAPES.listicle.test(lowered(search)) && SHAPES.appended.test(lowered(title.slice(lead.index + lead[0].length)));
 }
 
+/** On a list or comparison search, a clause run on straight after the search's own words ("… alternatives that write
+ *  pages") is the same claim with no break. */
+function runsOnClaim(title: string, search: string, language: Language): boolean {
+  const placed = placedWords(title, language);
+  const firsts = subjectOf(search, language).map((word) => placed.find((at) => at.word === word));
+  if (firsts.length === 0 || firsts.some((at) => at === undefined) || !SHAPES.listicle.test(lowered(search))) return false;
+  const end = Math.max(...firsts.map((at) => at!.at + at!.word.length));
+  const tail = title.slice(end).replace(/^[\p{L}\p{N}]*/u, "");
+  return !/^\s*(?:[:?—–]|-\s)/u.test(tail) && SHAPES.runOn.test(lowered(tail));
+}
+
+/** A short name written in capitals ("AI") said more often than the search says it; `saidTwice` skips short words. */
+function nameTwice(title: string, search: string): boolean {
+  const said = (text: string, name: string): number => text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((word) => word === name).length;
+  const names = (title.match(/(?<![\p{L}\p{N}])\p{Lu}{2}(?![\p{L}\p{N}])/gu) ?? []).map((name) => name.toLowerCase());
+  return names.some((name) => said(title, name) > Math.max(1, said(search, name)));
+}
+
 /** What a planned angle's title fails of the writer's own wording rules: the lead, the banned phrases, tropes and a word
- *  said twice, a price lead, a claim joined on. The planner keeps only a title the writer would keep. */
+ *  or name said twice, a price lead, a claim joined on with or without a break. The planner keeps only a title the
+ *  writer would keep. */
 export function plannedTitleFaults(title: string, search: string, language: Language = "en"): TitleFault[] {
   const faults: (TitleFault | false)[] = [
     leadsWith(title, search, language) === false && "term",
-    hasBanned(title, { terms: [search], language }) && "banned",
+    (hasBanned(title, { terms: [search], language }) || nameTwice(title, search)) && "banned",
     priceLed(title, search) && "promise_figure",
-    appendsClaim(title, search) && "claim",
+    (appendsClaim(title, search) || runsOnClaim(title, search, language)) && "claim",
   ];
   return faults.filter((fault) => fault !== false);
 }

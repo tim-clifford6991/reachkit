@@ -110,6 +110,7 @@ export const DE: LanguagePack = {
     wordSense: "synonyme?|gegenteil|anderes wort|wort|wörter|bedeutung|definition|aussprache|duden|kreuzworträtsel",
     appended: "und|plus|inklusive|einschließlich|aber|oder|stattdessen",
     addedOn: "auch|ebenfalls|stattdessen|nicht nur|statt|mehr als",
+    relative: "die|welche|welcher|welches",
   },
   stopWords: new Set([
     "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines",

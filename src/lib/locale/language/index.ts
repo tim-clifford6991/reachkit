@@ -67,6 +67,7 @@ export const SHAPES = Object.freeze({
   agency: new RegExp(anywhere("agency"), "iu"),
   wordSense: new RegExp(anywhere("wordSense"), "iu"),
   appended: pattern(atStart("appended"), anywhere("addedOn")),
+  runOn: pattern(atStart("appended", "relative"), anywhere("addedOn")),
 });
 
 const UNREAD_READING = new RegExp(LANGUAGE_PACKS.map((pack) => pack.unreadReading).join("|"), "iu");
