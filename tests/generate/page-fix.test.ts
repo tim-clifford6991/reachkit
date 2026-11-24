@@ -91,3 +91,9 @@ describe("a page fix", () => {
     expect(store.patches.at(-1)?.patch.hard_rules_passed).toBe(false);
   });
 });
+
+it("a structure mend of a live page with no stored pack goes to the writer, and one with a pack stays a 0¢ mend", async () => {
+  const { refreshedInCode } = await import("../../src/lib/generate/day-refresh");
+  const at = async (meta: object) => (setGenerateStore(memoryStore({ liveVersionAt: async () => ({ draft: { meta }, publishedAt: new Date() }) } as never)), refreshedInCode(SITE_ID, opportunity({ type: "refresh_page", targetRef: PAGE, evidence: { shortfall: { cause: "structure", defects: ["repeated_links", "h1"] } } } as never), false));
+  expect([await at({ intent: "x" }), await at({ pack: {} })]).toEqual([false, true]);
+});

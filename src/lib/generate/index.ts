@@ -49,7 +49,7 @@ import { readRecordedRules } from "./record";
 import { COLLECT, askDayResearch, dayTypes, researchFor } from "./research-queue";
 import { dayInputs, linkBackOf } from "./day-inputs";
 import { repairStructure } from "./rules/structure";
-import { addsOverLive, mendPage, mendable, plannedTopic, rivalsAnswer, snippetOnly } from "./day-refresh";
+import { addsOverLive, mendPage, plannedTopic, refreshedInCode, rivalsAnswer } from "./day-refresh";
 import { writtenFor } from "./fix-step";
 import { urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
@@ -193,7 +193,7 @@ export async function generateDayPage(a: {
           outcome =
             opportunity.type === "fix_page"
               ? await fixPage(page, own)
-              : mendable(opportunity) || snippetOnly(opportunity)
+              : (await refreshedInCode(a.siteId, opportunity))
                 ? await mendPage(page, own)
                 : // A topic this loop picked meets the select's 0¢ rival check before its research is bought.
                   (topic > 1 || a.opportunityId === undefined) && !(await rivalsAnswer(page, opportunity))
