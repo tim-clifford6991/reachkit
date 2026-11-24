@@ -118,8 +118,7 @@ export const CHROME_COPY = Object.freeze({
    *  saying to someone who mistyped one — under the new first line below
    *  (#936). */
   "chrome.notfound.line": "Reports live at {address}.",
-  /** The 404's own first line, from the 2026-09-20 board: what probably
-   *  happened, before where reports live. Drafted (#759). */
+  /** The 404's own first line, from the 2026-09-20 board: what probably happened, before where reports live. */
   "chrome.notfound.line.why": "The address may be mistyped, or the page may have moved.",
   /** The shape of a report address, as the set writes it. A specimen, not
    *  a link: it names the form, and the field below it is how a reader
@@ -140,6 +139,7 @@ export const CHROME_COPY = Object.freeze({
   "chrome.error.app.retry": "Try Again",
   "chrome.error.app.again": "It still didn’t load. Try again in a few minutes.",
   "chrome.error.app.offline": "You’re offline. Check your connection, then try again.",
+  "chrome.error.part.line": "This part didn’t load. Nothing was changed.",
   "chrome.error.app.code": "If it keeps happening, reply to any ReachKit email with this code: {digest}",
 
   /** The legal pages' own contents list, built from the document's

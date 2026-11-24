@@ -56,28 +56,9 @@ export const contentType = OG_CONTENT_TYPE;
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-/**
- * How long the reads may take before the image is drawn without a number.
- *
- * The veto page's own reasoning, on a surface with even less to lose: this
- * is a property of one request-path read rather than a product bound, and
- * a `catch` alone does not bound a hang — a request that never settles
- * never rejects.
- */
-const DEADLINE_MS = 1_500;
-
 interface Verdict {
   readonly score: number;
   readonly band: keyof typeof SCORE_BANDS;
-}
-
-function withDeadline<T>(work: Promise<T>): Promise<T> {
-  return Promise.race([
-    work,
-    new Promise<T>((_resolve, reject) =>
-      setTimeout(() => reject(new Error("share image read timed out")), DEADLINE_MS)
-    ),
-  ]);
 }
 
 /** The score and band the report shows, or `null` where it shows none. */
@@ -87,7 +68,7 @@ function shownVerdict(report: StoredReport | null): Verdict | null {
 }
 
 /** The stored report's score and band, or `null` — for every reason this
- *  file's header lists, plus a read that failed or did not answer. */
+ *  file's header lists, plus a read that failed. */
 async function verdictFor(rawSegment: string): Promise<Verdict | null> {
   const parsed = parseDomain(rawSegment);
   if (!parsed.ok) return null;
@@ -107,9 +88,9 @@ async function verdictFor(rawSegment: string): Promise<Verdict | null> {
       import("@/lib/scan/removal"),
       import("@/lib/scan/shown-report"),
     ]);
-    if (await withDeadline(isDomainRemoved(domain))) return null;
-    const report = await withDeadline(readShownReport(domain));
-    return shownVerdict(report);
+    // Read together; a removed domain's report is never drawn.
+    const [removed, report] = await Promise.all([isDomainRemoved(domain), readShownReport(domain)]);
+    return removed ? null : shownVerdict(report);
   } catch {
     return null;
   }

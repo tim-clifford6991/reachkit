@@ -4,6 +4,7 @@
 import type React from "react";
 import { Box, CardSkeleton, Waiting } from "../../_shell/skeletons";
 import { HEAD, OVERVIEW, REGION } from "../../_overview/frame";
+import { TilesSkeleton } from "../../_overview/skeletons";
 
 export default function OverviewLoading(): React.JSX.Element {
   return (
@@ -16,11 +17,7 @@ export default function OverviewLoading(): React.JSX.Element {
         </Waiting>
       </div>
       <CardSkeleton testId="waiting-page-skeleton" rows={2} />
-      <Waiting testId="tiles-skeleton" className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-4" frame={REGION.tiles}>
-        {[0, 1, 2, 3].map((i) => (
-          <Box key={i} className="h-40 w-full" />
-        ))}
-      </Waiting>
+      <TilesSkeleton />
       {/* One line below `lg`, the seven-day grid from `lg`, as `ThisWeek` draws them. */}
       <div className="min-w-0" data-frame={REGION.week}>
         <Waiting testId="week-skeleton" className="card card-border min-w-0 bg-base-100">

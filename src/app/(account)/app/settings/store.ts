@@ -22,59 +22,19 @@
 // named in `unread`, and every panel that states one draws its error line
 // while the tab's other panels, and billing, still draw.
 //
-// **Every read is bounded and made concurrently** (DECISIONS 2026-09-07,
-// #186): this screen is dynamic, so an unsettled read would hang it, and
-// ten sequential reads would be ten round trips deep on a database that is
-// slow.
+// **Every read is made concurrently** (DECISIONS 2026-09-07, #186): ten
+// sequential reads would be ten round trips deep on a database that is slow.
+// A read waits for its answer; only a real failure leaves its panel unread.
 import { now as clock } from "@/lib/config/now";
 import type { AppAccount } from "../_session/account";
 import { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
-import { readAnswered, readDeadlineMs, recordSettingsReadFailed } from "@/lib/ops/events";
+import { recorded } from "@/lib/ops/events";
 import type { AccountFacts, BillingFacts, SettingsFacts, SettingsRead } from "./model";
 import { paymentFailedOf } from "./billing";
 
-/** How long any one read may take before it is abandoned — for the two
- *  facts that degrade, into their stated arm; for the rest, into the
- *  error line of each panel that states it. `src/middleware.ts` bounds its one request-path
- *  read the same way and for the same reason, and its hosted edge allows a cold connection more. */
-const READ_DEADLINE_MS = 800;
-
-async function withDeadline<T>(work: Promise<T>, name: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    const value = await Promise.race([
-      work,
-      new Promise<T>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error(`settings read timed out: ${name}`)), readDeadlineMs(READ_DEADLINE_MS));
-      }),
-    ]);
-    readAnswered();
-    return value;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/**
- * One bounded read: the module is resolved first, and only the call it
- * makes is raced.
- *
- * The order matters. Resolving a module is not reading a fact — it is
- * compilation and disk — and a cold process that spent the read's whole
- * budget getting to the function would report a database that answered
- * promptly as one that could not be reached. The deadline exists to bound
- * *the database*, so it starts where the database call does.
- */
-async function bounded<M, T>(name: string, load: () => Promise<M>, call: (loaded: M) => Promise<T>, siteId: string | null = null): Promise<T> {
-  try {
-    const loaded = await load();
-    return await withDeadline(call(loaded), name);
-  } catch (error) {
-    // Named, so a slow database shows which read it starved.
-    console.warn(JSON.stringify({ event: "settings_read_failed", read: name, detail: String(error) }));
-    void recordSettingsReadFailed(name, error, siteId);
-    throw error;
-  }
+/** One read, its module resolved at the call; a real failure is recorded under its name and rethrown. */
+function logged<M, T>(name: string, load: () => Promise<M>, call: (loaded: M) => Promise<T>, siteId: string | null = null): Promise<T> {
+  return recorded(load().then(call), name, siteId);
 }
 
 /** A read that could not be made. `null` is not used for these: `null` is a
@@ -89,7 +49,7 @@ async function read<M, T>(
   siteId: string | null = null
 ): Promise<Read<T>> {
   try {
-    return { ok: true, value: await bounded(name, load, call, siteId) };
+    return { ok: true, value: await logged(name, load, call, siteId) };
   } catch {
     return { ok: false };
   }
@@ -139,7 +99,7 @@ export async function readBilling(userId: string): Promise<BillingFacts> {
  * nine reach modules with suites of their own.
  */
 export async function readAccountFacts(userId: string): Promise<AccountFacts> {
-  const card = await bounded(
+  const card = await logged(
     "card",
     () => import("@/lib/account/identity"),
     ({ accountCard }) => accountCard(userId)
@@ -182,18 +142,24 @@ export async function readLiveSettingsFacts(
       return undefined;
     });
 
-  const [answers, measured, publishing, publishingOn, site, notify, pages, billing, destinations, card] =
+  const [answers, measured, publishing, publishingOn, site, notify, pages, billing, destinations, card, concluded, locale, writingVoice, cnameTarget] =
     await Promise.all([
-      settle("answers", bounded("answers", () => import("@/lib/market/changes"), (m) => m.declaredAnswers(siteId), siteId)),
-      settle("measured", bounded("measured", () => import("@/lib/market/changes"), (m) => m.measuredAnswers(siteId), siteId)),
-      settle("publishing", bounded("publishing", () => import("@/lib/publish/settings"), (m) => m.readPublishingSettings(siteId), siteId)),
-      settle("publishingOn", bounded("publishingOn", () => import("@/lib/publish/switch"), (m) => m.isPublishingOn(siteId), siteId)),
-      settle("site", bounded("site", () => import("@/lib/generate/store"), (m) => m.generateStore().siteFacts(siteId), siteId)),
-      settle("notify", bounded("notify", () => import("@/lib/mail/notifications"), (m) => m.readNotifyPrefs(userId), siteId)),
-      settle("pages", bounded("pages", () => import("./pages"), (m) => m.livePageCount(siteId), siteId)),
+      settle("answers", logged("answers", () => import("@/lib/market/changes"), (m) => m.declaredAnswers(siteId), siteId)),
+      settle("measured", logged("measured", () => import("@/lib/market/changes"), (m) => m.measuredAnswers(siteId), siteId)),
+      settle("publishing", logged("publishing", () => import("@/lib/publish/settings"), (m) => m.readPublishingSettings(siteId), siteId)),
+      settle("publishingOn", logged("publishingOn", () => import("@/lib/publish/switch"), (m) => m.isPublishingOn(siteId), siteId)),
+      settle("site", logged("site", () => import("@/lib/generate/store"), (m) => m.generateStore().siteFacts(siteId), siteId)),
+      settle("notify", logged("notify", () => import("@/lib/mail/notifications"), (m) => m.readNotifyPrefs(userId), siteId)),
+      settle("pages", logged("pages", () => import("./pages"), (m) => m.livePageCount(siteId), siteId)),
       readBilling(userId),
-      settle("destinations", bounded("destinations", () => import("@/lib/publish/destinations"), (m) => m.listDestinations(siteId), siteId)),
+      settle("destinations", logged("destinations", () => import("@/lib/publish/destinations"), (m) => m.listDestinations(siteId), siteId)),
       settle("card", readAccountFacts(userId)),
+      concludedFor(siteId),
+      localeFor(siteId),
+      // Issue 1390. A read that fails is "not chosen": the select then shows what ReachKit does, which is choose.
+      logged("writingVoice", () => import("@/lib/generate/store"), async (m) => m.generateStore().writingVoice(siteId), siteId).catch(() => null),
+      // The record's value, this site's own, as setup reads it.
+      import("@/lib/publish/destinations/hosted/hostname").then((m) => m.siteEdgeOf(siteId)),
     ]);
 
   // REQ-071's pending change is a *computation*, never a record (ADR-030):
@@ -250,8 +216,8 @@ export async function readLiveSettingsFacts(
     category: answers?.category ?? "",
     competitors: answers?.rivals ?? [],
     measuredRivals: measured?.rivals ?? null,
-    concluded: await concludedFor(siteId),
-    ...(await localeFor(siteId)),
+    concluded,
+    ...locale,
 
     // §9's four publishing settings, and the switch; an unread one is never drawn.
     mode: publishing?.mode ?? "autopilot",
@@ -261,14 +227,11 @@ export async function readLiveSettingsFacts(
     publishingEnabled: publishingOn ?? false,
 
     voiceText: site?.voiceText ?? "",
-    // Issue 1390. A read that fails is "not chosen": the select then shows
-    // what ReachKit does, which is choose.
-    writingVoice: await bounded("writingVoice", () => import("@/lib/generate/store"), async (m) => m.generateStore().writingVoice(siteId), siteId).catch(() => null),
+    writingVoice,
     doNotClaim: site?.doNotClaim ?? [],
 
     destinations: destinations ?? [],
-    // The record's value, this site's own, as setup reads it. Imported at the call, like every read here.
-    cnameTarget: await (await import("@/lib/publish/destinations/hosted/hostname")).siteEdgeOf(siteId),
+    cnameTarget,
 
     ...(card ?? { name: null, email: "", pendingEmail: null, noteKeys: ACCOUNT_NOTE_KEYS }),
     notifyPrefs: notify ?? {},
@@ -293,17 +256,14 @@ async function localeFor(siteId: string): Promise<Pick<SettingsFacts, "locale">>
     const [{ dbAdmin }, { DEFAULT_LOCALE, localeOf }] = await Promise.all([import("@/lib/db"), import("@/lib/locale/locales")]);
     const from = <R,>(table: string, columns: string): LocaleQuery<R> =>
       (dbAdmin() as unknown as { from(t: string): { select(c: string): LocaleQuery<R> } }).from(table).select(columns);
-    const [site, newest] = await withDeadline(
-      Promise.all([
-        from<{ country: unknown; language: unknown }>("sites", "country, language").eq("id", siteId).limit(1),
-        from<{ report: { locale?: { alsoServes?: unknown } } | null }>("scans", "report")
-          .eq("site_id", siteId)
-          .not("report", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(1),
-      ]),
-      "locale"
-    );
+    const [site, newest] = await Promise.all([
+      from<{ country: unknown; language: unknown }>("sites", "country, language").eq("id", siteId).limit(1),
+      from<{ report: { locale?: { alsoServes?: unknown } } | null }>("scans", "report")
+        .eq("site_id", siteId)
+        .not("report", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
     const row = site.data?.[0];
     const tags = newest.data?.[0]?.report?.locale?.alsoServes;
     return {
@@ -323,7 +283,7 @@ async function localeFor(siteId: string): Promise<Pick<SettingsFacts, "locale">>
 async function concludedFor(siteId: string): Promise<SettingsFacts["concluded"]> {
   try {
     const { readSiteMarket } = await import("@/lib/market/infer/stored");
-    const stored = (await withDeadline(readSiteMarket(siteId), "concluded"))?.stored ?? null;
+    const stored = (await readSiteMarket(siteId))?.stored ?? null;
     const current = stored?.current ?? null;
     if (stored === null || current === null) return null;
     return {

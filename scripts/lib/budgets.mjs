@@ -128,7 +128,7 @@ export function plainWordsFindings({ base, head }) {
 }
 
 // Patterns the codebase is shedding: the count of src files holding each may fall and never rise.
-export const RATCHETS = { dbAdminCasts: "dbAdmin() as", minimalClients: "interface MinimalClient", fixtureBranches: "isReservedFixtureAccount" };
+export const RATCHETS = { dbAdminCasts: "dbAdmin() as", minimalClients: "interface MinimalClient", fixtureBranches: "isReservedFixtureAccount", timeoutCopies: "setTimeout(() => reject" };
 
 // `baseFiles` maps a ratchet to the src files holding it at the base, or is null where no base exists.
 export function ratchetFindings({ budget, files, baseFiles }) {

@@ -77,7 +77,6 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.issues.found": "Found {date}.",
   "overview.issues.empty": "Nothing to fix. We read {count} pages on {date} and check again on {next}.",
   "overview.issues.unscanned": "Your site hasn’t been checked yet. What the first check finds shows here.",
-  "overview.issues.unreadable": "This list didn’t load. Try again in a minute.",
   "overview.issues.site": "Applies to the whole site.",
   "overview.issues.seconds": "{seconds} s",
   "overview.issues.slow-note": "Each took {seconds} seconds or more, twice.",

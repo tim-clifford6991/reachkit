@@ -472,7 +472,6 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.month.not-measured": "not checked",
   "settings.month.first": "Your first page goes live {when}.",
   "settings.month.unread": "This month didn’t load. Your subscription is unaffected.",
-  "settings.panel.unread": "This part didn’t load. Try again in a minute.",
 
   // ── Account ────────────────────────────────────────────────────────────
   "settings.account.title": "Account",

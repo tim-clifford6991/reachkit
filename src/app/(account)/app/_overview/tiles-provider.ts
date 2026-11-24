@@ -11,7 +11,8 @@ import { buildTiles, type TilesView } from "./tiles-build";
 import { FIXTURE_VISITS, fixturePasses, tilePageOf } from "./tiles-fixture";
 
 /** `null` where the rows could not be read: the row is not drawn, never zeros. */
-export const readTiles = cache(async function readTiles(coming: number, goLive: boolean): Promise<(TilesView & { questions: AiQuestions | null; search: GoogleSearch }) | null> {
+/** `coming` and `goLive` may be promises, so a screen starts the rows' reads before the values they build with land. */
+export const readTiles = cache(async function readTiles(coming: number | Promise<number>, goLive: boolean | Promise<boolean>): Promise<(TilesView & { questions: AiQuestions | null; search: GoogleSearch }) | null> {
   const account = await requireSetUpAccount();
   try {
     const [published, answers] = await Promise.all([readPublished(), readAnswers().catch(() => null)]);
@@ -37,8 +38,8 @@ export const readTiles = cache(async function readTiles(coming: number, goLive: 
       domain: account.domain,
       gsc: stored.gsc,
       week,
-      coming,
-      goLive,
+      coming: await coming,
+      goLive: await goLive,
     });
     return view === null ? null : { ...view, questions: aiQuestionsOf(view.ai, stored.passes, account.domain), search: googleSearchOf(view.google, stored.pages, stored.passes, account.domain) };
   } catch {

@@ -1,29 +1,27 @@
 // Ops events kept as rows: the runtime log holds them for under an hour, so the daily check counts these.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { after } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import { cache } from "react";
 
 /** A write past this is abandoned, so a slow database never holds the response open longer. */
 const WRITE_DEADLINE_MS = 1_500;
 
-/** A short class for the failure, never its message: `timeout`, or the error's name. */
+/** A short class for the failure, never its message: the error's name. */
 export function failureCode(error: unknown): string {
-  if (error instanceof Error && error.message.startsWith("settings read timed out")) return "timeout";
   return (error instanceof Error ? error.name : typeof error).slice(0, 40);
 }
 
-/** Whether a Settings read has answered in this process; module state, so a fresh instance or route chunk starts cold. */
-let warm = false;
-
-/** A read's deadline: `warmMs` once one has answered here, four times it before that, because a cold process's first
- *  screen shares its event loop with module loads and opens its database connections while the timers run. */
-export function readDeadlineMs(warmMs: number): number {
-  return warm ? warmMs : warmMs * 4;
-}
-
-/** Marks the process warm: a read answered inside its deadline. */
-export function readAnswered(): void {
-  warm = true;
+/** A screen read whose real failure is logged and recorded, then rethrown for its part's boundary; a redirect passes. */
+export async function recorded<T>(work: Promise<T>, read: string, siteId: string | null = null): Promise<T> {
+  try {
+    return await work;
+  } catch (error) {
+    unstable_rethrow(error);
+    console.warn(JSON.stringify({ event: "settings_read_failed", read, detail: String(error) }));
+    void recordSettingsReadFailed(read, error, siteId);
+    throw error;
+  }
 }
 
 interface InsertOnly {
