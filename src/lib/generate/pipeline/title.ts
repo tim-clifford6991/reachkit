@@ -146,16 +146,16 @@ export function floorTitle(pack: ContextPack): string | null {
 }
 
 /** The title the row was planned with: an update's live page's, else its kept angle's, which is the page's question,
- *  where it fits a title's length. `null` where the row holds none. */
+ *  held only to a title's maximum, since This Week already shows it. `null` where the row holds none. */
 export function plannedTitle(pack: Pick<ContextPack, "type" | "live" | "target">): string | null {
   if (pack.type === "update") return text(pack.live?.title)[0] ?? null;
   const planned = pack.target.promise === undefined ? "" : pack.target.question.trim();
-  return [...planned].length >= TITLE.chars.min && [...planned].length <= TITLE.chars.max ? planned : null;
+  return planned !== "" && [...planned].length <= TITLE.chars.max ? planned : null;
 }
 
 /** The page's title as the reader sees it, cased first so the rules judge that text and the row stores it: the planned
- *  title where the row holds one (an update's arrives as its one proposal, its year moved), else the pick among the
- *  writer's titles and the floor. */
+ *  title where the row holds one (an update's is code's live title with its year moved, `compose.ts` `liveTitle`, never
+ *  the writer's), else the pick among the writer's titles and the floor. */
 export function pickCased(pack: ContextPack, proposed: readonly string[], page: TitledPage): ReturnType<typeof pickTitle> {
   const cased = (title: string): string => pageTitle(title, pack.locale?.language);
   const planned = plannedTitle(pack);
