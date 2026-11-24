@@ -12,7 +12,7 @@ const { llmMock } = vi.hoisted(() => ({ llmMock: vi.fn() }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
 import { fitCheck } from "../../../src/lib/generate/claims/fit";
-import { checkHonestRow } from "../../../src/lib/generate/rules/honest";
+import { checkHonestRow, checkSelfRanked } from "../../../src/lib/generate/rules/honest";
 import type { PromptKnowledge } from "../../../src/lib/generate/voice/profile-block";
 import { pageTypeOf } from "../../../src/lib/opportunities/page-type";
 
@@ -45,6 +45,8 @@ describe("the honest row", () => {
   const TABLE = ["| Tool | Writes pages |", "| --- | --- |", "| ReachKit | Yes |", "| Meltwater | No |"].join("\n");
   const check = (markdown: string, over: Partial<Parameters<typeof checkHonestRow>[0]> = {}) =>
     checkHonestRow({ title: "Best AI visibility tools for small teams", markdown, ...SITE, rivals: ["meltwater.com"], pageType: "market_comparison", ...over });
+  const ranked = (markdown: string, over: Partial<Parameters<typeof checkSelfRanked>[0]> = {}) =>
+    checkSelfRanked({ title: "Best AI visibility tools for small teams", markdown, ...SITE, pageType: "market_comparison", ...over });
 
   it("says nothing about a page anchored on the product, however it names the business", () => {
     expect(
@@ -65,10 +67,10 @@ describe("the honest row", () => {
   });
 
   it("stops a self-ranked #1 best — in the title, a heading, a sentence or the table", () => {
-    expect(check(TABLE, { title: "Best AI visibility tools: ReachKit" })?.rule).toBe("honest_row");
-    expect(check(`## 1. ReachKit\n\n${TABLE}`)?.rule).toBe("honest_row");
-    expect(check(`${TABLE}\n\nReachKit is the best local SEO software because it writes daily.`)?.rule).toBe("honest_row");
-    expect(check(TABLE.replace("| ReachKit | Yes |", "| ReachKit | #1 |"))?.rule).toBe("honest_row");
+    expect(ranked(TABLE, { title: "Best AI visibility tools: ReachKit" })?.rule).toBe("nothing_invented");
+    expect(ranked(`## 1. ReachKit\n\n${TABLE}`)?.rule).toBe("nothing_invented");
+    expect(ranked(`${TABLE}\n\nReachKit is the best local SEO software because it writes daily.`)?.rule).toBe("nothing_invented");
+    expect(ranked(TABLE.replace("| ReachKit | Yes |", "| ReachKit | #1 |"))?.rule).toBe("nothing_invented");
   });
 });
 

@@ -132,7 +132,7 @@ describe.each(PANEL)("rival claims for $kind", (c) => {
   it("a claim of one plan is stated with that plan's name, and a rival is cited to its own page", () => {
     const facts = factsOf(c);
     const scope = (sentence: string) => checkRivalScope({ markdown: sentence, rivals, facts });
-    expect(scope(`${c.rival.name} offers ${link(c.scoped.quote, pricingUrl(c))}.`)?.detail).toMatchObject({ rule: "rival_source", fault: "plan" });
+    expect(scope(`${c.rival.name} offers ${link(c.scoped.quote, pricingUrl(c))}.`)?.detail).toMatchObject({ rule: "rival_claim", fault: "plan" });
     expect(scope(`${c.rival.name}'s ${c.scoped.plan} offers ${link(c.scoped.quote, pricingUrl(c))}.`)).toBeNull();
     expect(scope(`${c.rival.name} says: ${link(c.whole, pricingUrl(c))}`)).toBeNull();
     // The review, cited beside its name, where its own page was read.
@@ -155,11 +155,11 @@ describe.each(PANEL)("rival claims for $kind", (c) => {
   it("nothing is denied of a rival that no stored source denies", () => {
     const facts = factsOf(c);
     const denies = (sentence: string, faq: { question: string; answer: string }[] = []) => checkRivalNegative({ markdown: sentence, faq, rivals, facts });
-    expect(denies(c.denied.unsupported)?.detail).toEqual({ rule: "rival_negative", sentence: c.denied.unsupported });
+    expect(denies(c.denied.unsupported)?.detail).toEqual({ rule: "rival_claim", kind: "negative", sentence: c.denied.unsupported });
     expect(denies(`${c.denied.supported.slice(0, -1)} (${link("its pricing", pricingUrl(c))}).`)).toBeNull();
     expect(denies(c.denied.supported)).toBeNull();
     // The FAQ stored beside the page is read too.
-    expect(denies("Prices vary.", [{ question: "Is there a cheaper option?", answer: c.denied.unsupported }])?.rule).toBe("rival_negative");
+    expect(denies("Prices vary.", [{ question: "Is there a cheaper option?", answer: c.denied.unsupported }])?.rule).toBe("rival_claim");
     // A denial of the business's own, or one in another clause, is not about the rival.
     expect(denies(`Unlike ${c.rival.name}, we do not charge for it.`)).toBeNull();
   });

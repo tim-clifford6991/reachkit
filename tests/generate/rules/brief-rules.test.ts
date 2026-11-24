@@ -20,7 +20,7 @@ const OPENING = "Pick the tool whose plan covers every person who opens it daily
 describe("no_invented_test", () => {
   it("fails a test nobody ran, and passes the customer's own words", () => {
     expect(checkInventedTest({ markdown: "We tested all of them for a month.", brief: BRIEF })).toEqual({
-      rule: "no_invented_test",
+      rule: "nothing_invented", detail: { rule: "nothing_invented", kind: "test" },
     });
     expect(checkInventedTest({ markdown: OPENING, brief: BRIEF })).toBeNull();
     const own = { ...BRIEF, facts: ["In our tests the starter plan synced every project in under a minute."] };
@@ -31,7 +31,7 @@ describe("no_invented_test", () => {
 describe("no_invented_provenance", () => {
   it("fails a case study, and no longer a byline or a date — those are the page's own since 2026-09-29", () => {
     expect(checkInventedProvenance({ markdown: "This case study shows the difference.", brief: BRIEF })).toEqual({
-      rule: "no_invented_provenance",
+      rule: "nothing_invented", detail: { rule: "nothing_invented", kind: "provenance" },
     });
     for (const markdown of ["By Jordan Lee", "Last updated on 3 March."]) {
       expect(checkInventedProvenance({ markdown, brief: BRIEF })).toBeNull();
@@ -98,7 +98,7 @@ describe("what the phrase rules no longer stop", () => {
     expect(checkInventedTest({ markdown: cited, brief: BRIEF })).toBeNull();
     expect(
       checkInventedTest({ markdown: "We tested all of them, per [our notes](https://example.com/n).", brief: BRIEF })
-    ).toEqual({ rule: "no_invented_test" });
+    ).toEqual({ rule: "nothing_invented", detail: { rule: "nothing_invented", kind: "test" } });
     expect(checkInventedTest({ markdown: "A hands-on tool for small teams.", brief: BRIEF })).toBeNull();
   });
 });
