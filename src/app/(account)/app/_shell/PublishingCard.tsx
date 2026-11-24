@@ -12,6 +12,8 @@
 // `sites.mode` (#476): Autopilot is the only mode, so the card states it and
 // has no second arm to name.
 import type React from "react";
+import { ExternalLink } from "lucide-react";
+import { copy } from "@/lib/presentation/copy";
 import { nextPublishStatement, type NextPublishOtherwise } from "@/lib/presentation/stopped";
 import { NEXT_PUBLISH_OTHERWISE } from "./nopublish";
 import { formatDateTime, formatShortDay } from "./format";
@@ -19,17 +21,18 @@ import { writtenLine } from "./written";
 import type { PublishingState, ShellModel } from "./model";
 
 /** The card's one statement, which the phone's top bar states too (SPEC §4,
- *  2026-10-08, issue 1339): one sentence, resolved in one place. */
-export function publishingStatement(shell: ShellModel): { line: string } {
+ *  2026-10-08, issue 1339): one sentence, resolved in one place, and the next page's title where one is coming. */
+export function publishingStatement(shell: ShellModel): { line: string; title: string | null } {
   const { publishing, timeZone } = shell;
+  const stopped = publishing.next === null && publishing.because === "reachkit_stopped";
+  const held = "because" in publishing && publishing.because !== null;
+  const upcoming = held || stopped ? null : publishing.upcoming;
 
   // Through `nextPublishStatement`, REQ-092 c7's one home: while ReachKit has
   // stopped its own work, the statement names the stop and ignores `otherwise`
   // (ADR-011 point 5).
-  return nextPublishStatement({
-    stopped: publishing.next === null && publishing.because === "reachkit_stopped",
-    otherwise: otherwiseOf(publishing, timeZone),
-  });
+  const { line } = nextPublishStatement({ stopped, otherwise: otherwiseOf(publishing, timeZone) });
+  return { line, title: upcoming === null || upcoming.kind === "monday-check" ? null : upcoming.kind === "topic" ? upcoming.topic : upcoming.title };
 }
 
 function otherwiseOf(publishing: PublishingState, timeZone: string): NextPublishOtherwise {
@@ -41,9 +44,9 @@ function otherwiseOf(publishing: PublishingState, timeZone: string): NextPublish
   // A planned date is a site-local calendar day, so it is drawn at noon UTC in UTC and no zone can move it a day.
   const day = (on: string): string => formatShortDay(new Date(`${on}T12:00:00Z`), "UTC");
   if (upcoming.kind === "monday-check") return { tag: "monday-check", on: formatShortDay(upcoming.on, timeZone) };
-  if (upcoming.kind === "topic") return { tag: "topic", on: day(upcoming.on), topic: upcoming.topic };
-  if (upcoming.at !== null) return { tag: "page", at: formatDateTime(upcoming.at, timeZone), title: upcoming.title };
-  return { tag: upcoming.writing ? "writing" : "ready", on: day(upcoming.on), title: upcoming.title };
+  if (upcoming.kind === "topic") return { tag: "topic", on: day(upcoming.on) };
+  if (upcoming.at !== null) return { tag: "scheduled", at: formatDateTime(upcoming.at, timeZone) };
+  return { tag: upcoming.writing ? "writing" : "ready", on: day(upcoming.on) };
 }
 
 export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
@@ -66,9 +69,22 @@ export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
             {state}
           </p>
         )}
-        <p className="text-xs opacity-70" data-testid="shell-publishing-line">
+        <p className="text-xs text-base-content/70" data-testid="shell-publishing-line">
           {statement.line}
         </p>
+        {statement.title === null ? null : (
+          <p className="text-sm font-semibold break-words" data-testid="shell-publishing-title">
+            {statement.title}
+          </p>
+        )}
+        {/* The customer's own pages, as a visitor sees them; drawn only once one is live there. */}
+        {p.shell.blog === null ? null : (
+          <a className="btn btn-sm btn-soft btn-primary mt-1 justify-start" href={p.shell.blog} target="_blank" rel="noreferrer noopener" data-testid="shell-blog-link">
+            <ExternalLink size={16} strokeWidth={1.75} aria-hidden />
+            {copy("shell.shortcut.blog")}
+            <span className="sr-only"> {copy("draft.live.new-tab")}</span>
+          </a>
+        )}
       </div>
     </section>
   );

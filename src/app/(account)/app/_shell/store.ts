@@ -182,13 +182,12 @@ function waitingPage(row: WaitingDraftRow): WaitingPage {
  * address we do not keep here, so it is not one of ours to offer either.
  */
 async function blogAddress(siteId: string): Promise<string | null> {
-  const { data, error } = await client()
-    .from<BlogDestinationRow>("destinations")
-    .select("hostname, hostname_state, deleted_at")
-    .eq("site_id", siteId)
-    .eq("kind", "hosted")
-    .limit(2);
-  if (error !== null || data === null) return null;
+  const [{ data, error }, live] = await Promise.all([
+    client().from<BlogDestinationRow>("destinations").select("hostname, hostname_state, deleted_at").eq("site_id", siteId).eq("kind", "hosted").limit(2),
+    // An index with no page on it is not a destination.
+    client().from<{ id: string }>("drafts").select("id").eq("site_id", siteId).eq("state", "published").limit(1),
+  ]);
+  if (error !== null || data === null || (live.data ?? []).length === 0) return null;
   const row = data.find(
     (d) => d.deleted_at === null && d.hostname !== null && d.hostname_state === "live"
   );
@@ -239,7 +238,7 @@ function comingPage(row: ScheduledDraftRow, today: string, timeZone: string): Co
   const on = row.scheduled_for ?? (at === null ? null : localDate(at, timeZone));
   if (on === null || (on < today && at === null)) return [];
   return row.state === "planned"
-    ? [{ kind: "topic", on, topic: row.title }]
+    ? [{ kind: "topic", on, topic: pageTitle(row.title, row.sites?.language) }]
     : [{ kind: "page", on, title: pageTitle(row.title, row.sites?.language), at, writing: row.state === "generating" }];
 }
 
@@ -273,8 +272,9 @@ async function logoStored(domain: string): Promise<boolean> {
 async function plannedTopics(siteId: string, today: string): Promise<ComingDay[]> {
   try {
     const { committedWeek } = await import("@/lib/opportunities");
-    const [week, drafts, days] = await Promise.all([
+    const [week, drafts, days, site] = await Promise.all([
       committedWeek(siteId),
+      client().from<{ language: string | null }>("sites").select("language").eq("id", siteId).limit(1),
       client().from<{ scheduled_for: string | null }>("drafts").select("scheduled_for").eq("site_id", siteId).gte("scheduled_for", today),
       client()
         .from<{ publish_date: string; outcome: string | null }>("draft_days")
@@ -288,8 +288,9 @@ async function plannedTopics(siteId: string, today: string): Promise<ComingDay[]
       ...(days.data ?? []).filter((day) => day.outcome !== null).map((day) => day.publish_date),
     ]);
     return week.days.flatMap((day): ComingDay[] => {
-      const topic = day.opportunity.targetQuery;
-      return day.date < today || taken.has(day.date) || topic === null ? [] : [{ kind: "topic", on: day.date, topic }];
+      // The page's planned title, as This Week names it; its search only where no title was stored.
+      const topic = day.opportunity.title?.trim() || day.opportunity.targetQuery;
+      return day.date < today || taken.has(day.date) || !topic ? [] : [{ kind: "topic", on: day.date, topic: pageTitle(topic, site.data?.[0]?.language) }];
     });
   } catch {
     return [];

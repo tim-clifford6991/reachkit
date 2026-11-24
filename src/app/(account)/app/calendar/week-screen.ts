@@ -113,8 +113,6 @@ export interface CardModel {
   state: DayState | null;
   title: string | null;
   titleLabel?: string;
-  /** The title is a search, drawn in mono. */
-  search: boolean;
   lines: string[];
   /** How many sources the page's sentences link, where they link any. */
   sources: string | null;
@@ -368,7 +366,7 @@ function cardOf(
         : state === "skipped"
           ? [stateLine ?? copy("calendar.day.skipped.line")]
           : emptyAccount(cell, week);
-    return { ...base, kind: null, title: null, search: false, lines: [], pane: { kind: "lines", date, lines } };
+    return { ...base, kind: null, title: null, lines: [], pane: { kind: "lines", date, lines } };
   }
 
   const kind = page.update ? "update" : "new";
@@ -376,17 +374,18 @@ function cardOf(
     const started = page.startedAt == null ? null : formatTime(page.startedAt, week.timeZone);
     const lines = started === null ? [] : [copy("calendar.day.writing.line", { time: started })];
     const pane = started === null ? copy("calendar.day.writing") : copy("calendar.pane.writing", { time: started });
-    const title = page.why.search || page.title;
+    const search = page.why.search || page.title;
     // The same row a planned day reads: what was chosen and read for it does not change once writing starts.
     const proposed = page.proposed;
     const { facts } = plannedFacts(page);
     const writing = {
-      title: proposed?.title ?? copy("calendar.pane.planned.title", { search: title }),
+      title: proposed?.title ?? copy("calendar.pane.planned.title", { search }),
       ...(proposed === undefined ? {} : { titleLabel: proposed.label }),
       facts: proposed === undefined ? facts.slice(1) : facts,
-      brief: briefOf(page.plan, title, true),
+      brief: briefOf(page.plan, search, true),
     };
-    return { ...base, ariaLabel: labelled(title), kind, title, search: true, lines, pane: { kind: "lines", date, lines: [pane], writing } };
+    const title = proposed?.title ?? page.title;
+    return { ...base, ariaLabel: labelled(title, proposed?.label), kind, title, ...(proposed === undefined ? {} : { titleLabel: proposed.label }), lines, pane: { kind: "lines", date, lines: [pane], writing } };
   }
 
   if (page.stage === "planned" && page.state === "planned") {
@@ -397,11 +396,10 @@ function cardOf(
     const label = proposed === undefined ? {} : { titleLabel: proposed.label };
     return {
       ...base,
-      ariaLabel: labelled(proposed?.title ?? search, proposed?.label, page.hotLine),
+      ariaLabel: labelled(proposed?.title ?? page.title, proposed?.label, page.hotLine),
       kind,
-      title: proposed?.title ?? search,
+      title: proposed?.title ?? page.title,
       ...label,
-      search: proposed === undefined,
       lines,
       pane: {
         kind: "planned",
@@ -451,7 +449,6 @@ function cardOf(
     kind,
     title: page.title,
     ...(page.titleLabel === undefined ? {} : { titleLabel: page.titleLabel }),
-    search: false,
     lines,
     pane: {
       kind: "page",

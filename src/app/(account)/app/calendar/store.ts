@@ -224,7 +224,7 @@ function pageOn(a: {
     stored === "" ? null : renderGenerated(title, { state: "written", pageId: a.page.draftId, title, edited: a.page.edited });
   return {
     draftId: a.page.draftId,
-    title: written?.text ?? search,
+    title: written?.text ?? pageTitle(search, a.language),
     ...(written === null ? {} : { titleLabel: written.label }),
     state: a.page.state,
     enteredReview: a.page.enteredReview,
@@ -266,7 +266,7 @@ function plannedOn(day: DayKey, row: Opportunity, language: Language, now: Date)
   const proposed = stored === "" ? null : renderGenerated(title, { state: "proposed", opportunityId: row.id, title, slug: fromStored("opportunities.proposed_slug", row.targetRef) });
   return {
     draftId: null,
-    title: search,
+    title: pageTitle(search, language),
     ...(proposed === null ? {} : { proposed: { title: proposed.text, label: generatedLabel({ pageTitle: search, written: false }).label } }),
     state: "planned",
     // A planned page has no draft at all yet, so it has certainly never
