@@ -65,10 +65,9 @@
 //     an offering, or where the search asks a price or compares products.
 //
 // Deterministic, no I/O. A failure carries handles, never a sentence.
-import { languagePack } from "@/lib/locale/language";
+import { languagePack, SHAPES } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { TITLE } from "@/lib/config/constants";
-import { appendsClaim, priceLed } from "@/lib/market/questions/angle";
 import type { ContentType } from "@/lib/opportunities/content-type";
 import { figuresOf, numeralsOf, REGISTER_FLOOR, valuesStated } from "./figures";
 import { renderOf } from "./text";
@@ -295,7 +294,7 @@ function yearMisplaced(title: string, a: TitleRuleInputs): boolean {
   return years.some((year) => Number(year) !== a.year) || /(?:19|20)\d\d$/.test(title.trim());
 }
 
-function hasBanned(title: string, a: TitleRuleInputs): boolean {
+function hasBanned(title: string, a: Pick<TitleRuleInputs, "terms" | "language" | "hot">): boolean {
   const language = languageOf(a);
   const pack = languagePack(language);
   const lower = title.toLowerCase();
@@ -306,6 +305,33 @@ function hasBanned(title: string, a: TitleRuleInputs): boolean {
   if ([...pack.title.tropes.map((each) => wordsPattern(each, false)), wordsPattern(pack.title.double, true)].some((each) => trope(each.exec(lower)?.[0]))) return true;
   if (a.hot === true && newsWords(language).test(title)) return true;
   return saidTwice(title, language) !== null;
+}
+
+const lowered = (text: string): string => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/** A price leads only a price or comparison page: anywhere else the business's price or a rival's plan is no promise. */
+export function priceLed(title: string, search: string): boolean {
+  const text = lowered(search);
+  return /[$€£¥]\s?\d|\d\s?[$€£¥]/u.test(title) && !SHAPES.price.test(text) && !SHAPES.comparison.test(text);
+}
+
+/** On a list or comparison search, a clause joined on after the title's break ("— and the tool that…") is a claim about
+ *  the business, not the decision the page helps the reader make. */
+export function appendsClaim(title: string, search: string): boolean {
+  const lead = /[:?—–]|\s-\s/u.exec(title);
+  return lead !== null && SHAPES.listicle.test(lowered(search)) && SHAPES.appended.test(lowered(title.slice(lead.index + lead[0].length)));
+}
+
+/** What a planned angle's title fails of the writer's own wording rules: the lead, the banned phrases, tropes and a word
+ *  said twice, a price lead, a claim joined on. The planner keeps only a title the writer would keep. */
+export function plannedTitleFaults(title: string, search: string, language: Language = "en"): TitleFault[] {
+  const faults: (TitleFault | false)[] = [
+    leadsWith(title, search, language) === false && "term",
+    hasBanned(title, { terms: [search], language }) && "banned",
+    priceLed(title, search) && "promise_figure",
+    appendsClaim(title, search) && "claim",
+  ];
+  return faults.filter((fault) => fault !== false);
 }
 
 /** The first word a title says twice, a plural read as its singular. */

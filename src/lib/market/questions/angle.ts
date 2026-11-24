@@ -1,16 +1,19 @@
 // SPEC §6 *Every topic is an angle* (owner rulings 91–92, #2722): the one place a found search becomes a page's angle.
 // The model proposes two or three angles per search in one of five patterns; code keeps the one that passes every gate
 // and promises most of what the top results miss. The weekly topic step and the hot-topic lane both call `pickAngle`.
-import { LANGUAGE_PACKS, SHAPES } from "@/lib/locale/language";
+import { plannedTitleFaults } from "@/lib/generate/rules/title";
+import { languagePack, SHAPES } from "@/lib/locale/language";
+import type { Language } from "@/lib/locale/locales";
 import { contentTokens } from "@/lib/market/questions/select";
+import { ownCasings, pageTitle } from "@/lib/presentation/page-title";
 
 export const ANGLE_PATTERNS = ["P1", "P2", "P3", "P4", "P5"] as const;
 export type AnglePattern = (typeof ANGLE_PATTERNS)[number];
 
 /** How an angle is asked, word for word, by the fit call and by the commit's title call. */
 export const ANGLE_ASK = {
-  pages: "two different pages that would answer it for this buyer. Each joins the search to a passage in `product.knowledge` (`fact`) and uses one `pattern`: P1 a problem and how this business's method fixes it; P2 the question answered from the business's own facts; P3 a comparison where the business is a real option; P4 how to do the job with a new thing the search or `ranks` names; P5 the search for a place or segment the business serves.",
-  title: "Each angle's `title` is at most 65 characters in Title Case, starts with the search's own words or its main noun phrase, and states what the reader gets, which none of the search's `ranks` already promises. `promise` says that in at most eight words. A title names a product, model, version, number, price or date only when it is written in the search, `product.knowledge` or `ranks`. A bare search with a number or a price appended is not an angle, and a price leads only a pricing or comparison search. A comparison title never says what a named competitor does, lacks or who uses it; it names the decision the page helps the reader make.",
+  pages: "two different pages that would answer it for this buyer, each in one `pattern`: P1 a problem and how this business's method fixes it; P2 the question answered from the business's own facts; P3 a comparison where the business is a real option; P4 how to do the job with a new thing the search or `ranks` names; P5 the search for a place or segment the business serves. `fact` is the `i` of the `product.knowledge` passage the page is written from: it supports the page, and the title need not repeat its words.",
+  title: "Each angle's `title` is a grammatical headline a person would say aloud, at most 65 characters, in Title Case. Keep each name's own casing (AI, ChatGPT, SEO) even where the search is lowercase. It leads with the search's main noun phrase, reordered or inflected as a headline needs, and states the reader's outcome, what they can do or decide, never a feature of this business, and one none of `ranks`, the titles that rank for the search now, already promises. `promise` says that outcome in at most eight words. One example per pattern, in other markets: P1 \"Losing Calls After Hours? How to Answer Every Lead\"; P2 \"What a Boiler Service Costs and What It Should Include\"; P3 \"Best Payroll Software for Small Teams: How to Choose\"; P4 \"How to Get Your Business Recommended by {a new thing the sources name}\"; P5 \"Emergency Plumber in Leeds: What to Expect Before They Arrive\". No hype word, no \"Why … Matters\", no word said twice, no clause about this business joined on after a dash. A title names a product, model, version, number, price or date only when it is written in the search, `product.knowledge` or `ranks`. A bare search with a number or a price appended is not an angle, and a price leads only a pricing or comparison search. A comparison title never says what a named competitor does, lacks or who uses it; it names the decision the page helps the reader make.",
 } as const;
 
 /** What the model proposes: a pattern, a title, what the reader gets, and the knowledge passage it joins the search to. */
@@ -40,10 +43,9 @@ export interface AngleContext {
   passages?: number;
   /** The rivals' names and domains: a comparison's title names none beyond the search's own. */
   rivals?: readonly string[];
+  /** The site's language: the writer's wording rules and its casing are that language's. Absent is English. */
+  language?: Language;
 }
-
-const HEAD_CHARS = 30;
-const LEAD_WORDS = 3;
 
 const lowered = (text: string): string => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
@@ -53,14 +55,6 @@ function patternAllowed(pattern: AnglePattern, search: string): boolean {
   if (pattern === "P3") return SHAPES.listicle.test(text) || SHAPES.solution.test(text) || SHAPES.comparison.test(text);
   if (pattern === "P1") return SHAPES.problem.test(text) || SHAPES.howTo.test(text) || SHAPES.pain.test(text) || /^why\b/.test(text);
   return true;
-}
-
-/** The search's first subject words are all in the title, and the first starts inside its head: the phrasing people search. */
-export function leadsWithSearch(title: string, search: string): boolean {
-  const subject = contentTokens(search).slice(0, LEAD_WORDS);
-  if (subject.length === 0) return true;
-  const words = [...title.toLowerCase().matchAll(/[\p{L}\p{N}]+/gu)].map((match) => ({ word: contentTokens(match[0])[0] ?? "", at: match.index }));
-  return subject.every((token) => words.some((each) => each.word === token)) && words.some((each) => each.word === subject[0] && each.at < HEAD_CHARS);
 }
 
 /** The figures and named things a title states: a token with a digit, or with a capital past its first letter ("ChatGPT", "SEO"). */
@@ -76,30 +70,12 @@ export function namesAreReal(title: string, a: AngleContext): boolean {
   return namedThings(title).every((token) => held.includes(token.toLowerCase().replace(/^[$€£¥]/u, "")));
 }
 
-/** A price leads only a price or comparison page: anywhere else the business's price or a rival's plan is no promise. */
-export function priceLed(title: string, search: string): boolean {
-  const text = lowered(search);
-  return /[$€£¥]\s?\d|\d\s?[$€£¥]/u.test(title) && !SHAPES.price.test(text) && !SHAPES.comparison.test(text);
-}
-
 /** A comparison that names a rival the search does not makes a claim about that rival nothing here supports. */
 function namesOtherRival(angle: ProposedAngle, a: AngleContext): boolean {
   if (angle.pattern !== "P3") return false;
   const [title, searched] = [` ${lowered(angle.title)} `, ` ${lowered(a.search)} `];
   return (a.rivals ?? []).map(lowered).some((rival) => rival !== "" && !searched.includes(` ${rival} `) && title.includes(` ${rival} `));
 }
-
-/** On a list or comparison search, a clause joined on after the title's break ("— and the tool that…") is a claim about
- *  the business, not the decision the page helps the reader make. */
-export function appendsClaim(title: string, search: string): boolean {
-  const lead = /[:?—–]|\s-\s/u.exec(title);
-  return lead !== null && SHAPES.listicle.test(lowered(search)) && SHAPES.appended.test(lowered(title.slice(lead.index + lead[0].length)));
-}
-
-const HYPE = LANGUAGE_PACKS.flatMap((pack) => pack.title.banned);
-
-/** A banned or hype phrase the searcher did not use themselves. */
-const hyped = (title: string, search: string): boolean => HYPE.some((phrase) => title.toLowerCase().includes(phrase) && !search.toLowerCase().includes(phrase));
 
 /** A title whose every content word is the search's is the search restated, with no promise. */
 function restates(title: string, search: string): boolean {
@@ -129,22 +105,64 @@ function intentPoint(pattern: AnglePattern, search: string): number {
   return 0;
 }
 
+/** The gates an angle fails, by name: its fact is a passage shown, its pattern fits the search's intent, it passes the
+ *  writer's own wording rules (`plannedTitleFaults`), every figure and name in it is in the search or a source, a
+ *  comparison names no rival the search does not, and it adds a word to the search. */
+export function angleGates(angle: ProposedAngle, a: AngleContext): string[] {
+  const title = angle.title.trim();
+  if (title === "" || !ANGLE_PATTERNS.includes(angle.pattern)) return ["empty"];
+  const gates: (string | false)[] = [
+    a.passages !== undefined && angle.fact !== null && (angle.fact < 0 || angle.fact >= a.passages) && "fact",
+    !patternAllowed(angle.pattern, a.search) && "pattern",
+    ...plannedTitleFaults(title, a.search, a.language),
+    !namesAreReal(title, a) && "names",
+    namesOtherRival(angle, a) && "rival",
+    restates(title, a.search) && "restates",
+  ];
+  return gates.filter((gate) => gate !== false);
+}
+
+/** `text` in Title Case, each name in the casing the sources, the top results' titles or the promises write it. */
+export function casedTitle(text: string, a: AngleContext, promises: readonly string[] = []): string {
+  return pageTitle(text, a.language ?? "en", ownCasings([...a.sources, ...a.ranks, ...promises]));
+}
+
 /**
- * The one angle a search keeps, or `null` where none passes: its fact is a passage shown, its pattern fits the
- * search's intent, it leads with the search, every figure and name in it is in the search or a source, it is
- * not led by a price off a price or comparison page, a comparison names no rival the search does not and appends no claim,
- * it adds a word to the search, and it says no banned or hype phrase. Of those, the one whose promise the fewest top results make,
- * then the one whose pattern fits the intent, then the model's order. Pure.
+ * The one angle a search keeps, or `null` where none passes `angleGates`. Of those, the one whose promise the fewest top
+ * results make, then the one whose pattern fits the intent, then the model's order; its title in Title Case with its
+ * names' own casing. Pure.
  */
 export function pickAngle(proposed: readonly ProposedAngle[], a: AngleContext): (ProposedAngle & { gap: number }) | null {
   const kept = proposed
     .map((angle, order) => ({ ...angle, title: angle.title.trim(), promise: angle.promise.trim(), order }))
-    .filter((angle) => angle.title !== "" && ANGLE_PATTERNS.includes(angle.pattern))
-    .filter((angle) => a.passages === undefined || angle.fact === null || (angle.fact >= 0 && angle.fact < a.passages))
-    .filter((angle) => patternAllowed(angle.pattern, a.search) && leadsWithSearch(angle.title, a.search))
-    .filter((angle) => namesAreReal(angle.title, a) && !priceLed(angle.title, a.search) && !namesOtherRival(angle, a) && !appendsClaim(angle.title, a.search) && !restates(angle.title, a.search) && !hyped(angle.title, a.search))
+    .filter((angle) => angleGates(angle, a).length === 0)
     .map((angle) => ({ ...angle, gap: gapOf(angle.promise, a) }));
   const score = (angle: (typeof kept)[number]): number => GAP_POINTS(angle.gap) + intentPoint(angle.pattern, a.search);
   const best = kept.sort((left, right) => score(right) - score(left) || left.order - right.order)[0];
-  return best === undefined ? null : { pattern: best.pattern, title: best.title, promise: best.promise, fact: best.fact, gap: best.gap };
+  const title = best === undefined ? "" : casedTitle(best.title, a, proposed.map((angle) => angle.promise));
+  return best === undefined ? null : { pattern: best.pattern, title, promise: best.promise, fact: best.fact, gap: best.gap };
+}
+
+const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** The angle `pickAngle` keeps once each title's small faults are repaired: a hype phrase the searcher did not use is
+ *  dropped, and an abbreviation of the search's own words ("AEO") is written out as the search writes them. */
+export function repairedAngle(proposed: readonly ProposedAngle[], a: AngleContext): (ProposedAngle & { gap: number }) | null {
+  const searched = a.search.toLowerCase();
+  const words = a.search.toLowerCase().split(/\s+/).filter((word) => word !== "");
+  const pack = languagePack(a.language ?? "en");
+  const hype = pack.title.banned.filter((phrase) => !searched.includes(phrase));
+  const spelled = (token: string): string => {
+    const short = token.toLowerCase();
+    if (short.length < 2 || short.length > 5 || words.includes(short) || pack.title.filler.has(short)) return token;
+    const at = words.findIndex((_, i) => words.slice(i, i + short.length).map((word) => word[0]).join("") === short);
+    return at < 0 ? token : words.slice(at, at + short.length).join(" ");
+  };
+  const repair = (title: string): string =>
+    hype
+      .reduce((text, phrase) => text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escaped(phrase)}(?![\\p{L}\\p{N}])\\s*`, "giu"), ""), title)
+      .replace(/\p{L}+/gu, spelled)
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  return pickAngle(proposed.map((angle) => ({ ...angle, title: repair(angle.title) })), a);
 }
