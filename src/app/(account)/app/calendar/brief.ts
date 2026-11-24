@@ -107,7 +107,7 @@ function angleRow(evidence: Evidence): ReasonRow | null {
   return row(angle.gap > 0 ? copy("calendar.reason.angle", { promise: angle.promise, gap: formatCount(angle.gap) }) : copy("calendar.reason.angle.none", { promise: angle.promise }));
 }
 
-function researchOf(research: PlanReason["research"], search: string): ResearchModel | null {
+function researchOf(research: PlanReason["research"], search: string, writing: boolean): ResearchModel | null {
   if (research === undefined) return null;
   const hosts = new Map<string, string>();
   for (const url of research.urls) {
@@ -124,7 +124,8 @@ function researchOf(research: PlanReason["research"], search: string): ResearchM
   ).flatMap(([key, n]) => (counted && typeof n === "number" ? [{ label: copy(key), value: formatCount(n) }] : []));
   return {
     counts,
-    line: research.state === "queued" ? copy("calendar.pane.research.queued") : research.state === "short" ? copy("calendar.pane.research.short") : null,
+    // Writing starts only after the read, so the commit's "still reading" snapshot is no longer true.
+    line: research.state === "queued" ? (writing ? null : copy("calendar.pane.research.queued")) : research.state === "short" ? copy("calendar.pane.research.short") : null,
     label: copy("calendar.pane.research.list.label", { search }),
     pages: [...hosts].map(([host, url]) => ({ host, url })),
     later: copy("calendar.pane.research.later"),
@@ -132,7 +133,7 @@ function researchOf(research: PlanReason["research"], search: string): ResearchM
 }
 
 /** A planned page's why, in `WHY_LINE` order then the rest, and what has been read for it. */
-export function briefOf(plan: { reason: PlanReason | null; evidence: Evidence } | undefined, search: string): Brief {
+export function briefOf(plan: { reason: PlanReason | null; evidence: Evidence } | undefined, search: string, writing = false): Brief {
   if (plan === undefined) return { reasons: [], notes: [], research: null };
   const { reason, evidence } = plan;
   const parts = reason?.parts ?? [];
@@ -146,7 +147,7 @@ export function briefOf(plan: { reason: PlanReason | null; evidence: Evidence } 
       ...[fitFactRow(evidence), angleRow(evidence)].flatMap((each) => (each === null ? [] : [each])),
     ],
     notes: said(LOWERING),
-    research: researchOf(reason?.research, search),
+    research: researchOf(reason?.research, search, writing),
   };
 }
 

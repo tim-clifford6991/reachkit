@@ -384,7 +384,7 @@ function cardOf(
       title: proposed?.title ?? copy("calendar.pane.planned.title", { search: title }),
       ...(proposed === undefined ? {} : { titleLabel: proposed.label }),
       facts: proposed === undefined ? facts.slice(1) : facts,
-      brief: briefOf(page.plan, title),
+      brief: briefOf(page.plan, title, true),
     };
     return { ...base, ariaLabel: labelled(title), kind, title, search: true, lines, pane: { kind: "lines", date, lines: [pane], writing } };
   }
