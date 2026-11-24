@@ -228,7 +228,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     // Why the week committed the slot this page fills.
     ...(a.opportunity.planReason == null ? {} : { why: a.opportunity.planReason }),
     ...(priorRepairs.length === 0 ? {} : { repairs: priorRepairs }),
-    // The tick's one automatic rewrite stays recorded through the rewrite itself.
+    // A restart's first ask stays recorded through the rewrite itself.
     ...carriedMark(existing?.meta),
   };
   /** The date's row, written or rewritten. `attribution` is the byline the

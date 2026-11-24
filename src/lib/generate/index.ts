@@ -60,7 +60,7 @@ import { meetsStandard, researchedAs } from "./standard";
 import { generatePageFix } from "./pipeline/page-fix";
 import type { FixNote } from "./pipeline/repair";
 import type { MarketResearch } from "./pipeline/research";
-import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
+import { owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 import { inTest } from "./test-draft";
 import { recentFacts, storedChanges } from "@/lib/hot/detect";
@@ -274,11 +274,14 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   }
   const site = await store.siteFacts(a.siteId);
   if (site === null) return { ok: false, because: "no_site" };
-  // Read from the row, so a retried step sees its first try's mark; set before the paid call, so any interruption stops it next tick.
-  const now = a.now ?? new Date(), owed = owedToRow(row, now, site.timeZone);
+  const now = a.now ?? new Date(), owed = owedToRow(row, now);
   if (owed === null) return { ok: false, because: "no_draft" };
-  if (owed === "stop") { await rest(row.id, row.opportunity_id, "step_failed:interrupted", now, site.timeZone); return { ok: false, because: "step_failed", draftId: row.id, step: "interrupted" }; }
-  if (owed === "mark") await store.patchDraft(row.id, { meta: { ...(typeof row.meta === "object" && row.meta !== null ? row.meta : {}), [REWRITTEN]: now.toISOString() } });
+  if (owed !== "rewrite") {
+    await rest(row.id, row.opportunity_id, "step_failed:interrupted", now, site.timeZone);
+    // An interrupted run's date is freed as a stopped page's is, so the day's next tick writes it with no one's step.
+    if (owed === "interrupted" && row.scheduled_for !== null) await (await import("./recheck")).releaseStoppedDate({ siteId: a.siteId, publishDate: row.scheduled_for, now });
+    return { ok: false, because: "step_failed", draftId: row.id, step: "interrupted" };
+  }
   const report = await store.latestReport(a.siteId);
   if (report === null) return { ok: false, because: "no_scan" };
   const opportunity = await writtenFor(row);
@@ -288,7 +291,7 @@ export async function regenerateRestarted(a: { siteId: string; draftId: string; 
   // Research is asked again (a read left on the queue is read free); a restart's 2 hours run from its first ask.
   const outcome: DayPageOutcome = opportunity.type !== "fix_page" && (await askDayResearch({ siteId: a.siteId, opportunityId: opportunity.id, writeAs: opportunity.writeAs, now, waitMs: COLLECT.askMs })) > 0 ? { ok: false, because: "research_pending" }
     : await withDraftCost({ scanId: report.scanId, draftId: row.id }, (cost) => opportunity.type === "fix_page" ? fixPage(page, cost) : writePage({ ...page, attempts: 1 }, cost));
-  const asked = owed === "rewrite" && !outcome.ok && outcome.because === "research_pending" ? withFirstAsk(row, now) : null;
+  const asked = !outcome.ok && outcome.because === "research_pending" ? withFirstAsk(row, now) : null;
   if (asked !== null) await store.patchDraft(row.id, { meta: asked });
   await settle(outcome, opportunity.id, now, site);
   return outcome;
