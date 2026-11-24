@@ -167,6 +167,16 @@ export async function runDeepPass(a: {
     return null;
   });
 
+  // A first pass a ceiling stopped or that failed is measured again once, so its plan does not wait for Monday; a failure here never fails the pass.
+  if (a.remeasure !== true) {
+    await step("re-measure", async () => {
+      const { remeasureCutShort } = await import("./remeasure");
+      const start = await remeasureCutShort({ siteId: a.siteId, domain: a.domain, scanId: result.scanId }).catch((error: unknown) => String(error));
+      if (start !== null) console.log(JSON.stringify({ event: "first_pass_remeasured", siteId: a.siteId, start }));
+      return null;
+    });
+  }
+
   return { scanId: result.scanId, status: result.status, reason };
 }
 

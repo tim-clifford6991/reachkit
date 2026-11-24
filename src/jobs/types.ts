@@ -164,4 +164,6 @@ export interface JobDefinition {
    *  one, the job itself otherwise. */
   readonly concurrency?: readonly JobConcurrency[];
   readonly throttle?: JobThrottle;
+  /** A subject whose event sets this field to `true` runs ahead of the others queued under the bounds above. */
+  readonly ahead?: string;
 }

@@ -81,6 +81,8 @@ export const weeklyRefresh: JobDefinition = {
   perSubject: weeklySite,
   concurrency: [{ key: "siteId", shared: true, limit: 1 }, { limit: JOB_SUBJECT_CONCURRENCY }],
   throttle: LLM_RUN_THROTTLE,
+  // A founder waits on the first pass, so it never queues behind a Monday.
+  ahead: "first",
   async run(input): Promise<Outcome> {
     const step = input.step;
     // Read once outside any step, so an hour with no site due costs one invocation.

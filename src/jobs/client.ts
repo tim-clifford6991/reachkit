@@ -106,6 +106,8 @@ export function boundsOf(definition: JobDefinition) {
     ...(definition.throttle === undefined
       ? {}
       : { throttle: { limit: definition.throttle.limit, period: `${definition.throttle.periodSeconds}s` as const } }),
+    // The platform's largest lead: a run so marked starts before any queued up to ten minutes earlier.
+    ...(definition.ahead === undefined ? {} : { priority: { run: `event.data.${definition.ahead} == true ? 600 : 0` } }),
   };
 }
 

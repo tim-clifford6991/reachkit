@@ -67,26 +67,19 @@ import type { FetchOutcome } from "../../src/lib/egress/types";
 
 const db = fakeDb();
 
-/** What each stored procedure answers. `apply_setup_choice` returns the
- *  destination id its transaction created; a `null` there is the arm
- *  `applySetupChoice` throws on, which is why the journey supplies one. */
+/** What each stored procedure answers: `apply_setup_choice` must return its destination id, or `applySetupChoice` throws. */
 const rpcAnswers: Record<string, unknown> = {};
+let storedAs: Record<string, unknown> = {};
 
 const client = {
   from: (table: string) => db.client.from(table),
   rpc: (fn: string, args: unknown) => {
     db.rpcCalls.push({ fn, args: args as Record<string, unknown> });
-    // The stored report lands on the pass's row, as the procedure writes
-    // it — a jsonb column, so a later step reads back plain data (issue 798).
+    // The stored report lands on the pass's row as plain data, as the procedure writes it; `storedAs` forces how it ended.
     if (fn === "store_current_report") {
       const a = args as Record<string, unknown>;
       for (const row of scanRows.filter((held) => held.id === a.p_scan_id)) {
-        Object.assign(row, {
-          report: JSON.parse(JSON.stringify(a.p_report)),
-          status: a.p_status,
-          cost_cents: a.p_cost_cents,
-          stopped_reason: a.p_stopped_reason, finished_at: new Date().toISOString(),
-        });
+        Object.assign(row, { report: JSON.parse(JSON.stringify(a.p_report)), status: a.p_status, cost_cents: a.p_cost_cents, stopped_reason: a.p_stopped_reason, finished_at: new Date().toISOString() }, storedAs);
       }
     }
     return Promise.resolve({ data: rpcAnswers[fn] ?? null, error: null });
@@ -114,8 +107,7 @@ vi.mock("next/headers", async () => (await import("./harness")).nextHeaders(cook
 // ── The job platform ────────────────────────────────────────────────────
 
 const jobEvents: { name: string; payload: Record<string, unknown> }[] = [];
-/** The site's zone at the moment each event was sent (issue #783): the
- *  deep pass, and so its first-draft kickoff, starts from that event. */
+/** The site's zone as each event was sent: the first pass, and so its first-draft kickoff, starts from that event. */
 const zoneWhenSent: (string | null)[] = [];
 const sent = (name: string, payload: Record<string, unknown>) => (jobEvents.push({ name, payload }), zoneWhenSent.push(site.timezone));
 vi.mock("@/jobs/client", async () => ({
@@ -434,6 +426,7 @@ beforeEach(() => {
   db.answer = answerQuery;
   db.singles.set("scans", { id: "scan-journey-04" });
   scanRows.length = 0;
+  storedAs = {};
   steps.length = 0;
   for (const key of Object.keys(rpcAnswers)) delete rpcAnswers[key];
   rpcAnswers.apply_setup_choice = "destination-journey-04";
@@ -521,8 +514,7 @@ async function runTheQueuedPass(): Promise<Outcome> {
   return weeklyRefresh.perSubject!({
     data: queued.payload,
     now: new Date(),
-    // The job platform's steps: each answer is stored and handed back as
-    // plain data, never the object the step returned (issue 798).
+    // The job platform's steps: each answer is handed back as plain data, never the object the step returned.
     step: async (name, body) => {
       steps.push(name);
       return JSON.parse(JSON.stringify((await body()) ?? null));
@@ -859,7 +851,7 @@ describe("three decisions → deep pass → the first page already on the calend
       // Issue 798: the derivation is a step of its own, after the pass's,
       // and the typing it paid for is in the row's cost — every ledgered
       // call, not only the stages'.
-      expect(steps.filter((name) => !name.startsWith("first-week-"))).toEqual(["deep-pass", "knowledge-base", "opportunities", "voice", "first-draft", "onboarding-mail"]);
+      expect(steps.filter((name) => !name.startsWith("first-week-"))).toEqual(["deep-pass", "knowledge-base", "opportunities", "voice", "first-draft", "onboarding-mail", "re-measure"]);
       const spent = ledger().reduce((total, row) => total + row.costCents, 0);
       const typingCents = ledger()
         .filter((row) => row.source === "opportunity-typing")
@@ -883,6 +875,13 @@ describe("three decisions → deep pass → the first page already on the calend
     },
     JOURNEY_TIMEOUT_MS
   );
+
+  it("steps 4–9 — a first pass that ends failed queues exactly one re-measure, and a second delivery queues none", async () => {
+    storedAs = { status: "failed" };
+    await untilTheFounderIsReleased();
+    await runTheQueuedPass();
+    expect(jobEvents.filter((e) => e.name === "scan/run").map((e) => e.payload.remeasure)).toEqual([true]);
+  }, JOURNEY_TIMEOUT_MS);
 
   it(
     "step 9 — the latch releases the founder once, and the waiting screen lets go",
