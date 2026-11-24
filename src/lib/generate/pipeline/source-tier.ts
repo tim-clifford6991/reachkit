@@ -49,17 +49,13 @@ export function primaryAddress(url: string, rivals: readonly string[] = []): boo
 const WIRE_RE = /(?<![a-z])(?:pr ?newswire|business ?wire|globe ?newswire|accesswire|ein ?presswire|einnews|ab ?newswire|getnews|newsfile ?corp|prweb|openpr|prlog|issuewire|marketersmedia|send2press|24-7pressrelease|presswire)(?![a-z])/i;
 export const pressWire = (url: string, text = ""): boolean => WIRE_RE.test(url) || WIRE_RE.test(text);
 
-// General publications and analysts, and review platforms, that a bot can read: an outside page here is independent by its host.
-const PUBLICATIONS = ["searchengineland.com", "searchenginejournal.com", "digiday.com", "techcrunch.com", "theverge.com", "axios.com", "bbc.co.uk", "pewresearch.org", "forrester.com", "gartner.com"];
-const REVIEWS = ["g2.com", "capterra.com", "trustradius.com", "omr.com"];
-
+// General publications and analysts, then review platforms, that a bot can read: an outside page here is independent by its host.
+const PUBLICATIONS = ["searchengineland.com", "searchenginejournal.com", "digiday.com", "techcrunch.com", "theverge.com", "axios.com", "bbc.co.uk", "pewresearch.org", "forrester.com", "gartner.com"], REVIEWS = ["g2.com", "capterra.com", "trustradius.com", "omr.com"];
 /** The tier an address alone gives a page's first-hand claims, or none where only its words can say. */
 export function addressTier(url: string, language: Language, rivals: readonly string[] = []): SourceTier | undefined {
   const host = hostOf(url), on = (hosts: readonly string[]): boolean => hosts.some((each) => sameSite(host, each));
-  if (on(rivals)) return "vendor";
-  if (pressWire(url)) return "wire";
-  if (primaryAddress(url) || languagePack(language).officialHosts.test(host)) return "primary";
-  return on(PUBLICATIONS) ? "publication" : on(REVIEWS) ? "review" : undefined;
+  if (on(rivals) || pressWire(url)) return on(rivals) ? "vendor" : "wire";
+  return primaryAddress(url) || languagePack(language).officialHosts.test(host) ? "primary" : on(PUBLICATIONS) ? "publication" : on(REVIEWS) ? "review" : undefined;
 }
 
 /** How far either side of a claim's passage its page may state the method it was found by. */
