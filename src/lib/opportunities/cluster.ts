@@ -304,8 +304,7 @@ export function collapse(a: {
   const groups = joinTopics(byKey, a.topTens ?? new Map(), a.sameQuestion ?? new Map(), (query) => (a.market == null ? null : clusterKey(query, a.brandTokens, a.market)), rank);
   const isLive = (m: Member): boolean => m.kind === "row" && (m.row.status === "done" || a.live?.has(m.row.id) === true);
 
-  /** Whether this pass has superseded the row that survived `key`: it read
-   *  the topic, wrote no candidate on it, and did not derive the row. */
+  /** Whether this pass has superseded the row that survived `key`: it read the topic, wrote no candidate on it, and did not derive the row. */
   const superseded = (row: Opportunity, key: string, hadCandidate: boolean): boolean =>
     a.pass !== undefined &&
     !hadCandidate &&
@@ -321,12 +320,9 @@ export function collapse(a: {
     const hadCandidate = members.some((member) => member.kind === "candidate");
     // A live page keeps its searches and its best other member stays as its update, unless a page of it is being written.
     const best = !isLive(first) ? first : others.some((m) => hasAPage(m) && !isLive(m)) ? undefined : others.find((m) => !hasAPage(m));
-    // A candidate for the very target an open row holds is that row: it is written before the row could be dismissed, so the row stands.
-    const twin = best?.kind === "candidate" ? members.find((m) => m.kind === "row" && m.row.status === "open" && m.row.type === best.candidate.type && m.row.targetQuery === best.candidate.targetQuery && m.row.targetRef === best.candidate.targetRef) : undefined;
-    const survivor = twin ?? best;
-    const key = keyOf.get(survivor ?? first) as string;
-    // Losers are dismissed after the survivor is written, so a key another open or queued row holds stays that row's: the survivor keeps its own.
-    const held = new Set(members.flatMap((m) => (m !== survivor && m.kind === "row" && m.row.status !== "done" ? [m.row.clusterKey] : [])));
+    // Losers are dismissed after the survivor is written, so a candidate for the target an open row holds yields to that row, and a key another open or queued row holds stays its own.
+    const survivor = (best?.kind === "candidate" ? members.find((m) => m.kind === "row" && m.row.status === "open" && m.row.type === best.candidate.type && m.row.targetQuery === best.candidate.targetQuery && m.row.targetRef === best.candidate.targetRef) : undefined) ?? best;
+    const key = keyOf.get(survivor ?? first) as string, held = new Set(members.flatMap((m) => (m !== survivor && m.kind === "row" && m.row.status !== "done" ? [m.row.clusterKey] : [])));
     const written = !held.has(key) ? key : survivor?.kind === "row" ? survivor.row.clusterKey : null;
     const rest = members.filter((member) => member !== first && member !== survivor);
     const own = survivor === undefined ? null : (queryOf(survivor)?.trim().toLowerCase() ?? null);
@@ -350,9 +346,7 @@ export function collapse(a: {
       update.push({ id: survivor.row.id, clusterKey: written, absorbedQueries });
     }
   }
-  for (const row of trimmed.filter((row) => !dismiss.includes(row.id) && !update.some((u) => u.id === row.id))) {
-    update.push({ id: row.id, clusterKey: row.clusterKey, absorbedQueries: [...row.absorbedQueries].sort() });
-  }
+  for (const row of trimmed.filter((row) => !dismiss.includes(row.id) && !update.some((u) => u.id === row.id))) update.push({ id: row.id, clusterKey: row.clusterKey, absorbedQueries: [...row.absorbedQueries].sort() });
   return { dismiss, update, insert };
 }
 
