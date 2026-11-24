@@ -5,7 +5,7 @@ import { EFFORT_BY_TYPE } from "@/lib/config/constants";
 import { withCostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
 import { siteLocale } from "@/lib/locale/site";
-import { measuredLocale } from "@/lib/locale/locales";
+import { type Language, measuredLocale } from "@/lib/locale/locales";
 import { unmeasured } from "@/lib/measure/measured";
 import { slugify } from "@/lib/opportunities/derive/candidate";
 import { type OpportunityInsert, opportunityStore } from "@/lib/opportunities/store";
@@ -20,7 +20,7 @@ export const HOT_FAILED = "hot_topic_failed";
 export const topicUnstored = async (siteId: string, scanId: string | null): Promise<boolean> => scanId !== null && (await opsEventHeld(HOT_FAILED, siteId, scanId));
 
 /** The topic an event's angle becomes; a write row publishes under its ref, as `insertFor` proposes it. */
-export function hotRow(a: { siteId: string; scanId: string; language: string; angle: HotAngle; event: Pick<HotEvent, "claims">; reason: HotReason; now: Date }): OpportunityInsert {
+export function hotRow(a: { siteId: string; scanId: string; language: Language; angle: HotAngle; event: Pick<HotEvent, "claims">; reason: HotReason; now: Date }): OpportunityInsert {
   const { angle } = a, ref = slugify(angle.search, a.language);
   return {
     site_id: a.siteId, scan_id: a.scanId, type: "keyword_page", family: "write", target_query: angle.search, target_ref: ref, proposed_slug: ref, title: angle.title, volume: null,
