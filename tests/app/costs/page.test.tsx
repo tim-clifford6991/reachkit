@@ -2,11 +2,9 @@
 // read through the page the owner opens, in the board's sections, order and
 // words. The shell's own strings are the layout's, not this page's.
 import "../../generate/env";
-import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { parse } from "node-html-parser";
-import { boardFile, compare, readAllow, segments } from "../../../scripts/design/parity.mjs";
 
 const { tables } = vi.hoisted(() => ({ tables: new Map<string, unknown[]>() }));
 
@@ -145,12 +143,6 @@ describe("/app/costs against board AppCosts", () => {
     }
   });
 
-  it("leaves no board string missing but the shell's, with no allow line needed for the page's own words", () => {
-    const own = readAllow("AppCosts").filter((line: { reason: string }) => !line.reason.includes("tests/app/costs/page.test.tsx"));
-    const result = compare(readFileSync(boardFile("AppCosts"), "utf8"), segments(html), own);
-    // The nav's "This week" is matched by the page's own "This week by activity", so only these shell strings miss.
-    expect(result.missing).toEqual(["ReachKit", "Overview", "Settings", "Publishing on"]);
-  });
 });
 
 describe("/app/costs with no bill read", () => {

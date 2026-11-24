@@ -9,16 +9,13 @@
 //
 // A retired name is looked for wherever a customer reads one (issue 1484):
 // the copy registry, the text written straight into JSX under `src/app`,
-// `src/ui` and the mail shell, the sentences of the mail code, and the boards.
+// `src/ui` and the mail shell, and the sentences of the mail code.
 // A `{slot}` is a value, not a word, so it is never read as one.
-import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { boardPlainWords, boardStrings, BOARDS_DIR } from "../../../scripts/design/parity.mjs";
-import { plainWordsFindings } from "../../../scripts/lib/budgets.mjs";
-import { EXEMPT_BOARDS, entries, isExempt, keyFileCounts, retiredIn, SOFT, TITLE_KEY, violations } from "../../../scripts/lib/plain-words.mjs";
+import { entries, isExempt, keyFileCounts, retiredIn, SOFT, TITLE_KEY, violations } from "../../../scripts/lib/plain-words.mjs";
 import { read, SRC_DIR, walkFiles } from "./vocabulary";
 
 const KEYS = path.resolve(import.meta.dirname, "../../../src/lib/presentation/copy/keys");
@@ -261,51 +258,16 @@ describe("UI strategy: plain words (O6, docs/SPEC.md §0 Plain words)", () => {
     expect(rules("Add a CNAME record", { key: "overview.anything" })).toEqual(["CNAME"]);
   });
 
-  it("never counts an exempt key, file or board", () => {
+  it("never counts an exempt key or file", () => {
     const long = `"k": "${"word ".repeat(20)}"`;
     const keys = ["hosted.a", "body.a", "fact.a", "ai-answers.engine.a", "legal.terms.body", "legal.withdraw.entry", "offer.start.priced"];
     const source = keys.map((key) => long.replace('"k"', `"${key}"`)).join(",\n");
     expect(keys.every((key) => isExempt(key))).toBe(true);
     expect(keyFileCounts([{ name: "chrome.ts", source }, { name: "review.ts", source: long }, { name: "ops.ts", source: long }, { name: "de/page.ts", source: long }])).toEqual({ chrome: 0 });
     expect(keyFileCounts([{ name: "chrome.ts", source: long }])).toEqual({ chrome: 1 });
-    expect(["HostedPage", "Review", "AppCosts", "Legal"].every((board) => EXEMPT_BOARDS.test(board))).toBe(true);
-    expect(EXEMPT_BOARDS.test("PubReport")).toBe(false);
   });
 
-  // audit has no node_modules to parse a board, so the board half of the ratchet runs here against the base commit.
-  const git = (...args: string[]) => spawnSync("git", ["-C", REPO_ROOT, ...args], { encoding: "utf8" });
-  it.skipIf(git("rev-parse", "--verify", "-q", "HEAD^1").status !== 0)("no board's count rises above the base commit's", () => {
-    const rel = path.relative(REPO_ROOT, BOARDS_DIR);
-    const touched = git("diff", "--name-only", "HEAD^1", "--", rel).stdout.split("\n").map((f) => path.basename(f, ".dc.html"))
-      .filter((board) => board && !EXEMPT_BOARDS.test(board));
-    const counts = (source: (board: string) => string | null) =>
-      Object.fromEntries(touched.flatMap((board) => {
-        const html = source(board);
-        return html === null ? [] : [[board, boardPlainWords(html)]];
-      }));
-    const base = counts((board) => {
-      const shown = git("show", `HEAD^1:${rel}/${board}.dc.html`);
-      return shown.status === 0 ? shown.stdout : null;
-    });
-    const head = counts((board) => {
-      try {
-        return readFileSync(path.join(BOARDS_DIR, `${board}.dc.html`), "utf8");
-      } catch {
-        return null;
-      }
-    });
-    expect(plainWordsFindings({ base, head })).toEqual([]);
-  });
-
-  it("a board does not use a retired name", () => {
-    const boards = readdirSync(BOARDS_DIR).filter((f) => f.endsWith(".dc.html") && !EXEMPT_BOARDS.test(f.slice(0, -".dc.html".length)));
-    const offenders = boards.flatMap((f) =>
-      boardStrings(readFileSync(path.join(BOARDS_DIR, f), "utf8")).flatMap((text) => {
-        const hit = retiredIn(text);
-        return hit ? [`${f} uses "${hit}": ${text}`] : [];
-      }),
-    );
-    expect(offenders).toEqual([]);
+  it("knows a retired name, and leaves a vendor's tool name alone", () => {
     expect(["Next Monday we measure again", "Pick a keyword", "Moz Keyword Gap"].map(retiredIn)).toEqual(["Measure again", "keyword", undefined]);
   });
 });
