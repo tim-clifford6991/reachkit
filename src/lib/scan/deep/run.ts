@@ -8,6 +8,8 @@ import { dbAdmin } from "@/lib/db";
 import { sendOnboardingMails } from "@/lib/mail/onboarding";
 import { cachedRivalRows, deriveForPass, planFirstWeek } from "@/lib/opportunities";
 import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
+import { parseDomain } from "../domain";
+import { adoptClaimedRow } from "../pass/row";
 import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
 import { releaseToApp, type ReleaseReason } from "./release";
@@ -80,6 +82,8 @@ export async function runDeepPass(a: {
   const step = a.step ?? inline;
 
   const result = await step("deep-pass", () => measure(a));
+  // Nothing was measured, so no research is bought and no release or mail goes twice.
+  if (result.scanId === "") return { scanId: "", status: result.status, reason: reasonFor(result.status) };
 
   // The pages the pass read become the knowledge base, one small call a page, on the pass's money; a failed read costs the base, never the pass.
   await step("knowledge-base", async () => {
@@ -213,11 +217,15 @@ async function measure(a: {
   domain: string;
   remeasure?: boolean;
 }): Promise<{ scanId: string; status: ScanStatus }> {
-  // Cleared here, not on the first stage, so this file need not name the pipeline's stage order. A re-measure's request already cleared them and wrote its stage.
-  if (a.remeasure !== true) await recordStage(a.siteId, null, { reset: true });
-
-  // The row setup claimed, or claimed now at the address setup committed; the pass adopts it and inserts no second. A throw is the job's to retry.
-  if (a.remeasure !== true) await claimOnboardingPass({ siteId: a.siteId, domain: a.domain });
+  if (a.remeasure !== true) {
+    // The row setup claimed, or claimed now at the address setup committed; the pass adopts it and inserts no second. A throw is the job's to retry.
+    await claimOnboardingPass({ siteId: a.siteId, domain: a.domain });
+    // A second send after the pass ended finds no running row: it resets no stage and buys nothing.
+    const domain = parseDomain(a.domain);
+    if (!domain.ok || (await adoptClaimedRow({ domain: domain.domain, tier: "deep", siteId: a.siteId })) === null) return { scanId: "", status: "failed" };
+    // Cleared here, not on the first stage, so this file need not name the pipeline's stage order. A re-measure's request already cleared them and wrote its stage.
+    await recordStage(a.siteId, null, { reset: true });
+  }
 
   // The category the founder confirmed at setup is the one the market is searched on; none stored, the pass seeds from the profile.
   const category = await readSiteCategory(a.siteId);

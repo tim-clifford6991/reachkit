@@ -11,7 +11,7 @@
 //                    zone while the site has none, then the stamp
 //   saveStep         one step's own answer and the resume point beside it
 //                    (SPEC §5, 2026-09-20, #922)
-//   enqueueDeepPass  `scan/run` at tier `deep`, on the queue
+//   enqueueDeepPass  the site's first weekly pass, one keyed event on the queue
 //   resolvesInDns    §6.4's resolver, through the egress seam
 //
 // **The provider hands this store out, since #133.** Which account a
@@ -20,7 +20,6 @@
 // reads and writes that founder's own rows. The two are one switch —
 // `provider.ts` says why.
 import type { FounderAnswers } from "@/lib/site-profile/knowledge/types";
-import { sendDeepPass, sendFirstDraft } from "@/jobs/deep-pass-backstop";
 import { dbAdmin } from "@/lib/db";
 import { sendOnboardingMails } from "@/lib/mail/onboarding";
 import { resolvesInDns } from "@/lib/egress/dns";
@@ -464,17 +463,7 @@ export function liveSetupStore(): SetupStore {
       await updateSite(a.siteId, { setup_step: a.resumeAt });
     },
 
-    /**
-     * Queues the onboarding pass. One event, the same `scan/run` every
-     * other tier goes through, with `tier: 'deep'` as its parameter —
-     * §4.3 has no pipeline of its own to start.
-     *
-     * `scanId` is the delivery's idempotency key and is minted here so
-     * that a second delivery of this founder's submit starts no second
-     * pass. The pipeline mints the scan row's own id; these two are the
-     * same kind of thing and never the same value, which is why the key
-     * is a fresh one rather than a guess at the row's.
-     */
+    /** Queues the site's first weekly pass, keyed on the site, so a second send starts no second pass. */
     async enqueueDeepPass(siteId: string): Promise<void> {
       const site = await untyped()
         .from<SiteSetupRow>("sites")
@@ -485,9 +474,9 @@ export function liveSetupStore(): SetupStore {
       const row = site.data?.[0];
       if (row === undefined) throw new Error(`enqueueDeepPass: no site ${siteId}`);
 
-      await sendDeepPass({ siteId, domain: row.domain });
+      await (await import("@/jobs/weekly-refresh")).sendFirstPass({ siteId, domain: row.domain });
     },
-    enqueueFirstDraft: (siteId) => sendFirstDraft({ siteId }),
+    enqueueFirstDraft: async (siteId) => (await import("@/jobs/draft-generate")).sendFirstDraft({ siteId }),
     sendOnboardingMails: (siteId) => sendOnboardingMails(siteId),
   };
 }

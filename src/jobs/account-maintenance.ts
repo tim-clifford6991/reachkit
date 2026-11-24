@@ -26,12 +26,6 @@
 // trigger". Nothing is held here — this file has no rule to hold — and each
 // obligation's own module holds it:
 //
-//   * **The two that spend.** The onboarding pass a lost enqueue owes is
-//     re-sent as `scan/run` with `setup-<siteId>` as its key, so every
-//     delivery's send is one delivery of one event and one pass. A pass a
-//     ceiling stopped is measured again on a fresh row keyed to the pass it
-//     re-measures (`scans.remeasure_of`), so two deliveries claim one row
-//     and one of them pays.
 //   * **The mails.** Each sender re-reads, re-decides, sends and stamps the
 //     row it sent against, so a delivery arriving after the first has sent
 //     finds nothing due. Two arriving *together* both read the row before
@@ -68,7 +62,6 @@ import {
   stopHosting,
   type EngineResult,
 } from "@/jobs/engine";
-import { deepPassBackstop } from "./deep-pass-backstop";
 import { vendorDayReading } from "./vendor-days";
 import { jobDaysPrune } from "./job-days";
 import { MAINTENANCE_TICK_MINUTES } from "@/lib/config/constants";
@@ -115,7 +108,6 @@ const DUE_WORK: readonly {
   { due: accountsDueWinback, handOff: winBack },
   // A destination's health, refreshed once its window has passed: no screen re-checks it.
   { due: destinationsDueHealth, handOff: refreshDestinationHealth },
-  deepPassBackstop,
   // Issue 796: the weekly passes that found too little market, told to the
   // owner as one digest per Monday rather than one mail per site.
   { due: marketDigestsDue, handOff: sendMarketDigest },

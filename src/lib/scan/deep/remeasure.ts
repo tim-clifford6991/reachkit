@@ -145,7 +145,7 @@ export async function startRemeasure(a: {
     .eq("id", a.siteId);
 
   try {
-    const { sendRemeasure } = await import("@/jobs/deep-pass-backstop");
+    const { sendRemeasure } = await import("@/jobs/scan-run");
     await sendRemeasure({ scanId, siteId: a.siteId, domain: a.domain });
   } catch (error) {
     await untyped()

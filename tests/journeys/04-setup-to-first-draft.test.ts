@@ -6,7 +6,7 @@
 // End to end, at the seams and no further in. Everything the product owns
 // is real: the setup screen's three cards, `POST /api/setup`, the closed
 // submission shape, `completeSetup`, the live setup store's three writes,
-// `applySetupChoice`'s one transaction, the `scan/run` event, the whole
+// `applySetupChoice`'s one transaction, the first pass's keyed event, the whole
 // deep pass (`runScan` at `tier: 'deep'` — the same six stages, the paid
 // battery, rival sizing, the real cost seam and its ledger), §7's
 // derivation over what that pass measured, the release latch, the waiting
@@ -36,18 +36,8 @@
 // journey stubs `setTimeout` to fire immediately: it is about the path,
 // not about waiting two minutes for a fixture to answer.
 //
-// **The founder signs in, and the submit is theirs** (#133). Both halves
-// of the switch this file used to name as a gap have landed:
-// `_setup/provider.ts` hands out the live store in production, and
-// `POST /api/setup` resolves the founder through `currentSession()`. So
-// this journey mints a **real** session cookie through identity's own
-// `sessionCookie()`, puts it in the jar `cookies()` reads, and lets
-// `currentSession()` verify it the way it does on a deployed request —
-// the MAC, the signed expiry, the account's own session stamp and its
-// tombstone, all against the `users` row below. Nothing here stands in
-// for identity any more; the provider is still mocked to the live store
-// only because this file's own db is a fake and `importOriginal` is how it
-// says so.
+// **The founder signs in, and the submit is theirs.** A real session cookie from identity's own `sessionCookie()`,
+// verified by `currentSession()` against the `users` row below; the provider is mocked only to the live store over this fake db.
 //
 // **The copy registry is a fixture**, for the same reason as journeys 02
 // and 03: `copy()` refuses an owner-owed key, and the screens on this path
@@ -127,12 +117,11 @@ const jobEvents: { name: string; payload: Record<string, unknown> }[] = [];
 /** The site's zone at the moment each event was sent (issue #783): the
  *  deep pass, and so its first-draft kickoff, starts from that event. */
 const zoneWhenSent: (string | null)[] = [];
-vi.mock("@/jobs/client", async () =>
-  (await import("./harness")).jobsClient((name, payload) => {
-    jobEvents.push({ name, payload });
-    zoneWhenSent.push(site.timezone);
-  })
-);
+const sent = (name: string, payload: Record<string, unknown>) => (jobEvents.push({ name, payload }), zoneWhenSent.push(site.timezone));
+vi.mock("@/jobs/client", async () => ({
+  ...(await import("./harness")).jobsClient(sent),
+  sendSubjectEvents: async (jobId: string, events: { key: string; data: object }[]) => events.forEach((e) => sent(`${jobId}/subject`, { ...e.data, key: e.key })),
+}));
 
 // The switch `provider.ts` writes down in its own header — see this file's.
 vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => {
@@ -413,7 +402,8 @@ const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await import(
   "../account/identity/fake-auth"
 );
-const { runDeepPass } = await import("../../src/lib/scan/deep/run");
+const { weeklyRefresh } = await import("../../src/jobs/weekly-refresh");
+type Outcome = import("../../src/jobs/types").Outcome;
 const { activeSites } = await import("../../src/jobs/engine");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { lastPass } = await import("../../src/lib/scan/deep/pass-end");
@@ -524,13 +514,13 @@ async function submitTheThree(
   return { status: response.status, body: (await response.json()) as Record<string, unknown> };
 }
 
-/** Steps 4–8 — the `scan/run` event the submit queued, run. */
-async function runTheQueuedPass(): Promise<{ status: string; reason: string }> {
-  const queued = jobEvents.find((event) => event.name === "scan/run");
-  if (queued === undefined) throw new Error("no scan/run event was queued");
-  const result = await runDeepPass({
-    siteId: queued.payload.siteId as string,
-    domain: queued.payload.domain as string,
+/** Steps 4–8 — the first-pass event the submit queued, run by the weekly job's own per-site handler. */
+async function runTheQueuedPass(): Promise<Outcome> {
+  const queued = jobEvents.find((event) => event.name === "weekly/refresh/subject");
+  if (queued === undefined) throw new Error("no first pass was queued");
+  return weeklyRefresh.perSubject!({
+    data: queued.payload,
+    now: new Date(),
     // The job platform's steps: each answer is stored and handed back as
     // plain data, never the object the step returned (issue 798).
     step: async (name, body) => {
@@ -538,7 +528,6 @@ async function runTheQueuedPass(): Promise<{ status: string; reason: string }> {
       return JSON.parse(JSON.stringify((await body()) ?? null));
     },
   });
-  return { status: result.status, reason: result.reason };
 }
 
 /** The steps the onboarding pass ran, in order. */
@@ -603,7 +592,7 @@ describe("three decisions → deep pass → the first page already on the calend
     // adapter parses to the closed shape and drops what is not in it.
     const withExtra = await submitTheThree({ veto_hours: 0 } as Record<string, unknown>);
     expect(withExtra.status).toBe(200);
-    expect(jobEvents.filter((e) => e.name === "scan/run")).toHaveLength(1);
+    expect(jobEvents.filter((e) => e.name === "weekly/refresh/subject")).toHaveLength(1);
   });
 
   it("step 3 — a free scan that named no market still opens setup on its address, the market card asking", async () => {
@@ -650,7 +639,7 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(edits?.job).toBe("We run agencies' projects");
     expect(edits?.answers.buyers).toBe("Agencies, because they bill by the hour.");
     // Check confirms the rivals, so it starts the pass, and the founder resumes on Connect.
-    expect(jobEvents.filter((event) => event.name === "scan/run")).toHaveLength(1);
+    expect(jobEvents.filter((event) => event.name === "weekly/refresh/subject")).toHaveLength(1);
     expect(row.setup_step).toBe("publishing");
   });
 
@@ -680,19 +669,15 @@ describe("three decisions → deep pass → the first page already on the calend
     // and the release deadline all read.
     expect(site.setup_completed_at).not.toBeNull();
 
-    // The pass is queued as the one pipeline with tier as a parameter —
-    // §4.3 has no pipeline of its own to start.
+    // The pass is queued as the site's first weekly pass, keyed on the site.
     expect(jobEvents).toEqual([
-      {
-        name: "scan/run",
-        payload: { scanId: `setup-${SITE_ID}`, domain: DOMAIN, tier: "deep", siteId: SITE_ID },
-      },
+      { name: "weekly/refresh/subject", payload: { siteId: SITE_ID, domain: DOMAIN, first: true, key: `first:${SITE_ID}` } },
     ]);
 
     // A second submit starts no second pass (REQ-025 c4).
     const again = await submitTheThree();
     expect(again).toEqual({ status: 422, body: { ok: false, refused: "already_complete" } });
-    expect(jobEvents.filter((event) => event.name === "scan/run")).toHaveLength(1);
+    expect(jobEvents.filter((event) => event.name === "weekly/refresh/subject")).toHaveLength(1);
   });
 
   // ── Issue #783: the zone rides the submit ───────────────────────────
@@ -711,8 +696,8 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(submitted).toEqual({ status: 200, body: { ok: true, siteId: SITE_ID } });
 
     expect(site.timezone).toBe("Europe/Lisbon");
-    expect(jobEvents.map((event) => event.name)).toEqual(["scan/run"]);
-    expect(zoneWhenSent).toEqual(["Europe/Lisbon"]);
+    expect(jobEvents.map((event) => event.name)).toEqual(["weekly/refresh/subject", "draft/generate/subject"]);
+    expect(zoneWhenSent).toEqual(["Europe/Lisbon", "Europe/Lisbon"]);
     expect((await activeSites()).sites).toEqual([{ siteId: SITE_ID, timeZone: "Europe/Lisbon", publishTime: "09:00", vetoHours: 24 }]);
   });
 
@@ -886,6 +871,20 @@ describe("three decisions → deep pass → the first page already on the calend
   );
 
   it(
+    "steps 4–9 — a second send of the first pass claims no second row, spends nothing, and leaves the stage it wrote",
+    async () => {
+      await untilTheFounderIsReleased();
+      const spent = ledger().length, times = (site as unknown as Record<string, unknown>).setup_stage_times;
+      expect(Object.keys(times as object).length).toBeGreaterThan(0);
+      steps.length = 0;
+      expect(await runTheQueuedPass()).toEqual({ outcome: "ran", subjectId: SITE_ID });
+      expect([steps, scanRows.filter((row) => row.tier === "deep").length, ledger().length]).toEqual([["deep-pass"], 1, spent]);
+      expect((site as unknown as Record<string, unknown>).setup_stage_times).toBe(times);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
     "step 9 — the latch releases the founder once, and the waiting screen lets go",
     async () => {
       const submitted = await submitTheThree();
@@ -899,9 +898,7 @@ describe("three decisions → deep pass → the first page already on the calend
       const before = await isReleased(SITE_ID, new Date(PAID_AT.getTime() + 60_000));
       expect(before.released).toBe(false);
 
-      const ran = await runTheQueuedPass();
-      expect(ran.status).toBe("done");
-      expect(ran.reason).toBe("completed");
+      expect(await runTheQueuedPass()).toEqual({ outcome: "ran", subjectId: SITE_ID });
 
       // The latch, written from the pass's own end state, once.
       expect(site.setup_released_at).not.toBeNull();
