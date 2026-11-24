@@ -1,7 +1,6 @@
 // The tracked-prompt answers a weekly pass paid for and stopped waiting for (`TIMING.paidPassAskReserveS` before its ceiling), read after it.
 // The vendor still finishes those billed tasks and reading one is free, so the ledger row keeps the task id and a job step of its own reads them
-// before the week is judged. It buys nothing. Only tracked prompts: their answers are a list a late one can join without re-scoring;
-// a question's SERP that was not ready stays unmeasured for the week.
+// before the week is judged. It buys nothing. A question's SERP that was not ready is read the same way by `finishLateSerps`, which re-scores.
 import { dbAdmin } from "@/lib/db";
 import { readPromptAnswer } from "@/lib/market/prompts/answer";
 import { PROMPT_ENGINES, localeOfReport, readStoredReport, type PromptAnswer, type PromptEngine, type PromptsSection } from "../report";

@@ -2,9 +2,10 @@
 // That job reads only those searches, once, with the pass's own query, locale and settings, cache first, on the pass's own ledger under the 12¢ free cap; no second budget.
 // The report is rewritten and re-scored through `rescoreRow`/`rescore_scan`, checksum-guarded, keeping the old one under `report.previous`.
 // Stored scans are never read again by this: that would be new DataForSEO spend. Only a report a pass marked is finished.
+// A weekly pass's searches whose queued task outlived its ceiling are read the same way after it, from the task its post paid for (`finishLateSerps`).
 import { CAPS, CACHE_WINDOWS_D, TIMING } from "@/lib/config/constants";
 import type { CostContext, VendorFailure } from "@/lib/costs";
-import { unmeasured, type Measured } from "@/lib/measure/measured";
+import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { Locale } from "@/lib/locale/locales";
 import { promptSiteName } from "@/lib/market/prompts/names";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
@@ -22,16 +23,18 @@ export interface UnreadSearch {
   keyword: string;
 }
 
-/** The searches of a free report that were chosen and not read. A search the
- *  vendor answered with nothing is read; only the two arms that say nobody
- *  knows are unread. */
+/** The searches of a report that were chosen and not read. A search the
+ *  vendor answered with nothing is read; on a free report the two arms that say
+ *  nobody knows are unread, on a paid one only a task still out at its ceiling. */
 export function unreadSearches(report: Pick<StoredReport, "tier" | "questions" | "serps">): UnreadSearch[] {
-  if (report.tier !== "free" || report.questions.kind === "unmeasured") return [];
+  if (report.questions.kind === "unmeasured") return [];
   const out: UnreadSearch[] = [];
   report.questions.value.forEach((question, index) => {
     const serp = report.serps[index];
     const unread =
-      serp === undefined || (serp.kind === "unmeasured" && (serp.reason === "not_attempted" || serp.reason === "undeterminable"));
+      report.tier !== "free"
+        ? serp?.kind === "unmeasured" && serp.because === "deadline"
+        : serp === undefined || (serp.kind === "unmeasured" && (serp.reason === "not_attempted" || serp.reason === "undeterminable"));
     if (unread) out.push({ index, keyword: question.search.keyword });
   });
   return out;
@@ -51,7 +54,7 @@ export function finishingOf(
   at: Date
 ): { searches: number; since: Date } | null {
   const searches = unreadSearches(report).length;
-  if (searches === 0 || leftCents(spentCents) <= 0) return null;
+  if (report.tier !== "free" || searches === 0 || leftCents(spentCents) <= 0) return null;
   return { searches, since: at };
 }
 
@@ -103,14 +106,15 @@ const MEMBERS = ["serps", "verdict", "complete", "onPage", "siteIssues", "rivals
  * from the cache at 0¢.
  */
 export async function finishReads(
-  a: { scanId: string; now: Date; version: string },
+  a: { scanId: string; now: Date; version: string; untilMs?: number },
   store: FinishStore = databaseFinish(),
   vendor: FinishVendor = vendorFinish()
 ): Promise<FinishResult> {
   const row = await store.row(a.scanId);
   if (row === null || row.report === null || typeof row.report !== "object") return { finished: false, because: "no_report" };
   const blob = row.report as Record<string, unknown>;
-  if (blob.finishingReads === undefined || blob.finishingReads === null) return { finished: false, because: "nothing_to_finish" };
+  const marked = blob.finishingReads !== undefined && blob.finishingReads !== null;
+  if (!marked && blob.tier === "free") return { finished: false, because: "nothing_to_finish" };
 
   let report: StoredReport;
   try {
@@ -125,11 +129,11 @@ export async function finishReads(
   const unread = unreadSearches(report);
   const at = report.questions.at;
   const cells = new Map<number, Measured<SerpResult>>();
-  if (unread.length > 0 && leftCents(row.costCents ?? CAPS.FREE_C) > 0) {
+  if (unread.length > 0 && (report.tier !== "free" || leftCents(row.costCents ?? CAPS.FREE_C) > 0)) {
     // A free pass measured in its town finishes its reads there too, not in the country.
     const place = report.locale?.place;
     const locale = place === undefined ? localeOfReport(report) : { ...localeOfReport(report), place };
-    const untilMs = Date.now() + TIMING.paidPassCeilingS * 1000;
+    const untilMs = a.untilMs ?? Date.now() + TIMING.paidPassCeilingS * 1000;
     await vendor.spend(a.scanId, async (cost) => {
       let next = 0;
       const worker = async (): Promise<void> => {
@@ -163,8 +167,12 @@ export async function finishReads(
     });
   }
 
+  // A paid report none of whose tasks has settled is left as it was.
+  const pending = (cell: Measured<SerpResult>) => cell.kind === "unmeasured" && cell.because === "deadline";
+  if (!marked && [...cells.values()].every(pending)) return { finished: true, asked: cells.size, read: 0, written: false };
+
   // 2. The report with the new cells in place of the unread ones.
-  const merged: Record<string, unknown> = { ...blob, finishingReads: null };
+  const merged: Record<string, unknown> = marked ? { ...blob, finishingReads: null } : { ...blob };
   const twelve = report.questions.kind === "unmeasured" ? [] : report.questions.value;
   const serps = twelve.map((_, i) => cells.get(i) ?? report.serps[i] ?? unmeasured<SerpResult>("not_attempted", at));
   merged.serps = stored(serps);
@@ -200,7 +208,7 @@ export async function finishReads(
   if (!("result" in scored)) return { finished: false, because: "unreadable" };
   const after = scored.result.after;
 
-  const changes: ReportChange[] = [{ path: ["finishingReads"], value: null }];
+  const changes: ReportChange[] = marked ? [{ path: ["finishingReads"], value: null }] : [];
   for (const key of MEMBERS) {
     const now = key === "serps" ? merged.serps : stored(after[key]);
     if (!same(blob[key], now)) changes.push({ path: [key], value: now });
@@ -217,7 +225,9 @@ export async function finishReads(
     by: `finish-reads@${a.version}`,
   });
   const read = [...cells.values()].filter((cell) => cell.kind !== "unmeasured").length;
-  console.log(JSON.stringify({ event: "finish_reads", scanId: row.id, asked: cells.size, read, written }));
+  const left = [...cells.values()].filter(pending).length;
+  const measuredOf = serps.filter((serp) => serp.kind !== "unmeasured").length;
+  console.log(JSON.stringify({ event: "finish_reads", scanId: row.id, tier: report.tier, asked: cells.size, read, left, written, measured: measuredOf, of: serps.length }));
   return { finished: true, asked: cells.size, read, written };
 }
 
@@ -335,4 +345,73 @@ export function vendorFinish(): FinishVendor {
       });
     },
   };
+}
+
+/** A ledger row of one of the pass's Google reads: its key and what it holds, a stored answer or the task still out. */
+interface HeldSerp {
+  id: string;
+  cache_key: string;
+  payload: unknown;
+}
+
+/** A paid pass's reads from the tasks its posts paid for, at 0¢: nothing is posted, so a read that settles late is used and never bought twice. */
+export function lateVendor(scanId: string): FinishVendor {
+  let rows: Promise<HeldSerp[]> | null = null;
+  const held = async (): Promise<HeldSerp[]> => {
+    const [{ dbAdmin }, { SERP_SOURCE }] = await Promise.all([import("@/lib/db"), import("@/lib/vendors/dataforseo/serp")]);
+    const { data, error } = await (dbAdmin() as unknown as MinimalClient).from<HeldSerp>("fetches").select("id, cache_key, payload").eq("scan_id", scanId).eq("source", SERP_SOURCE);
+    if (error !== null) throw new Error(error.message);
+    return data ?? [];
+  };
+  return {
+    async spend(id, body) {
+      const { withStoredPassSpend } = await import("./ceilings");
+      return withStoredPassSpend({ scanId: id, cap: "WEEK" }, body);
+    },
+    async read(_cost, a) {
+      const at = new Date();
+      const endpoint = "serp/google/organic";
+      const stillOut = (taskId?: string) => {
+        a.onFailure({ vendorFailure: "deadline", endpoint, billed: true, ...(taskId === undefined ? {} : { taskId }) });
+        return unmeasured<SerpResult>("undeterminable", at);
+      };
+      try {
+        const [{ collectSerp, EMPTY_SERP }, { storeCollected }] = await Promise.all([import("@/lib/vendors/dataforseo/serp"), import("@/lib/costs/ledger")]);
+        rows ??= held();
+        // The pass's own read of this search: the twelve's keys carry the async AI Overview, research's do not.
+        const mine = (await rows).filter((row) => row.cache_key.startsWith(`${a.query}|`) && row.cache_key.includes("|aio:async|"));
+        const answered = (list: unknown) => (Array.isArray(list) ? (list.length === 0 ? measuredZero(EMPTY_SERP, at) : measured(list[0] as SerpResult, at)) : null);
+        const stored = mine.map((row) => answered(row.payload)).find((cell) => cell !== null);
+        if (stored != null) return stored;
+        const row = mine.find((each) => typeof (each.payload as { taskId?: unknown } | null)?.taskId === "string");
+        if (row === undefined) return unmeasured("undeterminable", at);
+        const taskId = (row.payload as { taskId: string }).taskId;
+        const got = await collectSerp(taskId, a.untilMs);
+        if (got.kind === "pending") return stillOut(taskId);
+        if (got.kind === "failed") {
+          // So it is not read again: the task came to nothing.
+          await storeCollected(row.id, { vendorFailure: got.failure, endpoint, billed: true });
+          a.onFailure({ vendorFailure: got.failure, endpoint, billed: true });
+          return unmeasured("undeterminable", at);
+        }
+        // On the row its post wrote, so a later ask of the same search is served it.
+        await storeCollected(row.id, got.rows);
+        return answered(got.rows) ?? unmeasured("undeterminable", at);
+      } catch {
+        return stillOut();
+      }
+    },
+  };
+}
+
+/** A weekly pass's searches whose task outlived its ceiling, read and scored into its report; how many it did not read. Never throws. */
+export async function finishLateSerps(a: { scanId: string; now: Date; untilMs: number }): Promise<number> {
+  try {
+    const version = (process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7);
+    const done = await finishReads({ ...a, version }, databaseFinish(), lateVendor(a.scanId));
+    return done.finished ? done.asked - done.read : 0;
+  } catch (error) {
+    console.log(JSON.stringify({ event: "finish_reads_failed", scanId: a.scanId, because: error instanceof Error ? error.message : String(error) }));
+    return 0;
+  }
 }
