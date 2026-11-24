@@ -54,12 +54,13 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
   if (reads.length + beside.length === 0) return 0;
   return openDayCost({ scanId: report.scanId, siteId: a.siteId, since: a.since ?? a.now }, async (cost) => {
     let waiting = 0;
+    const onFailure = (failed: { taskId?: string }) => void (waiting += failed.taskId === undefined ? 0 : 1);
     // Together, since every read waits to the one `untilMs`; the update's read never holds the day's own write.
-    await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure: (failed) => void (waiting += failed.taskId === undefined ? 0 : 1) })), ...beside.map((read) => serpOrganic(cost, read))]);
-    // A study search with no credible host among its results posts the credible one beside it, for the write to read; never waited on.
+    await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure })), ...beside.map((read) => serpOrganic(cost, read))]);
+    // A study search with no credible host among its results posts the credible one beside it, for the write to read; waited on as the topic's own, since the queue answers in minutes.
     const study = reads[1] === undefined ? null : await cachedSerp(reads[1], DRAFT_POLICY_VERSION).catch(() => null);
     const credible = study === null || study.organic.some((row) => credibleAt(row.url, locale.language)) ? undefined : credibleSearch(reads[1]!, studySubject(asked));
-    if (credible !== undefined && !cost.capHit()) await serpOrganic(cost, credible);
+    if (credible !== undefined && !cost.capHit()) await serpOrganic(cost, { ...credible, onFailure });
     return waiting;
   });
 }
