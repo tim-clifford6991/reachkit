@@ -71,7 +71,7 @@ export type PaneModel =
       sources: SourcesModel | null;
     }
   | { kind: "planned"; date: string; title: string; titleLabel?: string; moved: string | null; facts: PaneFact[]; next: string | null; brief: Brief }
-  | { kind: "lines"; date: string; lines: string[] };
+  | { kind: "lines"; date: string; lines: string[]; writing?: { title: string; titleLabel?: string; facts: PaneFact[]; brief: Brief } };
 
 export interface SourceEntryModel {
   n: number | null;
@@ -377,7 +377,16 @@ function cardOf(
     const lines = started === null ? [] : [copy("calendar.day.writing.line", { time: started })];
     const pane = started === null ? copy("calendar.day.writing") : copy("calendar.pane.writing", { time: started });
     const title = page.why.search || page.title;
-    return { ...base, ariaLabel: labelled(title), kind, title, search: true, lines, pane: { kind: "lines", date, lines: [pane] } };
+    // The same row a planned day reads: what was chosen and read for it does not change once writing starts.
+    const proposed = page.proposed;
+    const { facts } = plannedFacts(page);
+    const writing = {
+      title: proposed?.title ?? copy("calendar.pane.planned.title", { search: title }),
+      ...(proposed === undefined ? {} : { titleLabel: proposed.label }),
+      facts: proposed === undefined ? facts.slice(1) : facts,
+      brief: briefOf(page.plan, title, true),
+    };
+    return { ...base, ariaLabel: labelled(title), kind, title, search: true, lines, pane: { kind: "lines", date, lines: [pane], writing } };
   }
 
   if (page.stage === "planned" && page.state === "planned") {

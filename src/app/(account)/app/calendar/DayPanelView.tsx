@@ -6,6 +6,8 @@
 //   a planned day           the search it goes after, when it goes live on its
 //                           own, why it was chosen, the search, and what has
 //                           been read for it; no control, as nothing is written
+//   a day being written     its title and writing line, then the same three
+//                           sections, and no control
 //   any other day           its own lines, and no control
 //
 // Every word is the screen model's (`week-screen.ts`). The commands go to the
@@ -26,7 +28,7 @@ import { say } from "../../../_toast/say";
 import { TakeDownControl } from "./TakeDown";
 import { stopWords } from "./take-down-words";
 import type { DayCell } from "./month";
-import type { CardModel, PaneModel } from "./week-screen";
+import type { CardModel, PaneFact, PaneModel } from "./week-screen";
 import type { Brief } from "./brief";
 import { SourcedBody } from "./PageSources";
 
@@ -197,25 +199,18 @@ export function DayPanelView(p: {
   if (pane.kind === "planned") {
     return (
       <Panel {...frame} cell={card.cell} date={pane.date}>
-        <h2 className="card-title min-w-0 wrap-anywhere" data-testid="day-title">
-          {pane.title}
-        </h2>
-        {pane.titleLabel === undefined ? null : <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="day-title-label">{pane.titleLabel}</span>}
+        <DayTitle title={pane.title} label={pane.titleLabel} />
         {pane.next === null ? null : <p className="grow-0 text-sm" data-testid="day-next">{pane.next}</p>}
         {pane.moved === null ? null : <p className="grow-0 text-sm">{pane.moved}</p>}
         <PlannedStop cell={card.cell} />
-        <WhyWeChose brief={pane.brief} />
-        {pane.facts.length === 0 ? null : (
-          <Section heading={copy("calendar.pane.search.heading")}>
-            <Facts facts={pane.facts} testId="day-facts" />
-          </Section>
-        )}
-        <WhatWeRead brief={pane.brief} />
+        <ChosenAndRead facts={pane.facts} brief={pane.brief} />
       </Panel>
     );
   }
+  const writing = pane.kind === "lines" ? pane.writing : undefined;
   return (
     <Panel {...frame} cell={card.cell} date={pane.date}>
+      {writing === undefined ? null : <DayTitle title={writing.title} label={writing.titleLabel} />}
       <div className="flex flex-col gap-2 text-sm" data-testid="day-account">
         {(pane.kind === "lines" ? pane.lines : []).map((line) => (
           <p key={line} className="grow-0" data-testid="day-empty-line">
@@ -223,7 +218,34 @@ export function DayPanelView(p: {
           </p>
         ))}
       </div>
+      {writing === undefined ? null : <ChosenAndRead facts={writing.facts} brief={writing.brief} />}
     </Panel>
+  );
+}
+
+function DayTitle(p: { title: string; label: string | undefined }): React.JSX.Element {
+  return (
+    <>
+      <h2 className="card-title min-w-0 wrap-anywhere" data-testid="day-title">
+        {p.title}
+      </h2>
+      {p.label === undefined ? null : <span className="min-w-0 text-xs wrap-anywhere text-base-content/70" data-testid="day-title-label">{p.label}</span>}
+    </>
+  );
+}
+
+/** Why the page was chosen, its search, and what has been read for it: a planned day's and a writing day's alike. */
+function ChosenAndRead(p: { facts: readonly PaneFact[]; brief: Brief }): React.JSX.Element {
+  return (
+    <>
+      <WhyWeChose brief={p.brief} />
+      {p.facts.length === 0 ? null : (
+        <Section heading={copy("calendar.pane.search.heading")}>
+          <Facts facts={p.facts} testId="day-facts" />
+        </Section>
+      )}
+      <WhatWeRead brief={p.brief} />
+    </>
   );
 }
 

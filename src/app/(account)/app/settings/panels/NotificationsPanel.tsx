@@ -89,7 +89,7 @@ export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.El
                 <label htmlFor={`notify-${row.kind}`} className="text-sm font-semibold wrap-anywhere">{copy(row.copyKey)}</label>
                 <RowLine row={row} vetoHours={p.settings.publishing.vetoHours} />
               </div>
-              <label className="flex min-h-11 shrink-0 cursor-pointer items-start lg:min-h-8">
+              <label className="flex min-h-11 shrink-0 cursor-pointer items-start lg:-mt-0.5 lg:min-h-8">
                 <input
                   id={`notify-${row.kind}`}
                   type="checkbox"
