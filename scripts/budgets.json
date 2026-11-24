@@ -1,7 +1,7 @@
 {
   "citations": 3725,
   "specRows": 208,
-  "testFiles": { "live": 614, "layout": 17 },
+  "testFiles": { "live": 613, "layout": 17 },
   "lines": {
     "fileMax": 600,
     "areas": { "src/lib/opportunities": 9000, "src/lib/generate": 17508, "src/lib/publish": 12942 },

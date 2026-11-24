@@ -49,6 +49,8 @@ export function primaryAddress(url: string, rivals: readonly string[] = []): boo
 const WIRE_RE = /(?<![a-z])(?:pr ?newswire|business ?wire|globe ?newswire|accesswire|ein ?presswire|einnews|ab ?newswire|getnews|newsfile ?corp|prweb|openpr|prlog|issuewire|marketersmedia|send2press|24-7pressrelease|presswire)(?![a-z])/i;
 export const pressWire = (url: string, text = ""): boolean => WIRE_RE.test(url) || WIRE_RE.test(text);
 
+/** How far either side of a claim's passage its page may state the method it was found by. */
+const BESIDE = 400;
 const said = (search: string): string => search.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 /** The products a search names, in their order: a run of up to four of its words that spells the product's stored
@@ -91,7 +93,9 @@ export function studySubject(a: { target: string; market?: string; options?: boo
  *  products' names, so a third party's page that names two of them is a review or comparison site. */
 export function tiered(facts: readonly MarketFact[], a: { rivals: readonly string[]; products: readonly string[]; names?: readonly { domain: string; name?: string | null }[]; language: Language; pages: readonly { url: string; text: string }[]; capped: ReadonlySet<string> }): MarketFact[] {
   const pack = languagePack(a.language);
-  const method = new Set(a.pages.filter((page) => pack.studyMethod.test(page.text)).map((page) => page.url));
+  // A page's own study is stated beside the finding, never by a method word in its footer or a ratings blurb.
+  const text = new Map(a.pages.map((page) => [page.url, page.text.replace(/\s+/g, " ")])), at = (fact: MarketFact): number => text.get(fact.url)?.indexOf(fact.passage) ?? -1;
+  const methodBeside = (fact: MarketFact): boolean => pack.studyMethod.test(at(fact) < 0 ? fact.passage : text.get(fact.url)!.slice(Math.max(0, at(fact) - BESIDE), at(fact) + fact.passage.length + BESIDE));
   const wire = new Set(a.pages.filter((page) => pressWire(page.url, page.text)).map((page) => page.url));
   const products = [...a.products.map((domain) => ({ domain })), ...(a.names ?? [])];
   const review = new Set(a.pages.filter((page) => new Set(namedIn(page.text, products)).size >= 2).map((page) => page.url));
@@ -103,12 +107,25 @@ export function tiered(facts: readonly MarketFact[], a: { rivals: readonly strin
     if (fact.product !== undefined || a.rivals.some((rival) => sameSite(host, rival))) return "vendor";
     if (wire.has(fact.url) || pressWire(fact.url)) return "wire";
     if (fact.kind === "primary" || primaryAddress(fact.url) || pack.officialHosts.test(host)) return "primary";
-    if (fact.via !== undefined || (method.has(fact.url) && fact.secondHand !== true)) return "original";
-    if (fact.kind === "recent" || (citers.get(siteOf(fact.url))?.size ?? 0) >= 2) return "publication";
+    if (fact.via !== undefined) return "original";
     if (a.products.some((product) => sameSite(host, product))) return "vendor";
+    if (!review.has(fact.url) && fact.secondHand !== true && methodBeside(fact)) return "original";
+    if (fact.kind === "recent" || (citers.get(siteOf(fact.url))?.size ?? 0) >= 2) return "publication";
     return review.has(fact.url) ? "review" : "other";
   };
-  return facts.map((fact) => ({ ...fact, tier: tierOf(fact), ...(fact.product === undefined && a.capped.has(siteOf(fact.url)) ? { capped: true as const } : {}) }));
+  return facts.map((read) => secondHanded(read, pack.reported)).map((fact) => ({ ...fact, tier: tierOf(fact), ...(fact.product === undefined && a.capped.has(siteOf(fact.url)) ? { capped: true as const } : {}) }));
+}
+
+/** A passage that reports another party's finding is second-hand, and undated: its page's date is not the finding's.
+ *  A news story's attribution is its own reporting, dated by the story. */
+function secondHanded(fact: MarketFact, reported: RegExp): MarketFact {
+  if (fact.product !== undefined || fact.via !== undefined || fact.kind === "recent" || (fact.secondHand !== true && !reported.test(fact.passage))) return fact;
+  return Object.fromEntries(Object.entries({ ...fact, secondHand: true }).filter(([key]) => !["publishedAt", "modifiedAt", "datedBy", "ageAt"].includes(key))) as unknown as MarketFact;
+}
+
+/** Distinct sites at `review` or better among the claims whose address the written page cites. */
+export function citedIndependent(claims: readonly Pick<MarketFact, "url" | "tier">[], cited: (url: string) => boolean): number {
+  return new Set(claims.filter((claim) => cited(claim.url) && TIERS.indexOf(claim.tier ?? "other") <= TIERS.indexOf("review")).map((claim) => siteOf(claim.url))).size;
 }
 
 /** Best tier first and a capped site's claims after every other, each tier in the order `within` gives it. */

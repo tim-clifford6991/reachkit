@@ -13,6 +13,7 @@ import { readRecordedFact } from "./fact";
 import { urlKey } from "./links/select";
 import { sourceDate, type ClaimDates, type SourceDate } from "./pipeline/dated";
 import { readPack, type ContextPack } from "./pipeline/pack";
+import { citedIndependent } from "./pipeline/source-tier";
 
 export interface CitationEntry {
   /** The number its sentences carry; `null` on a market fact a page written before the pack lists unnumbered. */
@@ -120,6 +121,8 @@ function knownOf(pack: ContextPack | null, earlier: readonly EarlierPack[], save
     const held = known.get(key);
     if (held === undefined) known.set(key, { kind, url, title, passages: [{ passage, readAt }], keptFrom, dated: sourceDate(dates) });
     else if (held.keptFrom === keptFrom && !held.passages.some((p) => p.passage === passage)) held.passages.push({ passage, readAt });
+    // A second-hand claim carries no date of its own: the page's date comes from a claim that does.
+    if (held !== undefined && held.keptFrom === keptFrom && (held.dated === null || held.dated === "undated")) held.dated = sourceDate(dates) ?? held.dated;
   };
   for (const { pack: from, at } of [...(pack === null ? [] : [{ pack, at: null }]), ...earlier]) {
     // A report measurement is not a page of the site's.
@@ -192,7 +195,10 @@ export function withCitations<T extends { body_md?: string | null; meta?: unknow
   if (typeof row.body_md !== "string" || typeof row.meta !== "object" || row.meta === null) return row;
   const meta = Object.fromEntries(Object.entries(row.meta).filter(([key]) => key !== "citations"));
   const pack = readPack(meta);
-  return { ...row, meta: pack === null || row.body_md.trim() === "" ? meta : { ...meta, citations: citationsOf(row.body_md, pack) } };
+  if (pack === null || row.body_md.trim() === "") return { ...row, meta };
+  // A page's independent sources are those it cites, not every claim its research read.
+  const citations = citationsOf(row.body_md, pack), used = new Set(citations.entries.filter((entry) => entry.used > 0).map((entry) => urlKey(entry.url)));
+  return { ...row, meta: { ...meta, ...(pack.mix === undefined ? {} : { pack: { ...pack, mix: { ...pack.mix, independent: citedIndependent(pack.claims, (url) => used.has(urlKey(url))) } } }), citations } };
 }
 
 /** The day the pack was first stored with a page: a row from before it never had one. */

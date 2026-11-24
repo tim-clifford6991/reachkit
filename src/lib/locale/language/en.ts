@@ -120,6 +120,7 @@ export const EN: LanguagePack = {
   studySearch: (target) => `${target} study survey findings`,
   officialHosts: /(?:^|\.)(?:w3\.org|whatwg\.org|schema\.org|iso\.org|ietf\.org|oecd\.org|ico\.org\.uk|ofcom\.org\.uk|fca\.org\.uk|asa\.org\.uk|blog\.google|about\.google)$/,
   studyMethod: /\b(?:we (?:surveyed|polled|interviewed|analy[sz]ed|studied|tracked|measured)\b|our (?:survey|study|analysis|research) (?:of|found|shows)\b|methodology\b|sample (?:size|of)\b|respondents\b|n ?= ?\d)/i,
+  reported: /^(?!.*\b(?:we|our)\b).*(?:\baccording to\b|\b(?:reported|reports|found|finds|said|says|revealed|estimated|estimates|concluded)\s+that\b)/is,
   guidanceSearch: (target) => `${target} official guidance`,
   businessHeading: (name) => `How ${name} does it`,
   backReferences: ["this", "these", "it", "as mentioned", "also"],
