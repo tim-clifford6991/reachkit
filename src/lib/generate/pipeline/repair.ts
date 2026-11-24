@@ -2,21 +2,15 @@
 //
 // Two things, both read off the battery's own failures:
 //
-//   1. **A repair in code** for the four rules whose breach is mechanical —
-//      a sentence that should not be there, a heading that should not be
-//      there, or an opening block of the wrong shape. Nothing here writes a
-//      word: a repair drops a sentence or a heading, links a figure to the
-//      customer's own page that states it, or splits and joins the opening.
-//      The battery is then run again over the repaired text, so a repair is
-//      never trusted — it is checked by the same rules as the model's page.
+//   1. **A repair in code** for the rules whose breach is mechanical. Nothing here writes a word: a repair drops a
+//      sentence (and what refers back to it) or a heading, links a figure to the page that states it, or splits and
+//      joins the opening. The battery then reads the repaired text again, so a repair is never trusted.
 //
-//   2. **What the next attempt is told** (`fixNotes`): each rule the page
-//      broke and the sentences that broke it, so a regeneration is written
-//      against its failures rather than from the same inputs blind.
+//   2. **What the next attempt is told** (`fixNotes`): each rule the page broke and the sentences that broke it, so a
+//      regeneration is written against its failures rather than from the same inputs blind.
 //
-// Deterministic, no I/O. The rules' own text model (`../rules/text.ts`) is
-// the only notion of a block and a sentence used here, so a repair and the
-// check that reads it cannot disagree about where a sentence ends.
+// Deterministic, no I/O. The rules' own text model (`../rules/text.ts`) is the only notion of a block and a sentence
+// used here, so a repair and the check that reads it cannot disagree about where a sentence ends.
 import { literalClaimMatch } from "../claims/literal";
 import { widenNumberLinks } from "../links/text";
 import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
@@ -47,6 +41,8 @@ import {
   splitSentences,
 } from "../rules/text";
 import { selfRankedIn } from "../rules/honest";
+import { leaningSections } from "../rules/standalone";
+import type { Language } from "@/lib/locale/locales";
 import type { HardRule, RuleFailure } from "../rules/types";
 import { languagePack } from "@/lib/locale/language";
 import { urlKey } from "../links/select";
@@ -151,9 +147,10 @@ function applyEdits(markdown: string, edits: readonly Edit[]): string {
 }
 
 /** Each sentence of each block outside a table through `fn`: a string replaces it, `null` drops it, and a block left
- *  with no sentence is dropped whole. A table's rows are never sentences. */
-function mapSentences(markdown: string, fn: (piece: string) => string | null): string {
-  const edits: Edit[] = [];
+ *  with no sentence is dropped whole, as is one where a kept sentence after a dropped one refers back to it. A table's
+ *  rows are never sentences. */
+function mapSentences(markdown: string, fn: (piece: string) => string | null, language: Language = "en"): string {
+  const edits: Edit[] = [], refers = languagePack(language).refersBack;
   for (const block of sourceBlocksOf(markdown)) {
     if (TABLE_ROW_RE.test(block.raw.split("\n")[0]!)) continue;
     const marker = MARKER_RE.exec(block.raw)?.[0] ?? "";
@@ -161,7 +158,8 @@ function mapSentences(markdown: string, fn: (piece: string) => string | null): s
     const mapped = pieces.map(fn);
     if (mapped.every((piece, index) => piece === pieces[index])) continue;
     const kept = mapped.filter((piece): piece is string => piece !== null && piece.trim() !== "");
-    edits.push({ from: block.from, to: block.to, text: kept.length === 0 ? "" : marker + kept.join(" ") });
+    const orphaned = mapped.some((piece, n) => piece !== null && mapped.slice(0, n).includes(null) && refers.test(wordsOf(piece)));
+    edits.push({ from: block.from, to: block.to, text: kept.length === 0 || orphaned ? "" : marker + kept.join(" ") });
   }
   return applyEdits(markdown, edits);
 }
@@ -206,7 +204,7 @@ function repairNumerals(markdown: string, inputs: RepairInputs): string {
     // Issue 1391: a link's text is never a bare figure — it takes in the
     // words the figure counts.
     return widenNumberLinks(out);
-  });
+  }, inputs.prose?.language);
 }
 
 /** A rival's figure with no fact's page beside it, linked to the page among the facts' that states it as the sentence
@@ -233,12 +231,12 @@ function withoutUnsourcedRivals(markdown: string, inputs: RepairInputs): string 
   const rivals = inputs.rivals ?? [];
   const named = inputs.rivalsNamed ?? namedRivals(rivals, null);
   const factPages = [...inputs.sources.map((source) => source.url), ...(inputs.brief.marketFacts ?? []).map((fact) => fact.url)];
-  return withoutRivalBreaches(markdown, (piece) => checkRivalSource({ markdown: piece, rivals: [...rivals], factPages }) !== null || checkRivalScope({ markdown: piece, rivals: named, facts: inputs.brief.marketFacts }) !== null);
+  return withoutRivalBreaches(markdown, (piece) => checkRivalSource({ markdown: piece, rivals: [...rivals], factPages }) !== null || checkRivalScope({ markdown: piece, rivals: named, facts: inputs.brief.marketFacts }) !== null, inputs.prose?.language);
 }
 
 /** The page without each sentence a rival rule still fails handed alone; a table keeps its block and loses only such a row. */
-function withoutRivalBreaches(markdown: string, fails: (piece: string) => boolean): string {
-  return mapSentences(withoutRows(markdown, (_, raw) => fails(raw)).markdown, (piece) => (fails(piece) ? null : piece));
+function withoutRivalBreaches(markdown: string, fails: (piece: string) => boolean, language?: Language): string {
+  return mapSentences(withoutRows(markdown, (_, raw) => fails(raw)).markdown, (piece) => (fails(piece) ? null : piece), language);
 }
 
 function fits(paragraph: string): boolean {
@@ -353,22 +351,22 @@ export function repairRecorded(
   inputs: RepairInputs
 ): { markdown: string; dropped: Partial<Record<HardRule, string[]>> } {
   const dropped: Partial<Record<HardRule, string[]>> = {};
+  const language = inputs.prose?.language, leaned = (text: string) => (language === undefined ? [] : leaningSections(text, language));
   let out = markdown;
   for (const rule of MECHANICAL_RULES) {
     if (!rules.includes(rule)) continue;
+    const prior = out;
     if (rule === "no_invented_provenance") {
-      out = mapSentences(out, (piece) =>
-        isPhraseBreach({ raw: piece, text: wordsOf(piece) }, INVENTED_PROVENANCE_RES, inputs.brief) ? null : piece
-      );
+      out = mapSentences(out, (piece) => (isPhraseBreach({ raw: piece, text: wordsOf(piece) }, INVENTED_PROVENANCE_RES, inputs.brief) ? null : piece), language);
     } else if (rule === "traceable_numerals") {
       out = repairNumerals(out, inputs);
     } else if (rule === "rival_source") {
       out = withoutUnsourcedRivals(repairRivalFigures(out, inputs), inputs);
     } else if (rule === "rival_negative") {
       const rivals = inputs.rivalsNamed ?? namedRivals(inputs.rivals ?? [], null);
-      out = withoutRivalBreaches(out, (piece) => deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null);
+      out = withoutRivalBreaches(out, (piece) => deniedRivals(wordsOf(piece), rivals).length > 0 && checkRivalNegative({ markdown: piece, rivals, facts: inputs.brief.marketFacts }) !== null, language);
     } else if (rule === "fit_claim") {
-      const unfit = withoutUnfit(out, inputs.fit ?? []);
+      const unfit = withoutUnfit(out, inputs.fit ?? [], language);
       out = unfit.markdown;
       if (unfit.dropped.length > 0) dropped.fit_claim = unfit.dropped;
     } else if (rule === "plain_prose") {
@@ -376,6 +374,9 @@ export function repairRecorded(
     } else {
       out = repairFirstBlock(out);
     }
+    // A section left opening on a sentence that leans on one the repair dropped is a new fault: that repair is not made.
+    if (out !== prior && leaned(out).some((heading) => !leaned(prior).includes(heading))) out = prior;
+    if (out === prior) delete dropped[rule];
   }
   // Issue 1507: a step dropped with its sentence leaves no gap in the count.
   return { markdown: out === markdown ? out : renumberSteps(out), dropped };
@@ -422,25 +423,25 @@ export function withoutWriterNotes<Q extends { answer: string }>(markdown: strin
 }
 
 /** The page without each sentence `drops` takes, by the reader's words, and the sentences dropped. */
-function withoutSentences(markdown: string, drops: (words: string) => boolean): { markdown: string; dropped: string[] } {
+function withoutSentences(markdown: string, drops: (words: string) => boolean, language?: Language): { markdown: string; dropped: string[] } {
   const dropped: string[] = [];
   const out = mapSentences(markdown, (piece) => {
     if (!drops(wordsOf(piece))) return piece;
     dropped.push(wordsOf(piece));
     return null;
-  });
+  }, language);
   return { markdown: dropped.length === 0 ? markdown : renumberSteps(out), dropped };
 }
 
 /** Issue 2375: the page without each sentence or table row the fit check named, and what was dropped. A sentence
  *  that is the whole short answer (`:::answer`) stays, and `fit_claim` with it; a block left short is a warning. */
-export function withoutUnfit(markdown: string, sentences: readonly string[]): { markdown: string; dropped: string[] } {
+export function withoutUnfit(markdown: string, sentences: readonly string[], language?: Language): { markdown: string; dropped: string[] } {
   const named = new Set(sentences);
   const rows = withoutRows(markdown, (row) => named.has(row));
   let out = rows.markdown;
   const dropped = [...rows.dropped];
   for (const sentence of named) {
-    const next = withoutSentences(out, (words) => words === sentence);
+    const next = withoutSentences(out, (words) => words === sentence, language);
     if (next.dropped.length === 0 || answerBoxOf(next.markdown) === "") continue;
     out = next.markdown;
     dropped.push(...next.dropped);

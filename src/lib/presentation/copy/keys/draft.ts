@@ -365,6 +365,11 @@ export const DRAFT_COPY = Object.freeze({
   // under a table whose prices are in more than one currency. Drafted; the
   // owner corrects the wording.
   "body.table.custom": "Custom pricing",
+  // The same where the page names the one plan priced on request; a cell never says a value is missing.
+  "body.table.customPlan": "{plan}, price on request",
+  // A price cell's period, after the amount as its page writes it.
+  "body.table.monthly": "{price} a month",
+  "body.table.yearly": "{price} a year",
   "body.table.currencies": "Prices are shown in the currency each vendor publishes; none is converted.",
   // Issue 1508 (SPEC §7, 2026-10-18): the row of the product an alternatives
   // page lists alternatives to. It is compared against and is not counted.

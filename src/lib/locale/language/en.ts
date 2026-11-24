@@ -124,6 +124,7 @@ export const EN: LanguagePack = {
   guidanceSearch: (target) => `${target} official guidance`,
   businessHeading: (name) => `How ${name} does it`,
   backReferences: ["this", "these", "it", "as mentioned", "also"],
+  refersBack: /^(?:it|its|they|their|them|this|these|those|that|such|both|also|as mentioned)\b|\b(?:those|that much|as well|the same)\b/i,
   writerNotes:
     /\bthe (?:pack|brief)\b|\bthe sources (?:held|given|provided)\b|\bthe facts (?:held|available|given)\b|\bthis page (?:cannot|can[’']t|does not|doesn[’']t|will not|won[’']t) (?:state|say|show|list)\b|\b(?:not|no) (?:in|among) the (?:facts|sources|pack)\b/i,
 

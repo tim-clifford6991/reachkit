@@ -188,6 +188,8 @@ export interface LanguagePack {
   businessHeading(name: string): string;
   /** How a sentence opens that leans on the one before it, lower case (`standalone_lead`). */
   backReferences: readonly string[];
+  /** A sentence that refers to the one before it, by its opening or a word that points back: it goes with a sentence a repair drops. */
+  refersBack: RegExp;
   /** A sentence about the writer's own inputs rather than to the reader; a language without one drops none. */
   writerNotes?: RegExp;
 

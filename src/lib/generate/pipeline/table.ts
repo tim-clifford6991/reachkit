@@ -10,8 +10,10 @@
 //   * **rows are the options** — the business first, then each rival whose
 //     own pricing or feature page yielded a claim;
 //   * **columns are the criteria** — what each option's own page says of its
-//     pricing and of what it does. A cell is a fact, word for word, linked to
-//     the page it was read from;
+//     pricing and of what it does. A cell is a short value taken from a fact,
+//     linked to the page it was read from: a plan and its price as the
+//     product's pricing page states them, which wins over its other pages, or
+//     what it does in at most a dozen of the passage's words;
 //   * a criterion **most** options lack leaves the table. One only a few
 //     lack stays, and the option that lacks it **keeps its row**: the table
 //     is then laid out with one cell an option, each naming the criteria that
@@ -21,9 +23,10 @@
 //   * **a price keeps its own currency** (owner, D56; issue 1282): a cell
 //     states a price as the option's own page states it and nothing
 //     converts. Where the cells name more than one currency, a line under
-//     the table says so. A rival whose pricing page states no figure but
-//     says it prices on request has the cell "Custom pricing", linked to
-//     that page, so it keeps its row;
+//     the table says so. A rival whose pricing page states no current figure
+//     but says it prices on request has the cell "Custom pricing", or its
+//     plan's name and "price on request", linked to that page, so it keeps
+//     its row;
 //   * **the table is dated** (owner, D52; issue 1267): a line under it says
 //     when the prices were last checked — the day the oldest of the rivals'
 //     pages it stands on was read (`readAt`), so the date holds for every row;
@@ -45,6 +48,7 @@ import { pagePathAlternation } from "@/lib/locale/language";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { copyIn } from "@/lib/presentation/copy/translated";
 import { isPlaceholderCell } from "../rules/cells";
+import { splitSentences } from "../rules/text";
 import type { ContextPack } from "./pack";
 import { completeTables, currenciesOf } from "./sources";
 
@@ -108,6 +112,36 @@ const FROM_RE = /\b(?:starts?|starting|from)\b/i;
 const ONE_PLAN_RE = /\benterprise\b/i;
 const PRICE_PAGE_RE = new RegExp(`/(?:pricing|prices?|plans?|${pagePathAlternation("pricing")})(?![a-z])[^/]*/?$`, "i");
 const isUrl = (text: string): boolean => /^https?:\/\//.test(text);
+/** A price a page says is gone is not one the product charges. */
+const RETIRED_RE = /\b(?:retired|discontinued|no longer|sunset|withdrawn|eingestellt|nicht mehr)\b/i;
+const AMOUNT_RE = /[$€£¥]\s?\d[\d,.]*\d|[$€£¥]\s?\d|\d[\d,.]*\s?(?:[$€£¥]|(?:usd|eur|gbp)(?![\p{L}]))/iu;
+const PERIOD_RE = /^\s*(?:\/\s*|per\s+|an?\s+|pro\s+|im\s+)?(mo|mon|month|monthly|monat|monatlich|yr|year|yearly|annually|jahr|jährlich)(?![\p{L}])/iu;
+/** The capitalised word a price follows, the plan's name unless it is a word for prices or the product's own name. */
+const PLAN_BEFORE_RE = /(?<![\p{L}])(\p{Lu}[\p{L}+]*)\s*[:–-]?\s*$/u;
+const NOT_PLAN_RE = /^(?:pricing|prices?|plans?|from|starting|starts?|only|just|costs?|preise?|ab|nur)$/i;
+const DOES_WORDS = 12;
+
+/** A stated price as a cell holds it: the plan, the amount as its page writes it, and how often it is paid. */
+function priceOf(pack: TablePack, passage: string, product: string, plan?: string | null): string | undefined {
+  const at = AMOUNT_RE.exec(passage);
+  if (at === null) return undefined;
+  const period = PERIOD_RE.exec(passage.slice(at.index + at[0].length))?.[1];
+  const amount = at[0].replace(/\s+/g, " ").replace(/[.,]$/, "");
+  const value = period === undefined ? amount : say(pack, /^mo/i.test(period) ? "body.table.monthly" : "body.table.yearly", { price: amount });
+  const before = PLAN_BEFORE_RE.exec(passage.slice(0, at.index))?.[1];
+  const named = plan?.trim() || (before === undefined || NOT_PLAN_RE.test(before) || product.toLowerCase().includes(before.toLowerCase()) ? undefined : before);
+  return named ? `${named}, ${value}` : value;
+}
+
+/** What a product does, in the passage's first sentence cut to its words at a clause where it can be: never a list. */
+function shortOf(passage: string | undefined): string | undefined {
+  const first = splitSentences((passage ?? "").replace(/\s+/g, " ").trim())[0]?.trim() ?? "";
+  const words = first.split(" ");
+  if (words.length <= DOES_WORDS) return first;
+  const head = words.slice(0, DOES_WORDS).join(" ");
+  const clause = head.replace(/\s*[,;:–—(][^,;:–—(]*$/, "");
+  return `${clause.split(" ").length >= DOES_WORDS / 2 ? clause : head.replace(/[,;:–—\s]+$/, "")}…`;
+}
 
 /** A value a table can hold: said in words, and not words that say a value
  *  is missing. */
@@ -132,10 +166,10 @@ function ownOption(pack: TablePack): Option {
     own: true,
     readAt: [],
     cells: {
-      pricing: cell(price, priced !== undefined && isUrl(priced.from) ? priced.from : null) ?? cell(stated?.passage, stated?.url ?? null),
+      pricing: cell(price, priced !== undefined && isUrl(priced.from) ? priced.from : null) ?? cell(stated && (priceOf(pack, stated.passage, pack.business.name ?? pack.business.domain) ?? stated.passage), stated?.url ?? null),
       does:
-        cell(described?.features[0], described !== undefined && isUrl(described.from) ? described.from : null) ??
-        cell(pack.profile?.products[0] ?? pack.profile?.job ?? undefined, null),
+        cell(shortOf(described?.features[0]), described !== undefined && isUrl(described.from) ? described.from : null) ??
+        cell(shortOf(pack.profile?.products[0] ?? pack.profile?.job ?? undefined), null),
     },
   };
 }
@@ -157,11 +191,14 @@ function rivalOption(pack: TablePack, domain: string): Option {
   // A figure as its page states it; else, where the page says the price is
   // agreed with the vendor, that — never a pricing-page line that states
   // neither (issue 1282: "Trusted by 3000+ brands").
-  // Of several figures the one the page starts from. A line about one plan
-  // ("Enterprise: custom") does not say how the product is priced.
-  const figures = pricing.filter((claim) => PRICED_RE.test(claim.passage));
+  // Of several figures the one the page starts from, its pricing page's over any other's. With none, a line about one
+  // plan ("Enterprise: custom") names the plan that is priced on request.
+  const current = pricing.filter((claim) => PRICED_RE.test(claim.passage) && !RETIRED_RE.test(claim.passage));
+  const listed = current.filter((claim) => PRICE_PAGE_RE.test(claim.url));
+  const figures = listed.length > 0 ? listed : current;
   const priced = figures.find((claim) => FROM_RE.test(claim.passage)) ?? figures[0];
-  const custom = priced === undefined ? pricing.find((claim) => CUSTOM_RE.test(claim.passage) && !ONE_PLAN_RE.test(claim.passage)) : undefined;
+  const custom = priced === undefined ? (pricing.find((claim) => CUSTOM_RE.test(claim.passage) && !ONE_PLAN_RE.test(claim.passage)) ?? pricing.find((claim) => ONE_PLAN_RE.test(claim.passage))) : undefined;
+  const onRequest = custom === undefined ? undefined : (custom.plan ?? ONE_PLAN_RE.exec(custom.passage)?.[0]);
   // What it does: said of the product by name, on a page that is not its
   // price list, where the pack holds such a claim.
   const name = rivalName(pack, domain).toLowerCase();
@@ -181,8 +218,13 @@ function rivalOption(pack: TablePack, domain: string): Option {
     own: false,
     readAt: claims.map((claim) => claim.readAt),
     cells: {
-      pricing: priced !== undefined ? cell(priced.passage, priced.url, priced.plan) : custom !== undefined ? cell(say(pack, "body.table.custom"), custom.url) : undefined,
-      does: cell(does?.passage, does?.url ?? null, does?.plan),
+      pricing:
+        priced !== undefined
+          ? cell(priceOf(pack, priced.passage, rivalName(pack, domain), priced.plan), priced.url)
+          : custom !== undefined
+            ? cell(onRequest ? say(pack, "body.table.customPlan", { plan: onRequest[0]!.toUpperCase() + onRequest.slice(1) }) : say(pack, "body.table.custom"), custom.url)
+            : undefined,
+      does: cell(shortOf(does?.passage), does?.url ?? null, does?.plan),
     },
   };
 }
