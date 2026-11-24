@@ -60,7 +60,8 @@ function sentenceOf(part: PlanReason["parts"][number], evidence: Evidence): stri
       return copy(part.n >= 2 ? "calendar.reason.searched" : "calendar.reason.asked");
     }
     case "ai_gap":
-      return write?.prompt !== undefined && write.win !== undefined
+      // A `ranked` win is a Google place, not an AI answer.
+      return write?.prompt !== undefined && write.win !== undefined && write.win.signal !== "ranked"
         ? copy("calendar.reason.ai-gap.prompt", { prompt: write.prompt.text, competitor: write.win.competitor })
         : copy("calendar.reason.ai-gap");
     case "rising": {
@@ -102,6 +103,7 @@ function fitFactRow(evidence: Evidence): ReasonRow | null {
 function angleRow(evidence: Evidence): ReasonRow | null {
   const angle = evidence.family === "write" || evidence.family === "earn" ? evidence.angle : null;
   if (angle == null || angle.promise.trim() === "") return null;
+  if (angle.gap === 1) return row(copy("calendar.reason.angle.one", { promise: angle.promise }));
   return row(angle.gap > 0 ? copy("calendar.reason.angle", { promise: angle.promise, gap: formatCount(angle.gap) }) : copy("calendar.reason.angle.none", { promise: angle.promise }));
 }
 
