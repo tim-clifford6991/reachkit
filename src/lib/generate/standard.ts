@@ -17,7 +17,7 @@ import { sourcingUrls } from "./pipeline/original";
 import { comparisonTable } from "./pipeline/table";
 import { citedSources } from "./rules/cites";
 import type { RuleFailure } from "./rules/types";
-import { sectionBounds, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "./templates";
+import { sectionBounds, sourcesNeed, TEMPLATES, type PackNeed, type PackRequirement, type SectionFacts, type Template } from "./templates";
 import { differenceHeld, ownPriceHeld } from "./templates/listicle";
 
 export type Part = "sections" | "sources" | "words" | "figures" | "title" | "links" | "demand" | "style" | "rival_evidence";
@@ -219,7 +219,7 @@ function holds(requirement: PackRequirement, pack: Omit<ContextPack, "missing">,
     }
     case "outside_sources":
       // Claims off one page more than the body must cite, each read off the target's own research, never a rival's own page.
-      return sourcingUrls(pack.claims.filter((claim) => claim.product === undefined)).length > requirement.min;
+      return sourcingUrls(pack.claims.filter((claim) => claim.product === undefined)).length > sourcesNeed(pack.type, pack.own);
     case "product_page":
       return pack.links.some((link) => link.purpose === "product" || link.purpose === "features" || link.purpose === "pricing");
     case "measured_questions":

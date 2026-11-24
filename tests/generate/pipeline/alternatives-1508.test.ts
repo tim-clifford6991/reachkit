@@ -295,7 +295,7 @@ async function research(each: Case): Promise<MarketResearch> {
     report: reportFor(each),
     rivals: inForceOf(each).map((product) => product.domain),
     rivalNames: inForceOf(each),
-    options: true,
+    options: true, sources: 1,
     marketWords: each.market,
     today: TODAY,
   });

@@ -45,7 +45,7 @@ import { researchMarket, storedAsk, type MarketResearch } from "@/lib/generate/p
 import { readRecordedRules, readRecordedVerdict } from "@/lib/generate/record";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { setGenerateStore, type DraftInsert, type DraftPatch, type DraftRow, type GenerateStore } from "@/lib/generate/store";
-import { TEMPLATES } from "@/lib/generate/templates";
+import { sourcesNeed, TEMPLATES } from "@/lib/generate/templates";
 import { writingMarket } from "@/lib/generate/voice/market";
 import { promptProfile } from "@/lib/generate/voice/profile-block";
 import { parseStoredMarket } from "@/lib/market/infer/stored";
@@ -355,7 +355,7 @@ export async function main(opts: Options): Promise<number> {
           // ask beside its target, for its headings.
           questions: true,
             // Issue 1486: a how-to or a Q&A reads the target's own guidance.
-            guidance: builtFromOutside(type),
+            guidance: builtFromOutside(type), sources: sourcesNeed(type),
             ...(type === "insights" ? { recent: { searches: [category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } } : {}),
           });
       cached = { research, researchCents: ledger.spentCents() };
