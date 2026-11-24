@@ -77,10 +77,13 @@ export function withSources(markdown: string, sources: readonly CitedSource[], a
   const body = withoutSources(markdown, say).replace(/\s+$/, "");
   const linked = new Set(linksOf(body).map(urlKey));
   const cited: CitedSource[] = [];
+  // A page is dated by the first of its claims that keeps the page's date: a second-hand claim keeps none.
+  const hasDate = (source: CitedSource): boolean => source.publishedAt !== undefined || source.modifiedAt !== undefined;
   for (const source of sources) {
-    const key = urlKey(source.url);
-    if (key === null || !linked.has(key) || cited.some((held) => urlKey(held.url) === key)) continue;
-    cited.push(source);
+    const key = urlKey(source.url), at = cited.findIndex((held) => urlKey(held.url) === key);
+    if (key === null || !linked.has(key)) continue;
+    if (at === -1) cited.push(source);
+    else if (!hasDate(cited[at]!) && hasDate(source)) cited[at] = source;
   }
   if (cited.length === 0) return body === markdown.replace(/\s+$/, "") ? markdown : `${body}\n`;
   const items = cited.map((source) => {

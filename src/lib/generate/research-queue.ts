@@ -23,6 +23,7 @@ import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { competitorOf, targetSearches } from "./pipeline";
 import { builtFromOutside, fellTo, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "./standard";
+import { credibleAt, credibleHosts, credibleSearch, officialOf, studySubject } from "./pipeline/source-tier";
 import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchMarket, researchSerps, rivalPage, sitemapOf, storedAsk, type MarketResearch } from "./pipeline/research";
 import { knowledgeTexts, shares, topicWords } from "./pipeline/pack";
 import { alikeHeadings } from "./rules/headings";
@@ -46,7 +47,8 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
   if (report === null) return 0;
   const locale = await siteLocale(a.siteId);
   const as = type === null ? null : researchedAs(type, own);
-  const reads = as === null || !TEMPLATES[as].research || target === undefined ? [] : researchSerps({ siteId: a.siteId, locale, target, market: site === null ? "" : siteWritingMarket(site, report).category, guidance: builtFromOutside(as), options: as === "listicle", ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const asked = { siteId: a.siteId, locale, target: target ?? "", market: site === null ? "" : siteWritingMarket(site, report).category, guidance: as !== null && builtFromOutside(as), options: as === "listicle" };
+  const reads = as === null || !TEMPLATES[as].research || target === undefined ? [] : researchSerps({ ...asked, ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
   const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
   const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
   if (reads.length + beside.length === 0) return 0;
@@ -54,6 +56,10 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
     let waiting = 0;
     // Together, since every read waits to the one `untilMs`; the update's read never holds the day's own write.
     await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure: (failed) => void (waiting += failed.taskId === undefined ? 0 : 1) })), ...beside.map((read) => serpOrganic(cost, read))]);
+    // A study search with no credible host among its results posts the credible one beside it, for the write to read; never waited on.
+    const study = reads[1] === undefined ? null : await cachedSerp(reads[1], DRAFT_POLICY_VERSION).catch(() => null), hosts = study === null ? [] : await credibleHosts(a.siteId, locale.language, a.now);
+    const credible = study === null || study.organic.some((row) => credibleAt(row.url, hosts, [], officialOf(locale.language))) ? undefined : credibleSearch(reads[1]!, studySubject(asked), hosts);
+    if (credible !== undefined && !cost.capHit()) await serpOrganic(cost, credible);
     return waiting;
   });
 }

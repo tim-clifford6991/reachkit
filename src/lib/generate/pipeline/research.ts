@@ -86,7 +86,7 @@ import { googleWrapper, isPlatformDomain, nameLetters, registrableDomain } from 
 import type { Locale } from "@/lib/locale/locales";
 import type { NewsRow, SerpOrganicRow } from "@/lib/vendors/dataforseo/types";
 import { inTurn, newestCredible, ownPagesFirst } from "./claims";
-import { byTier, cappedSites, compares, hostOf, mixOf, namedIn, pressWire, primaryAddress, rivalsInScope, sameSite, studySubject, tiered, withRoom, type SourceMix, type SourceTier } from "./source-tier";
+import { byTier, cappedSites, compares, credibleAt, credibleHosts, credibleSearch, hostOf, officialOf, mixOf, namedIn, pressWire, primaryAddress, rivalsInScope, sameSite, studySubject, tiered, withRoom, type SourceMix, type SourceTier } from "./source-tier";
 import { readClaims } from "./claims-read";
 import { sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
 import { datedOf, datesOf, type ClaimDates, type PageDates } from "./dated";
@@ -571,8 +571,7 @@ export async function researchMarket(
   c: CostContext,
   a: {
     siteId: string;
-    /** The site's country and language (D66): every search this step buys
-     *  is made in it. */
+    /** The site's country and language (D66): every search this step buys is made in it. */
     locale: Locale;
     domain: string;
     /** The target search and every search the row absorbed. */
@@ -580,26 +579,18 @@ export async function researchMarket(
     report: StoredReport;
     /** The rival domains and names recorded for the site. */
     rivals: readonly string[];
-    /** The rivals in force with the names the market calls them by, where
-     *  it names them: what an alternatives search is read against. */
+    /** The rivals in force with the names the market calls them by, where it names them: what an alternatives search is read against. */
     rivalNames?: readonly { domain: string; name: string | null }[];
-    /** Issue 1508: a page that compares options. Its options are the rivals
-     *  in force and the products its top results name, inside
-     *  `RESEARCH.options`, and an alternatives search's product is read as
-     *  its baseline. */
+    /** A page that compares options: the rivals in force and the products its top results name, inside `RESEARCH.options`, and an
+     *  alternatives search's product is read as its baseline. */
     options?: boolean;
-    /** Issue 1508: the market's category and its synonyms (D49). A product
-     *  the results name is an option only where its own pages share a word
-     *  with them. */
+    /** The market's category and its synonyms (D49): a product the results name is an option only where its own pages share a word with them. */
     marketWords?: readonly string[];
     today: Date;
-    /** *Current insights* (D42, D48): in place of the studies, the news is
-     *  searched for each of `searches` — the market's category, then its
-     *  synonyms — and a result is kept where it is dated inside `days` and
-     *  is about `market` (issue 1262). */
+    /** *Current insights* (D42, D48): in place of the studies, the news is searched for each of `searches` — the market's category, then
+     *  its synonyms — and a result is kept where it is dated inside `days` and is about `market`. */
     recent?: { searches: readonly string[]; days: number; market: Pick<WritingMarket, "category" | "synonyms" | "market"> };
-    /** A Q&A, or a comparison that may be written as one (D47): what buyers
-     *  ask about the target is read too (D61). */
+    /** A Q&A, or a comparison that may be written as one (D47): what buyers ask about the target is read too (D61). */
     questions?: boolean;
     /** A page built from cited outside facts (issue 1486): the one search looks for the target's own guidance in place
      *  of studies, and a result that is a platform's or an authority's documentation is read first, as a `primary` source. */
@@ -647,8 +638,7 @@ export async function researchMarket(
   const [topReads, firstReads] = await Promise.all([Promise.all(topTen.map((url) => fetchPage(url))), Promise.all(first.map(readRival))]);
   const readable = topReads.filter((read) => read !== null);
   // The products named on the top results already read, up to `namedFrom` of them; the claim calls still read `topResults`.
-  const named =
-    a.options === true ? namedProducts(readable.slice(0, RESEARCH.namedFrom).map((read) => ({ url: read.page.url, html: read.html })), own) : [];
+  const named = a.options === true ? namedProducts(readable.slice(0, RESEARCH.namedFrom).map((read) => ({ url: read.page.url, html: read.html })), own) : [];
   const names = new Map<string, string>(named.map((product) => [product.domain, product.name]));
   // The product an alternatives search is about: a rival in force, a product the results name, or a site of the top ten.
   const baseline =
@@ -662,13 +652,10 @@ export async function researchMarket(
           }),
         ])
       : null;
-  // A product the results name, beside the rivals in force, read to judge
-  // whether it is an option at all. Its reads are free.
+  // A product the results name, beside the rivals in force, read to judge whether it is an option at all. Its reads are free.
   const onResults = named.map((product) => product.domain).filter((domain) => domain !== baseline && ![...inForce, ...first].some((rival) => same(domain, rival)));
   const spare = onResults.slice(0, bound);
-  const moreReads = await Promise.all(
-    [...(baseline === null || first.some((rival) => same(rival, baseline)) ? [] : [baseline]), ...spare].map(readRival)
-  );
+  const moreReads = await Promise.all([...(baseline === null || first.some((rival) => same(rival, baseline)) ? [] : [baseline]), ...spare].map(readRival));
   const byDomain = new Map([...firstReads, ...moreReads].map((read) => [read.domain, read] as const));
   // A product found on the results is an option only where its own pages are of the market's category (D49) and, for a
   // business that serves one place (D67), name that place; a rival in force fits already, and the baseline is the subject.
@@ -686,39 +673,33 @@ export async function researchMarket(
   // The own pages of at most `bound` products, the baseline first.
   const rivalDomains = [...(baseline === null ? [] : [baseline]), ...others].slice(0, bound);
   const rivalRows = rivalDomains.map((domain) => byDomain.get(domain)?.rows ?? []);
-  // Each product's first page before any product's second, so the claim
-  // calls reach every option (issue 1508).
+  // Each product's first page before any product's second, so the claim calls reach every option.
   const rivalReads = a.options === true ? [0, 1].flatMap((at) => rivalRows.flatMap((rows) => (rows[at] === undefined ? [] : [rows[at]]))) : rivalRows.flat();
 
-  // 2. The one search for studies — or, on a page built from outside facts,
-  //    for the target's guidance — and the two it finds that are nobody's
-  //    sales page, a primary source first.
+  // 2. The one search for studies (on a page built from outside facts, for the target's guidance) and the two it finds that
+  //    are nobody's sales page, a primary source first; a credible one where none of the two is.
   const taken = new Set(topTen);
   const recent = a.recent === undefined ? null : await recentPages(c, { ...a, recent: a.recent }, notOurs, taken);
   const skipped = new Set<string>();
   const found: (ReadPage & Wanted)[] = recent === null ? [] : [...recent.pages];
+  // Nobody's sales page, no paid press-release wire, and no site the week already cites enough; its readable results in their order.
+  const eligible = (row: SerpOrganicRow): boolean => notOurs(row.url) && googleWrapper(row.url) === null && !pressWire(row.url) && !taken.has(row.url) && ![...inForce, ...rivalDomains, ...capped].some((rival) => sameSite(hostOf(row.url), rival));
+  const readRows = async (read: SerpRead): Promise<ReadPage[]> => {
+    const serp = await serpOrganic(c, read), rows = serp.kind === "unmeasured" ? [] : serp.value.organic;
+    for (const site of rows.map((row) => registrableDomain(row.url) ?? hostOf(row.url))) if (capped.has(site)) skipped.add(site);
+    return (await Promise.all(rows.filter(eligible).map((row) => fetchPage(row.url, row.publishedAt)))).flatMap((read) => (read === null ? [] : [read.page]));
+  };
   if (studyRead !== undefined && !c.capHit()) {
-    const studyRows: SerpOrganicRow[] = [];
-    const serp = await serpOrganic(c, studyRead);
-    if (serp.kind !== "unmeasured") {
-      for (const row of serp.value.organic) {
-        // Nobody's sales page, no paid press-release wire, and no site the week already cites enough.
-        const host = hostOf(row.url), site = registrableDomain(row.url) ?? host;
-        if (capped.has(site)) skipped.add(site);
-        if (!notOurs(row.url) || googleWrapper(row.url) !== null || pressWire(row.url) || taken.has(row.url) || [...inForce, ...rivalDomains, ...capped].some((rival) => sameSite(host, rival))) continue;
-        studyRows.push(row);
-      }
-    }
     // A primary source leads, then a page that says how it found what it found (a survey, a sample), in the search's order otherwise.
     const primary = (url: string): boolean => a.guidance === true && primaryAddress(url, rivalDomains);
     const rank = (page: ReadPage): number => (primary(page.url) ? 2 : 0) + (languagePack(a.locale.language).studyMethod.test(page.text) ? 1 : 0);
-    const studyReads = (await Promise.all(studyRows.map((row) => fetchPage(row.url, row.publishedAt)))).filter((read) => read !== null);
-    found.push(
-      ...studyReads
-        .sort((x, y) => rank(y.page) - rank(x.page))
-        .slice(0, RESEARCH.studies)
-        .map((read) => ({ ...read.page, kind: primary(read.page.url) ? ("primary" as const) : ("study" as const) }))
-    );
+    const studyReads = (await readRows(studyRead)).sort((x, y) => rank(y) - rank(x)), studies = studyReads.slice(0, RESEARCH.studies);
+    // No credible study page: a credible one already read takes the second slot, else the first readable result of one search on credible hosts.
+    const hosts = await credibleHosts(a.siteId, a.locale.language, a.today), credible = (page: ReadPage): boolean => credibleAt(page.url, hosts, [...inForce, ...rivalDomains], officialOf(a.locale.language));
+    const search = credibleSearch(studyRead, studySubject({ target, market: a.marketWords?.[0], options: a.options }), hosts);
+    const backup = studies.some(credible) ? undefined : ([...studyReads.slice(RESEARCH.studies), ...readable.slice(RESEARCH.topResults).map((read) => read.page)].find(credible) ?? (search === undefined || c.capHit() ? undefined : (await readRows(search)).find(credible)));
+    if (!studies.some(credible) && backup === undefined) console.warn(JSON.stringify({ event: "draft_credible_none", siteId: a.siteId, hosts: hosts.length }));
+    found.push(...[...studies.slice(0, backup === undefined ? RESEARCH.studies : RESEARCH.studies - 1), ...(backup === undefined ? [] : [backup])].map((page) => ({ ...page, kind: primary(page.url) ? ("primary" as const) : ("study" as const) })));
   }
 
   // 2b. A Q&A's related searches measured before the claim calls, so a ceiling met there does not cost the page its
@@ -727,8 +708,7 @@ export async function researchMarket(
   const held = none ? [...askedOfReport(a.report), ...(await (await import("@/lib/opportunities/store")).opportunityStore().askedBeside(a.siteId, ASKED_TOPICS.maxAgeDays).catch(() => []))] : [];
   const asked: BuyersAsk | null = a.questions !== true ? null : { peopleAlsoAsk: [...new Set([...(beside?.peopleAlsoAsk ?? []), ...held.flatMap((serp) => serp.peopleAlsoAsk)])], related: beside === null ? [] : await withVolume(c, a.locale, beside.searches) };
 
-  // The recent pages lead on a *current insights* page: they are what it is
-  // written from, and the claim calls read the first pages only.
+  // The recent pages lead on a *current insights* page: they are what it is written from, and the claim calls read the first pages only.
   const prefetched: (ReadPage & Wanted)[] = [
     ...(a.recent === undefined ? [] : found),
     // A primary source is read before the top results, so its claims lead the pack; the studies before the rivals' own pages.
@@ -738,24 +718,22 @@ export async function researchMarket(
     ...rivalReads.flatMap((row) => (row.read === null ? [] : [{ ...row.read.page, kind: row.kind, product: row.domain }])),
   ];
 
-  // 3. The ledger, one row at a time. A page already read inside the window
-  //    is served as it was read then, with that read's date.
+  // 3. The ledger, one row at a time. A page already read inside the window is served as it was read then, with that read's date.
   const pages: (ReadPage & Wanted)[] = [];
   for (const page of prefetched) {
     const row = await c.recordFetch<ReadPage>({
       source: RESEARCH_READ_SOURCE,
       cacheKey: page.url,
-      freshnessDays: RESEARCH.freshnessDays,
-      costCents: 0,
-      // Issue 1521: the headings are recorded with the read.
+      freshnessDays: RESEARCH.freshnessDays, costCents: 0,
+      // The headings are recorded with the read.
       run: async () => ({ url: page.url, title: page.title, text: page.text, readAt: page.readAt, ...(page.headings === undefined ? {} : { headings: page.headings }), ...datesOf(page) }),
     });
     if ("skipped" in row) break;
     pages.push({ ...page, ...row.payload });
   }
 
-  // 4. The claims, a few pages a call, each kept only where its page says it.
-  //    The products the search names lead, each one's own pages dealt to both calls, so a comparison is never held for a page cut off.
+  // 4. The claims, a few pages a call, each kept only where its page says it. The products the search names lead, each one's own
+  //    pages dealt to both calls, so a comparison is never held for a page cut off.
   const lead = namedIn(target, rivalDomains.map((domain) => ({ domain, name: names.get(domain) ?? a.rivalNames?.find((rival) => rival.domain === domain)?.name ?? null })));
   const facts = await readClaims(c, [...lead.flatMap((domain) => pages.filter((page) => page.product === domain)), ...pages.filter((page) => page.product === undefined || !lead.includes(page.product))], { locale: a.locale, search: target, market: a.marketWords?.[0], rivals: rivalDomains, today: a.today, siteId: a.siteId, page: a.page });
 
@@ -771,9 +749,7 @@ export async function researchMarket(
   const research: MarketResearch = {
     facts: ordered,
     products,
-    topResults: pages
-      .filter((page) => page.kind === "top_result")
-      .map((page) => ({ url: page.url, text: page.text, ...(page.headings === undefined ? {} : { headings: page.headings }) })),
+    topResults: pages.filter((page) => page.kind === "top_result").map((page) => ({ url: page.url, text: page.text, ...(page.headings === undefined ? {} : { headings: page.headings }) })),
     ...(recent === null ? {} : { news: recent.news }),
     ...(baseline === null ? {} : { baseline }),
     ...(pending ? { pending: true as const } : {}),

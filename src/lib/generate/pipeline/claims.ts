@@ -110,9 +110,9 @@ function timeliness(about: string, kind: MarketFact["kind"], passage: string, ye
 
 /** A claim's dates with its age date (SPEC §7): the data year it states, else its page's modified day where the
  *  published day is known too, else the published day. A modified day alone is no age: a render stamps one. A stated
- *  year its page's own day falls in is that day, the more exact of the two. */
-export function aged(claim: ClaimDates & { passage: string }, stated: number | null = null): ClaimDates {
-  const year = statisticYear(claim.passage, stated);
+ *  year its page's own day falls in is that day; a future year, or the year a second-hand finding is about, is none. */
+export function aged(claim: ClaimDates & { passage: string; secondHand?: true }, stated: number | null = null): ClaimDates {
+  const found = statisticYear(claim.passage, stated), year = claim.secondHand === true || (found ?? 0) > new Date().getUTCFullYear() ? null : found;
   const page = claim.publishedAt === undefined ? undefined : (claim.modifiedAt ?? claim.publishedAt);
   const ageAt = claim.ageAt ?? (year === null ? page : page?.startsWith(String(year)) ? page : String(year));
   return datesOf({ ...claim, ageAt });
