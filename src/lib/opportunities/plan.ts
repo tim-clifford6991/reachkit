@@ -17,7 +17,10 @@ const DAY_MS = 86_400_000;
 async function ranked(siteId: string, a: { now: Date; from?: string; record?: boolean; keepLater?: boolean; keepDates?: boolean; days?: number }) {
   // On demand, the week starts at the date being written; on Monday, at the first date with no page.
   const store = opportunityStore(), from = a.from ?? new Date(firstOpenDay(await store.draftedPages(siteId, 1), a.now) * DAY_MS).toISOString().slice(0, 10);
-  await assessReadiness(siteId, { at: a.now, now: a.now });
+  const committed = a.keepDates ? await store.plannedRows(siteId) : [], held = new Set(committed.map((r) => r.id));
+  // A re-plan leaves the committed week's readiness as the pass read it: only rows outside it are checked again.
+  const only = a.keepDates ? new Set((await store.openRankable(siteId)).flatMap((r) => (held.has(r.id) ? [] : [r.id]))) : undefined;
+  await assessReadiness(siteId, { at: a.now, now: a.now, ...(only === undefined ? {} : { only }) });
   await assessFixPages(siteId, { report: null, now: a.now });
   // Before the first weekly pass, the dated days stop where that Monday's pass opens the next week: a Wednesday 5, a Monday 7.
   const days = a.days ?? (a.keepLater ? 1 : (await store.weeklyCommit(siteId)) === null ? (8 - new Date(`${from}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days : WEEK_PLAN.days);
@@ -25,11 +28,16 @@ async function ranked(siteId: string, a: { now: Date; from?: string; record?: bo
   const kept = a.keepLater ? (await store.plannedRows(siteId)).filter((r) => r.planned_for != null && r.planned_for > from) : [];
   const later = new Set(kept.map((r) => r.id)), top = Math.max(0, ...kept.map((r) => r.plan_place ?? 0));
   const load = await loadRanking(siteId, a.now, undefined, a.record === true), free = (r: OpportunityRow) => !later.has(r.id);
-  const keep = a.keepDates ? new Map((await store.plannedRows(siteId)).flatMap((r) => (r.planned_for != null && r.planned_for >= from ? [[r.id, r.planned_for] as const] : []))) : undefined;
-  const input = { ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: a.now, from, days, ...(keep === undefined ? {} : { keep }) };
+  const keep = a.keepDates ? new Map(committed.flatMap((r) => (r.planned_for != null && r.planned_for >= from ? [[r.id, r.planned_for] as const] : []))) : undefined;
+  const verdicts = new Map(committed.flatMap((r) => (r.plan_reason?.research == null ? [] : [[r.id, { writeAs: r.plan_write_as ?? null, reason: r.plan_reason }] as const])));
+  const input = { ...load, rows: load.rows.filter(free), fixRows: load.fixRows.filter(free), at: a.now, from, days, ...(keep === undefined ? {} : { keep }), ...(verdicts.size === 0 ? {} : { verdicts }) };
   const order = choose(input), best = new Set([...order.committed, ...order.rejected.filter((r) => r.reason === "after_the_week")].slice(0, WEEK_RESEARCH.rowsMax).map((r) => r.opportunityId));
   return { input, order, best: [...best].flatMap((id) => input.rows.filter((r) => r.id === id)), later, top, from, days };
 }
+
+/** The open rows the commit refuses as a live page's twin, by its own test, so supply never counts a place no week can use. */
+export const liveTwinIds = async (siteId: string, now: Date): Promise<Set<string>> =>
+  new Set(choose({ ...(await loadRanking(siteId, now)), at: now, from: now.toISOString().slice(0, 10) }).rejected.flatMap((r) => (r.reason === "live_twin" ? [r.opportunityId] : [])));
 
 /** The rows the Monday commit checks the research of, best first. */
 export const weekCandidates = async (siteId: string, now: Date): Promise<OpportunityRow[]> => (await ranked(siteId, { now })).best;
@@ -40,8 +48,8 @@ export async function planWeek(siteId: string, a: { now?: Date; from?: string; r
   const now = a.now ?? new Date(), store = opportunityStore();
   const { input, order, best, later, top, from, days } = await ranked(siteId, { ...a, now });
   // The ranking's best rows are then ordered by what research the cache holds for them.
-  const unread = best.filter((r) => !a.research?.has(r.id)), held = store.researchHeld === undefined || unread.length === 0 ? new Map() : await store.researchHeld(siteId, unread, now);
-  const choice = store.researchHeld === undefined && a.research === undefined ? order : choose({ ...input, research: new Map([...held, ...(a.research ?? [])]) });
+  const unread = best.filter((r) => !a.research?.has(r.id) && !input.verdicts?.has(r.id)), held = store.researchHeld === undefined || unread.length === 0 ? new Map() : await store.researchHeld(siteId, unread, now);
+  const choice = store.researchHeld === undefined && a.research === undefined && input.verdicts === undefined ? order : choose({ ...input, research: new Map([...held, ...(a.research ?? [])]) });
   // A short row no day or spare took rests until its SERP is read again.
   const rested = choice.rejected.flatMap((r) => (r.reason === "short" ? [{ opportunityId: r.opportunityId, short: r.short ?? [] }] : []));
   for (const r of rested) await store.rest(r.opportunityId, new Date(now.getTime() + CACHE_WINDOWS_D.serp * DAY_MS));
@@ -88,21 +96,13 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
 
 /** The committed week as the digest, the calendar and the daily job read it: the open dated rows, by date, and the open
  *  spares, by place. `week` is the Monday the days are kept to; absent, the whole commit, which is the current week. */
-export async function committedWeek(
-  siteId: string,
-  week?: string
-): Promise<{
-  days: readonly { date: string; opportunity: Opportunity }[];
-  spares: readonly Opportunity[];
-}> {
+export async function committedWeek(siteId: string, week?: string): Promise<{ days: readonly { date: string; opportunity: Opportunity }[]; spares: readonly Opportunity[] }> {
   const store = opportunityStore();
   const rows = (await store.plannedRows(siteId)).filter((row) => row.status === "open");
   const end = week === undefined ? null : new Date(Date.parse(`${week}T00:00:00Z`) + 7 * DAY_MS).toISOString().slice(0, 10);
   const inWeek = (date: string) => week === undefined || (date >= week && date < end!);
   return {
-    days: rows.flatMap((row) =>
-      row.planned_for == null || !inWeek(row.planned_for) ? [] : [{ date: row.planned_for, opportunity: planned(row) }]
-    ),
+    days: rows.flatMap((row) => (row.planned_for == null || !inWeek(row.planned_for) ? [] : [{ date: row.planned_for, opportunity: planned(row) }])),
     spares: rows.filter((row) => row.planned_for == null).map((row) => planned(row)),
   };
 }
