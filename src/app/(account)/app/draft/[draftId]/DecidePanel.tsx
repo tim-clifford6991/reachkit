@@ -67,7 +67,7 @@ const DOT = {
 
 export function DayTimeline(p: { steps: readonly DayStep[] }): React.JSX.Element {
   return (
-    <ul className="timeline timeline-vertical timeline-compact timeline-snap-icon min-w-0" aria-label={copy("draft.day.title")} data-testid="draft-day">
+    <ul className="timeline timeline-vertical timeline-compact timeline-snap-icon min-w-0 [&>li]:[--timeline-col-start:0]" aria-label={copy("draft.day.title")} data-testid="draft-day">
       {p.steps.map((step, at) => (
         <li key={step.key} data-testid={`draft-day-${step.key}`}>
           {at === 0 ? null : <hr className="bg-base-300" />}

@@ -176,7 +176,7 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
               {copy(writer.busy ? "settings.publishing.saving" : enabled ? "settings.publishing.on.lead" : "settings.publishing.off.lead")}
             </p>
           </div>
-          <label className="flex min-h-11 shrink-0 cursor-pointer items-center lg:min-h-8 max-lg:-mt-1.5" data-testid="setting-publishing_enabled">
+          <label className="flex min-h-11 shrink-0 cursor-pointer items-start pt-1 lg:min-h-8" data-testid="setting-publishing_enabled">
             <input
               type="checkbox"
               role="switch"
@@ -195,7 +195,7 @@ export function PublishingPanel(p: { settings: SettingsModel; next?: NextPage })
             {copy("settings.publishing.flow.none", { window: stop, time })}
           </p>
         ) : (
-          <ul className="timeline timeline-vertical timeline-compact timeline-snap-icon min-w-0" aria-label={copy("settings.publishing.flow.title")} data-testid="publishing-timeline">
+          <ul className="timeline timeline-vertical timeline-compact timeline-snap-icon min-w-0 [&>li]:[--timeline-col-start:0]" aria-label={copy("settings.publishing.flow.title")} data-testid="publishing-timeline">
             <Moment icon={<Mail {...icon} />} title={copy("settings.publishing.flow.written")} first>
               <span className="num text-base-content/70">{next.written}</span>
             </Moment>
