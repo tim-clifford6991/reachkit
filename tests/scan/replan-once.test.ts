@@ -1,13 +1,16 @@
 // After a planner deploy the `scan/rescore` tick re-commits a paying site's week once however many ticks run, and mails
-// the owner once the committed week as stored (a hand-set one included) beside the new one.
+// the owner once the committed week as stored (a hand-set one included) beside the new one. The weekly market step
+// claims its week before any spend: a second run of the same pass buys nothing, an owner's re-run takes the week over.
 import "../opportunities/env";
 import { beforeEach, expect, it, vi } from "vitest";
 import { fakeDb } from "../publish/harness";
 
 const db = fakeDb();
+db.uniqueIndexes.push({ table: "market_changes", columns: ["site_id", "week_start"] });
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const { replanSites } = await import("@/lib/scan/replan");
+const { claimMarketWeek } = await import("@/lib/scan/weekly/store");
 const { planWeek } = await import("@/lib/opportunities/plan");
 const { opportunityStore, setOpportunityStore } = await import("@/lib/opportunities/store");
 const { __setVendorTransportForTesting } = await import("@/lib/mail/vendor/resend");
@@ -30,6 +33,7 @@ beforeEach(async () => {
   const site = panelSite("savvycal.com");
   state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: site.rows, weeklyCommit: "2026-10-19" });
   const store = memoryStore(state);
+  cut = 0;
   setOpportunityStore({ ...store, footprintOpened: async () => true, topTenRows: async () => storedSerps(site.domain), commitPlan: (id, entries) => (cut-- === 1 ? Promise.reject(new Error("cut")) : (commits++, store.commitPlan(id, entries))) });
   await planWeek(SITE_ID, { now: AT });
   // The owner's hand-set day: a spare moved onto 20 Oct, with no reason the planner gave.
@@ -77,4 +81,10 @@ it("claims a week that dates no day empty, commits nothing, and does not dry-run
   expect(await tick(1)).toEqual({ replanned: [], held: [], empty: [SITE_ID] });
   const dryRuns = vi.mocked(console.log).mock.calls.filter(([line]) => String(line).includes("week_replan_dry_run")).length;
   expect([commits, dryRuns, events("week_replanned").map((row) => row.read)]).toEqual([0, 1, ["empty"]]);
+});
+
+it("claims a market week once per pass, and again for a re-run's own pass", async () => {
+  const week = { siteId: "site-1", weekStart: "2026-11-23" };
+  expect([await claimMarketWeek({ ...week, scanId: "monday" }), await claimMarketWeek({ ...week, scanId: "monday" })]).toEqual([true, false]);
+  expect([await claimMarketWeek({ ...week, scanId: "rerun" }), await claimMarketWeek({ ...week, scanId: "rerun" })]).toEqual([true, false]);
 });
