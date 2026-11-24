@@ -128,9 +128,19 @@ export function coveredTopics(report: StoredReport, brandTokens: readonly string
   return topics;
 }
 
-
 const SOLUTION_TOKENS: ReadonlySet<string> = new Set(["tool", "software", "app", "platform", "solution"].flatMap((word) => contentTokens(word)));
 const LIST_TOKENS: ReadonlySet<string> = new Set(["best", "top", "compare", "comparison"].flatMap((word) => contentTokens(word)));
+const HEAD_TOKENS: ReadonlySet<string> = new Set([...SOLUTION_TOKENS, ...contentTokens("checker service")]);
+
+/** Whether two topics' texts name one kind of product with no top ten read: the words before a text's first product
+ *  noun, list words aside, at least two, one side's all among the other's ("GEO solutions" is "best GEO tool"). */
+export function oneHead(mine: readonly (string | null | undefined)[], theirs: readonly (string | null | undefined)[]): boolean {
+  const heads = (texts: typeof mine) => texts.flatMap((text) => {
+    const tokens = contentTokens(text ?? ""), head = tokens.slice(0, Math.max(0, tokens.findIndex((t) => HEAD_TOKENS.has(t)))).filter((t) => !LIST_TOKENS.has(t));
+    return head.length >= 2 ? [head] : [];
+  });
+  return heads(mine).some((a) => heads(theirs).some((b) => (a.length <= b.length ? a.every((t) => b.includes(t)) : b.every((t) => a.includes(t)))));
+}
 
 /** The parent topic of a query, or `null` where it has none: no query, or nothing left once stop words and brands are
  *  gone. Given the site's market, its own names are one word and its buyer is no qualifier. */
@@ -192,18 +202,9 @@ function volumeOf(m: Member): number {
   return volume === null || volume.kind === "unmeasured" ? 0 : volume.value;
 }
 
-function shapeOf(m: Member): { family: Family; type: OpportunityType } {
-  return m.kind === "row" ? m.row : m.candidate;
-}
-
-function plansANewPage(m: Member): boolean {
-  const { family } = shapeOf(m);
-  return family === "write" || family === "earn";
-}
-
-function queryOf(m: Member): string | null {
-  return m.kind === "row" ? m.row.targetQuery : m.candidate.targetQuery;
-}
+const shapeOf = (m: Member): { family: Family; type: OpportunityType } => (m.kind === "row" ? m.row : m.candidate);
+const plansANewPage = (m: Member): boolean => shapeOf(m).family === "write" || shapeOf(m).family === "earn";
+const queryOf = (m: Member): string | null => (m.kind === "row" ? m.row.targetQuery : m.candidate.targetQuery);
 
 /** The search whose stored results page a member was read from; an asked question shares its parent's. */
 function serpOf(m: Member): string | null {
@@ -211,10 +212,7 @@ function serpOf(m: Member): string | null {
   return (evidence.family === "write" ? evidence.askedBeside?.term : undefined) ?? queryOf(m);
 }
 
-/** The band a member carries, row or candidate. */
-function bandOf(m: Member): Winnability | null {
-  return m.kind === "row" ? m.row.fitBand : m.candidate.fitBand;
-}
+const bandOf = (m: Member): Winnability | null => (m.kind === "row" ? m.row.fitBand : m.candidate.fitBand);
 
 /** A row with a page behind it, being written or published: never dismissed, and it always survives its topic. */
 function hasAPage(m: Member): boolean {
