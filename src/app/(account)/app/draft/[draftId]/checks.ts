@@ -40,7 +40,7 @@ export const CHECKS: Readonly<Record<HardRule, { key: CopyKey }>> = Object.freez
   nothing_invented: { key: "draft.checks.rule.nothing-invented" },
   do_not_claim: { key: "draft.checks.rule.do-not-claim" },
   fit_claim: { key: "draft.checks.rule.fit-claim" },
-  unsafe_markup: { key: "draft.checks.rule.no-hidden-text" },
+  unsafe_markup: { key: "draft.checks.rule.unsafe-markup" },
   near_duplicate: { key: "draft.checks.rule.near-duplicate" },
   title: { key: "draft.checks.rule.title" },
   first_block_answers: { key: "draft.checks.rule.first-block-answers" },
