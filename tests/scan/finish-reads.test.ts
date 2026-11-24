@@ -244,3 +244,15 @@ describe("one attempt: a search that fails again stays unmeasured with its reaso
     expect(after.serps[1]).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
   });
 });
+
+describe("a weekly pass's searches whose queued task outlived its ceiling", () => {
+  it("reads only those and writes them into the report", async () => {
+    const report = { ...zeroOfTwelve(), tier: "weekly", finishingReads: undefined };
+    report.serps = KEYWORDS.map((keyword, i) => (i < 5 ? measured(serpFor(keyword), NOW) : unmeasured("undeterminable", NOW, "deadline")));
+    const db = storeOf(report);
+    const v = vendorOf({ spentCents: 0, centsPerRead: 0, answer: (query) => (query === KEYWORDS[11] ? unmeasured("undeterminable", NOW) : measured(serpFor(query), NOW)) });
+    expect(await finish(db.store, v.vendor)).toEqual({ finished: true, asked: 7, read: 6, written: true });
+    expect([...v.asked].sort()).toEqual(KEYWORDS.slice(5).sort());
+    expect((readStoredReport(db.row().report) as StoredReport).serps.filter((serp) => serp.kind !== "unmeasured")).toHaveLength(11);
+  });
+});

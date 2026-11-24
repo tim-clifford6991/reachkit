@@ -33,7 +33,8 @@ import { recordOpsEvent } from "@/lib/ops/events";
 import { placeCacheKey, type DataForSeoMode, type SerpDepth } from "./transport";
 import { AI_OVERVIEW_TEXT_MAX_CHARS, scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
-const SOURCE = "serp/google/organic";
+export const SERP_SOURCE = "serp/google/organic";
+const SOURCE = SERP_SOURCE;
 const ORGANIC = "/v3/serp/google/organic";
 const PATHS: EndpointPaths = {
   live: `${ORGANIC}/live/advanced`,
@@ -201,6 +202,15 @@ function serpCacheKey(a: { query: string; locale: Locale; loadAsyncAiOverview: b
 export async function cachedSerp(a: Parameters<typeof serpOrganic>[1], policyVersion: number): Promise<SerpResult | null> {
   const hit = await readCache({ source: SOURCE, cacheKey: serpCacheKey(a), policyVersion, freshnessDays: a.freshnessDays, unusable: wrappedRead });
   return hit === null || !Array.isArray(hit.payload) ? null : ((hit.payload[0] as SerpResult | undefined) ?? EMPTY_SERP);
+}
+
+/** A read a pass posted, paid for and stopped waiting on, read again at 0¢ until `untilMs`: the rows its post would have stored,
+ *  `pending` while the task is still out, or `failed` where reading again will not change it. */
+export async function collectSerp(taskId: string, untilMs: number): Promise<{ kind: "answer"; rows: SerpResult[] } | { kind: "pending" } | { kind: "failed"; failure: string }> {
+  const out = await collectTask(PATHS, taskId, untilMs);
+  if (!out.ok) return out.taskId === undefined ? { kind: "failed", failure: out.failure } : { kind: "pending" };
+  const rows = out.noResults === true ? [] : parseSerp(out.result);
+  return rows === undefined ? { kind: "failed", failure: "unparseable" } : { kind: "answer", rows };
 }
 
 export async function serpOrganic(

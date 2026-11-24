@@ -159,12 +159,11 @@ export async function startWeeklyScan(
     const scanId = outcome.scanId;
     // The knowledge read keeps its own clock, so it never shares the pass's invocation.
     await step(`knowledge-${a.siteId}`, () => refreshWeeklyKnowledge({ scanId, siteId: a.siteId, domain: a.domain }));
-    for (let round = 1; round <= TIMING.weeklyCollectRounds; round += 1) {
-      const { left } = await step(`late-answers-${a.siteId}-${round}`, async () => {
-        const { collectLateAnswers } = await import("@/lib/scan/weekly/collect");
-        return collectLateAnswers({ scanId, siteId: a.siteId, domain: a.domain, untilMs: Date.now() + TIMING.paidPassCeilingS * 1000 });
-      });
-      if (left === 0) break;
+    // The searches and the tracked prompts whose paid tasks outlived the pass, each read in its own step, since both rewrite the report.
+    for (let round = 1, until = () => Date.now() + TIMING.paidPassCeilingS * 1000; round <= TIMING.weeklyCollectRounds; round += 1) {
+      const serps = await step(`late-serps-${a.siteId}-${round}`, async () => (await import("@/lib/scan/finish-reads")).finishLateSerps({ scanId, now: a.now, untilMs: until() }));
+      const { left } = await step(`late-answers-${a.siteId}-${round}`, async () => (await import("@/lib/scan/weekly/collect")).collectLateAnswers({ scanId, siteId: a.siteId, domain: a.domain, untilMs: until() }));
+      if (left + serps === 0) break;
     }
     await step(`market-changes-${a.siteId}`, async () => (await import("@/lib/scan/weekly/market-changes")).recordMarketChanges({ scanId, siteId: a.siteId, weekStart: a.weekStart, now: a.now, ...(a.rerun === undefined ? {} : { again: true as const }) }));
   }
