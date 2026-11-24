@@ -5,8 +5,7 @@
 // (`missingFrom`), the room its sections leave for the type's floor, and whether its research is still on the queue.
 // Before a pack exists, the weekly commit holds a row's cached reads to its type's pass marks (`READ_MARKS`).
 // Its page half reads the battery's failures on a written body. Each part is met, short or pending; a part that was
-// not measured is pending, never short. Only a short section, source or word count is ever a stop, and whether it
-// stops is the completeness switch's (`completenessFor`, `./record.ts`); title and links are recorded and never stop.
+// not measured is pending, never short. A short part is a warning: recorded and logged, never a stop or a fix call.
 import { contentTypeOf, SHAPED, type ContentType } from "@/lib/opportunities/content-type";
 import { offeringTopTen, type TopTenRow } from "@/lib/opportunities/derive/top-ten-kind";
 import type { Opportunity } from "@/lib/opportunities/types";
@@ -30,7 +29,7 @@ export interface Standard { parts: PartMark[]; met: boolean; pending: boolean; s
 /** The deployed standard's fingerprint (`RK_STANDARD`), or `null` where the build carried none. */
 export const deployedStandard = (): string | null => process.env.RK_STANDARD || null;
 
-/** The parts that may ever stop a page. */
+/** The parts a waiting draft is set aside for after a standard deploy (`restandardSites`, `./recheck.ts`). */
 const STOPPING: ReadonlySet<Part> = new Set<Part>(["sections", "sources", "words"]);
 
 /** The part each pack need sources: the page's sections, its outside sources, or its facts and figures. */
@@ -49,13 +48,8 @@ export function partsOf(failure: RuleFailure): Part[] {
   const detail = failure.detail;
   if (detail?.rule !== "required_blocks") return [];
   const parts: Part[] = [...(SECTION_BLOCKS.has(detail.block) ? ["sections" as const] : []), ...(LINK_BLOCKS.has(detail.block) ? ["links" as const] : [])];
-  // A page over its ceiling is not short of words: a warning, never the fix call on that ground.
+  // A page over its ceiling is not short of words.
   return (detail.block === "length" || detail.length === true) && detail.over !== true ? [...parts, "words"] : parts;
-}
-
-/** Whether a failure is a page missing its sections, sources or words: what earns the one fix call. */
-export function incomplete(failure: RuleFailure): boolean {
-  return partsOf(failure).some((part) => STOPPING.has(part));
 }
 
 const mark = (part: Part, have: number, need: number, short: boolean, pending = false): PartMark => ({ part, have: short && pending ? null : have, need, state: !short ? "met" : pending ? "pending" : "short" });

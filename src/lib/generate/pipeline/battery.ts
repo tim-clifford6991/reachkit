@@ -11,7 +11,7 @@ import { sourcesNeed, TEMPLATES } from "../templates";
 import { runHardRules, type BatteryOutcome } from "../rules";
 import { namedRivals } from "../rules/rivals";
 import { renderOf } from "../rules/text";
-import type { ComparisonSet, Completeness, HardRule, SiteRuleInputs } from "../rules/types";
+import type { ComparisonSet, HardRule, SiteRuleInputs } from "../rules/types";
 import type { SiteFacts } from "../store";
 import type { StoredReport } from "@/lib/scan/report";
 import { localeTag } from "@/lib/locale/locales";
@@ -24,7 +24,7 @@ import { sourcingUrls } from "./original";
 import { packStatements, type ContextPack, type PackClaim } from "./pack";
 import { fittedTemplate } from "../standard";
 import { repairable, repairRecorded, withoutBusiness, type RepairRecord } from "./repair";
-import { completenessFor, stops } from "../record";
+import { stops } from "../record";
 import { reportFactsAllowed } from "./report-scope";
 import { withSources } from "./sources";
 import { datesOf } from "./dated";
@@ -34,9 +34,9 @@ import type { FaqEntry } from "./write";
 
 /** The site as the rules read it. The one name the product holds for the business is the brand the profile measured
  *  off their own home page: what the site calls itself. */
-export function siteRulesOf(site: Pick<SiteFacts, "domain" | "doNotClaim" | "rivals" | "timeZone">, report: StoredReport, completeness?: Completeness): SiteRuleInputs {
+export function siteRulesOf(site: Pick<SiteFacts, "domain" | "doNotClaim" | "rivals" | "timeZone">, report: StoredReport, young = false): SiteRuleInputs {
   const businessName = report.market.kind === "unmeasured" ? null : (report.market.value.profile.brandTokens[0] ?? null);
-  return { businessName, domain: site.domain, doNotClaim: site.doNotClaim, rivals: site.rivals, timeZone: site.timeZone ?? null, ...(completeness === undefined ? {} : { completeness }) };
+  return { businessName, domain: site.domain, doNotClaim: site.doNotClaim, rivals: site.rivals, timeZone: site.timeZone ?? null, ...(young ? { young } : {}) };
 }
 
 /** What one page's checks read that its words do not change: its pack, its type and the customer's own sets. */
@@ -72,7 +72,7 @@ export function batteryBasis(a: {
   const fitted = rangeOf(true);
   // No room: the sections the pack fills leave a ceiling under the type's floor, or none above it, and the page is then never told that floor.
   const noRoomFor = held !== null && fitted !== null && (fitted.ceiling < held.floor || held.ceiling <= held.floor) ? held.floor : null;
-  const short = noRoomFor !== null && (site.completeness ?? completenessFor()) !== "stop";
+  const short = noRoomFor !== null;
   // The words the pack has room for against the floor the page is held to; a page written short is held to none.
   const room = held === null || fitted === null || short ? null : { have: fitted.ceiling, need: held.floor, short: noRoomFor !== null };
   // A page written short carries its sourced questions as its sections, no more: each a question the pack holds a fact for.
@@ -204,7 +204,7 @@ export async function checkPage(
   const repairs: RepairRecord[] = [];
   const inputs = batteryInputs(b, page, writer, at.comparison, settled);
   const reading = (text: string) => ({ title: page.title, markdown: text, businessName: b.site.businessName, domain: b.site.domain, titleOwed: (inputs.titleRule.business?.length ?? 0) > 0 });
-  const stopping = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.filter((failure) => stops(failure, b.site.completeness)).map((failure) => failure.rule));
+  const stopping = (o: BatteryOutcome): Set<HardRule> => new Set(o.failed.filter((failure) => stops(failure)).map((failure) => failure.rule));
   if (outcome.fit.state === "unrun") {
     // With no sentence left that names the business, the fit check passes, and no call is made for it.
     const bare = withoutBusiness(writer, b.site);

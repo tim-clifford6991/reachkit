@@ -37,9 +37,7 @@
 import { listHash } from "./claims/hash";
 import type { ClaimVerdict } from "./claims/check";
 import type { BatteryOutcome } from "./rules";
-import { COMPLETENESS_STOPS } from "@/lib/config/constants";
-import { incomplete } from "./standard";
-import { HARD_RULES, HIDDEN_RULES, NO_CHECKS, SWITCHED_RULES, WARNING_RULES, type Completeness, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
+import { HARD_RULES, HIDDEN_RULES, NO_CHECKS, SWITCHED_RULES, WARNING_RULES, type HardRule, type RecordedChecks, type RuleFailure } from "./rules/types";
 
 // ── Hard rule 4: the claim check's verdict ──────────────────────────────
 
@@ -112,18 +110,10 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
 /** The figure faults of a title stay harm, since an unsourced figure is one whatever the line it stands in. */
 const FIGURE_FAULTS: ReadonlySet<string> = new Set(["description_figures", "figure_owner"]);
 
-/** What an incomplete page meets after its fix call: a lead's free page and a page written anyway only ever a warning, a
- *  new site's a warning it is not shown (owner, 2026-11-18), every other page the one switch. */
-export function completenessFor(page: "lead" | "customer" | "anyway" = "customer", newSite = false): Completeness {
-  if (page !== "lead" && newSite) return "hidden";
-  return page === "customer" && COMPLETENESS_STOPS ? "stop" : "warn";
-}
-
-/** Whether a failure stops the page: the one predicate every verdict on a generated or edited page reads. A short
- *  section, source or word count (`meetsStandard`'s `stops`) stops only where the completeness switch says so. */
-export function stops(failure: RuleFailure, completeness: Completeness = completenessFor()): boolean {
+/** Whether a failure stops the page: the one predicate every verdict on a generated or edited page reads. A page short
+ *  on sections, sources or words is only ever a warning. */
+export function stops(failure: RuleFailure): boolean {
   if (failure.detail?.rule === "title") return failure.detail.faults.some((fault) => FIGURE_FAULTS.has(fault));
-  if (incomplete(failure)) return completeness === "stop";
   return !WARNING_RULES.has(failure.rule);
 }
 
@@ -174,9 +164,9 @@ const rulesIn = (value: unknown): HardRule[] =>
 /** What the pipeline and an edit's re-check store in `drafts.meta.checks`.
  *  `broken` is every rule the run failed at any point; the ones the page no
  *  longer fails are the ones it fixed. */
-export function recordedRunValue(outcome: BatteryOutcome, broken: Iterable<HardRule> = [], completeness?: Completeness): RecordedRun {
+export function recordedRunValue(outcome: BatteryOutcome, broken: Iterable<HardRule> = [], young?: true): RecordedRun {
   const failing = new Set(outcome.failed.map((failure) => failure.rule));
-  return { asked: rulesIn(outcome.asked), fixed: rulesIn([...broken]).filter((rule) => !failing.has(rule)), ...(completeness === "hidden" ? { hidden: [...HIDDEN_RULES] } : {}) };
+  return { asked: rulesIn(outcome.asked), fixed: rulesIn([...broken]).filter((rule) => !failing.has(rule)), ...(young ? { hidden: [...HIDDEN_RULES] } : {}) };
 }
 
 /** `drafts.meta.checks`, read back, or `null` on a row written before it

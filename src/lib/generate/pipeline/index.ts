@@ -37,21 +37,20 @@
 //
 // **The hard rules bind what ReachKit generates, never what the customer
 // writes.** An edit the customer saves does not come through here.
-import { HEADING_GAPS, PAGE_BLOCKS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/llm/tiers";
 import type { Opportunity } from "@/lib/opportunities";
 import type { PageIntent } from "@/lib/opportunities/intent";
 import { readRecordedFact, recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
-import { bodyWords, sectionWords } from "../length";
+import { bodyWords } from "../length";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { urlKey } from "../links/select";
 import { recordedRulesValue, recordedRunValue, recordedVerdictValue } from "../record";
-import { deployedStandard, incomplete, evidenceOf, meetsStandard, writtenAnyway } from "../standard";
+import { deployedStandard, evidenceOf, meetsStandard, writtenAnyway } from "../standard";
 import { batteryCleared, type BatteryOutcome } from "../rules";
-import { answerBoxWords, ownStepsNote, renumberSteps, withoutBrokenLinks } from "../rules/blocks";
+import { renumberSteps, withoutBrokenLinks } from "../rules/blocks";
 import { proseNotes } from "../rules/prose";
 import { linksOf } from "../rules/text";
 import { titleNotes, type TitleCandidate } from "../rules/title";
@@ -258,7 +257,6 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   //     day no row: the caller rests the topic and goes to the next. A rewrite keeps its row, and the row its pack.
   const basis = batteryBasis({ pack, opportunity: a.opportunity, site: a.site, facts: a.facts, grounding, ...(a.demoPhrases === undefined ? {} : { demoPhrases: a.demoPhrases }) });
   const { template, length, pageType, table, searches, names, passages, withList, brief: briefRead } = basis;
-  // No room for the type's floor: a short pack where an incomplete page stops, and elsewhere a page written short.
   const standard = meetsStandard({ pack, words: basis.room });
   const anyway = a.completeness === "warn";
   const missing: PackNeed[] = writtenAnyway(pack, basis.room?.short === true && !pack.missing.includes("facts_few") ? [...pack.missing, "facts_few"] : pack.missing, anyway);
@@ -387,11 +385,11 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ...(repairs.length === 0 ? {} : { repairs: [...priorRepairs, ...repairs] }),
       // Issue 1394: the rules this run asked of the page and the ones it
       // failed first and then cleared, for the draft screen's Checks list.
-      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken, a.site.completeness), standard: (({ parts, met }) => ({ parts, met, version: deployedStandard() }))(meetsStandard({ failed: outcome.failed, markdown: page.markdown, sections: page.laid.sections.length, basis, notes: page.notes })) }),
+      ...(outcome === undefined ? {} : { checks: recordedRunValue(outcome, broken, a.site.young), standard: (({ parts, met }) => ({ parts, met, version: deployedStandard() }))(standardOf(page, outcome)) }),
     };
   };
 
-  const primaryFirst = pack.claims.some((claim) => claim.kind === "primary") ? "a `primary` one first, " : "";
+  const standardOf = (page: Finished, outcome: BatteryOutcome) => meetsStandard({ failed: outcome.failed, markdown: page.markdown, sections: page.laid.sections.length, basis, notes: page.notes });
 
   /** Every rule a check of this run failed, before any repair or fix. */
   const broken = new Set<HardRule>();
@@ -425,29 +423,10 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     });
   };
 
-  /** What the fix call is told: each check failed and what failed it — and,
-   *  for the length, the count against the range, which no sentence shows. */
+  /** What the fix call is told: each check failed and what failed it. A page no stop holds is told nothing. */
   const notesFor = (stopped: Awaited<ReturnType<typeof check>>): FixNote[] => {
-    if (stopped.outcome.passed && !stopped.outcome.failed.some(incomplete)) return [];
-    const words = pack.type === "update" ? sectionWords(stopped.page.markdown) : bodyWords(stopped.page.markdown);
-    const lengthNote = length === null ? null : `length: ${pack.type === "update" ? "the sections have" : "the body has"} ${words} words and must have ${length.floor > 0 ? `between ${length.floor} and ` : "at most "}${length.ceiling}`;
-    const blocks = stopped.outcome.failed.find((failure) => failure.rule === "required_blocks")?.detail;
-    const beside = lengthNote !== null && blocks?.rule === "required_blocks" && blocks.length === true ? [lengthNote] : [];
+    if (stopped.outcome.passed) return [];
     return fixNotes(stopped.page.writer, stopped.outcome.failed, briefRead, a.site, stopped.page.laid.body.title).map((note) => {
-      if (note.rule === "required_blocks" && note.sentences.includes("length") && lengthNote !== null) return { ...note, sentences: [lengthNote] };
-      if (note.rule === "required_blocks" && note.sentences.includes("new_sections")) {
-        return { ...note, sentences: [`new sections: at most ${HEADING_GAPS.sectionsMax} sections may be new, each headed by one of \`pack.gaps\` and linking a url of that gap's \`claims\`; return every other section under its live heading`] };
-      }
-      if (note.rule === "required_blocks" && note.sentences.includes("own_steps")) {
-        return { ...note, sentences: [ownStepsNote({ markdown: stopped.page.markdown, domain: a.site.domain, businessName: a.site.businessName, own: template.blocks.steps?.own ?? 1, claims: pack.claims })] };
-      }
-      const cites = stopped.outcome.failed.find((failure) => failure.rule === "cites_market")?.detail;
-      if (note.rule === "cites_market" && cites !== undefined && cites.rule === "cites_market") {
-        return { ...note, sentences: [`sources: the body links ${cites.cited} of the public pages in \`pack.claims\` and must link at least ${cites.min}; state what those pages say, ${primaryFirst}each in a sentence that links its url`] };
-      }
-      if (note.rule === "required_blocks" && note.sentences.includes("verdict")) {
-        return { ...note, sentences: ["verdict: the which-to-choose section must name at least one option of `table` other than this business and say the case where it is the better pick"] };
-      }
       const title = stopped.outcome.failed.find((failure) => failure.rule === "title")?.detail;
       if (note.rule === "title" && title !== undefined && title.rule === "title") {
         const body = stopped.page.laid.body;
@@ -460,12 +439,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       if (note.rule === "plain_prose" && prose !== undefined && prose.rule === "plain_prose") {
         return { ...note, sentences: proseNotes(prose.faults) };
       }
-      if (note.rule === "first_block_answers") {
-        const box = PAGE_BLOCKS.answerWords;
-        return { ...note, sentences: [`answer: it has ${answerBoxWords(stopped.page.markdown)} words and must be one paragraph of ${box.min} to ${box.max} that does not end in a question`] };
-      }
       return note;
-    }).map((note) => (note.rule === "required_blocks" ? { ...note, sentences: [...note.sentences, ...beside] } : note));
+    });
   };
 
   const attemptsBefore = existing?.hard_rule_attempts ?? 0;
@@ -473,22 +448,20 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
   let repairs = checked.repairs;
   let fixed = false;
 
-  // The one fix call, for a stopped page and for one missing its sections, sources or words: each check the page
-  // failed, and the sentences that failed it. Not started without the money or the time for it.
-  if ((!checked.outcome.passed || checked.outcome.failed.some(incomplete)) && checked.outcome.fit.state !== "unrun") {
-    await record(checked, repairs, checked.outcome.passed ? null : attemptsBefore + 1);
+  // The one fix call, only for a stop code's repairs left: each check the page failed, and the sentences that failed it.
+  // A page short on sections, sources or words is a warning and buys none. Not started without the money or the time.
+  if (!checked.outcome.passed && checked.outcome.fit.state !== "unrun") {
+    await record(checked, repairs, attemptsBefore + 1);
     const notes = notesFor(checked);
     const { again, stop, owed: later } = await tryFix(c, { startedAt, writtenAt, owe: a.fixStep === "owe", call: () => fixPage(c, { ...writing, parts: written.value, fix: notes }) });
     // The `fix` step reads the row as this run found it, with the write's parts beside it.
     if (later) return (await store.patchDraft(draftId, { meta: { ...baseMeta, [FIX_OWED]: written.value }, hard_rule_attempts: attemptsBefore }), logRun({ siteId: a.siteId, draftId, step: "fix", outcome: "owed" }), { ok: false, reason: "step_failed", draftId, step: "fix", owed: true });
     if (again === null || again.kind === "unmeasured") {
       logRun({ siteId: a.siteId, draftId, step: "fix", outcome: stop ?? (again === null ? "not_started" : "step_failed") });
-      if (!checked.outcome.passed) return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
+      return { ok: false, reason: "rules", draftId, failed: checked.outcome.failed, attempt: attemptsBefore + 1, recovery: "rest", fix: notes, ...(stop === null ? {} : { stop }) };
     } else {
       const mended = await check(finish(again.value));
-      // A page that could enter review is never lost to its fix: the fixed page is kept only where it can too.
-      fixed = !checked.outcome.passed || mended.outcome.passed;
-      if (fixed) [checked, repairs] = [mended, [...repairs, ...mended.repairs]];
+      [checked, repairs, fixed] = [mended, [...repairs, ...mended.repairs], true];
     }
   }
 
@@ -500,7 +473,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
     return { ok: false, reason: "step_failed", draftId, step: "fit_check" };
   }
   if (checked.outcome.passed) {
-    logRun({ siteId: a.siteId, draftId, outcome: "passed", type: pack.type, fixed, costCents: Math.round(c.spentCents()) });
+    const short = standardOf(checked.page, checked.outcome).parts.filter((part) => part.state === "short").map((part) => `${part.part}:${part.have}/${part.need}`);
+    logRun({ siteId: a.siteId, draftId, outcome: "passed", type: pack.type, fixed, short, costCents: Math.round(c.spentCents()) });
     return { ok: true, draftId, grounded: grounding?.fact ?? null };
   }
 

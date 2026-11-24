@@ -23,8 +23,7 @@ import { fold, rivalsOnlyVersus, type ContextPack } from "./pipeline/pack";
 import { fetchBody, researchSerps } from "./pipeline/research";
 import { writingMarket } from "./voice/market";
 import { checkStoredAt0, siteSets, type RecheckOutcome } from "./recheck";
-import { completenessFor, readRecordedRules, stops } from "./record";
-import type { Completeness } from "./rules/types";
+import { readRecordedRules, stops } from "./record";
 import { mendedInCode, repairStructure } from "./rules/structure";
 import type { PartMark } from "./standard";
 import { DraftDateTaken, PageStopped, generateStore, type DraftRow, type SiteFacts } from "./store";
@@ -168,11 +167,6 @@ const pastFloor = (publishedAt: Date, at: Date): boolean => at.getTime() - publi
 export async function newSite(siteId: string, at: Date): Promise<boolean> {
   const pages = await opportunityStore().refreshPages(siteId).catch(() => null);
   return pages !== null && !pages.some((page) => page.takenDown !== true && pastFloor(page.publishedAt, at));
-}
-
-/** What an incomplete page of this site meets (`completenessFor`): `anyway` for the day's last step. */
-export async function completenessOf(siteId: string, at: Date, anyway = false): Promise<Completeness> {
-  return completenessFor(anyway ? "anyway" : "customer", await newSite(siteId, at));
 }
 
 /** R31's rivals of a `vs` topic, as its pack names them: the domains a page on it must read first-hand. */
@@ -336,25 +330,14 @@ async function weekTopics(siteId: string, date: string): Promise<Opportunity[]> 
 
 /**
  * The day's last step (SPEC §7, owner 2026-11-18, rulings 1, 11, 13 and 16). A page a harm rule stopped ends the day
- * empty. One only completeness stopped is read again at 0¢ with completeness a warning and enters review. Otherwise
- * the topic is written anyway, as its type where its research holds the minimum, else as documentation from the
+ * empty. Otherwise the topic is written anyway, as its type where its research holds the minimum, else as documentation from the
  * site's own facts; a topic neither can source costs no write, and the week's next short topic is tried. One write.
  */
 async function lastStep(day: Day, a: { trigger: string; stopped: string | null; giveUp: () => Promise<void> }, now: Date, cost: CostContext): Promise<DayPageOutcome | typeof HARM_STOP | typeof NO_TOPIC> {
   const store = generateStore();
   const row = a.stopped === null ? null : await store.draftById(a.stopped);
   const failures = readRecordedRules(row?.rule_failures) ?? [];
-  if (failures.some((failure) => stops(failure, "warn"))) return HARM_STOP;
-  const opportunity = row === null || !failures.some((failure) => stops(failure)) ? null : await opportunityById(row.opportunity_id);
-  if (row !== null && opportunity !== null) {
-    const sets = await siteSets(day.siteId, day.site, day.report);
-    const site = { ...sets.site, completeness: sets.site.completeness === "hidden" ? ("hidden" as const) : ("warn" as const) };
-    const checked = await checkStoredAt0(row, row.body_md ?? "", { ...sets, site, opportunity, now });
-    if (checked.kind === "checked" && checked.passed) {
-      await store.patchDraft(row.id, { ...checked.patch, meta: { ...metaOf(checked.patch.meta), fallbackFor: a.trigger } });
-      return { ok: true, draftId: row.id };
-    }
-  }
+  if (failures.some(stops)) return HARM_STOP;
   await a.giveUp();
   const { writeFallback } = await import(".");
   const startedAt = Date.now();
