@@ -84,7 +84,7 @@ function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: C
   // A page an open refresh already updates takes no second update.
   const updated = new Set([...rows.values()].flatMap((o) => (o.type === "refresh_page" && o.targetRef !== null ? [canonicalUrl(o.targetRef)] : [])));
   const kept: { o: Opportunity; entry: Joined }[] = [];
-  const out: Joined[] = [], later: Joined[] = [];
+  const out: Joined[] = [], later: Joined[] = [], first: Opportunity[] = [];
   for (const entry of ranked) {
     const o = rows.get(entry.opportunityId);
     if (o === undefined || (o.family !== "write" && o.family !== "earn")) {
@@ -107,7 +107,10 @@ function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: C
     }
     const held: Joined = page === null ? { ...entry } : { opportunityId: entry.opportunityId, reason: entry.reason, set: updateColumns(asUpdate(o, { page, score: pageScore({ query: o.targetQuery, title: o.title }, page, market) }, input.at)) };
     if (page !== null) updated.add(canonicalUrl(page.url!));
-    (kept.some((k) => oneHead([k.o.targetQuery, k.o.title], [o.targetQuery, o.title])) ? later : out).push(held);
+    // Only a row placed in `out` ranks another down, so a ranked-down row never chains a third.
+    const named = first.some((k) => oneHead([k.targetQuery, k.title], [o.targetQuery, o.title]));
+    (named ? later : out).push(held);
+    if (!named) first.push(o);
     kept.push({ o, entry: held });
   }
   return [...out, ...later];
