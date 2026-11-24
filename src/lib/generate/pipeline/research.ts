@@ -70,7 +70,7 @@
 // page is written from its business facts alone, as before this step.
 import { parse } from "node-html-parser";
 import { z } from "zod";
-import { ASKED_TOPICS, CACHE_WINDOWS_D, CITES_MARKET, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
+import { ASKED_TOPICS, CACHE_WINDOWS_D, HEADING_GAPS, RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { safeFetch } from "@/lib/egress";
 import { llm } from "@/lib/llm";
@@ -594,7 +594,7 @@ export async function researchMarket(
     questions?: boolean;
     /** A page built from cited outside facts (issue 1486): the one search looks for the target's own guidance in place
      *  of studies, and a result that is a platform's or an authority's documentation is read first, as a `primary` source. */
-    guidance?: boolean; study?: boolean; page?: string;
+    guidance?: boolean; study?: boolean; page?: string; sources: number;
     /** The commit's readable results, in order (SPEC §7): read before the stored top ten, the fourth the spare. */
     urls?: readonly string[];
   }
@@ -622,8 +622,8 @@ export async function researchMarket(
   // 1. The network, in parallel: the top results, each rival's two pages, then on a page that compares options the products
   //    its top results name. The target's SERP, bought once first, gives today's results and what buyers ask.
   const stored = a.urls?.length ? [...a.urls] : storedTopTen(a.report, a.searches);
-  // A stored list short of the two-source floor is topped up from today's results, and even an update runs the study search.
-  const short = stored.length < CITES_MARKET.min;
+  // A stored list short of the page's sources is topped up from today's results, and even an update runs the study search.
+  const short = stored.length < a.sources;
   let pending = false;
   const [targetRead, studyRead] = researchSerps({ ...a, target, market: a.marketWords?.[0], study: a.study !== false || short }, RESEARCH.queueWaitS * 1000).map((read) => ({ ...read, onFailure: (failed: { taskId?: string }) => void (pending ||= failed.taskId !== undefined) }));
   const beside = a.questions === true || short ? await askedBeside(c, targetRead!) : null;

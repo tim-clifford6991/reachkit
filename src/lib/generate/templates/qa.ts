@@ -24,5 +24,5 @@ export const qa: Template = {
   research: true,
   sources: CITES_MARKET.min,
   // A page with no business fact stands on research alone (owner, #2511).
-  packMustHold: [{ need: "buyer_questions", min: 5 }, { need: "outside_sources", min: CITES_MARKET.min }],
+  packMustHold: [{ need: "buyer_questions", min: 5 }, { need: "outside_sources" }],
 };

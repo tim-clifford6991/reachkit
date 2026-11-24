@@ -54,5 +54,5 @@ export const howTo: Template = {
   sources: CITES_MARKET.min,
   // Issue 1486: the steps are the outside sources'; a page with no business
   // fact stands on them alone (owner, #2511).
-  packMustHold: [{ need: "outside_sources", min: CITES_MARKET.min }],
+  packMustHold: [{ need: "outside_sources" }],
 };

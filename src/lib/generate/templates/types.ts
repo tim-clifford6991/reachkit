@@ -46,10 +46,8 @@ export type PackRequirement =
   | { need: "difference" }
   /** `min` business facts or more, one at least in the target's words. */
   | { need: "facts_on_topic"; min: number }
-  /** Claims read off `min` distinct public pages or more (issue 1486): what
-   *  a page built from cited outside facts is built from. The page's body
-   *  then links that many (`cites_market`). */
-  | { need: "outside_sources"; min: number }
+  /** Claims read off more distinct public pages than the body must cite (`sourcesNeed`): what a page built from cited outside facts is built from. */
+  | { need: "outside_sources" }
   /** A product page of the customer's to link. */
   | { need: "product_page" }
   /** The site's latest complete pass with `min` measured questions. */

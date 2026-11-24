@@ -4,7 +4,7 @@
   "testFiles": { "live": 609, "layout": 17 },
   "lines": {
     "fileMax": 600,
-    "areas": { "src/lib/opportunities": 9000, "src/lib/generate": 17180, "src/lib/publish": 12936 },
+    "areas": { "src/lib/opportunities": 9000, "src/lib/generate": 17166, "src/lib/publish": 12936 },
     "tests": { "share": 0.3333, "floor": 200 }
   },
   "ratchets": { "dbAdminCasts": 81, "minimalClients": 63, "fixtureBranches": 32 },

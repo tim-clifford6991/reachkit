@@ -514,7 +514,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
         livePages: livePages.filter((page) => urlKey(page.url) !== urlKey(o.targetRef)).map((page) => page.markdown),
       });
     // 2. Research, for the types that read public pages (`researchFor`).
-    const market = await researchFor(cost, { ...a, o, type, as, locale, writingFor });
+    const market = await researchFor(cost, { ...a, o, type, as, own, locale, writingFor });
     return { pack: packOf(market), links, ...(market.pending === true ? { pending: true as const } : {}) };
   };
 

@@ -30,7 +30,7 @@ import { alikeHeadings } from "./rules/headings";
 import { namedRivals } from "./rules/rivals";
 import { isQuestionShaped } from "./rules/text";
 import { generateStore, type SiteFacts } from "./store";
-import { TEMPLATES } from "./templates";
+import { sourcesNeed, TEMPLATES } from "./templates";
 import { siteWritingMarket, type WritingMarket } from "./voice/market";
 
 /** The asking steps: the first waits `askMs` for a read that is ready at once, then each round its own invocation inside
@@ -93,7 +93,7 @@ export async function heldResearch(cost: CostContext, a: { key: string; reuse: b
  *  market's searched terms too (owner, D62; issue 1297): the pack says when it holds enough. */
 export async function researchFor(
   cost: CostContext,
-  a: { siteId: string; site: SiteFacts; report: StoredReport; draftId?: string; publishDate: string | null; fixStep?: "owe" | "owed"; o: Opportunity; type: ContentType; as: ContentType; locale: Locale; writingFor: WritingMarket }
+  a: { siteId: string; site: SiteFacts; report: StoredReport; draftId?: string; publishDate: string | null; fixStep?: "owe" | "owed"; o: Opportunity; type: ContentType; as: ContentType; own?: ContentType; locale: Locale; writingFor: WritingMarket }
 ): Promise<MarketResearch> {
   const { site, report, o, type, as, locale, writingFor } = a;
   const category = writingFor.category;
@@ -104,7 +104,7 @@ export async function researchFor(
           locale,
           domain: site.domain,
           searches: targetSearches(o),
-          urls: o.planReason?.research?.urls,
+          urls: o.planReason?.research?.urls, sources: sourcesNeed(type, a.own),
           report,
           rivals: [...versusRivals(site, report, o), ...(competitorOf(o) ?? []), ...site.rivals],
           // Issue 1508: a listicle counts its top results' options, and an alternatives search's product is its baseline.
