@@ -1,9 +1,8 @@
 // A how-to query on a vendor results page falls to documentation and keeps its research and its outside sources.
 import "./env";
 import { expect, it } from "vitest";
-import { citesMinOf } from "../../src/lib/generate/rules/brief-lines";
-import { builtFromOutside, fittedTemplate, meetsStandard, missingFrom, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "../../src/lib/generate/standard";
-import { TEMPLATES } from "../../src/lib/generate/templates";
+import { builtFromOutside, meetsStandard, missingFrom, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "../../src/lib/generate/standard";
+import { sourcesNeed } from "../../src/lib/generate/templates";
 import { opportunity, pack } from "./fixtures";
 
 const row = opportunity({ type: "keyword_page", targetQuery: "how to check if a chatbot names my shop" });
@@ -16,7 +15,7 @@ it("keeps the how-to's research and sources need on the documentation page it fa
   const fallen = pack({ type, own, claims: [], questions: [] });
   expect(researchedAs(type, own)).toBe("how_to");
   expect(builtFromOutside(type, own)).toBe(true);
-  expect(citesMinOf(fittedTemplate(fallen))).toBe(citesMinOf(TEMPLATES.how_to));
+  expect(sourcesNeed(type, own)).toBe(sourcesNeed("how_to"));
   const missing = missingFrom(fallen);
   expect(missing).toContain("outside_sources");
   expect(meetsStandard({ pack: { ...fallen, missing } }).met).toBe(false);

@@ -16,5 +16,6 @@ export const research: Template = {
   blocks: { table: { rivals: 0 }, faq: { min: 3, max: 6 } },
   length: { floor: 1000, target: 1300, ceiling: 1600 },
   research: false,
+  sources: 2,
   packMustHold: [{ need: "measured_questions", min: 10 }, { need: "changed_figures" }],
 };

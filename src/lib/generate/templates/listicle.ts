@@ -75,5 +75,6 @@ export const listicle: Template = {
   blocks: { table: { rivals: 2 }, faq: { min: 3, max: 6 } },
   length: { floor: 1800, target: 2600, ceiling: 3750, kept: 2500, keptAim: { floor: 1600, target: 2000 } },
   research: true,
+  sources: 1,
   packMustHold: NEEDS,
 };

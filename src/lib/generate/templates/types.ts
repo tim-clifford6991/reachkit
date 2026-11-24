@@ -99,6 +99,8 @@ export interface Template {
   length: { floor: number; target: number; ceiling: number; kept?: number; keptAim?: { floor: number; target: number } } | { withinShareOfLive: number; grownShare?: number };
   /** Whether stage 2 reads public pages for this type. */
   research: boolean;
+  /** The independent pages its body is asked to cite (`sourcesNeed`): a brief ask, a reserved room and a warning, never a stop. */
+  sources: number;
   packMustHold: readonly PackRequirement[];
 }
 

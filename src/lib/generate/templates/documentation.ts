@@ -25,5 +25,6 @@ export const documentation: Template = {
   blocks: { faq: { min: 3, max: 6 } },
   length: { floor: 800, target: 1100, ceiling: 1500 },
   research: false,
+  sources: 0,
   packMustHold: [{ need: "facts_on_topic", min: 4 }],
 };

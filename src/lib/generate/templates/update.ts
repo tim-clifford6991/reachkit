@@ -26,5 +26,6 @@ export const update: Template = {
   blocks: { faq: { min: 3, max: 6 } },
   length: { withinShareOfLive: 0.2, grownShare: HEADING_GAPS.growShare },
   research: true,
+  sources: 0,
   packMustHold: [{ need: "live_page" }, { need: "new_fact", min: 1 }],
 };
