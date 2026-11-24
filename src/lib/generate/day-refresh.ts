@@ -25,7 +25,6 @@ import { readRecordedRules, stops } from "./record";
 import { mendedInCode, repairStructure } from "./rules/structure";
 import type { PartMark } from "./standard";
 import { DraftDateTaken, PageStopped, generateStore, type DraftRow, type SiteFacts } from "./store";
-import { inTest } from "./test-draft";
 
 export interface MendInput {
   siteId: string;
@@ -188,10 +187,9 @@ export function versusRivals(site: SiteFacts, report: StoredReport, o: Pick<Oppo
   return rivalsOnlyVersus({ target: { searches: targetSearches(o), question: o.title ?? "" }, business }).map((rival) => rival.domain);
 }
 
-/** The pack's `rival_evidence` stop, checked at 0¢ before a topic's research is bought: each rival a `vs` topic names
- *  answers on its own site. A test write's topic is written as found. */
+/** The pack's `rival_evidence` stop at 0¢, before a topic's research is bought: each rival a `vs` topic names answers. */
 export async function rivalsAnswer(day: { site: SiteFacts; report: StoredReport }, topic: Opportunity): Promise<boolean> {
-  return inTest() || !(await Promise.all(versusRivals(day.site, day.report, topic).map((domain) => fetchBody(`https://${domain}/`)))).includes(null);
+  return !(await Promise.all(versusRivals(day.site, day.report, topic).map((domain) => fetchBody(`https://${domain}/`)))).includes(null);
 }
 
 /** A test write's topic, read and never planned: the date's open planned row, else the first open spare. */
