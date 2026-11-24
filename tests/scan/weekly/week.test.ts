@@ -170,3 +170,8 @@ describe("a zone this module cannot read is a failure, not a fallback to UTC", (
     expect(() => localClock(MONDAY_0600_UTC, "Mars/Olympus")).toThrow();
   });
 });
+
+it("the news read searches what moves the market while the pass's watch waits on a pending market", async () => {
+  const { newsQueries } = await import("@/lib/scan/weekly/market-changes");
+  expect(newsQueries({ current: null, pending: { watch: ["ChatGPT"] } } as never, "geo")).toEqual(["ChatGPT", "geo"]);
+});
