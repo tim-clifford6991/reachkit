@@ -30,23 +30,39 @@ const TASK = [
 ].join(" ");
 
 
+/** Each angle the model gave and what came of it, which the judged log tells: kept, or dropped for its wording or a fit of 0. */
+export interface AngleRead {
+  search: string;
+  fit: number | null;
+  why: "kept" | "fair" | "unjudged" | "fit";
+  /** Whether the fit call gave it a title its sources carry; one without is still a topic, titled at the commit. */
+  titled: boolean;
+}
+
 export interface HotAngle {
   search: string;
-  title: string;
-  angle: TopicAngle;
+  title: string | null;
+  angle: TopicAngle | null;
   fact: FitFact | null;
   fit: BusinessFit;
   /** Whether the event changes what a buyer decides or does, which its `timely` part reads. */
   changes: boolean;
+  angles: AngleRead[];
 }
 
-/** The event's best-fitting angle for this business, or `null` where the event is sensitive, no angle fits above 0, or
- *  the cap or the model left no answer. */
+/** Why an event gave no topic. */
+export interface HotMiss {
+  miss: "no_market" | "unmeasured" | "sensitive" | "no_angles" | "fair" | "cap" | "fit";
+  angles: AngleRead[];
+}
+
+/** The event's best-fitting angle for this business; any fit above 0 is a topic, ranked by its fit, and only harm or a
+ *  fit of 0 stops it. A miss says why there is none. */
 export async function angleFor(
   c: CostContext,
   a: { event: HotEvent; locale: Locale; market: MarketConclusion | null; profile: Profile | null; domain: string; knowledge: KnowledgeDigest | null }
-): Promise<HotAngle | null> {
-  if (a.market === null && a.profile === null) return null;
+): Promise<HotAngle | HotMiss> {
+  if (a.market === null && a.profile === null) return { miss: "no_market", angles: [] };
   const answer = await llm(c, {
     site: "generate.hot_angle",
     tier: "research",
@@ -64,17 +80,20 @@ export async function angleFor(
       },
     },
   });
-  if (answer.kind === "unmeasured" || answer.value.sensitive) return null;
+  if (answer.kind === "unmeasured" || answer.value.sensitive) return { miss: answer.kind === "unmeasured" ? "unmeasured" : "sensitive", angles: [] };
   const sources = [a.event.event, a.event.title, ...a.event.claims.map((claim) => claim.quote)];
   // The language's news words, which the page's own title is held to as well.
   const news = newsWords(a.locale.language);
   const fair = (text: string): boolean => text.trim() !== "" && !news.test(text) && namesAreReal(text, { search: "", sources, ranks: [] });
-  const angles = [...new Set(answer.value.angles.map((angle) => angle.trim()))].filter(fair);
-  if (angles.length === 0 || c.capHit()) return null;
+  const given = [...new Set(answer.value.angles.map((angle) => angle.trim()))], angles = given.filter(fair);
+  const reads: AngleRead[] = given.filter((search) => !fair(search)).map((search) => ({ search, fit: null, why: "fair", titled: false }));
+  if (angles.length === 0 || c.capHit()) return { miss: given.length === 0 ? "no_angles" : angles.length === 0 ? "fair" : "cap", angles: reads };
   const fits = await judgeFit(c, { searches: angles.map((query) => ({ query, source: "category", ranks: sources })), market: a.market, profile: a.profile, domain: a.domain, knowledge: a.knowledge, locale: a.locale });
-  const best = [...angles.entries()].flatMap(([i, search]) => {
-    const judged = fits.get(i);
-    return judged === undefined || judged.fit < 1 || judged.angle === null || judged.title === null || !fair(judged.title) ? [] : [{ search, title: judged.title, angle: judged.angle, fact: judged.fact, fit: judged.fit, changes: answer.value.changes }];
+  const best = angles.flatMap((search, i) => {
+    const judged = fits.get(i), title = judged?.title != null && fair(judged.title) ? judged.title : null;
+    reads.push({ search, fit: judged?.fit ?? null, why: judged === undefined ? "unjudged" : judged.fit < 1 ? "fit" : "kept", titled: title !== null });
+    return judged === undefined || judged.fit < 1 ? [] : [{ search, title, angle: title === null ? null : judged.angle, fact: judged.fact, fit: judged.fit, changes: answer.value.changes }];
   });
-  return best.sort((a, b) => b.fit - a.fit)[0] ?? null;
+  const kept = best.sort((x, y) => y.fit - x.fit || Number(y.title !== null) - Number(x.title !== null))[0];
+  return kept === undefined ? { miss: "fit", angles: reads } : { ...kept, angles: reads };
 }

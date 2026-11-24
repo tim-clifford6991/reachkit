@@ -93,7 +93,7 @@ describe("a site's week spends from one sum", () => {
     const angle = await withCostContext({ scanId: WEEK, cap: "DRAFT", policyVersion: 1, rollUp: "none", priorCents: CAPS.DRAFT_C }, (c) =>
       angleFor(c, { event: { ...event, claims: [] }, locale: DEFAULT_LOCALE, market: null, profile, domain: "example.com", knowledge: null })
     );
-    expect(angle).toBeNull();
+    expect(angle).toMatchObject({ miss: "unmeasured" });
     expect(calls.model).toBe(0);
   });
 
