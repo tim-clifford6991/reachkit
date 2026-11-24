@@ -2,6 +2,7 @@
 // a Q&A whose headings are one question asked again is stopped.
 import { describe, expect, it } from "vitest";
 import { checkDistinctHeadings } from "../../../src/lib/generate/rules/headings";
+import { leansBack } from "../../../src/lib/generate/rules/standalone";
 
 const page = (...headings: string[]) => headings.map((heading) => `## ${heading}\n\nAn answer.\n`).join("\n");
 
@@ -38,4 +39,8 @@ describe("distinct_headings", () => {
     expect(checkDistinctHeadings({ markdown: sub, apply: true })).toBeNull();
     expect(checkDistinctHeadings({ markdown: page("What does Alpha cost?", "What does Beta cost?"), apply: false })).toBeNull();
   });
+});
+
+it("standalone_lead flags a section that opens on 'The same page says'", () => {
+  expect(leansBack("What does Peec AI track, and what does it cost?", "The same page says Peec AI tracks every mention of your brand.", "en")).toBe(true);
 });

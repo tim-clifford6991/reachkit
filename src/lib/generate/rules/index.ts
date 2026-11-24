@@ -282,6 +282,7 @@ export async function runHardRules(
     domain: a.site.domain,
     titleOwed: (a.titleRule?.business?.length ?? 0) > 0,
     ...(a.prose === undefined ? {} : { language: a.prose.language }),
+    ...(a.brief.marketFacts === undefined ? {} : { claims: a.brief.marketFacts }),
   };
   const verdict = given.fit ?? await fitCheck(c, { ...asking, knowledge: a.knowledge, market: given.market });
   // A business sentence the check could not read is never kept as if it had passed.

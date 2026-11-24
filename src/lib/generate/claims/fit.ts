@@ -17,6 +17,8 @@ import { llm } from "@/lib/llm";
 import { languagePack } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { brandTokens, namesBrand } from "../rules/brand";
+import type { MarketFactRead } from "../rules/brief";
+import { rivalsNamedIn } from "../rules/rivals";
 import { renderOf, sentencesOf } from "../rules/text";
 import type { PromptKnowledge } from "../voice/profile-block";
 
@@ -29,18 +31,14 @@ export type FitVerdict =
 /** The one call site this module reaches the model at. */
 export const FIT_CHECK_CALL_SITE = "generate.fit_check";
 
-/** What an unsupported claim is: the one wording the fit check judges by and the writer is told
- *  (`../pipeline/write.ts`), so what is written and what is checked cannot drift apart (owner, 2026-11-04,
- *  "only generate content that complies"; issue 2375). */
+/** The one wording the fit check judges by and the writer is told, so what is written and what is checked cannot drift. */
 export const UNSUPPORTED_CLAIM =
   "An unsupported claim says the business itself is a kind of product, or is for a use, an audience or a market, " +
   "that what is known about the business does not support — for example, calling it the best software of a category " +
   "what is known about it never places it in; or promises the reader a step, a timeline or a result from the business " +
   "that what is known about the business does not state.";
 
-/** `claims` is the category or use the sentence puts the business in, in a
- *  few words. It is asked for because naming it is what makes the model
- *  compare it with the knowledge base; it is never kept or shown. */
+/** `claims` is asked for because naming the category makes the model compare it with the knowledge base; it is never kept. */
 const FIT_CHECK_SCHEMA = z.strictObject({
   unsupported: z.array(z.strictObject({ index: z.number().int(), claims: z.string() })),
 });
@@ -49,13 +47,8 @@ const TABLE_LINE_RE = /^[ \t]*\|.*\|[ \t]*$/;
 const TABLE_RULE_RE = /^[ \t|:-]+$/;
 const LINK_LINE_RE = /^[ \t]*(?:[-*+]|\d+\.)?[ \t]*\[[^\]]+\]\([^)]+\)[ \t]*$/;
 
-/** The sentences a fit check reads: the title and every sentence of the
- *  body that names the business or speaks as it, once each, in order. A title the title rule
- *  makes name the business ("ReachKit vs Seobility") claims no fit and is
- *  left out, and so is a line that is only a link: its label is another
- *  page's title, not a claim of this one. A table is read row
- *  by row — the rules' own splitter takes a whole table as one block, and a
- *  whole comparison is not a claim about one business. */
+/** The sentences a fit check reads: the title and each sentence or table row that names the business or speaks as it,
+ *  once each, in order. A title the title rule makes name the business and a line that is only a link claim no fit. */
 export function brandSentences(a: {
   title: string;
   markdown: string;
@@ -64,9 +57,15 @@ export function brandSentences(a: {
   titleOwed?: boolean;
   /** The page's language: a sentence in its business's own voice ("we", "our") is read too. */
   language?: Language;
+  /** `pack.claims`: a sentence that makes one of their rivals the better pick for a need is an honest concession, not a claim of fit. */
+  claims?: readonly MarketFactRead[];
 }): string[] {
   const tokens = brandTokens(a);
-  const own = a.language === undefined ? undefined : languagePack(a.language).ownVoice;
+  const pack = a.language === undefined ? undefined : languagePack(a.language), own = pack?.ownVoice;
+  const rivals = (a.claims ?? []).flatMap((claim) => [claim.product, claim.about].flatMap((name) => (name ? [{ domain: URL.canParse(claim.url) && name === claim.product ? new URL(claim.url).hostname.replace(/^www\./, "") : name.toLowerCase(), name }] : [])));
+  // After the concession the business may only be what the rival is compared with; any other claim is still checked.
+  const conceded = (text: string, at = pack?.prefersRival.exec(text)?.index ?? 0): boolean =>
+    rivalsNamedIn(text.slice(0, at), rivals).length > 0 && ![text.slice(0, at), text.slice(at).replace(/\b(?:than|over)\s+\S+/gi, "")].some((part) => namesBrand(part, tokens) || own?.test(part) === true);
   const out: string[] = [];
   const lines = a.markdown.split("\n");
   const prose = lines.filter((line) => !TABLE_LINE_RE.test(line) && !LINK_LINE_RE.test(line)).join("\n");
@@ -74,7 +73,7 @@ export function brandSentences(a: {
     .filter((line) => TABLE_LINE_RE.test(line) && !TABLE_RULE_RE.test(line))
     .map((line) => renderOf(line).replace(/\s+/g, " ").trim());
   for (const text of [...(a.titleOwed === true ? [] : [a.title]), ...sentencesOf(prose).map((sentence) => sentence.text), ...rows]) {
-    if ((namesBrand(text, tokens) || own?.test(text) === true) && !out.includes(text)) out.push(text);
+    if ((namesBrand(text, tokens) || own?.test(text) === true) && !conceded(text) && !out.includes(text)) out.push(text);
   }
   return out.slice(0, FIT_CHECK_MAX_SENTENCES);
 }
@@ -89,12 +88,10 @@ export async function fitCheck(
     /** The title rule requires the title to name the business. */
     titleOwed?: boolean;
     language?: Language;
-    /** The knowledge base the writer was handed, or absent where nothing was
-     *  read or said of the business. */
+    claims?: readonly MarketFactRead[];
+    /** The knowledge base the writer was handed; absent where nothing is known of the business. */
     knowledge: PromptKnowledge | undefined;
-    /** The market the site is in (`sites.market`, issue 1248): its category,
-     *  who buys and the job. A sentence that places the business in its own
-     *  market is supported by it. */
+    /** `sites.market`: a sentence that places the business in its own market is supported by it. */
     market?: unknown;
   }
 ): Promise<FitVerdict> {

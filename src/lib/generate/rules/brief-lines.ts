@@ -33,7 +33,7 @@ const quoted = (phrases: readonly string[]): string => phrases.map((phrase) => `
 
 export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => string | readonly string[] | null>> = Object.freeze({
   grounding: () => [
-    "Write from `pack` only. `pack.facts` are this business's own words, read off its pages; `pack.claims` are claims read off public pages; `pack.profile` is what the business sells and how. State nothing about the business, the market, a competitor or a price that none of them carries.",
+    "Write from `pack` only. `pack.facts` are this business's own words, read off its pages, and one that is not a whole sentence (a label, a tagline) is said in a sentence of your own, never pasted or linked as one; `pack.claims` are claims read off public pages; `pack.profile` is what the business sells and how. State nothing about the business, the market, a competitor or a price that none of them carries.",
     "State a business fact word for word and link it to its `url`. A business fact used word for word may stand as a one-paragraph blockquote ending with a Markdown link to its `url` — at most three blockquotes on the page, each a whole sentence a reader can follow on its own, never a fragment of a table, a menu or a screen.",
   ],
   rival_claim: () => [

@@ -468,6 +468,9 @@ export interface LaidPage {
   kept: boolean;
 }
 
+/** A passage that reads as a sentence on its own: it ends as one and opens on no label ("Your part: …"). */
+export const isSentence = (passage: string): boolean => /[.!?]["'”’)]?$/.test(passage.trim()) && !/^[^.!?:]{1,40}:\s/.test(passage.trim());
+
 /** A passage as a sentence that links its page, word for word. */
 export function linkedPassage(passage: string, url: string): string {
   const text = passage.replace(/[[\]]/g, "").trim();

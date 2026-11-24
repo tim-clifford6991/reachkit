@@ -86,3 +86,7 @@ describe("the questions a page itself asks are read from its markup", () => {
     expect(read.questions).toEqual(["Kann ich Brot für morgen vorbestellen?"]);
   });
 });
+
+it("keeps two elements of several words apart where nothing separates them", () => {
+  expect(prose(page("", '<div><span>Day 2</span><span>Your first page goes live.</span></div>')).text).toBe("Day 2\nYour first page goes live.");
+});

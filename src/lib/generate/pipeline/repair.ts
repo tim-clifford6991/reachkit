@@ -47,7 +47,7 @@ import { languagePack } from "@/lib/locale/language";
 import { urlKey } from "../links/select";
 import type { Template } from "../templates";
 import type { ContextPack } from "./pack";
-import { linkedPassage } from "./compose";
+import { isSentence, linkedPassage } from "./compose";
 import type { PageParts } from "./write";
 
 /** The rules a repair in code is tried for, in the order it is applied. */
@@ -473,7 +473,7 @@ function answerWithFact(answer: string, pack: ContextPack, withFit: boolean): st
   if (linksOf(answer).some((url) => own.has(urlKey(url) ?? ""))) return answer;
   const sentences = splitSentences(answer.trim());
   const { min, max } = PAGE_BLOCKS.answerWords;
-  const boxes = linked.map((fact) => linkedPassage(fact.passage, fact.url)).flatMap((fact) => {
+  const boxes = linked.filter((fact) => isSentence(fact.passage)).map((fact) => linkedPassage(fact.passage, fact.url)).flatMap((fact) => {
     let kept = 0;
     while (kept < sentences.length && wordCount([...sentences.slice(0, kept + 1), fact].join(" ")) <= max) kept++;
     return kept === 0 ? [] : [[...sentences.slice(0, kept), fact].join(" ")];
@@ -484,7 +484,7 @@ function answerWithFact(answer: string, pack: ContextPack, withFit: boolean): st
 
 /** Owner P2b and P3 (2026-11-16): a page whose row names its fit fact states a business passage, word for word and
  *  linked, in its short answer, and the fit fact in its business section, never twice. Code adds what the writer left
- *  out and writes no other word but the section's heading. A founder's fact has no page to link, so its section is left to the writer. */
+ *  out and writes no other word but the section's heading. A founder's fact has no page to link, and a passage that is no sentence is never pasted: either section is left to the writer. */
 export function withFitFact(parts: PageParts, a: { pack: ContextPack; template: Pick<Template, "sections">; businessName: string | null }): PageParts {
   const fit = a.pack.fitFact;
   if (fit === undefined) return parts;
@@ -493,7 +493,7 @@ export function withFitFact(parts: PageParts, a: { pack: ContextPack; template: 
   // The pitch is said once: where the business section states the fit fact, the box takes another of the pack's.
   const inSection = fit.url !== null && asked && (written || a.businessName !== null);
   const answer = answerWithFact(parts.answer, a.pack, !inSection && a.pack.type !== "listicle");
-  if (!inSection || written || fit.url === null || a.businessName === null) return { ...parts, answer };
+  if (!inSection || written || fit.url === null || a.businessName === null || !isSentence(fit.passage)) return { ...parts, answer };
   const heading = languagePack(a.pack.locale?.language ?? "en").businessHeading(a.businessName);
   const sections = [...parts.sections.filter((section) => section.key !== "business"), { key: "business", heading, body: `> ${linkedPassage(fit.passage, fit.url)}` }];
   return { ...parts, answer, sections };
