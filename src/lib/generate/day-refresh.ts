@@ -47,19 +47,15 @@ export function mendable(opportunity: Opportunity): boolean {
   );
 }
 
-/** Whether a planned refresh is made at 0¢ or one small call (a snippet, or a mend), rather than by the writer. A mend
- *  is checked with its live version's pack, so a page that went live with none is the writer's update instead. */
+/** A refresh made at 0¢ or one small call, not by the writer: a mend is checked with its live version's pack, so a page live with none is the writer's. */
 export async function refreshedInCode(siteId: string, o: Opportunity, say = true): Promise<boolean> {
-  if (snippetOnly(o)) return true;
-  if (!mendable(o)) return false;
+  if (!mendable(o)) return snippetOnly(o);
   const live = await generateStore().liveVersionAt(siteId, o.targetRef);
-  if (live === null || metaOf(live.draft.meta).pack !== undefined) return true;
-  if (say) notMended(siteId, o, "no_pack");
-  return false;
+  const packed = live === null || metaOf(live.draft.meta).pack !== undefined;
+  if (!packed && say) notMended(siteId, o, "no_pack");
+  return packed;
 }
-
 const notMended = (siteId: string, o: Opportunity, why: "no_live" | "unchanged" | "no_pack" | "held"): null => (console.log(JSON.stringify({ event: "page_not_mended", siteId, opportunityId: o.id, why })), null);
-
 type Mended = { version: DraftRow; body: string; checked: Extract<RecheckOutcome, { kind: "checked" }> };
 type Meta = Record<string, unknown>;
 const metaOf = (meta: unknown): Meta => (typeof meta === "object" && meta !== null ? (meta as Meta) : {});
@@ -91,17 +87,12 @@ async function insertMended(a: MendInput, { version, body, checked }: Mended, ce
   return draftId;
 }
 
-/**
- * The live page mended (SPEC §7, issue 1507): a new version of its own text
- * with what code repairs repaired — a list counted again, a repeated link
- * gone, a stray bracket removed — and nothing written. No model is asked:
- * 0¢. It is a new version through the refresh path, never an edit of the
- * live row (ADR-080), and it is dated as the version it mends (`datedAs`):
- * a renumbered list is not a change of what the page says, so its updated
- * date, `dateModified` and `lastmod` stay. It enters review only where it
- * passes today's whole battery, as a stored page re-checked does, at 0¢.
- * A `snippet` refresh takes the same path with one small call (`snippetPage`).
- */
+/** The live page mended (SPEC §7, issue 1507): a new version of its own text with what code repairs repaired — a list
+ *  counted again, a repeated link gone, a stray bracket removed — and nothing written, at 0¢. A new version through the
+ *  refresh path, never an edit of the live row (ADR-080), dated as the version it mends (`datedAs`): a renumbered list is
+ *  not a change of what the page says, so its updated date, `dateModified` and `lastmod` stay. It enters review only where
+ *  it passes today's whole battery, as a stored page re-checked does. A `snippet` refresh takes the same path with one
+ *  small call (`snippetPage`). */
 export async function mendPage(a: MendInput, cost: CostContext): Promise<DayPageOutcome> {
   if (snippetOnly(a.opportunity)) return snippetPage(a, cost);
   const mended = await mendedVersion(a);

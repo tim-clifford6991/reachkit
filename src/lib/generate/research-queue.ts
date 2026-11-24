@@ -48,9 +48,7 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
   const locale = await siteLocale(a.siteId);
   const as = type === null ? null : researchedAs(type, own);
   const asked = { siteId: a.siteId, locale, target: target ?? "", market: site === null ? "" : siteWritingMarket(site, report).category, guidance: as !== null && builtFromOutside(as), options: as === "listicle" };
-  // A mend or a snippet reads no research.
-  const inCode = o !== null && (await (await import("./day-refresh")).refreshedInCode(a.siteId, o, false));
-  const reads = as === null || inCode || !TEMPLATES[as].research || target === undefined ? [] : researchSerps({ ...asked, ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
+  const reads = as === null || !TEMPLATES[as].research || target === undefined || (await (await import("./day-refresh")).refreshedInCode(a.siteId, o!, false)) ? [] : researchSerps({ ...asked, ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
   const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
   const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
   if (reads.length + beside.length === 0) return 0;
