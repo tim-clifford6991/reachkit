@@ -10,22 +10,15 @@ const BY: Actor = { kind: "system", job: "draft/test" };
 
 /** Whether the write running now is a test draft. */
 export const inTest = (): boolean => scope.getStore() !== undefined;
-
-/** The running write's own spend, where it is a test draft. */
 export const testSpend = (): { cents: number } | undefined => scope.getStore();
 
 type Step = <T>(name: string, body: () => Promise<T>) => Promise<T>;
 
-/** One owner-sent test write: refused at 0¢ off the list or at a full day, else the date's page as a test draft, and one ops row
- *  with what its own calls cost. */
+/** One owner-sent test write: refused at 0¢ off the list or at a full day, else the date's page as a test draft, and one ops row of its own cost. */
 export async function writeTestDraft(a: { siteId: string; publishDate: string; key: string; now: Date; step: Step }): Promise<{ outcome: string; draftId: string | null; step?: string }> {
   const { isTestSite, dayRefused } = await import("@/lib/scan/weekly/rerun");
   let cents = 0;
-  const testing: Step = async (name, body) => {
-    const done = await a.step(name, async () => { const own = { cents }; return { value: await scope.run(own, body), cents: own.cents }; });
-    cents = done.cents;
-    return done.value;
-  };
+  const testing: Step = (name, body) => a.step(name, async () => { const own = { cents }; return { value: await scope.run(own, body), cents: own.cents }; }).then((done) => ((cents = done.cents), done.value));
   const ran = !isTestSite(a.siteId) ? { outcome: "not_a_test_site", draftId: null } : (await a.step("ceiling", () => dayRefused(a.siteId, a.now))) ? { outcome: "spend_ceiling", draftId: null } : await write(a, testing);
   const { recordOpsEvent } = await import("@/lib/ops/events");
   await a.step("record", () => recordOpsEvent("draft_test", JSON.stringify({ key: a.key, publishDate: a.publishDate, ...ran, cents }), a.publishDate, a.siteId).then(() => null));

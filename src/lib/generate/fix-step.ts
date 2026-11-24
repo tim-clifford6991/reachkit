@@ -14,8 +14,7 @@ export async function writtenFor(row: Pick<DraftRow, "opportunity_id" | "meta">)
   return found === null || writtenAs === undefined ? found : { ...found, writeAs: writtenAs };
 }
 
-/** `now` is the run's due hour, which the date's spend so far is read since unless `since` says otherwise. An undated
- *  test row is fixed for the date its test wrote it for. */
+/** `now` is the run's due hour, which the date's spend so far is read since unless `since` says otherwise; an undated test row takes its test's date. */
 export async function fixOwedPage(a: { draftId: string; now: Date; since?: Date; publishDate?: string }): Promise<DayPageOutcome> {
   const store = generateStore();
   const row = await store.draftById(a.draftId);
