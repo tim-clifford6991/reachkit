@@ -439,10 +439,10 @@ export async function deriveOpportunities(
       ? {}
       : { today: (row: Opportunity) => rebandFor(row, measuredOwnRanked) }),
   });
-  for (const id of plan.dismiss) await store.markDismissed(id);
+  // Every survivor is written before any loser is dismissed, so a failure part-way dismisses no topic.
   for (const row of plan.update) await store.setCluster(row.id, row.clusterKey, row.absorbedQueries);
-
   const { created, duplicates } = await persist({ candidates: plan.insert });
+  for (const id of plan.dismiss) await store.markDismissed(id);
   const topFit = (index: number) => (fits.get(index)?.fit ?? 0) >= TOPIC_FIT.writeAt;
   const classOfRow = (row: Candidate) => classOf.get(queryKey(row.targetQuery ?? "")) ?? ledgerSourceOf(row);
   for (const question of questions) classOf.set(queryKey(question.targetQuery ?? ""), ledgerSourceOf({ source: question.source, asked: true }));

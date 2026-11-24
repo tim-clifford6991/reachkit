@@ -173,7 +173,7 @@ export interface OpportunityStore {
   /** Each row's research as the cache holds it, at 0¢; absent, none is read and the week keeps the ranking's order. */
   researchHeld?(siteId: string, rows: readonly OpportunityRow[], now: Date): Promise<ReadonlyMap<string, import("@/lib/generate/standard").ResearchRead | null>>;
   /** Writes a row's cluster and the searches it absorbed. */
-  setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
+  setCluster(opportunityId: string, clusterKey: string | null, absorbedQueries: readonly string[]): Promise<void>;
   /** The site's current stored report, or `null` where it has no readable one. */
   currentReport(siteId: string): Promise<StoredReport | null>;
   /** The moment the site's last non-`fix` opportunity left `open`, which is

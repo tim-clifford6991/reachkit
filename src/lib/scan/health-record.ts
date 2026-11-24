@@ -53,6 +53,8 @@ export async function recordPassHealth(a: {
   report: StoredReport;
   /** Whether this pass asks the tracked prompts: the onboarding pass asks none and states no rate. */
   asksPrompts: boolean;
+  /** Whether the pass's supply step threw: named among the failing, while the measured checks stand. */
+  supplyFailed?: boolean;
 }): Promise<ScanHealth | null> {
   try {
     const [{ readSiteMarket }, { samplesOf }] = await Promise.all([import("@/lib/market/infer/stored"), import("./weekly/prompts")]);
@@ -79,7 +81,7 @@ export async function recordPassHealth(a: {
         event: "pass_health",
         scanId: a.scanId,
         siteId: a.siteId,
-        failing: failingChecks(health).map((result) => result.check),
+        failing: [...failingChecks(health).map((result) => result.check), ...(a.supplyFailed === true ? ["supply"] : [])],
       })
     );
     return health;

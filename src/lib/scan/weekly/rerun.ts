@@ -26,7 +26,7 @@ export async function recordRerun(a: { siteId: string; weekStart: string; key: s
     if (error !== null) throw new Error(`weekly rerun: could not read the ledger: ${error.message}`);
     cents = (data ?? []).reduce((sum, row) => sum + Number(row.cost_cents), 0);
   }
-  const outcome = a.outcome.ran ? a.outcome.status : a.outcome.because;
+  const outcome = !a.outcome.ran ? a.outcome.because : a.outcome.status === "failed" ? (a.outcome.because ?? "failed") : a.outcome.status;
   await recordOpsEvent("weekly_rerun", JSON.stringify({ key: a.key, weekStart: a.weekStart, scanId, cents, outcome }), a.weekStart, a.siteId);
   return null;
 }

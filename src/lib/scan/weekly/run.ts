@@ -35,7 +35,7 @@ export type WeeklyOutcome =
    *  week is due again on the next tick — so this is not `ran: false`,
    *  which would say nothing was attempted, and not `degraded`, which
    *  would say a partial measurement is readable. */
-  | { readonly ran: true; readonly scanId: string; readonly status: "failed"; readonly because?: "vendor_funds" }
+  | { readonly ran: true; readonly scanId: string; readonly status: "failed"; readonly because?: "vendor_funds" | "supply_failed" }
   | { readonly ran: false; readonly because: WeeklyRefusal };
 
 /** One site's weekly measurement. `weekStart` is computed once from the site's zone and written at insert, so moving zone moves no measured week. */
@@ -80,9 +80,10 @@ export async function runWeekly(a: {
   //    `TIER_PARAMETERS.weekly`'s and is not restated here.
   let status: "done" | "degraded" | "failed";
   let fundsRefused: true | undefined;
+  let supplyFailed: true | undefined;
   let marketUnanswered = false;
   try {
-    ({ status, fundsRefused } = await runScan({
+    ({ status, fundsRefused, supplyFailed } = await runScan({
       scanId: claim.scanId,
       siteId: a.siteId,
       domain: a.domain,
@@ -96,6 +97,7 @@ export async function runWeekly(a: {
         // Released only on a first claim, since an outage answers at 0¢ and would retake the week every hour; nothing more is spent on a released week.
         marketUnanswered = claim.retaken !== true && report.market.kind === "unmeasured" && report.market.reason === "undeterminable";
         if (marketUnanswered) return;
+        let threw = false;
         try {
           try {
             // Typing goes first so the rival re-check spends what it leaves, never the reserve held for it.
@@ -116,10 +118,13 @@ export async function runWeekly(a: {
               await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report, at: a.now });
             }
           }
+        } catch (error) {
+          threw = true;
+          throw error;
         } finally {
           // The pass checks its own health last, against the rivals it leaves in force. It never throws.
           const { recordPassHealth } = await import("../health-record");
-          await recordPassHealth({ scanId: claim.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: true });
+          await recordPassHealth({ scanId: claim.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: true, supplyFailed: threw });
         }
       },
     }));
@@ -136,10 +141,11 @@ export async function runWeekly(a: {
     return { ran: true, scanId: claim.scanId, status: "failed", because: "vendor_funds" };
   }
 
-  if (status === "failed" || marketUnanswered) {
+  // A week whose supply step threw measured but left no topics for its days: released and retaken as a failed pass is.
+  if (status === "failed" || marketUnanswered || supplyFailed === true) {
     await releaseWeek(claim.scanId);
-    logWeekly({ siteId: a.siteId, weekStart, outcome: "failed" });
-    return { ran: true, scanId: claim.scanId, status: "failed" };
+    logWeekly({ siteId: a.siteId, weekStart, outcome: supplyFailed === true ? "supply_failed" : "failed" });
+    return { ran: true, scanId: claim.scanId, status: "failed", ...(supplyFailed === true ? { because: "supply_failed" as const } : {}) };
   }
 
   if (a.rerun !== undefined) await supersedeWeek({ siteId: a.siteId, weekStart, scanId: claim.scanId, mail: a.rerun.mail });
