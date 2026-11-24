@@ -9,7 +9,6 @@ import { CircleQuestionMark, Download, ExternalLink, LogOut } from "lucide-react
 import { useTransition } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
-import { HELP_MAILTO } from "../../_shell/Shortcuts";
 import { useAction } from "./useAction";
 import { SettingLine } from "./SettingRow";
 import { EditDialog, TextField, type DialogAnswer } from "../EditDialog";
@@ -19,6 +18,8 @@ import { CARD, CARD_BODY, CARD_FOOT, CARD_LEAD, CARD_TITLE, SOFT, TARGET } from 
 import type { SettingsModel } from "../model";
 
 const GHOST = `btn btn-ghost ${TARGET}`;
+// The mailbox the product's own sentences already send people to.
+const HELP_MAILTO = "mailto:hello@reachkit.app";
 
 async function changeEmail(form: FormData): Promise<DialogAnswer> {
   const state = await beginEmailChangeAction(EMAIL_CHANGE_INITIAL, form);

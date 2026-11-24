@@ -14,6 +14,7 @@ import { readRecordedFact } from "@/lib/generate/fact";
 import type { TargetEngine } from "@/lib/opportunities/types";
 import { BAND_LABELS } from "@/lib/presentation/bands";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { pageTitle } from "@/lib/presentation/page-title";
 import { explainChoice } from "@/lib/opportunities";
 import { machineDraftFor } from "@/lib/publish/machine";
 import { nameInZone } from "@/lib/publish/destinations/hosted/dns-guide";
@@ -184,8 +185,9 @@ async function readPage(
       body_md: string | null;
       opportunity_id: string | null;
       grounded_fact: unknown;
+      sites?: { language: string | null } | null;
     }>("drafts")
-    .select("title, body_md, opportunity_id, grounded_fact")
+    .select("title, body_md, opportunity_id, grounded_fact, sites(language)")
     .eq("id", draftId)
     .limit(1);
   if (error !== null) throw new Error(`sendDraftReadyMail(${draftId}): ${error.message}`);
@@ -194,7 +196,7 @@ async function readPage(
   const title = row?.title ?? null;
   // The page's first lines (SPEC §8), cut by `firstLines` under a pin: the mail is where a reader decides to open the page.
   const page: DraftReadyPage | null =
-    title === null || title === "" ? null : { title, markdown: firstLines(row?.body_md ?? "") };
+    title === null || title === "" ? null : { title: pageTitle(title, row?.sites?.language), markdown: firstLines(row?.body_md ?? "") };
 
   const opportunityId = row?.opportunity_id ?? null;
   if (opportunityId === null) return { page, why: null };

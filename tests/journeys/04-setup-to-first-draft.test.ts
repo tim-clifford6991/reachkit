@@ -958,7 +958,7 @@ describe("three decisions → deep pass → the first page already on the calend
       expect(first?.scheduledFor.startsWith(month)).toBe(true);
       // The page on that date is the head's own target, and the founder
       // is told which search it is for and who holds the answer today.
-      expect(first?.title).toBe(head?.targetQuery);
+      expect(first?.title.toLowerCase()).toBe(head?.targetQuery?.toLowerCase());
       expect(first?.why.search).toBe(head?.targetQuery);
       expect(first?.why.bestRival?.domain).toBeTruthy();
       // The calendar states supply from the count it read, never a 0 it

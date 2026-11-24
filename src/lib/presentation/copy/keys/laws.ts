@@ -64,12 +64,10 @@ export const LAWS_COPY = Object.freeze({
   "next-publish.unpaid": "Your last payment didn’t go through, so no page goes live. Pay in Settings › Billing and pages resume.",
   // The paid term has ended, so publishing waits; "access has ended" is the hosting-end mail's word, and no fix is promised.
   "next-publish.ended": "Your access has ended, so no page goes live.",
-  // What happens next when nothing holds publishing back. Drafted; the owner corrects it.
-  "next-publish.page": "Next page goes live {at}: {title}",
-  // The next page has no moment yet, so the line names its day and how far it got. Drafted; the owner corrects it.
-  "next-publish.writing": "Next page, {on}: {title}. Being written.",
-  "next-publish.ready": "Next page, {on}: {title}. Ready.",
-  "next-publish.topic": "Next page planned for {on}: {topic}",
+  // The next page has no moment yet, so the line names its day and how far it got; its title is drawn on its own line.
+  "next-publish.writing": "Next page, {on}. Being written.",
+  "next-publish.ready": "Next page, {on}. Ready.",
+  "next-publish.topic": "Next page planned for {on}",
   "next-publish.monday-check": "The Monday check on {on} plans the next pages.",
   // §4.6's draft view renders a written page's body only through
   // `renderGenerated`, which resolves this key for the label that must ride

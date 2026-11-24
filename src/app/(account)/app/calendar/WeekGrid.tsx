@@ -45,7 +45,7 @@ function DayRow(p: { card: CardModel; selected: boolean; onSelect: (day: DayKey)
           </span>
         </span>
         {card.title === null ? null : (
-          <span className={`min-w-0 text-sm font-semibold leading-snug wrap-anywhere ${card.search ? "num" : ""}`} data-testid="cell-label">
+          <span className="min-w-0 text-sm font-semibold leading-snug wrap-anywhere" data-testid="cell-label">
             {card.title}
           </span>
         )}

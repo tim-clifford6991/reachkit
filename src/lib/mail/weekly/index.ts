@@ -11,6 +11,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { unmeasured, measured, type Measured } from "@/lib/measure/measured";
 import { readPublishedPages } from "@/lib/measure/published-store";
 import { pageTitle } from "@/lib/presentation/page-title";
+import { readStoredLocale } from "@/lib/locale/site";
 import { resultsOf, type TilePass } from "@/lib/measure/results";
 import { readTileRows } from "@/lib/measure/results-store";
 import { committedWeek, opportunityById } from "@/lib/opportunities";
@@ -266,12 +267,12 @@ async function pagesLiveLastWeek(siteId: string, weekStart: string, zone: string
     destination: string;
     published_at: string;
     unpublished_at: string | null;
-    drafts: { meta: unknown; opportunities: { target_query: string | null; family: string | null } | null } | null;
+    drafts: { title: string | null; meta: unknown; sites?: { language: string | null } | null; opportunities: { target_query: string | null; family: string | null } | null } | null;
   };
   const lastWeek = plusDays(weekStart, -7);
   const { data, error } = await untyped()
     .from<Row>("publications")
-    .select("live_url, destination, published_at, unpublished_at, drafts(meta, opportunities(target_query, family))")
+    .select("live_url, destination, published_at, unpublished_at, drafts(title, meta, sites(language), opportunities(target_query, family))")
     .eq("site_id", siteId)
     .gte("published_at", `${plusDays(lastWeek, -1)}T00:00:00Z`);
   if (error !== null) return [];
@@ -281,7 +282,7 @@ async function pagesLiveLastWeek(siteId: string, weekStart: string, zone: string
     .map((row) => {
       const opportunity = row.drafts?.opportunities ?? null;
       return {
-        search: nameOf(opportunity?.target_query, row.live_url!),
+        search: pageTitle(row.drafts?.title?.trim() || nameOf(opportunity?.target_query, row.live_url!), row.drafts?.sites?.language),
         liveUrl: row.destination === "hosted" ? fromMail(row.live_url!) : row.live_url!,
         update: opportunity?.family === "improve" || opportunity?.family === "fix" || becameUpdate(row.drafts?.meta),
       };
@@ -346,7 +347,7 @@ async function weekEntries(
 
 /** The week's pages with day, update flag, why and links. An empty week is one stated line, never padded. */
 async function theWeek(siteId: string, weekStart: string, at: Date): Promise<Measured<readonly WeeklyNext[]>> {
-  const { entries, committed } = await weekEntries(siteId, weekStart);
+  const [{ entries, committed }, locale] = await Promise.all([weekEntries(siteId, weekStart), readStoredLocale(siteId).catch(() => null)]);
   const open = new Map(committed.days.map(({ opportunity }) => [opportunity.id, opportunity]));
   const days: WeeklyNext[] = [];
   for (const entry of entries) {
@@ -356,7 +357,8 @@ async function theWeek(siteId: string, weekStart: string, at: Date): Promise<Mea
     const why = whyOf(opportunity.planReason);
     const draftHref = entry.draftId === null ? null : appHref(`/app/draft/${encodeURIComponent(entry.draftId)}`);
     days.push({
-      targetQuery: opportunity.targetQuery,
+      // The page's planned title, as This Week names it; its search only where no title was stored.
+      targetQuery: pageTitle(opportunity.title?.trim() || opportunity.targetQuery, locale?.language),
       day: entry.day,
       update: opportunity.evidence.family === "improve" || opportunity.evidence.family === "fix",
       ...(why === undefined ? {} : { why: copy(why.sentence, why.values) }),

@@ -55,14 +55,11 @@ export type NextPublishCause = "unpaid" | "ended" | "address-waiting" | "paused"
 export type NextPublishOtherwise =
   | { tag: NextPublishCause }
   | { tag: "scheduled"; at: string }
-  | { tag: "page"; at: string; title: string }
-  | { tag: "writing" | "ready"; on: string; title: string }
-  | { tag: "topic"; on: string; topic: string }
+  | { tag: "writing" | "ready" | "topic"; on: string }
   | { tag: "monday-check"; on: string };
 
 const OTHERWISE_KEY = {
   scheduled: "next-publish.scheduled",
-  page: "next-publish.page",
   writing: "next-publish.writing",
   ready: "next-publish.ready",
   topic: "next-publish.topic",
