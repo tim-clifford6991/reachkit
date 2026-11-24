@@ -31,8 +31,8 @@ export const PRICE_BOOK = Object.freeze({
   USER_DATA_C: 0,
 } as const);
 
-/** The four per-scan/per-draft ceilings BUILD §6.1 pins, the per-site daily
- *  one, and a short week's top-up. The product-wide daily ceiling is `DAILY_PRODUCT_CEILING`
+/** The per-scan, per-week and per-draft ceilings BUILD §6.1 pins, and the per-site daily
+ *  one. The product-wide daily ceiling is `DAILY_PRODUCT_CEILING`
  *  below, because it is not one figure.
  *
  *  `DAILY_SITE_C` bounds one site for the same UTC day, so a single site in a
@@ -52,20 +52,16 @@ export const PRICE_BOOK = Object.freeze({
  *  ledger in one call, and a site-local day would make "today" mean two
  *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
-  FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40,
+  FREE_C: 12, DEEP_C: 150,
+  /** SPEC §6 *Weekly cap*: everything a site's week buys (the pass, its top-up, the Monday research, market changes and
+   *  the hot offer) spends from this one sum, the order of the steps being the only reservation. */
+  WEEK_C: 59,
   /** A day's pages on Opus 5.5, reserved at the vendor's own input count (`INFERENCE_INPUT_RESERVE`): research on
    *  Sonnet 5.5 (two calls of ~7.3¢ reserved, ~13¢ billed), a write reserved at its 12 288-token cap (~36¢, ~23¢
    *  billed), its one retry (~36¢), the fit check (~0.6¢) and the fix (~29¢ reserved) come to ~116¢, so a retried
    *  write is never refused its fix. A day with no retry bills about 37¢ before any fix. */
   DRAFT_C: 116,
   DAILY_SITE_C: 550,
-  /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
-  TOPUP_C: 7,
-  /** SPEC §6 *Weekly cap*: the Monday commit's target SERPs, under their own 2¢ a site a week, outside `WEEKLY_C`. */
-  WEEK_RESEARCH_C: 2,
-  /** SPEC §6 *Market changes*: the weekly pass's news searches (0.6¢), their market judgement and one Sonnet 5.5 claims
-   *  call (about 8¢ reserved at most), under their own 10¢ a site a week, outside `WEEKLY_C`. */
-  WEEK_NEWS_C: 10,
 } as const);
 
 /** The product-wide ceiling for one UTC day, in cents: `baseC` plus
@@ -224,7 +220,7 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  about 4,300 at 80. Bounded by `TYPING_RESERVE_C`. */
   "topic-fit": 4608,
   /** `{ titles: { i, angles }[] }` over a committed week's untitled new pages, at most `PLAN_DEPTH` (10): ~60 an
-   *  angle, two each, ~1,300 at 10. About 3¢ reserved at the Sonnet price, under `CAPS.WEEKLY_C`. */
+   *  angle, two each, ~1,300 at 10. About 3¢ reserved at the Sonnet price, under `CAPS.WEEK_C`. */
   "topic-title": 2048,
   /** `{ problems: string[], solutions: string[] }`, at most
    *  `BUYER_SEARCHES.max` searches of under ten words: ~15 each. */

@@ -145,7 +145,7 @@ export async function claimWeek(a: {
   return row === undefined ? { claimed: false } : { claimed: true, scanId: row.id, retaken: true };
 }
 
-/** A re-run's own `running` row, stamped with no week until it finishes, so its `WEEKLY` budget reads 0¢ and the week's row stands meanwhile. */
+/** A re-run's own `running` row, stamped with no week until it finishes, so its `WEEK` budget reads 0¢ and the week's row stands meanwhile. */
 export async function claimRerun(a: { siteId: string; domain: string }): Promise<Claim> {
   const scanId = crypto.randomUUID();
   const { error } = await untyped().from<WeekRow>("scans").insert({ id: scanId, site_id: a.siteId, domain: a.domain, tier: "weekly", status: "running" });

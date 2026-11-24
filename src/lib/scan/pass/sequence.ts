@@ -220,7 +220,7 @@ async function stagesOf(a: StageArgs, crawl: SiteCrawl): Promise<void> {
     twelve = await inBudget(
       "asking_the_twelve",
       async (b, abandoned) => {
-        // Beside the twelve, not after them: page questions and the market's buyer prompts run inside this budget row (same clock, `WEEKLY` cap, `stopNow()`),
+        // Beside the twelve, not after them: page questions and the market's buyer prompts run inside this budget row (same clock, `WEEK` cap, `stopNow()`),
         // handed to the queue after the twelve. A standard-queue ask costs its wait however many are queued, so asking together costs no time.
         asking = askTheTwelve({ ...a, bounds: b }, abandoned, bounds);
         await Promise.all([

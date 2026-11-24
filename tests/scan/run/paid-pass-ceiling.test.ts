@@ -454,7 +454,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     });
 
     expect(serpOrganic).toHaveBeenCalledTimes(BATTERY_PINS.QUESTIONS);
-    expect(typing.openedAt).toBeLessThanOrEqual(CAPS.WEEKLY_C - TYPING_RESERVE_C);
+    expect(typing.openedAt).toBeLessThanOrEqual(CAPS.WEEK_C - TYPING_RESERVE_C);
     expect(typing.capHit).toBe(false);
   });
 
@@ -541,9 +541,9 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     });
 
     const refused = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const line = CAPS.WEEKLY_C - TYPING_RESERVE_C;
+    const line = CAPS.WEEK_C - TYPING_RESERVE_C;
     db.answer = (query) => (query.table === "scans" && query.verb === "select" ? [{ cost_cents: line, site_id: null }] : null);
-    const closed = await withStoredPassSpend({ scanId: CLAIMED_ID, cap: "WEEKLY" }, async (cost) => {
+    const closed = await withStoredPassSpend({ scanId: CLAIMED_ID, cap: "WEEK" }, async (cost) => {
       await deriveForPass(cost, { tier: "weekly", siteId: SITE_ID, report, hasActiveAccess: true });
       await a.after?.(cost, report, site.market);
       return cost.spentCents();
@@ -567,7 +567,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
       expect(asked.get(site)!.every((outcome) => outcome === "success"), site).toBe(true);
     }
     expect(warned.filter((line) => line.includes('"cap_hit"'))).toEqual([]);
-    expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
+    expect(closed).toBeLessThanOrEqual(CAPS.WEEK_C);
   });
 
   it("a fit call over the most searches a pass judges, each with its top titles, is asked inside the reserve and the pass closes inside the cap", async () => {
@@ -576,7 +576,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     expect(asked.get("topic-fit")).toEqual(["success"]);
     // Typing eighty rows may meet the cap afterwards; the fit call is never the one refused.
     expect(warned.filter((line) => line.includes('"cap_hit"') && line.includes('"topic-fit"'))).toEqual([]);
-    expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
+    expect(closed).toBeLessThanOrEqual(CAPS.WEEK_C);
   });
 
   // A usual full week: the measurement at the line, then this week's typing, then the rivals' one ask (ruling B5).
@@ -591,7 +591,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     });
     expect(asked.get("rival-inference")).toEqual(["success"]);
     expect(warned.filter((line) => line.includes('"cap_hit"'))).toEqual([]);
-    expect(closed).toBeLessThanOrEqual(CAPS.WEEKLY_C);
+    expect(closed).toBeLessThanOrEqual(CAPS.WEEK_C);
   });
 });
 

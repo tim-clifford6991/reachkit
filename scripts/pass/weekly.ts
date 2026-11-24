@@ -1,5 +1,5 @@
 // scripts/pass/weekly.ts — a stored weekly pass's derivation run again (SPEC §7 *Pages left*): the top-up, what it
-// bought under `CAPS.TOPUP_C`, and the rows the fit call wrote. `run.ts` loads the snapshot and hands over here.
+// bought from the week's `CAPS.WEEK_C`, and the rows the fit call wrote. `run.ts` loads the snapshot and hands over here.
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { CAPS, PLAN_DEPTH, TOPIC_FIT } from "@/lib/config/constants";
@@ -32,7 +32,7 @@ export async function replayWeekly(a: {
   const count = (): number => Number(psql(`select count(*) from public.opportunities o where o.site_id = '${a.siteId}' and ${writable};`).trim());
   const before = count();
   // The weekly room the derivation had, without the stored pass's own spend before it.
-  await withCostContext({ scanId: a.scanId, cap: "WEEKLY", policyVersion: FREE_SCAN_POLICY_VERSION }, (cost) => deriveForPass(cost, { tier: "weekly", siteId: a.siteId, report: a.report, hasActiveAccess: true, topUp: topUpSpend(a.scanId, FREE_SCAN_POLICY_VERSION) }));
+  await withCostContext({ scanId: a.scanId, cap: "WEEK", policyVersion: FREE_SCAN_POLICY_VERSION }, (cost) => deriveForPass(cost, { tier: "weekly", siteId: a.siteId, report: a.report, hasActiveAccess: true, topUp: topUpSpend(a.scanId, FREE_SCAN_POLICY_VERSION) }));
 
   const supply = JSON.parse(psql(`select read from public.ops_events where kind = 'supply_pass' and code = '${a.scanId}' order by id desc limit 1;`).trim() || "{}") as { have?: number; topUp?: { fired: boolean; have: number; sources: Record<string, { offered: number; added: number }>; rejected: Record<string, number>; bought?: { seeds: string[]; cents: number; degraded?: string } } | null };
   const topUp = supply.topUp ?? null;
@@ -46,7 +46,7 @@ export async function replayWeekly(a: {
   else {
     a.say(`  top-up: ${topUp.fired ? "fired" : "not fired"} at ${topUp.have}; ${Object.entries(topUp.sources).map(([n, s]) => `source ${n} offered ${s.offered}, added ${s.added}`).join("; ")}`);
     a.say(`  rejected: ${Object.entries(topUp.rejected).filter(([, n]) => n > 0).map(([why, n]) => `${why} ${n}`).join(", ") || "none"}`);
-    if (topUp.bought !== undefined) a.say(`  bought: seeds ${topUp.bought.seeds.join(", ") || "none"}; ${cents(topUp.bought.cents)} of ${cents(CAPS.TOPUP_C)}${topUp.bought.degraded === undefined ? "" : `; degraded ${topUp.bought.degraded}`}`);
+    if (topUp.bought !== undefined) a.say(`  bought: seeds ${topUp.bought.seeds.join(", ") || "none"}; ${cents(topUp.bought.cents)} of ${cents(CAPS.WEEK_C)}${topUp.bought.degraded === undefined ? "" : `; degraded ${topUp.bought.degraded}`}`);
   }
   a.say("\nNew rows");
   for (const row of topics) a.say(`  ${row.target_query} — ${row.volume ?? "no volume"}/mo, fit ${row.business_fit ?? "unjudged"}, ${row.ready === false ? `held ${row.unready_reason}` : "ready"}; fitFact ${JSON.stringify(row.fit_fact ?? null)}`);
@@ -54,7 +54,7 @@ export async function replayWeekly(a: {
   for (const row of rows) a.say(`  ${row.activity ?? "?"}  ${row.source}  ${cents(Number(row.cost_cents))}`);
 
   const checks: [boolean, string][] = [
-    [topUpCents <= CAPS.TOPUP_C, `top-up ledger rows within TOPUP_C: ${cents(topUpCents)}`],
+    [topUpCents <= CAPS.WEEK_C, `top-up ledger rows within WEEK_C: ${cents(topUpCents)}`],
     [topUp === null || topUp.fired === topUp.have < PLAN_DEPTH, "the top-up fires only under PLAN_DEPTH"],
     [topUpCents === 0 || topUp?.fired === true, "the top-up spends only on a short week"],
     [after >= 7 || topUp?.fired === true, `at least 7 writable, or the top-up tried: ${after}`],

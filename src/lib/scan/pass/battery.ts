@@ -50,7 +50,7 @@ type BatteryEngine = "chatgpt" | "ai_mode";
 
 /** An engine refusing twice running is not bought for the rest of the pass; its cells are `unmeasured` with what it last said, not "no answer".
  *  A zero is not a failure and never counts here. It bites on asks after a refusal is known (page questions, retries): the twelve go at once,
- *  so an outage costs at most one ask per question, inside the `WEEKLY` cap. */
+ *  so an outage costs at most one ask per question, inside the `WEEK` cap. */
 interface EngineWatch {
   readonly failures: Map<BatteryEngine, number>;
   readonly because: Map<BatteryEngine, string>;

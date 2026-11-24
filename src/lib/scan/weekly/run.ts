@@ -3,7 +3,7 @@
 // The claim, not the schedule, makes it once: `claimWeek` inserts the `running` row before any spend and the partial unique index
 // `(site_id, week_start) where tier = 'weekly'` rejects a second, so two ticks resolve to one measurement and one `already_measured`.
 // A pass with no report, or refused for credit, releases its claim: the row is kept `failed` (the ledger references it) and the next hourly tick
-// retakes it inside the same week, spending only what is left of its `WEEKLY` cap. A partial report is a measured week, never retried,
+// retakes it inside the same week, spending only what is left of its `WEEK` cap. A partial report is a measured week, never retried,
 // except one whose market a call never answered: with no market there are no searches, rankings or panel, so it is released once, and its retake stands.
 // What the week found becomes supply inside this pass's cost context and cap, through `runScan`'s hook after the store; access is passed on, not re-asked.
 // The kill switch (`scan+generate+publish`) is asked here before any spend, since this starts a scan outside the `scan/run` job's door;
@@ -76,7 +76,7 @@ export async function runWeekly(a: {
   if (!claim.claimed) return refuse(a.siteId, "already_measured");
 
   // 2. The one pipeline. Everything about what a weekly pass buys — the
-  //    standard queue, the `WEEKLY` cap, which stages degrade — is
+  //    standard queue, the `WEEK` cap, which stages degrade — is
   //    `TIER_PARAMETERS.weekly`'s and is not restated here.
   let status: "done" | "degraded" | "failed";
   let fundsRefused: true | undefined;
@@ -160,7 +160,7 @@ function rivalsDue(checkedAt: string | undefined, weekStart: string, zone: strin
 }
 
 /** The knowledge base read again from the pages this week's crawl read; only changed pages are asked about. The tick's own step, since the read
- *  keeps its own clock. It spends on the scan's record, against the `WEEKLY` cap; a failed read costs the knowledge base, never the week. */
+ *  keeps its own clock. It spends on the scan's record, against the `WEEK` cap; a failed read costs the knowledge base, never the week. */
 export async function refreshWeeklyKnowledge(a: { scanId: string; siteId: string; domain: string }): Promise<null> {
   try {
     await spendOnStoredReport({ scanId: a.scanId, tier: "weekly" }, async ({ cost }) => {

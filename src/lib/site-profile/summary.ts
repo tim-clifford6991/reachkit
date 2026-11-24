@@ -180,7 +180,7 @@ export function voicePages(
  *
  * The tier is the caller's because the same pipeline runs at every tier
  * (`src/lib/scan/run.ts` branches on none): the free pass buys this call
- * against `CAPS.FREE_C` and the weekly refresh against `CAPS.WEEKLY_C`,
+ * against `CAPS.FREE_C` and the weekly refresh against `CAPS.WEEK_C`,
  * which is one parameter rather than two code paths.
  */
 export function deriveVoice(

@@ -23,18 +23,25 @@ export {
   type VendorFailure,
 } from "./refusal";
 
-export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT" | "TOPUP" | "WEEK_RESEARCH" | "WEEK_NEWS";
+export type CapName = "FREE" | "DEEP" | "WEEK" | "DRAFT";
 
 /** Each cap's figure: what a context refuses a call against, and what `remainingCents()` reads. */
 export const CAP_VALUES: Readonly<Record<CapName, number>> = {
   FREE: CAPS.FREE_C,
   DEEP: CAPS.DEEP_C,
-  WEEKLY: CAPS.WEEKLY_C,
+  WEEK: CAPS.WEEK_C,
   DRAFT: CAPS.DRAFT_C,
-  TOPUP: CAPS.TOPUP_C,
-  WEEK_RESEARCH: CAPS.WEEK_RESEARCH_C,
-  WEEK_NEWS: CAPS.WEEK_NEWS_C,
 };
+
+/** What a context has ledgered and holds in flight. */
+interface Tally {
+  ledgered: number;
+  inFlight: number;
+}
+
+/** The week's tally of each row a `WEEK` context is open on, so a step run inside another (the top-up inside the
+ *  pass) spends from the same sum. */
+const openWeeks = new Map<string, Tally>();
 
 /** Why a call was refused. All three refuse alike (`{ skipped: "cap" }`,
  *  degrade, never throw), so the reason is logged rather than returned. */
@@ -174,8 +181,15 @@ export async function withCostContext<T>(
     // Counting an unreadable row as nothing would open with headroom already spent, and the close would erase it.
     throw new Error(`withCostContext: could not read ${ctx.scanId}'s cost: ${row.unreadable}`);
   }
-  let ledgeredCents = ctx.rollUp === "add" ? (row.costCents ?? 0) : (ctx.priorCents ?? 0);
-  let inFlightReserved = 0;
+  const joined = ctx.cap === "WEEK" ? openWeeks.get(ctx.scanId) : undefined;
+  const tally: Tally = joined ?? {
+    ledgered:
+      ctx.rollUp === "add"
+        ? (row.costCents ?? 0)
+        : (ctx.priorCents ?? (ctx.cap === "WEEK" && ctx.rollUp === "none" ? await weekSpentCents(ctx.scanId, row) : 0)),
+    inFlight: 0,
+  };
+  if (ctx.cap === "WEEK" && joined === undefined) openWeeks.set(ctx.scanId, tally);
   let isDegraded = false;
   // Read now and again before every paid call; `daily.ts` says what an unreadable ledger means.
   const day = await openDayLedger(now());
@@ -212,7 +226,7 @@ export async function withCostContext<T>(
   }
 
   function spentCents(): number {
-    return ledgeredCents + inFlightReserved;
+    return tally.ledgered + tally.inFlight;
   }
 
   /** Reserves `cents` under all three ceilings, or refuses. The last check and the reservation share one tick, so
@@ -221,17 +235,17 @@ export async function withCostContext<T>(
     // The product's day outranks this pass's headroom. Re-read so a pass beside this one is counted, with this
     // pass's in-flight calls added; this call may still carry the day over, and that crossing is the alert.
     await day.refresh(now());
-    if (day.ceilingReached(inFlightReserved)) return refuse("daily_ceiling", source, day.ceilingCents());
+    if (day.ceilingReached(tally.inFlight)) return refuse("daily_ceiling", source, day.ceilingCents());
 
     // Then this site's share, re-read the same way; refusing only here leaves every other site's call untouched.
     if (site !== null) {
       await site.refresh(now());
-      if (site.capReached(inFlightReserved)) return refuse("site_cap", source, CAPS.DAILY_SITE_C);
+      if (site.capReached(tally.inFlight)) return refuse("site_cap", source, CAPS.DAILY_SITE_C);
     }
 
     // Checked against the reservation: the settlement does not exist yet.
     if (spentCents() + cents > capValue) return refuse("scan_cap", source, capValue);
-    inFlightReserved += cents;
+    tally.inFlight += cents;
     return true;
   }
 
@@ -322,7 +336,7 @@ export async function withCostContext<T>(
           if (draftId === undefined) unnamed.push(rowId);
           else await nameDraftOnRows([rowId], draftId);
         }
-        ledgeredCents += settledCents;
+        tally.ledgered += settledCents;
         // The day's total moves by what was actually ledgered, and `add`
         // publishes the crossing if this is the call that made one. The
         // site's total moves with it, by its own cap and its own crossing.
@@ -331,7 +345,7 @@ export async function withCostContext<T>(
 
         return { payload, fresh: true, costCents: settledCents, storedAt: null };
       } finally {
-        inFlightReserved -= reservedCents;
+        tally.inFlight -= reservedCents;
       }
     },
 
@@ -367,7 +381,9 @@ export async function withCostContext<T>(
 
   // The roll-up is written on a clean close only: an exception from `body` propagates untouched for the scan's own
   // error path, and every ledgered row stands, since `fetches` is the source of truth. The robots memo closes with it.
-  const result = await withRobotsMemo(() => body(cost));
+  const result = await withRobotsMemo(() => body(cost)).finally(() => {
+    if (joined === undefined && openWeeks.get(ctx.scanId) === tally) openWeeks.delete(ctx.scanId);
+  });
 
   if (ctx.rollUp === "none") return result;
 
@@ -404,18 +420,30 @@ export async function withCostContext<T>(
  *  would stop the free path too. The log line makes it visible. */
 async function readScanRow(
   scanId: string
-): Promise<{ costCents: number | null; siteId: string | null; unreadable: string | null }> {
+): Promise<{ costCents: number | null; siteId: string | null; tier: string | null; unreadable: string | null }> {
   const { data, error } = await dbAdmin()
     .from("scans")
-    .select("cost_cents, site_id")
+    .select("cost_cents, site_id, tier")
     .eq("id", scanId)
     .limit(1);
   if (error) {
     console.warn(JSON.stringify({ event: "scan_row_unreadable", scanId, reason: error.message }));
-    return { costCents: null, siteId: null, unreadable: error.message };
+    return { costCents: null, siteId: null, tier: null, unreadable: error.message };
   }
-  const row = data?.[0] as { cost_cents?: unknown; site_id?: unknown } | undefined;
+  const row = data?.[0] as { cost_cents?: unknown; site_id?: unknown; tier?: unknown } | undefined;
   const cents = Number(row?.cost_cents ?? 0);
   const siteId = typeof row?.site_id === "string" && row.site_id.length > 0 ? row.site_id : null;
-  return { costCents: Number.isFinite(cents) ? cents : 0, siteId, unreadable: null };
+  return { costCents: Number.isFinite(cents) ? cents : 0, siteId, tier: typeof row?.tier === "string" ? row.tier : null, unreadable: null };
+}
+
+/** What the row's week has spent: a weekly pass's row is all week; another row (a deep pass's) counts only the
+ *  week's steps keyed to it. An unreadable ledger holds the step, since unknown spend is not room. */
+async function weekSpentCents(scanId: string, row: { costCents: number | null; tier: string | null }): Promise<number> {
+  if (row.tier === "weekly") return row.costCents ?? CAPS.WEEK_C;
+  const { data, error } = await dbAdmin().from("fetches").select("cost_cents").eq("scan_id", scanId).in("activity", ["weekly", "topup"]);
+  if (error) {
+    console.warn(JSON.stringify({ event: "week_ledger_unreadable", scanId, reason: error.message }));
+    return CAPS.WEEK_C;
+  }
+  return ((data ?? []) as { cost_cents?: unknown }[]).reduce((sum, r) => sum + (Number(r.cost_cents) || 0), 0);
 }

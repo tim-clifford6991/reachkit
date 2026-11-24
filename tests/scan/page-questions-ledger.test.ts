@@ -37,8 +37,8 @@ type Schedule = { selected: number; deep: boolean; unbranded: number; unbrandedR
 /** One weekly pass's page slots — each a SERP read plus its ChatGPT and AI
  *  Mode asks — and its tracked prompt asks, as the ledger records them. */
 async function week(schedule: Schedule): Promise<{ serps: number; asks: number }> {
-  const serpCost = fakeCostContext("WEEKLY");
-  const askCost = fakeCostContext("WEEKLY");
+  const serpCost = fakeCostContext("WEEK");
+  const askCost = fakeCostContext("WEEK");
   const calls: Promise<unknown>[] = [];
   const slots = constants.TRACKED_QUESTIONS_MAX - schedule.selected;
   for (let slot = 0; slot < slots; slot += 1) {
@@ -106,7 +106,7 @@ describe("owner B2 and the AI panel — the weekly ledger moves by about +0.24¢
     expect(total(now) - total(was)).toBeLessThanOrEqual(0.24 + 1e-9);
     // 12 deep slots × 0.9¢ + 12 ten-deep slots × 0.36¢ + 5.76¢ of the panel.
     expect(total(now)).toBeCloseTo(20.88, 6);
-    expect(total(now)).toBeLessThan(constants.CAPS.WEEKLY_C);
+    expect(total(now)).toBeLessThan(constants.CAPS.WEEK_C);
   });
 
   it("the AI Overview surcharge is one base price per read, not one per page of ten (operations Q-C1)", async () => {

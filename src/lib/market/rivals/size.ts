@@ -12,7 +12,7 @@
 // **Paid path only, and no new spend site.** Sizing reads the rows the
 // deep and monthly passes already buy — `rankedKeywords` at
 // `PRICE_BOOK.RANKED_RIVAL_ROWS`, cached on §6.4's 30-day rival window,
-// inside `CAPS.DEEP_C`/`CAPS.WEEKLY_C`. §6.4's never-pull list forbids
+// inside `CAPS.DEEP_C`/`CAPS.WEEK_C`. §6.4's never-pull list forbids
 // per-rival `ranked_keywords` on the free path, and that is held by the
 // module graph rather than by a runtime check: nothing in the free
 // report's card (`derive.ts`, `presence.ts`) resolves an import into this

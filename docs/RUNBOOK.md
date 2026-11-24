@@ -250,8 +250,8 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   Inngest dashboard with `{siteId, domain, zone, weekStart: <the site's next local Monday,
   YYYY-MM-DD>, at: <now, ISO>, early: true, key: "weekly:<siteId>:<weekStart>:early"}`. It is that
   Monday's pass, run now: it claims next week's row, commits the days from the site's first
-  unwritten date, and sends the Monday mail. It costs that week's own budget, at most `WEEKLY_C`
-  40¢ + `TOPUP_C` 7¢ + `WEEK_RESEARCH_C` 2¢, and that Monday then runs nothing for the site. Send it
+  unwritten date, and sends the Monday mail. It costs that week's own budget, at most `WEEK_C`
+  59¢, and that Monday then runs nothing for the site. Send it
   at the latest about an hour before the first date's draft tick. Any other `weekStart` is refused
   `not_next_week` before spend; a second send for the same week is `already_measured` at 0¢. Never
   send it without `early` and with `at` in the future: that claims next week and plans from that
@@ -262,8 +262,7 @@ So the way to run one by hand is **the Inngest dashboard**, on the `reachkit` ap
   `weekly/refresh/subject` with `{siteId, domain, zone, weekStart: <the site's current local
   Monday>, at: <now, ISO>, rerun: true, key: "weekly:<siteId>:<weekStart>:rerun:<n>"}`, a new `<n>`
   each time (the same key twice is one run), and `mail: true` only to send the Monday mail again.
-  It measures on a row of its own under a fresh `WEEKLY_C` 40¢, `TOPUP_C` 7¢, `WEEK_RESEARCH_C` 2¢
-  and `WEEK_NEWS_C` 10¢; the week's row is replaced only when it finishes, so a failed re-run leaves
+  It measures on a row of its own under a fresh `WEEK_C` 59¢; the week's row is replaced only when it finishes, so a failed re-run leaves
   the week as it was. The plan recommits from the first unwritten date, and `market_changes` and
   `publication_weeks` are written again. `DAILY_SITE_C` and the product's day ceiling still apply:
   a day already at either is refused `spend_ceiling` before spend. Each re-run writes one

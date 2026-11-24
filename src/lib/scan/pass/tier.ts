@@ -148,7 +148,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     typingReserveC: TYPING_RESERVE_C,
   }),
   weekly: Object.freeze({
-    cap: "WEEKLY",
+    cap: "WEEK",
     serpMode: "std",
     serpPriority: "normal",
     serpPollMs: VENDOR.stdQueuePollIntervalS * 1000,

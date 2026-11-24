@@ -1,5 +1,5 @@
 // A listed test site's week measured again on a fresh weekly budget, so the owner can evaluate a pass as often as needed. Temporary.
-// The re-run measures on a row of its own, so its `WEEKLY` budget starts at 0¢, and takes the week only once it finishes.
+// The re-run measures on a row of its own, so its `WEEK` budget starts at 0¢, and takes the week only once it finishes.
 import { env } from "@/lib/config/env";
 import { dbAdmin } from "@/lib/db";
 import { recordOpsEvent } from "@/lib/ops/events";
