@@ -591,7 +591,7 @@ export function withFitFact(parts: PageParts, a: { pack: ContextPack; template: 
   const written = parts.sections.some((section) => section.key === "business" && section.body.trim() !== "");
   // The pitch is said once: where the business section states the fit fact, the box takes another of the pack's.
   const inSection = fit.url !== null && asked && (written || a.businessName !== null);
-  const answer = answerWithFact(parts.answer, a.pack, !inSection);
+  const answer = answerWithFact(parts.answer, a.pack, !inSection && a.pack.type !== "listicle");
   if (!inSection || written || fit.url === null || a.businessName === null) return { ...parts, answer };
   const heading = languagePack(a.pack.locale?.language ?? "en").businessHeading(a.businessName);
   const sections = [...parts.sections.filter((section) => section.key !== "business"), { key: "business", heading, body: `> ${linkedPassage(fit.passage, fit.url)}` }];
