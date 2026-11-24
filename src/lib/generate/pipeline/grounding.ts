@@ -30,16 +30,8 @@
 // sentences by `report-facts.ts` and read here as one more page, sourced to
 // the report's own address and dated by the measurement.
 //
-// **One page may not be the whole grounding** (issue 900). The read used to
-// walk pages freshest first and take every passage one page yielded before
-// looking at the next, so a site whose most recently read page was dense
-// enough handed the brief eight facts off that single page — on the owner's
-// own dogfood, eight facts off the pricing page, from which the only page
-// writable is a page about the price. The pages are now taken in turn, one
-// passage each per round, so the facts a brief chooses among come from as
-// many of the customer's pages as there are; and where a target search is
-// known the pages that share its words are offered first, so the fact the
-// page stands on is about the question rather than about the seller.
+// **One page is never the whole grounding.** The pages are taken in turn, one passage each per round, the pages that
+// share the target search's words first, so the facts come from as many pages as there are and speak to the question.
 import nlp from "compromise";
 import { readLatestMeasuredText, readMeasuredText, type MeasuredText } from "@/lib/measure/text";
 import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
@@ -261,23 +253,10 @@ export async function readDemoPhrases(a: { siteId: string; scanId?: string }): P
 }
 
 /**
- * The same passages, minus the ones the customer switched off (#926, #927).
- *
- * **A pure filter, and the refusals are passed in.** A customer who switched
- * a passage off on Settings › Your business has said ReachKit may not quote
- * it, and a page that quoted it anyway would be the one thing that control
- * is for. The list arrives from the caller rather than being read here, and
- * the reason is worth stating because the first draft of this did read it:
- * this module is reached by the writer, by an edit, by the opportunities
- * store and by the Settings screen, and a read inside it puts a database
- * behind every one of them — including a suite about passage *ordering* that
- * has no business standing one up. It also read it twice on the draft path,
- * since the caller already reads the same row for the profile.
- *
- * So the one read is the caller's — `../voice/confirmed.ts` returns the
- * refusals beside the profile — and this stays the filter.
- * `tests/build/grounding-callers.test.ts` is what holds every quoting path
- * to it.
+ * The same passages, minus the ones the customer switched off on Settings › Your business: a passage they refused is
+ * never quoted. A pure filter: the caller reads the refusals once (`../voice/confirmed.ts`), so the writer, an edit,
+ * the opportunities store and Settings put no database behind this module. `tests/build/grounding-callers.test.ts`
+ * holds every quoting path to it.
  */
 export function allowedFacts(
   all: readonly SourcedFact[],
