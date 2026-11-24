@@ -112,7 +112,7 @@ const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
 const { deadLinkPath, LANDING_QUERY_KEY } = await import("../../src/lib/account/identity/addresses");
 const { unwireSignInLinkIssuer } = await import("../../src/lib/account/identity/wire");
 const { setLeadStore } = await import("../../src/lib/mail/leads/store");
-const { advanceSequences } = await import("../../src/lib/mail/leads/sequence");
+const { advanceSequences, scheduleSequence } = await import("../../src/lib/mail/leads/sequence");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { MAIL_KINDS } = await import("../../src/lib/mail/kinds");
 const { SETUP_PATH, APP_PATH, setupRedirectFor } = await import(
@@ -523,6 +523,15 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
 
     // Nothing on the payment path spends: no pass has started.
     expect(db.queries.filter((q) => q.table === "fetches")).toEqual([]);
+  });
+
+  it("step 2 — a customer who was never a lead later asks for a free page, and no follow-up starts", async () => {
+    leads.leads.length = 0;
+    await untilTheAccountIsOpen();
+    leads.leads.push(blankLead({ id: "lead-2", email: NORMALISED, domain: "other.example", scan_id: "scan-2", first_page_state: "sent", page_delivered_at: new Date().toISOString() }));
+    await scheduleSequence({ email: NORMALISED, domain: "other.example", deliveredAt: new Date() });
+    expect(leads.leads[0]?.sequence_state).toBeNull();
+    expect((await advanceSequences(new Date())).sent).toBe(0);
   });
 
   it("step 2 — the magic-link mail carries a real link, and is a mail nobody can switch off", async () => {

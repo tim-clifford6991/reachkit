@@ -12,6 +12,7 @@ import {
 import { buildNurture, type NurtureTouch } from "../templates/nurture";
 import { sendEmail } from "../send";
 import { daysAfter, hoursAfter } from "./clock";
+import { accountStore } from "@/lib/account/store";
 import { leadStore, type LeadRow } from "./store";
 import { normaliseAddress, suppressionState } from "./suppress";
 
@@ -42,8 +43,9 @@ export async function scheduleSequence(a: {
     return;
   }
 
-  // An address that bought is told nothing more about buying, whichever domain it asks about next.
-  if (read.leads.some((lead) => lead.converted_at !== null)) {
+  // An address that bought, as a lead or with no lead before it, is told nothing more about buying; an unreadable account read starts nothing.
+  const account = await accountStore().accountByEmail(email);
+  if (read.leads.some((lead) => lead.converted_at !== null) || !account.ok || account.account !== null) {
     log({ outcome: "not-started", domain, reason: "converted", rule: "REQ-010 c10" });
     return;
   }
