@@ -53,9 +53,10 @@ export const PRICE_BOOK = Object.freeze({
  *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40,
-  /** A day's pages on Opus 5.5: its research on Sonnet 5.5 (14¢ at most measured), a write cut off at 8 192 tokens
-   *  (21¢), the retry (22¢) and the fix (23¢) reserve 80¢ at most, so a write is never refused its fix; a measured
-   *  page costs 18¢ (p50) to 31¢ (max) before its research. */
+  /** A day's pages on Opus 5.5, reserved at the vendor's own input count (`INFERENCE_INPUT_RESERVE`): its research
+   *  on Sonnet 5.5 (two calls of ~7.3¢ reserved, ~12¢ billed), a write that fits its output cap (~25¢ reserved, ~20¢
+   *  billed) and the fix (~21¢ reserved) come to ~61¢. Even a write cut off at 8 192 tokens (~25¢ billed) and its
+   *  retry (~25¢) leave the fix its ~21¢ under 87¢, so a write is never refused its fix. */
   DRAFT_C: 87,
   DAILY_SITE_C: 550,
   /** SPEC §7 *Pages left*: a short week's top-up buys under its own 7¢ a site a week, outside `WEEKLY_C`. */
@@ -198,6 +199,16 @@ export const INFERENCE_MAX_RETRIES = 0 as const;
  *  - `generate.write`, `generate.fix` — a whole page in parts (SPEC §7, D41).
  *  - `generate.fit_check` — `{ unsupported: { index, claims }[] }`, a few
  *    words a sentence, and few sentences on a page that fails: ~20 each. */
+/** The most words a page's one write call is asked for: 2,400 at 2.76 tokens a word is about 6,600 of
+ *  `generate.write`'s 8 192, room for the ~8% a writer runs over its aim. Only the aim; the ceiling still holds. */
+export const WRITE_AIM_MAX_WORDS = 2400;
+
+/** How far a call's input runs past `llm()`'s four-characters-a-token estimate, where the vendor's own count was
+ *  measured above it: the tool's schema is billed too, and JSON with links splits finer. 2026-11-24's writes billed
+ *  22,089 and 22,131 tokens against ~14,150 estimated (1.56), its research calls 21,656 and 24,831 against 15,750 and
+ *  16,750 (1.48 at most). Reserving under the bill let the ledger settle 56.10¢ for 63.55¢ billed. */
+export const INFERENCE_INPUT_RESERVE: Readonly<Partial<Record<string, number>>> = Object.freeze({ "generate.write": 1.6, "generate.research": 1.5 });
+
 export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   /** Up to four offerings (a name, a category, a weight), a kind and a reach
    *  beside the seven fields: ~120 more. */
@@ -223,8 +234,10 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   "topic-typed": 400,
   /** SPEC §7 (D41, stage 3): the whole page in one call — its title, short
    *  answer, takeaways, every section, closing line and buyer questions. A
-   *  2,500-word comparison is about 3,600 tokens of prose; 8 192 leaves the
-   *  parts' framing room. `generate.fix` is the one fix call of stage 4 and
+   *  comparison's body word costs about 2.76 output tokens with its links, FAQ
+   *  and parts' framing (2,854 words came back as 7,876 tokens), so 8 192
+   *  holds about 2,950 words, and the writer is asked for at most
+   *  `WRITE_AIM_MAX_WORDS`. `generate.fix` is the one fix call of stage 4 and
    *  returns the page whole again. */
   "generate.write": 8192,
   "generate.fix": 8192,
