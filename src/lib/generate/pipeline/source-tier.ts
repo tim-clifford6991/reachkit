@@ -49,7 +49,6 @@ export function primaryAddress(url: string, rivals: readonly string[] = []): boo
 const WIRE_RE = /(?<![a-z])(?:pr ?newswire|business ?wire|globe ?newswire|accesswire|ein ?presswire|einnews|ab ?newswire|getnews|newsfile ?corp|prweb|openpr|prlog|issuewire|marketersmedia|send2press|24-7pressrelease|presswire)(?![a-z])/i;
 export const pressWire = (url: string, text = ""): boolean => WIRE_RE.test(url) || WIRE_RE.test(text);
 
-const squashed = (text: string): string => text.replace(/\s+/g, " ").trim();
 /** How far either side of a claim's passage its page may state the method it was found by. */
 const BESIDE = 400;
 const said = (search: string): string => search.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -95,10 +94,8 @@ export function studySubject(a: { target: string; market?: string; options?: boo
 export function tiered(facts: readonly MarketFact[], a: { rivals: readonly string[]; products: readonly string[]; names?: readonly { domain: string; name?: string | null }[]; language: Language; pages: readonly { url: string; text: string }[]; capped: ReadonlySet<string> }): MarketFact[] {
   const pack = languagePack(a.language);
   // A page's own study is stated beside the finding, never by a method word in its footer or a ratings blurb.
-  const methodBeside = (fact: MarketFact): boolean => {
-    const text = squashed(a.pages.find((page) => page.url === fact.url)?.text ?? ""), at = text.indexOf(squashed(fact.passage));
-    return pack.studyMethod.test(at < 0 ? fact.passage : text.slice(Math.max(0, at - BESIDE), at + fact.passage.length + BESIDE));
-  };
+  const text = new Map(a.pages.map((page) => [page.url, page.text.replace(/\s+/g, " ")])), at = (fact: MarketFact): number => text.get(fact.url)?.indexOf(fact.passage) ?? -1;
+  const methodBeside = (fact: MarketFact): boolean => pack.studyMethod.test(at(fact) < 0 ? fact.passage : text.get(fact.url)!.slice(Math.max(0, at(fact) - BESIDE), at(fact) + fact.passage.length + BESIDE));
   const wire = new Set(a.pages.filter((page) => pressWire(page.url, page.text)).map((page) => page.url));
   const products = [...a.products.map((domain) => ({ domain })), ...(a.names ?? [])];
   const review = new Set(a.pages.filter((page) => new Set(namedIn(page.text, products)).size >= 2).map((page) => page.url));
@@ -116,19 +113,14 @@ export function tiered(facts: readonly MarketFact[], a: { rivals: readonly strin
     if (fact.kind === "recent" || (citers.get(siteOf(fact.url))?.size ?? 0) >= 2) return "publication";
     return review.has(fact.url) ? "review" : "other";
   };
-  return facts.map((read) => {
-    const fact = secondHanded(read, pack.reported);
-    return { ...fact, tier: tierOf(fact), ...(fact.product === undefined && a.capped.has(siteOf(fact.url)) ? { capped: true as const } : {}) };
-  });
+  return facts.map((read) => secondHanded(read, pack.reported)).map((fact) => ({ ...fact, tier: tierOf(fact), ...(fact.product === undefined && a.capped.has(siteOf(fact.url)) ? { capped: true as const } : {}) }));
 }
 
 /** A passage that reports another party's finding is second-hand, and undated: its page's date is not the finding's.
  *  A news story's attribution is its own reporting, dated by the story. */
 function secondHanded(fact: MarketFact, reported: RegExp): MarketFact {
   if (fact.product !== undefined || fact.via !== undefined || fact.kind === "recent" || (fact.secondHand !== true && !reported.test(fact.passage))) return fact;
-  const undated: MarketFact = { ...fact, secondHand: true };
-  for (const key of ["publishedAt", "modifiedAt", "datedBy", "ageAt"] as const) delete undated[key];
-  return undated;
+  return Object.fromEntries(Object.entries({ ...fact, secondHand: true }).filter(([key]) => !["publishedAt", "modifiedAt", "datedBy", "ageAt"].includes(key))) as unknown as MarketFact;
 }
 
 /** Distinct sites at `review` or better among the claims whose address the written page cites. */
