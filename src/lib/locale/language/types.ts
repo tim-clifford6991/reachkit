@@ -143,6 +143,9 @@ export interface LanguagePack {
   title: {
     /** Words that are not a title's subject. */
     filler: ReadonlySet<string>;
+    /** Words that rank a search's subject rather than name it ("most effective", "leading"): an alternation. A title
+     *  leads with the search's subject without them. */
+    ranking: string;
     /** How a title that asks a question opens: an alternation. */
     asksStart: string;
     /** The words that say something costs nothing: an alternation. */

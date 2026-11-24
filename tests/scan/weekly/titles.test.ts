@@ -16,11 +16,11 @@ vi.mock("@anthropic-ai/sdk", () => ({ default: class { messages = { create: (...
 const { titleWeek } = await import("../../../src/lib/scan/weekly/titles");
 const { setOpportunityStore } = await import("../../../src/lib/opportunities/store");
 
-it("titles every untitled page in one call and one re-ask inside the weekly cap, repairs what both reject, keeps names' casing, and asks nothing again", async () => {
+it("titles every untitled page in one call and one re-ask inside the weekly cap, repairs what both reject and logs why, keeps names' casing beside a rival's domain, and asks nothing again", async () => {
   const report = JSON.parse(JSON.stringify(reportOf({ questions: [], serps: [] })));
   db.answer = (query) => (query.table === "scans" && query.verb === "select" ? [{ id: "scan", cost_cents: CAPS.WEEK_C - 1, site_id: SITE_ID, report }] : null);
   const topic = (query: string, n: number) => ({ ...rowOf("example.com", { query, type: "answer_page", status: "open", volume: null } as unknown as StoredTopic, n), site_id: SITE_ID, title: null, plan_place: n });
-  const market = { buyer: "founders", job: "be found", category: "ai search visibility", synonyms: [], differentiators: [], notOurMarket: [], rivals: [] } as unknown as MarketConclusion;
+  const market = { buyer: "founders", job: "be found", category: "ai search visibility", synonyms: [], differentiators: [], notOurMarket: [], rivals: [{ name: "Peec AI", domain: "peec.ai" }] } as unknown as MarketConclusion;
   const state = newMemoryState({ rows: [topic("what is ai search visibility", 0), topic("can chatgpt do seo", 1)], market });
   setOpportunityStore(memoryStore(state));
   const angle = { pattern: "P2", title: "What Is Ai Search Visibility: How Founders Measure It", promise: "how founders measure AI visibility", fact: 0 };
@@ -35,7 +35,7 @@ it("titles every untitled page in one call and one re-ask inside the weekly cap,
   expect(await titleWeek(SITE_ID)).toBe(0);
   expect(create).toHaveBeenCalledTimes(2);
   const lines = logged.mock.calls.flatMap(([line]) => (typeof line === "string" && line.startsWith("{") ? [JSON.parse(line)] : []));
-  expect(lines.filter((line) => line.event === "week_title_rejected").map((line) => [line.search, line.angles])).toEqual([["can chatgpt do seo", [{ pattern: "P2", gates: ["banned"] }]]]);
+  expect(lines.filter((line) => line.event === "week_title_rejected").map((line) => [line.round, line.search, line.angles.map((each: { gates: string[] }) => each.gates)])).toEqual([["first", "can chatgpt do seo", [["banned"]]], ["again", "can chatgpt do seo", [["pattern"]]]]);
   const spent = lines.flatMap((line) => (line.site === "topic-title" ? [line.costCents as number] : []));
   expect(spent.length === 2 && spent.every((cents) => cents > 0 && cents < CAPS.WEEK_C)).toBe(true);
 });

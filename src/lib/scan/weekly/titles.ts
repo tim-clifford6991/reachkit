@@ -125,12 +125,21 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
       if (angle !== null) kept.set(i, angle);
     }
   };
+  // Each ask's rejections are logged, so a search left to its fallback says why.
+  const rejectedAfter = (round: "first" | "again", asked: ReadonlyMap<number, number> = new Map()) => {
+    const rejected = searches.flatMap((search, i) => (kept.has(i) ? [] : [{ ...shown(search, i), rejected: (proposed.get(i) ?? []).slice(asked.get(i) ?? 0).map((angle) => ({ title: angle.title, pattern: angle.pattern, gates: angleGates(angle, context(search)) })) }]));
+    for (const each of rejected) console.log(JSON.stringify({ event: "week_title_rejected", siteId, round, search: each.search, angles: each.rejected.map(({ title, pattern, gates }) => ({ title, pattern, gates })) }));
+    return rejected;
+  };
   const first = await ask(TASK, searches.map(shown));
   if (first.kind === "unmeasured") return 0;
   take(first);
-  const rejected = searches.flatMap((search, i) => (kept.has(i) ? [] : [{ ...shown(search, i), rejected: (proposed.get(i) ?? []).map((angle) => ({ title: angle.title, pattern: angle.pattern, gates: angleGates(angle, context(search)) })) }]));
-  for (const each of rejected) console.log(JSON.stringify({ event: "week_title_rejected", siteId, search: each.search, angles: each.rejected.map(({ pattern, gates }) => ({ pattern, gates })) }));
-  if (rejected.length > 0) take(await ask(RETRY, rejected));
+  const rejected = rejectedAfter("first");
+  if (rejected.length > 0) {
+    const asked = new Map([...proposed].map(([i, angles]) => [i, angles.length]));
+    take(await ask(RETRY, rejected));
+    rejectedAfter("again", asked);
+  }
   let titled = 0;
   for (const [i, search] of searches.entries()) {
     const evidence = readOpportunity(search.row).evidence;

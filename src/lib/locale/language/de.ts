@@ -152,6 +152,7 @@ export const DE: LanguagePack = {
         "über unter um ist sind war wird werden kann können ich du wir sie ihr es man mein dein unser als auch nicht wie was wer wo " +
         "wann warum welche welcher welches beste besten bester bestes top vs so").split(" ")
     ),
+    ranking: "führende[nrsm]?|effektivste[nrsm]?|beliebteste[nrsm]?|empfohlene[nrsm]?|bewährte[nrsm]?",
     asksStart: "wie|was|warum|wieso|weshalb|welche[rsnm]?|wer|wann|wo|kann|können|ist|sind|lohnt|sollte|braucht|brauche",
     free: "kostenlos|kostenfrei|gratis",
     serial: "folge|episode|ep|ausgabe|heft|band|bd|kapitel|staffel|teil",

@@ -5,11 +5,13 @@ import { DEFAULT_LOCALE, isLanguage } from "@/lib/locale/locales";
 // The library keeps iPhone mid-title but capitalises it as a first word; a word cased this way is the brand's own.
 const OWN_CASE = /\p{Ll}\p{Lu}/u;
 const WORD = /[\p{L}\p{N}]+/gu;
+// A domain's labels are no casing: "peec.ai" never says "AI" is written "ai".
+const HOST = /(?:https?:\/\/)?(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}(?![\p{L}\p{N}])(?:\/\S*)?/giu;
 
 /** The names `texts` write with a capital past their first letter (AI, ChatGPT, HMRC, iPhone), where they never write
- *  the same word plainly too: the casing a title takes them in. */
+ *  the same word plainly too, a domain or address aside: the casing a title takes them in. */
 export function ownCasings(texts: readonly string[]): string[] {
-  const words = texts.flatMap((text) => text.match(WORD) ?? []);
+  const words = texts.flatMap((text) => text.replace(HOST, " ").match(WORD) ?? []);
   const plain = new Set(words.filter((word) => !/^.\P{Lu}*\p{Lu}/u.test(word)).map((word) => word.toLowerCase()));
   return [...new Set(words.filter((word) => word.length > 1 && /^.\P{Lu}*\p{Lu}/u.test(word) && /\p{L}/u.test(word) && !plain.has(word.toLowerCase())))];
 }
