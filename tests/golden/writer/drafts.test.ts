@@ -3,7 +3,7 @@
 // written from) is run through the hard rules, the repair code makes and the
 // notes the fix call would be told, and what comes out is the golden beside
 // this file. A changed rule is a reviewed diff here. 0¢: the cost context
-// refuses every vendor, and the fit check is read as refused.
+// refuses every vendor, and no fit check is asked.
 import "../../generate/env";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -16,7 +16,6 @@ import { renderOf } from "@/lib/generate/rules/text";
 import { sourcesNeed } from "@/lib/generate/templates";
 import { pageTypeOf } from "@/lib/opportunities/page-type";
 import type { OpportunityType } from "@/lib/opportunities/types";
-import type { PromptKnowledge } from "@/lib/generate/voice/profile-block";
 import { fakeCost } from "../../generate/fixtures";
 
 const STORED = new URL("../../../tests/fixtures/walk/prose-gate/", import.meta.url);
@@ -60,8 +59,7 @@ async function stage4(domain: string): Promise<string> {
   };
   const battery = (text: string) =>
     runHardRules(fakeCost(), {
-      fit: { state: "unrun", reason: "cap_hit" },
-      knowledge: {} as PromptKnowledge,
+      fit: { state: "passed" },
       markdown: text,
       title,
       rendered: renderOf(text),
