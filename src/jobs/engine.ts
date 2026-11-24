@@ -187,7 +187,7 @@ export async function startWeeklyScan(
     for (let n = 0; at(n).length > 0; n++) checks.push(...(await step(`research-check-${a.siteId}-${n}`, () => checkWeekResearch({ ...week, rows: at(n) }))));
     await step(`commit-${a.siteId}`, () => commitWeek({ ...week, rows, checks, again: a.rerun !== undefined }));
   }
-  const told = await step(`tell-${a.siteId}`, () => tellWeek(a, outcome));
+  const told = await step(`tell-${a.siteId}`, async () => { const hot = await import("@/lib/hot/offer"), unstored = outcome.ran && (await hot.topicUnstored(siteId, outcome.scanId)), told = await tellWeek(a, outcome); return unstored && "done" in told ? { degraded: hot.HOT_FAILED } : told; });
   if (a.rerun !== undefined) await recorded(a.rerun);
   return told;
 }

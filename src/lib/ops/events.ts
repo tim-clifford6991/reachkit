@@ -102,6 +102,12 @@ export async function claimOpsEvent(kind: string, siteId: string, code: string, 
   return true;
 }
 
+/** Drops the site's `kind` row keyed `code`, so a later run may claim it again. */
+export async function releaseOpsEvent(kind: string, siteId: string, code: string): Promise<void> {
+  const { error } = await (await events())().delete().eq("kind", kind).eq("site_id", siteId).eq("code", code);
+  if (error !== null) throw new Error(`ops_events release: ${error.message}`);
+}
+
 /** Writes the site's `kind` row keyed `code`, then drops the ones held before it, so the one read is this. */
 export async function replaceOpsEvent(kind: string, siteId: string, code: string, read: string): Promise<void> {
   const rows = await events();

@@ -507,6 +507,13 @@ describe("a topic the customer stopped is told apart from one a gate dismissed",
     expect(psqlRows("select relrowsecurity from pg_class where relname = 'opportunities';")).toEqual([["t"]]);
     expect(psqlRows("select count(*) from pg_policies where tablename = 'opportunities' and 'anon' = any(roles);")).toEqual([["0"]]);
   });
+
+  it("a hot topic's row is stored, its slug passing the write family's check", async () => {
+    const { hotRow } = await import("../../src/lib/hot/offer");
+    const angle = { search: "ai overviews website clicks", title: "What AI Overviews mean for your clicks", angle: null, fact: null, fit: 2 as const, changes: true, angles: [] };
+    const reason = { signal: "news" as const, event: "AI Overviews", date: "2026-11-20", a: "a.com", b: "b.com", key: "news:k", detectedOn: "2026-11-24" };
+    expect((await store.insert(hotRow({ siteId: SITE_ID, scanId: SCAN_ID, language: "en", angle, event: { claims: [] }, reason, now: new Date() }))).outcome).toBe("created");
+  });
 });
 
 describe("a topic a rule stop rested since 2026-10-17 is offered again, and no other row moves", () => {
