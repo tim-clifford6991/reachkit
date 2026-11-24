@@ -174,11 +174,9 @@ export interface GroundedFact {
   passage: string;
 }
 
-/** Which page a candidate duplicated. Three sets, all of them this
- *  customer's: this rule never compares against another customer's page.
- *  That comparison is `../pipeline/elsewhere.ts` (issue 1144), which is not
- *  a rule and records no page. */
-export type DuplicateKind = "published" | "measured" | "queued";
+/** Which page a candidate duplicated: three sets of this customer's, and `elsewhere`, the pages written for other
+ *  sites (D13), whose member is never named: its `ref` and `title` are empty. */
+export type DuplicateKind = "published" | "measured" | "queued" | "elsewhere";
 
 export interface RuleFailure {
   rule: HardRule;
@@ -246,4 +244,6 @@ export interface ComparisonSet {
   published: Array<{ ref: string; title: string; rendered: string }>;
   measured: Array<{ ref: string; title: string; rendered: string }>;
   queued: Array<{ ref: string; title: string; rendered: string }>;
+  /** Pages written for other sites in the last `ELSEWHERE.months`, text alone. Absent reads as none. */
+  elsewhere?: Array<{ ref: string; title: string; rendered: string }>;
 }

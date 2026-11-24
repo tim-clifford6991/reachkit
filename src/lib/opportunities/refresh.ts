@@ -596,10 +596,9 @@ export async function planRefreshes(a: { siteId: string; at: Date }): Promise<nu
     const unseen = pages.filter((page) => unseenDue(page, a.at));
     const close = new Set<OwnLivePage>();
     if (unseen.length > 0) {
-      const { closeElsewhere } = await import("@/lib/generate/pipeline/elsewhere");
-      for (const page of unseen) {
-        if ((await closeElsewhere({ siteId: a.siteId, markdown: page.markdown ?? "", now: a.at })) !== null) close.add(page);
-      }
+      const [{ pagesElsewhere }, { checkNearDuplicate }, { renderOf }] = await Promise.all([import("@/lib/generate/pipeline/comparison"), import("@/lib/generate/rules/nearduplicate"), import("@/lib/generate/rules/text")]);
+      const comparison = { published: [], measured: [], queued: [], elsewhere: await pagesElsewhere(a.siteId, a.at) };
+      for (const page of unseen) if (checkNearDuplicate({ rendered: renderOf(page.markdown ?? ""), comparison }) !== null) close.add(page);
     }
     const visits = await searchVisits(a.siteId, pages, a.at);
     const stopped = unseen.length === 0 && visits.size === 0 ? new Set<string>() : await stoppedRefreshes(a.siteId);

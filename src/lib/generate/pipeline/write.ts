@@ -415,22 +415,12 @@ export async function writePage(c: CostContext, a: WriteInputs): Promise<Measure
   );
 }
 
-/**
- * Stage 4's one fix call: the page as written, each check it failed and the
- * sentences that failed it, and — where it read almost the same as a page
- * written for another business (D13) — its own sentences the two shared.
- */
+/** Stage 4's one fix call: the page as written, each check it failed and the sentences that failed it. */
 export async function fixPage(
   c: CostContext,
-  a: WriteInputs & { parts: PageParts; fix: readonly FixNote[]; apart?: readonly string[] }
+  a: WriteInputs & { parts: PageParts; fix: readonly FixNote[] }
 ): Promise<Measured<PageParts>> {
   if (c.capHit()) return unmeasured("not_attempted", new Date());
-  const apart =
-    a.apart === undefined
-      ? ""
-      : " The page also read almost the same as a page already written for another business: `apart` lists " +
-        "sentences the two shared. Use none of them, and give this page its own order, examples and wording, " +
-        "built on this business's facts.";
   const fixed = partsOf(await llm(c, {
     site: "generate.fix",
     tier: a.tier ?? "writer",
@@ -444,11 +434,9 @@ export async function fixPage(
         "them put right, and change nothing else. Put each right only by mending the sentences it names, or by " +
         "adding a section that states a claim of `pack.claims` and links its url; never lengthen the page " +
         "otherwise, and where the body is over its most words, cut it back to them. A `standalone_lead` entry " +
-        "names a heading whose section opens leaning on what came before: open it on a sentence that answers that heading alone." +
-        apart,
+        "names a heading whose section opens leaning on what came before: open it on a sentence that answers that heading alone.",
       page: a.parts,
       fix: a.fix,
-      ...(a.apart === undefined ? {} : { apart: a.apart }),
     }),
   }));
   return fixed.kind === "measured" && padded(a.parts, fixed.value, a.pack.claims) ? unmeasured("undeterminable", fixed.at, "padded") : fixed;
