@@ -59,8 +59,6 @@ export function applyLinks(
     appendMissing?: boolean;
     /** The heading of the business's own section the unreached pages are listed under; absent or not found, they close the body. */
     appendUnder?: string;
-    /** The line the unreached pages are listed under, so they never stand as a bare list. */
-    appendLead?: string;
   }
 ): string {
   const chosen = new Map<string, LinkTarget>();
@@ -119,7 +117,7 @@ export function applyLinks(
   });
   if (missing.length === 0 || a.appendMissing === false) return dedupeLinks(lines.join("\n"));
 
-  const list = [...(a.appendLead === undefined ? [] : [a.appendLead, ""]), ...missing.map((target) => `- [${safeLabel(target.label)}](${safeHref(target.url)})`)];
+  const list = missing.map((target) => `- [${safeLabel(target.label)}](${safeHref(target.url)})`);
   const under = a.appendUnder === undefined ? -1 : lines.findIndex((line) => line.trim() === `## ${a.appendUnder}`);
   if (under >= 0) {
     // The end of that section: the next H2, or the end of the body.

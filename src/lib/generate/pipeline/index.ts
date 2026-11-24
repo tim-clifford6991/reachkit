@@ -333,7 +333,7 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       const closed = closing !== "" && words.trimEnd().endsWith(closing);
       const body = closed ? words.trimEnd().slice(0, -closing.length) : words;
       const tabled = table === null ? body : withTable(body, glance, [table.markdown, table.currencies, table.checked].filter((line) => line !== null).join("\n\n"));
-      return withList(withClosing(applyLinks(tabled, { ...linking, appendUnder: own, appendLead: languagePack(pack.locale?.language ?? "en").relatedLead }), closed ? closing : "", a.links[0]?.url ?? `https://${a.site.domain}/`));
+      return withList(withClosing(applyLinks(tabled, { ...linking, appendUnder: own }), closed ? closing : "", a.links[0]?.url ?? `https://${a.site.domain}/`));
     };
     return { laid, writer, markdown: lay(writer), lay, titles, notes: notes.dropped };
   };

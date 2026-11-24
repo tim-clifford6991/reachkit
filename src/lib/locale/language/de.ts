@@ -204,7 +204,6 @@ export const DE: LanguagePack = {
   ownVoice: /\b(?:[Ww]ir|[Uu]ns(?:er|ere|erem|eren|erer|eres)?)\b/,
   backReferences: ["dies", "diese", "es", "wie erwähnt", "auch", "derselbe", "dieselbe", "dasselbe"],
   prefersRival: /(?<![\p{L}])(?:ist|sind|wäre|bleibt) (?:die |das |eine )?(?:bessere|beste|richtige|günstigere|einfachere) (?:Wahl|Option|Lösung)(?![\p{L}])/iu,
-  relatedLead: "Weiterlesen:",
   refersBack: /^(?:es|dies|diese|dieser|dieses|jene|solche|beide|auch|wie erwähnt)(?![\p{L}])|(?<![\p{L}])(?:jene|so viel|ebenfalls|derselbe|dieselbe|dasselbe)(?![\p{L}])/iu,
 
   question(keyword) {

@@ -125,7 +125,6 @@ export const EN: LanguagePack = {
   businessHeading: (name) => `How ${name} does it`,
   backReferences: ["this", "these", "it", "as mentioned", "also", "the same"],
   prefersRival: /\b(?:is|are|would be|remains?) (?:the |a )?(?:better|best|right|stronger|cheaper|simpler) (?:pick|choice|fit|option|bet)\b/i,
-  relatedLead: "Read next:",
   refersBack: /^(?:it|its|they|their|them|this|these|those|that|such|both|also|as mentioned)\b|\b(?:those|that much|as well|the same)\b/i,
   ownVoice: /\b(?:[Ww]e|[Oo]urs?|us)\b/,
   writerNotes:
