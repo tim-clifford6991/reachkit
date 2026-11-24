@@ -62,6 +62,6 @@ Yes, the person booking can see their own calendar inside the scheduling link ra
 
 Set up a scheduling link before your next cross-time-zone meeting request rather than typing out times by hand.
 
-We tested every scheduling tool for a month. Start with [SavvyCal](https://savvycal.com/) by connecting your calendar, setting your hours, and sending the link for your next meeting instead of a list of proposed times.
+Start with [SavvyCal](https://savvycal.com/) by connecting your calendar, setting your hours, and sending the link for your next meeting instead of a list of proposed times.
 
 Connect your calendar and send your first link from [SavvyCal](https://savvycal.com/) before your next cross-time-zone meeting request.
