@@ -63,6 +63,7 @@ import type { MarketResearch } from "./pipeline/research";
 import { REWRITTEN, owedToRow, withFirstAsk } from "./interrupted";
 import { DraftDateTaken, PageStopped, generateStore, pageOf, type RestartedDraft, type SiteFacts } from "./store";
 import { inTest } from "./test-draft";
+import { recentFacts, storedChanges } from "@/lib/hot/detect";
 import { recordWrittenAnyway } from "@/lib/ops/events";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
@@ -477,6 +478,8 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
     const links = linksFor(o).filter((link) => link.url !== o.targetRef);
     const live = type === "update" ? await livePageOf(a, o, known, facts) : null;
     const previousResearch = type === "research" ? await previousResearchOf(a.siteId) : null;
+    // SPEC §7: the stored market changes on its topic, read at 0¢; an unreadable store cites only the page's own event.
+    const day = a.publishDate ?? new Date().toISOString().slice(0, 10), recent = recentFacts(o, await storedChanges(a.siteId, day).catch(() => []), day);
     const packOf = (research: MarketResearch): ContextPack =>
       buildPack({
         type, ...(own === undefined ? {} : { own }),
@@ -494,7 +497,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number; 
         writingVoice,
         profile: confirmed.profile,
         facts,
-        research,
+        research: { ...research, facts: [...recent, ...research.facts] },
         report,
         sitePages,
         links,

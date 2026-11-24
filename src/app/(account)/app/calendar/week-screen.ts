@@ -186,7 +186,7 @@ export function headOf(facts: PlanHeadFacts, week: WeekModel): ScreenHead {
     timed: chosen !== null && time !== null,
     foot: {
       title: copy("calendar.chosen.title"),
-      body: `${copy("calendar.chosen.body", { n: formatCount(WEEK_PLAN.days) })} ${copy("calendar.chosen.added")} ${copy("calendar.chosen.stored")}`,
+      body: `${copy("calendar.chosen.body", { n: formatCount(WEEK_PLAN.days) })} ${copy("calendar.chosen.stored")}`,
     },
   };
 }
@@ -349,11 +349,11 @@ function cardOf(
     ariaLabel: cardLabel({ cell, line: emptyLine ?? stateLine, date: spoken }),
     sources: null,
   };
-  // A page's label names the stage its badge shows and the kind its chip says.
-  const labelled = (title: string, label?: string): string =>
+  // A page's label names the stage its badge shows, the kind its chip says, and the reason line the card shows.
+  const labelled = (title: string, label?: string, why?: string | null): string =>
     state === null
       ? base.ariaLabel
-      : copy(label === undefined ? "calendar.card.aria.page" : "calendar.card.aria.written", { date: spoken, stage: copy(DAY_STATE_COPY_KEY[state]), kind: chip ?? "", title, label: label ?? "" });
+      : copy(label === undefined ? (why == null ? "calendar.card.aria.page" : "calendar.card.aria.page.why") : why == null ? "calendar.card.aria.written" : "calendar.card.aria.written.why", { date: spoken, stage: copy(DAY_STATE_COPY_KEY[state]), kind: chip ?? "", title, label: label ?? "", why: why ?? "" });
 
   if (page === null) {
     const lines =
@@ -382,7 +382,7 @@ function cardOf(
     const label = proposed === undefined ? {} : { titleLabel: proposed.label };
     return {
       ...base,
-      ariaLabel: labelled(proposed?.title ?? search, proposed?.label),
+      ariaLabel: labelled(proposed?.title ?? search, proposed?.label, page.hotLine),
       kind,
       title: proposed?.title ?? search,
       ...label,
@@ -431,7 +431,7 @@ function cardOf(
   return {
     ...base,
     sources: count === 0 ? null : count === 1 ? copy("calendar.card.sources.one") : copy("calendar.card.sources", { n: formatCount(count) }),
-    ariaLabel: labelled(page.title, page.titleLabel),
+    ariaLabel: labelled(page.title, page.titleLabel, page.stage === "live" ? null : page.hotLine),
     kind,
     title: page.title,
     ...(page.titleLabel === undefined ? {} : { titleLabel: page.titleLabel }),

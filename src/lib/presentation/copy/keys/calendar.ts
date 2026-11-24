@@ -117,7 +117,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.pane.moved-out": "“{search}” was planned for {day}. It now waits for the next Monday check, on {date}.",
   "calendar.week.stop": "Stop This Page",
   // Why the week holds a page: its most specific reason, one line. A dated event in the news comes first.
-  "calendar.week.why.news": "In the news {day}: {event}",
+  "calendar.week.why.news": "In the news since {day}: {event}",
   "calendar.week.why.near-page-one": "Close to Google’s first page",
   "calendar.week.why.not-moving": "No movement in 8 weeks",
   "calendar.week.why.shown-no-visits": "Shown on Google, no visits",
@@ -333,6 +333,8 @@ export const CALENDAR_COPY = Object.freeze({
   // the owner's.
   "calendar.card.aria.page": "{date}. {stage}. {kind}. {title}",
   "calendar.card.aria.written": "{date}. {stage}. {kind}. {title}. {label}",
+  "calendar.card.aria.page.why": "{date}. {stage}. {kind}. {title}. {why}",
+  "calendar.card.aria.written.why": "{date}. {stage}. {kind}. {title}. {label}. {why}",
   "calendar.card.aria.empty": "{date}. {reason}",
   "calendar.card.aria.date": "{date}",
 
@@ -417,7 +419,6 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.week.next": "Next Week",
   "calendar.chosen.title": "How this week’s pages were chosen",
   "calendar.chosen.body": "Every Monday we check where your pages stand on Google and in AI answers. Then we pick the {n} most likely to bring you buyers.",
-  "calendar.chosen.added": "When news fits what you sell, we add a page the next day we write. The page planned there moves to the next free day.",
   "calendar.chosen.stored": "Each reason is the one saved when the page was chosen.",
   "calendar.pane.body.unread": "We couldn’t load the page here. Read the Full Page to see it.",
   "calendar.sources.summary": "In its paragraphs: {n} sentences. {a} from your site · {b} from {m} public pages · {c} with no source linked",

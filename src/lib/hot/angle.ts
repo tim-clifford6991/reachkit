@@ -1,5 +1,5 @@
 // SPEC §7 *A page for what is new in the market*: the one judgement of an event, then the existing topic-fit judgement of
-// its angles. A page is written only on an angle of fit 3 with the passage of the site that answers it.
+// its angles. Fit and whether the event changes a buyer's decision rank its page; fit 0 and a sensitive event stop it.
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
@@ -9,6 +9,7 @@ import { namesAreReal, type TopicAngle } from "@/lib/market/questions/angle";
 import type { Profile } from "@/lib/market/questions/profile";
 import { newsWords } from "@/lib/generate/rules/title";
 import { judgeFit } from "@/lib/opportunities/derive/fit";
+import type { BusinessFit } from "@/lib/opportunities/types";
 import type { FitFact, KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import type { HotEvent } from "./detect";
 
@@ -33,11 +34,14 @@ export interface HotAngle {
   search: string;
   title: string;
   angle: TopicAngle;
-  fact: FitFact;
+  fact: FitFact | null;
+  fit: BusinessFit;
+  /** Whether the event changes what a buyer decides or does, which its `timely` part reads. */
+  changes: boolean;
 }
 
-/** The event's angle for this business, or `null` where the event does not change a buyer's decision, is sensitive, has
- *  no angle of fit 3 with a passage of the site, or the cap or the model left no answer. */
+/** The event's best-fitting angle for this business, or `null` where the event is sensitive, no angle fits above 0, or
+ *  the cap or the model left no answer. */
 export async function angleFor(
   c: CostContext,
   a: { event: HotEvent; locale: Locale; market: MarketConclusion | null; profile: Profile | null; domain: string; knowledge: KnowledgeDigest | null }
@@ -60,7 +64,7 @@ export async function angleFor(
       },
     },
   });
-  if (answer.kind === "unmeasured" || !answer.value.changes || answer.value.sensitive) return null;
+  if (answer.kind === "unmeasured" || answer.value.sensitive) return null;
   const sources = [a.event.event, a.event.title, ...a.event.claims.map((claim) => claim.quote)];
   // The language's news words, which the page's own title is held to as well.
   const news = newsWords(a.locale.language);
@@ -68,10 +72,9 @@ export async function angleFor(
   const angles = [...new Set(answer.value.angles.map((angle) => angle.trim()))].filter(fair);
   if (angles.length === 0 || c.capHit()) return null;
   const fits = await judgeFit(c, { searches: angles.map((query) => ({ query, source: "category", ranks: sources })), market: a.market, profile: a.profile, domain: a.domain, knowledge: a.knowledge, locale: a.locale });
-  for (const [i, search] of angles.entries()) {
+  const best = [...angles.entries()].flatMap(([i, search]) => {
     const judged = fits.get(i);
-    if (judged?.fit !== 3 || judged.fact === null || judged.angle === null || judged.title === null || !fair(judged.title)) continue;
-    return { search, title: judged.title, angle: judged.angle, fact: judged.fact };
-  }
-  return null;
+    return judged === undefined || judged.fit < 1 || judged.angle === null || judged.title === null || !fair(judged.title) ? [] : [{ search, title: judged.title, angle: judged.angle, fact: judged.fact, fit: judged.fit, changes: answer.value.changes }];
+  });
+  return best.sort((a, b) => b.fit - a.fit)[0] ?? null;
 }
