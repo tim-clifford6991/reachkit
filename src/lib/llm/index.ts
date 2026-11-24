@@ -7,12 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { transformJSONSchema } from "@anthropic-ai/sdk/lib/transform-json-schema";
 import { createHash } from "node:crypto";
 import { z, type ZodType } from "zod";
-import {
-  INFERENCE_ATTEMPTS,
-  INFERENCE_MAX_OUTPUT_TOKENS,
-  INFERENCE_MAX_RETRIES,
-  INFERENCE_TEMPERATURE,
-} from "@/lib/config/constants";
+import { INFERENCE_ATTEMPTS, INFERENCE_INPUT_RESERVE, INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_MAX_RETRIES, INFERENCE_TEMPERATURE } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { costCentsFor, tierBinding, type Tier, type TierBinding } from "./tiers";
@@ -559,7 +554,7 @@ export async function llm<T>(
   const tool = answerToolFor(call.site, call.schema);
   const cacheKey = createHash("sha256").update(`${call.site}:${call.tier}:${inputText}`).digest("hex");
   const attempts = INFERENCE_ATTEMPTS[call.site] ?? MAX_ATTEMPTS;
-  const attemptCents = costCentsFor(call.tier, estimateTokens(inputText), maxOutputTokens);
+  const attemptCents = costCentsFor(call.tier, estimateTokens(inputText) * (INFERENCE_INPUT_RESERVE[call.site] ?? 1), maxOutputTokens);
 
   const result = await c.recordFetch<AttemptOutcome>({
     source: call.site,

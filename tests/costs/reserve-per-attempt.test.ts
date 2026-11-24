@@ -101,6 +101,16 @@ describe("a model call reserves one attempt at a time", () => {
     expect(rows()[0]?.reservedCents).toBeLessThan(40);
   });
 
+  it("a write billed 1.56 times its estimated input, as 11-24's were, settles at the bill and is never clamped", async () => {
+    const billed = Math.round(INPUT_TOKENS * 1.56);
+    createMock.mockResolvedValueOnce(toolUseMessage({ page: "page" }, billed, 8192, "generate_write"));
+
+    await draftDay(0, (cost) => llm(cost, { site: "generate.write", tier: "writer", input: INPUT, schema: SCHEMA }));
+
+    expect(rows()[0]?.costCents).toBeCloseTo((billed / 1e6) * 400 + (8192 / 1e6) * 2000, 6);
+    expect(vi.mocked(console.warn).mock.calls.map(([line]) => String(line))).not.toContainEqual(expect.stringContaining("cost_settlement_clamped"));
+  });
+
   it("a retry that does not fit is refused, its first attempt is ledgered, and the fix records the budget as its stop", async () => {
     createMock.mockResolvedValue(fullMiss());
 
