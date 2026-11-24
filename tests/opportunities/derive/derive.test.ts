@@ -357,3 +357,29 @@ describe("the pass says how much new-page supply each source gave, at no added c
     expect(supply.sources.offering).toEqual({ offered: 2, searched: 2, fit: 1, candidates: 2, added: 2 });
   });
 });
+
+describe("a write that fails part-way dismisses no topic", () => {
+  it("a candidate insert that throws leaves every held row open with its key, and no key held twice", async () => {
+    const { ctx } = fakeCost();
+    const held = (await deriveOpportunities(ctx, input())).created[0]!;
+    // The held row on the same search, unfit and for another target, loses its topic to this pass's candidate.
+    Object.assign(state.rows.find((row) => row.id === held.id)!, { business_fit: 0, target_ref: "another-target" });
+    const shape = (rows: MemoryState["rows"]) => rows.map(({ id, status, cluster_key }) => ({ id, status, cluster_key }));
+    const before = shape(state.rows);
+    // Over an unbroken store the same pass dismisses that row and inserts its survivor, so the case below is the one at risk.
+    const control = newMemoryState({ rows: structuredClone(state.rows), nextId: state.nextId });
+    setOpportunityStore(memoryStore(control));
+    await deriveOpportunities(ctx, input());
+    expect([control.rows.find((row) => row.id === held.id)?.status, control.rows.filter((row) => row.status === "open").length]).toEqual(["dismissed", 1]);
+
+    const store = memoryStore(state);
+    const markDismissed = vi.fn(store.markDismissed);
+    setOpportunityStore({ ...store, markDismissed, insert: async () => { throw new Error("insert failed"); } });
+    await expect(deriveOpportunities(ctx, input())).rejects.toThrow("insert failed");
+    // A survivor's absorbed searches may already be rewritten; no row is lost, and the next pass derives again.
+    expect(markDismissed).not.toHaveBeenCalled();
+    expect(shape(state.rows)).toEqual(before);
+    const keys = state.rows.filter((row) => row.status === "open" || row.status === "queued").flatMap((row) => row.cluster_key ?? []);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
