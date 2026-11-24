@@ -60,7 +60,7 @@ const ENV_FILE = path.resolve(ROOT, option("--env-file", ".env.local"));
 const PIN = { AI_MODE_STD_C: 0.06, CHATGPT_STD_C: 0.12, SERP_STD_C: 0.06 };
 /** D19: at most a fifth of the set rotates in a quarter, and a quarter is 13 weeks. */
 const ROTATION = { share: 0.2, weeks: 13 };
-const WEEKLY_CAP_C = 40;
+const WEEK_CAP_C = 59;
 const TWELVE = 12;
 const HAIKU = { model: "claude-haiku-4-5-20251001", inCentsPerM: 100, outCentsPerM: 500 };
 /** The most one call is assumed to cost before it is opened, in cents —
@@ -482,7 +482,7 @@ function report(sites) {
     "",
     "Collecting a queued task is free. AI Mode's `task_get` repeats the task's cost in its own `cost` field; the account balance did not move across one, so only the post is counted.",
     "",
-    "## Against the 40¢ weekly cap",
+    `## Against the ${WEEK_CAP_C}¢ weekly cap`,
     "",
     "The measured rows are this run's. The other rows are the price book's pins (`src/lib/config/constants.ts`), not a reading of the production ledger: this run read no database, so what a real weekly pass settles at is not in this table.",
     "",
@@ -492,7 +492,7 @@ function report(sites) {
     `| D19: 25 prompts × 2 engines × 2 runs | ${cents(25 * perPromptWeekC)} | measured |`,
     `| D19: the quarter's rotation, pre-checked | ${cents(rotationC)} | measured |`,
     `| **The three together** | **${cents(serpsC + 25 * perPromptWeekC + rotationC)}** | |`,
-    `| **Left of the ${WEEKLY_CAP_C}¢ cap** for everything else a weekly pass buys | **${cents(WEEKLY_CAP_C - serpsC - 25 * perPromptWeekC - rotationC)}** | |`,
+    `| **Left of the ${WEEK_CAP_C}¢ cap** for everything else a weekly pass buys | **${cents(WEEK_CAP_C - serpsC - 25 * perPromptWeekC - rotationC)}** | |`,
     "",
     "What else a weekly pass buys today, and what each option would move:",
     "",

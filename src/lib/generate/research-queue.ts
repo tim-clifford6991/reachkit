@@ -201,11 +201,11 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
 }
 
 // The Monday commit's research (SPEC §7 *The week is committed on Monday*), a job step each: each of the week's best rows'
-// own target SERP on the normal queue under `CAPS.WEEK_RESEARCH_C`, then the rows checked a batch a step from free reads.
+// own target SERP on the normal queue from the week's one sum, `CAPS.WEEK_C`, then the rows checked a batch a step from free reads.
 export type WeekRow = Pick<OpportunityRow, "id" | "target_query"> & { topUp?: boolean };
 export type Checks = [string, ResearchRead | null][];
 const weekCost = <T>(scanId: string, body: (cost: CostContext) => Promise<T>): Promise<T> =>
-  withCostContext({ scanId, cap: "WEEK_RESEARCH", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, body);
+  withCostContext({ scanId, cap: "WEEK", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, body);
 
 /** Asks each row's own target SERP, never its study search, each waiting `waitMs`; how many are still on the queue. A
  *  read the cap refuses is not asked, and its row is committed queued. */

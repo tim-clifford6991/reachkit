@@ -81,7 +81,7 @@ describe("`priorCents` — a pass that adopts a row setup already spent against"
 describe("a week of drafts ledgered under the weekly pass's row", () => {
   it("leaves the weekly cap where the pass's own calls left it", async () => {
     const passOwnCents = 17.53;
-    await withCostContext({ scanId: "scan-1", cap: "WEEKLY", policyVersion: 1 }, async (cost) => {
+    await withCostContext({ scanId: "scan-1", cap: "WEEK", policyVersion: 1 }, async (cost) => {
       await cost.recordFetch(call(passOwnCents, "serpOrganic"));
     });
     updates.length = 0;
@@ -98,7 +98,7 @@ describe("a week of drafts ledgered under the weekly pass's row", () => {
     // What the pass buys last against its own row (§6: the tracked prompts'
     // 12¢, the mentions read) still fits, with the room the pass left.
     const run = vi.fn(async () => ({}));
-    await withCostContext({ scanId: "scan-1", cap: "WEEKLY", policyVersion: 1, rollUp: "add" }, async (cost) => {
+    await withCostContext({ scanId: "scan-1", cap: "WEEK", policyVersion: 1, rollUp: "add" }, async (cost) => {
       expect(cost.spentCents()).toBeCloseTo(passOwnCents, 6);
       expect(await cost.recordFetch({ ...call(12, "battery"), run })).not.toEqual({ skipped: "cap" });
       expect(cost.capHit()).toBe(false);
@@ -113,9 +113,9 @@ describe("a week of drafts ledgered under the weekly pass's row", () => {
 describe("the typing reserve a weekly pass's measurement holds back", () => {
   it("refuses the stages at the cap less the reserve, then admits the reserve and nothing past the cap", async () => {
     const { withStoredPassSpend } = await import("../../src/lib/scan/ceilings");
-    const stageCap = CAPS.WEEKLY_C - TYPING_RESERVE_C;
+    const stageCap = CAPS.WEEK_C - TYPING_RESERVE_C;
     await withCostContext(
-      { scanId: "scan-1", cap: "WEEKLY", policyVersion: 1, holdBackCents: TYPING_RESERVE_C },
+      { scanId: "scan-1", cap: "WEEK", policyVersion: 1, holdBackCents: TYPING_RESERVE_C },
       async (cost) => {
         await cost.recordFetch(call(stageCap - 2, "serpOrganic"));
         expect(await cost.recordFetch(call(3, "serpOrganic"))).toEqual({ skipped: "cap" });
@@ -126,7 +126,7 @@ describe("the typing reserve a weekly pass's measurement holds back", () => {
     expect(rowCents.value).toBeCloseTo(stageCap, 6);
 
     const typing = vi.fn(async () => ({}));
-    await withStoredPassSpend({ scanId: "scan-1", cap: "WEEKLY" }, async (cost) => {
+    await withStoredPassSpend({ scanId: "scan-1", cap: "WEEK" }, async (cost) => {
       expect(cost.capHit()).toBe(false);
       expect(await cost.recordFetch({ ...call(TYPING_RESERVE_C, "llm.topic-fit"), run: typing })).not.toEqual({
         skipped: "cap",
@@ -134,6 +134,6 @@ describe("the typing reserve a weekly pass's measurement holds back", () => {
       expect(await cost.recordFetch({ ...call(0.1, "llm.opportunity-type"), run: typing })).toEqual({ skipped: "cap" });
     });
     expect(typing).toHaveBeenCalledTimes(1);
-    expect(rowCents.value).toBeCloseTo(CAPS.WEEKLY_C, 6);
+    expect(rowCents.value).toBeCloseTo(CAPS.WEEK_C, 6);
   });
 });

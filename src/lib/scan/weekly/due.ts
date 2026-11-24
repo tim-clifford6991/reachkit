@@ -6,7 +6,7 @@
 // 4. a zone to decide 1 in (`store.ts`)
 // Three statements per tick whatever the site count; the local-clock filter is arithmetic in hand, since no PostgREST filter asks in each row's zone.
 // A failed or credit-refused run releases its claim to a `failed` row and is retried each hour until its week ends, spending only what is left
-// of that row's `WEEKLY` cap. A completed run is never selected again that week.
+// of that row's `WEEK` cap. A completed run is never selected again that week.
 import { sitesWithActiveAccess } from "@/lib/account/billing";
 import { sitesWithAZone, weekStatuses } from "./store";
 import { isWeeklyDue, weekHasBegun, weekKey, weekStartFor } from "./week";

@@ -1,5 +1,5 @@
 // SPEC §6 *Market changes* (owner ruling 90): the weekly pass asks Google News what happened this past week to the things
-// that move the site's market, under `CAPS.WEEK_NEWS_C`, a job step of its own. A story is a market change only where two
+// that move the site's market, from the week's one sum, `CAPS.WEEK_C`, a job step of its own. A story is a market change only where two
 // independent publishers reported it inside 30 days and the judgement holds it to be an event in the market; each is read
 // for claims, so nothing is speculated. The week's row is inserted before any spend, so a second run of the week buys
 // nothing; an owner's re-run takes the week over and reads the news again.
@@ -153,7 +153,7 @@ async function recordWeek(a: { scanId: string; siteId: string; weekStart: string
   if (site === null || report === null) return 0;
   const market = siteWritingMarket({ category: site.category, rivals: site.competitors, market: site.stored }, report);
   const notOurs = new Set([site.domain, ...site.competitors, ...market.concluded.map((rival) => rival.domain)].flatMap((host) => registrableDomain(host) ?? []));
-  const found = await withCostContext({ scanId: a.scanId, cap: "WEEK_NEWS", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, (c) =>
+  const found = await withCostContext({ scanId: a.scanId, cap: "WEEK", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, (c) =>
     buyMarketChanges(c, { siteId: a.siteId, locale, terms: newsQueries(site.stored, market.category), notOurs, market, today: a.now, ...(a.again ? { again: true as const } : {}) })
   );
   // A change seen in an earlier week keeps the week it was first seen.

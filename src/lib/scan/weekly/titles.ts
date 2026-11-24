@@ -1,6 +1,6 @@
 // SPEC §6 *Every topic is an angle*: every page a committed week holds has a title. A new page the fit call gave no
 // angle (a fit of 2, a top-up, a row held from an earlier pass), or whose stored title fails today's checks, is asked in one batched call on the fit call's tier,
-// in a context of its own under `CAPS.WEEKLY_C`, since the pass itself ends near its cap, beside the titles the
+// in a context of its own from the week's one sum, `CAPS.WEEK_C`, beside the titles the
 // commit's research already read for each search, at 0¢; an update shows its live page's own title, at 0¢. A search
 // whose every angle fails is asked once more with its failed gates named, then its angles repaired, then titled as its
 // own words in Title Case: a title gate ranks and never leaves a row untitled. A call that does not answer leaves its
@@ -50,7 +50,7 @@ export async function titleWeek(siteId: string, scanId?: string): Promise<number
     if (at === null || report === null) return 0;
     let titled = await liveTitles(siteId, report.domain, rows.filter((row) => row.family === "improve" && (row.title ?? "").trim() === ""));
     const pages = rows.filter((row) => row.family === "write" || row.family === "earn");
-    const spend = { scanId: at, cap: "WEEKLY", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" } as const;
+    const spend = { scanId: at, cap: "WEEK", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" } as const;
     if (pages.length > 0) titled += await withCostContext(spend, (c) => angleTitles(c, siteId, pages, report));
     console.log(JSON.stringify({ event: "week_titled", siteId, untitled: rows.length, titled }));
     return titled;

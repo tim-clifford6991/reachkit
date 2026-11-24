@@ -1,6 +1,6 @@
-// SPEC §7 *Pages left*: a short weekly pass buys right-sized searches under its own cap, `CAPS.TOPUP_C`, so the
-// top-up never takes the weekly pass's room and the weekly pass never takes the top-up's.
-import { CAPS, PRICE_BOOK, VENDOR } from "@/lib/config/constants";
+// SPEC §7 *Pages left*: a short weekly pass buys right-sized searches from what the week's one sum, `CAPS.WEEK_C`, has
+// left, short of `WEEK_AFTER_C`, the room of the week's steps after it.
+import { CAPS, PRICE_BOOK, VENDOR, WEEK_AFTER_C } from "@/lib/config/constants";
 import { withCostContext, type CostContext } from "@/lib/costs";
 import type { Locale } from "@/lib/locale/locales";
 import { keywordOverview, keywordSuggestions } from "@/lib/vendors/dataforseo";
@@ -10,12 +10,12 @@ import { measuredFields } from "./select";
 /** Suggestion seeds the top-up may buy in one week; a seed the vendor cache holds is read at 0¢ and not counted. */
 export const TOPUP_SEEDS = 3;
 
-/** Runs `body` under the top-up's own cost context. */
+/** Runs `body` in the top-up's cost context. */
 export type TopUpSpend = <T>(body: (c: CostContext) => Promise<T>) => Promise<T>;
 
-/** The weekly pass's top-up context: its own cap, its own ledger activity, and no roll-up onto the pass's row. */
+/** The weekly pass's top-up context: the week's sum, its own ledger activity, and no roll-up onto the pass's row. */
 export const topUpSpend = (scanId: string, policyVersion: number): TopUpSpend => (body) =>
-  withCostContext({ scanId, cap: "TOPUP", policyVersion, rollUp: "none", activity: "topup" }, body);
+  withCostContext({ scanId, cap: "WEEK", policyVersion, rollUp: "none", activity: "topup", holdBackCents: WEEK_AFTER_C }, body);
 
 export interface TopUpBought {
   suggestions: SuggestionRow[];
@@ -24,7 +24,7 @@ export interface TopUpBought {
   /** The seeds bought this week, cache reads left out. */
   seeds: string[];
   cents: number;
-  /** `topup_cap`: the top-up's own room ran short; `spend_ceiling`: the site's or the product's day refused; `failed`: it could not run. */
+  /** `topup_cap`: the week's room ran short; `spend_ceiling`: the site's or the product's day refused; `failed`: it could not run. */
   degraded?: "topup_cap" | "spend_ceiling" | "failed";
 }
 
@@ -34,7 +34,7 @@ export async function buyTopUp(
   a: { seeds: readonly string[]; ownRanked: number; locale: Locale; enough: (bought: TopUpBought) => boolean; unpriced: (bought: TopUpBought) => readonly string[] }
 ): Promise<TopUpBought> {
   const out: TopUpBought = { suggestions: [], volumes: {}, seeds: [], cents: 0 };
-  const room = () => CAPS.TOPUP_C - c.spentCents();
+  const room = () => CAPS.WEEK_C - WEEK_AFTER_C - c.spentCents();
   for (const seed of a.seeds) {
     if (out.seeds.length >= TOPUP_SEEDS || a.enough(out)) break;
     if (room() < PRICE_BOOK.SUGGESTIONS_COST_C) {

@@ -199,7 +199,7 @@ export const TYPING_RESERVE_C = 8;
  *  site's rivals one weekly pass sizes again. A sizing is kept 30 days, and a
  *  site's five rivals are usually first sized on one day, so they fall due
  *  together: 12¢ in one week, which with the rest of a weekly pass is over
- *  `CAPS.WEEKLY_C`. One a week keeps every weekly pass under its cap; the
+ *  `CAPS.WEEK_C`. One a week keeps every weekly pass under its cap; the
  *  others keep the size they had, dated, until their week. A deep pass and a
  *  re-measure size every rival that is due. */
 export const WEEKLY_RIVAL_RESIZES = 1 as const;

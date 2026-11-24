@@ -90,9 +90,9 @@ describe("a model call reserves one attempt at a time", () => {
     expect(prior + rows().reduce((sum, row) => sum + row.reservedCents, 0)).toBeLessThanOrEqual(DRAFT_C);
   });
 
-  it("market inference is sent the sonnet tier's fixed request and ledgered at Sonnet 5's price inside WEEKLY_C", async () => {
+  it("market inference is sent the sonnet tier's fixed request and ledgered at Sonnet 5's price inside WEEK_C", async () => {
     createMock.mockResolvedValueOnce(toolUseMessage({ page: "market" }, INPUT_TOKENS, 600, "market-inference"));
-    await withCostContext({ scanId: "scan-1", cap: "WEEKLY", policyVersion: 1, rollUp: "none", priorCents: 0 }, (cost) =>
+    await withCostContext({ scanId: "scan-1", cap: "WEEK", policyVersion: 1, rollUp: "none", priorCents: 0 }, (cost) =>
       llm(cost, { site: "market-inference", tier: "sonnet", input: INPUT, schema: SCHEMA }));
 
     expect(createMock.mock.calls[0]?.[0]).toMatchObject({ model: "claude-sonnet-5", thinking: { type: "disabled" } });

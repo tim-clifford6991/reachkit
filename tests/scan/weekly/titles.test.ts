@@ -1,4 +1,4 @@
-// The commit's title call: one call and one re-ask for the week's untitled pages and those titled by older rules, inside `CAPS.WEEKLY_C`; none on a re-run; no page left untitled.
+// The commit's title call: one call and one re-ask for the week's untitled pages and those titled by older rules, inside `CAPS.WEEK_C`; none on a re-run; no page left untitled.
 import "../../opportunities/env";
 import { expect, it, vi } from "vitest";
 import { fakeDb } from "../run/harness";
@@ -18,7 +18,7 @@ const { setOpportunityStore } = await import("../../../src/lib/opportunities/sto
 
 it("titles every untitled page in one call and one re-ask inside the weekly cap, repairs what both reject, keeps names' casing, and asks nothing again", async () => {
   const report = JSON.parse(JSON.stringify(reportOf({ questions: [], serps: [] })));
-  db.answer = (query) => (query.table === "scans" && query.verb === "select" ? [{ id: "scan", cost_cents: CAPS.WEEKLY_C - 1, site_id: SITE_ID, report }] : null);
+  db.answer = (query) => (query.table === "scans" && query.verb === "select" ? [{ id: "scan", cost_cents: CAPS.WEEK_C - 1, site_id: SITE_ID, report }] : null);
   const topic = (query: string, n: number) => ({ ...rowOf("example.com", { query, type: "answer_page", status: "open", volume: null } as unknown as StoredTopic, n), site_id: SITE_ID, title: null, plan_place: n });
   const market = { buyer: "founders", job: "be found", category: "ai search visibility", synonyms: [], differentiators: [], notOurMarket: [], rivals: [] } as unknown as MarketConclusion;
   const state = newMemoryState({ rows: [topic("what is ai search visibility", 0), topic("can chatgpt do seo", 1)], market });
@@ -37,7 +37,7 @@ it("titles every untitled page in one call and one re-ask inside the weekly cap,
   const lines = logged.mock.calls.flatMap(([line]) => (typeof line === "string" && line.startsWith("{") ? [JSON.parse(line)] : []));
   expect(lines.filter((line) => line.event === "week_title_rejected").map((line) => [line.search, line.angles])).toEqual([["can chatgpt do seo", [{ pattern: "P2", gates: ["banned"] }]]]);
   const spent = lines.flatMap((line) => (line.site === "topic-title" ? [line.costCents as number] : []));
-  expect(spent.length === 2 && spent.every((cents) => cents > 0 && cents < CAPS.WEEKLY_C)).toBe(true);
+  expect(spent.length === 2 && spent.every((cents) => cents > 0 && cents < CAPS.WEEK_C)).toBe(true);
 });
 
 it("asks again for a page whose stored title fails today's checks, and leaves a passing one unasked", async () => {

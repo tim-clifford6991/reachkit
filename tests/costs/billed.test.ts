@@ -79,7 +79,7 @@ describe("issue 1408 — the row keeps what the vendor billed beside what we est
   it("books ten queued searches that timed out unanswered at their posted charge, and the cap's spent figure falls to it", async () => {
     stubVendorFetch((request) => ({ tasks: [request.method === "POST" ? { id: "t", status_code: 20100, cost: 0.00045 } : { id: "t", status_code: 40602 }] }));
     const ask = (c: Parameters<typeof serpOrganic>[0], n: number) => serpOrganic(c, { query: `search ${n}`, mode: "std", loadAsyncAiOverview: false, locale: { country: "US", language: "en" }, scope: { domain: "reachkit.app" }, freshnessDays: 1, untilMs: Date.now() + 20, pollMs: 1 });
-    const spent = await withCostContext({ scanId: "scan-2933", cap: "WEEKLY", policyVersion: 1, rollUp: "none" }, async (c) => (await Promise.all([...Array(10).keys()].map((n) => ask(c, n))), c.spentCents()));
+    const spent = await withCostContext({ scanId: "scan-2933", cap: "WEEK", policyVersion: 1, rollUp: "none" }, async (c) => (await Promise.all([...Array(10).keys()].map((n) => ask(c, n))), c.spentCents()));
     const rows = db.queries.filter((q) => q.table === "fetches" && q.verb === "insert").map((q) => [q.values?.cost_cents, q.values?.billed_cents, (q.values?.payload as { vendorFailure?: string }).vendorFailure]);
     expect([rows, Math.round(spent * 1e4) / 1e4]).toEqual([Array(10).fill([0.045, 0.045, "deadline"]), 0.45]);
   });

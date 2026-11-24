@@ -570,7 +570,7 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       const rows = ledger();
       const spent = rows.reduce((total, row) => total + row.costCents, 0);
       expect(spent).toBeGreaterThan(0);
-      expect(spent).toBeLessThanOrEqual(CAPS.WEEKLY_C);
+      expect(spent).toBeLessThanOrEqual(CAPS.WEEK_C);
       // The paid battery, which the free path never buys.
       const sources = new Set(rows.map((row) => row.source));
       expect(sources).toContain("ai_optimization/chat_gpt/llm_scraper");

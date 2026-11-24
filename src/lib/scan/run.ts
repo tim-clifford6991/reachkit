@@ -177,7 +177,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       ceilingS: parameters.ceilingS,
       deadlineApplies: parameters.deadlineApplies,
       priorCents,
-      holdBackCents: parameters.typingReserveC,
+      holdBackCents: parameters.typingReserveC + parameters.afterC,
       ...(a.failsWhenFundsRefused === true ? { failsWhenFundsRefused: true } : {}),
     },
     async (bounds, cost) => {
@@ -335,7 +335,7 @@ export async function spendOnStoredReport(
 ): Promise<void> {
   const report = a.report ?? (await readScanReport(a.scanId));
   if (report === null) return;
-  await withStoredPassSpend({ scanId: a.scanId, cap: TIER_PARAMETERS[a.tier].cap }, (cost) =>
+  await withStoredPassSpend({ scanId: a.scanId, cap: TIER_PARAMETERS[a.tier].cap, holdBackCents: TIER_PARAMETERS[a.tier].afterC }, (cost) =>
     body({ report, cost })
   );
 }

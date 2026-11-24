@@ -21,7 +21,7 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
     if (events.length === 0) return 0;
     const context = () => Promise.all([store.currentReport(a.siteId), store.marketFor(a.siteId), siteLocale(a.siteId)] as const);
     let read: ReturnType<typeof context> | undefined;
-    return await withCostContext({ scanId: a.scanId, cap: "WEEK_NEWS", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, async (c) => {
+    return await withCostContext({ scanId: a.scanId, cap: "WEEK", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, async (c) => {
       let added = 0;
       for (const event of events) {
         if (c.capHit() || !(await claimOpsEvent("hot_topic", a.siteId, event.key, JSON.stringify({ day, signal: event.signal, at: a.now.toISOString() })))) continue;

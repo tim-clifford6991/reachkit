@@ -385,7 +385,7 @@ describe('BUILD §6.2/§6.3 — "The free path makes zero AI Optimization API ca
     expect(calls).toHaveLength(0);
   });
 
-  it.each(["DEEP", "WEEKLY"] as const)("aiMode runs under a %s context", async (cap) => {
+  it.each(["DEEP", "WEEK"] as const)("aiMode runs under a %s context", async (cap) => {
     const stub = stubVendorFetch(() => envelope({ items: [aiOverviewItem({ async: false, domains: ["rival-one.com"] })] }));
     const { ctx } = fakeCostContext(cap);
     const result = await ai.aiMode(ctx, { locale: { country: "US", language: "en" }, query: "best crm", mode: "live", scope: SCOPE });

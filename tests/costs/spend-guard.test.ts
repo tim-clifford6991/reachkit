@@ -149,7 +149,7 @@ describe("a day with headroom spends normally, until this pass takes the last of
     expect(updates).toEqual([{ table: "scans", values: { cost_cents: 2, status: "done" } }]);
   });
 
-  it.each(["FREE", "DEEP", "WEEKLY", "DRAFT"] as const)(
+  it.each(["FREE", "DEEP", "WEEK", "DRAFT"] as const)(
     "%s — a call of exactly its CAPS value runs; one cent more is skipped",
     async (cap) => {
       const capValue = CAPS[`${cap}_C`];

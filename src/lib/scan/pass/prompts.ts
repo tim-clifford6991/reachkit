@@ -55,7 +55,7 @@ export async function askTheMarketPrompts(a: StageArgs): Promise<void> {
   );
 }
 
-/** The site's AI panel, asked by the weekly pass and a founder's re-measure beside the twelve, inside the same clock, `WEEKLY` cap and deadline.
+/** The site's AI panel, asked by the weekly pass and a founder's re-measure beside the twelve, inside the same clock, `WEEK` cap and deadline.
  *  The set is `sites.tracked_prompts`: drawn from the twelve and their runners-up once, then rotated only as `nextPromptSet` allows. Each item is asked
  *  of AI Mode as searched and of ChatGPT as its closest "People also ask" question on the current report, `TRACKED_PROMPTS.RUNS` times, each run with its own cache key.
  *  Each answer's reading is stored, never the prose; an unanswered ask leaves the denominator. Its answers join the rival evidence. Never throws. */
@@ -196,7 +196,7 @@ async function storedQuestions(siteId: string): Promise<string[]> {
 /** The published pages' own questions, asked after the twelve inside their budget, each with one SERP (its AI Overview free) and the battery's two engines.
  *  Which questions is decided elsewhere and purely (`trackedQuestions`, `page-questions.ts`). It is the first thing a short pass loses: every worker
  *  re-reads cap and clock before a question, so a ceiling stops the pages and never the market. It writes its own three arrays, which no score reads.
- *  Per question at most 0.9¢ at standard prices; only the first twelve slots read deep, so the most is 10.8¢ + 4.32¢ against `CAPS.WEEKLY_C`,
+ *  Per question at most 0.9¢ at standard prices; only the first twelve slots read deep, so the most is 10.8¢ + 4.32¢ against `CAPS.WEEK_C`,
  *  however many pages the customer has published. */
 export async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, parameters, sections, siteId } = a;
