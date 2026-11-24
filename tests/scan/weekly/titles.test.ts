@@ -14,6 +14,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 const create = vi.fn();
 vi.mock("@anthropic-ai/sdk", () => ({ default: class { messages = { create: (...a: unknown[]) => create(...a) }; } }));
 const { titleWeek } = await import("../../../src/lib/scan/weekly/titles");
+const { angleGates } = await import("../../../src/lib/market/questions/angle");
 const { setOpportunityStore } = await import("../../../src/lib/opportunities/store");
 
 it("titles every untitled page in one call and one re-ask inside the weekly cap, repairs what both reject and logs why, keeps names' casing beside a rival's domain, and asks nothing again", async () => {
@@ -49,4 +50,9 @@ it("asks again for a page whose stored title fails today's checks, and leaves a 
   expect(await titleWeek(SITE_ID)).toBe(1);
   expect(state.rows.map((row) => row.title)).toEqual(["Generative Engine Optimization: How to Get Your Pages Cited", "What Is AI Search Visibility: How Founders Measure It"]);
   expect([await titleWeek(SITE_ID), create.mock.calls.length]).toEqual([0, 1]);
+});
+
+it("keeps an angle that leads with the search's subject and drops its ranking words", async () => {
+  const gates = (search: string, title: string) => angleGates({ pattern: "P3", title, promise: "how to choose one", fact: null }, { search, sources: [], ranks: [] });
+  expect([gates("leading answer engine optimization platforms for ai products", "Answer Engine Optimization Platforms: How to Choose One for an AI Product"), gates("most effective generative engine optimization solutions", "Generative Engine Optimization Solutions: How to Choose One")]).toEqual([[], []]);
 });
