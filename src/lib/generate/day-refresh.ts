@@ -47,6 +47,19 @@ export function mendable(opportunity: Opportunity): boolean {
   );
 }
 
+/** Whether a planned refresh is made at 0¢ or one small call (a snippet, or a mend), rather than by the writer. A mend
+ *  is checked with its live version's pack, so a page that went live with none is the writer's update instead. */
+export async function refreshedInCode(siteId: string, o: Opportunity, say = true): Promise<boolean> {
+  if (snippetOnly(o)) return true;
+  if (!mendable(o)) return false;
+  const live = await generateStore().liveVersionAt(siteId, o.targetRef);
+  if (live === null || metaOf(live.draft.meta).pack !== undefined) return true;
+  if (say) notMended(siteId, o, "no_pack");
+  return false;
+}
+
+const notMended = (siteId: string, o: Opportunity, why: "no_live" | "unchanged" | "no_pack" | "held"): null => (console.log(JSON.stringify({ event: "page_not_mended", siteId, opportunityId: o.id, why })), null);
+
 type Mended = { version: DraftRow; body: string; checked: Extract<RecheckOutcome, { kind: "checked" }> };
 type Meta = Record<string, unknown>;
 const metaOf = (meta: unknown): Meta => (typeof meta === "object" && meta !== null ? (meta as Meta) : {});
@@ -57,16 +70,16 @@ async function mendedVersion(a: MendInput): Promise<Mended | null> {
   const store = generateStore();
   const url = a.opportunity.targetRef;
   const live = await store.liveVersionAt(a.siteId, url);
-  if (live === null) return null;
+  if (live === null) return notMended(a.siteId, a.opportunity, "no_live");
   const meta = metaOf(live.draft.meta);
   const body = repairStructure(live.draft.body_md ?? "", { title: live.draft.title ?? "" });
   // Mended since it was planned: there is nothing to publish.
-  if (body === (live.draft.body_md ?? "")) return null;
+  if (body === (live.draft.body_md ?? "")) return notMended(a.siteId, a.opportunity, "unchanged");
   const version = { ...live.draft, meta: { ...meta, datedAs: typeof meta.datedAs === "string" ? meta.datedAs : live.publishedAt.toISOString(), mendOf: live.draft.id } };
   // The live text passed the rules of its own day; its new version enters review only on today's.
   const sets = await siteSets(a.siteId, a.site, a.report);
   const checked = await checkStoredAt0(version, body, { ...sets, opportunity: a.opportunity, now: new Date(), versionsAt: { url, draftIds: await store.versionsAt(a.siteId, url) } });
-  return checked.kind === "checked" ? { version, body, checked } : null;
+  return checked.kind === "checked" ? { version, body, checked } : notMended(a.siteId, a.opportunity, checked.kind === "held" ? "held" : "no_pack");
 }
 
 async function insertMended(a: MendInput, { version, body, checked }: Mended, cents = 0): Promise<string> {
@@ -155,7 +168,7 @@ export async function addsOverLive(draftId: string, update?: { ok: boolean; sinc
   const cited = pack?.claims.filter((claim) => body.includes(claim.url)) ?? [];
   const asked = (markdown: string): string[] => (markdown.match(/^#{2,3} .*\?\s*$/gm) ?? []).map(fold);
   const substance = (cited.filter((claim) => !fold(live).includes(fold(claim.passage))).length >= 3 || asked(body).some((heading) => !asked(live).includes(heading))) && new Set(cited.map((claim) => claim.url)).size >= 2 && cited.some((claim) => Date.parse(claim.readAt) >= (update?.since.getTime() ?? 0));
-  const adds = update === undefined ? o === null || !(mendable(o) || (o.type === "refresh_page" && (cause === "link" || cause === "unseen"))) : update.ok && substance;
+  const adds = update === undefined ? typeof meta.mendOf !== "string" && (o === null || !(o.type === "refresh_page" && (cause === "link" || cause === "unseen"))) : update.ok && substance;
   if (adds) {
     if (update !== undefined) await store.patchDraft(draftId, { meta: { ...meta, ...update.marks } });
     return true;
