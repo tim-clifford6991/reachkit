@@ -142,7 +142,7 @@ async function dayReady(siteId: string, publishDate: string): Promise<NoPage | {
 export async function decideDayPage(a: { siteId: string; publishDate: string; now: Date }): Promise<NoPage | { ok: true; opportunityId: string }> {
   const ready = await dayReady(a.siteId, a.publishDate);
   if (!ready.ok) return ready;
-  let first = inTest() ? await plannedTopic(a.siteId, a.publishDate) : await pageForDay(a.siteId, a.publishDate, a.now);
+  let first = inTest() ? await plannedTopic(a.siteId, a.publishDate, a.now) : await pageForDay(a.siteId, a.publishDate, a.now);
   if (inTest()) return first === null ? { ok: false, because: "no_opportunity" } : { ok: true, opportunityId: first.id };
   for (let tries = 0; first !== null && tries < DAY_TOPICS_MAX && !(await rivalsAnswer(ready, first)); tries++) {
     await restTopic(first.id, a.now, { zone: ready.site.timeZone });

@@ -198,10 +198,11 @@ const noPlainAppLink = {
  * (SPEC §7, issue 1559): from the plan it may take only the date's page and
  * the committed week, and it may not reach the ranking or the choice.
  */
-const DAILY_READS = new Set(["pageForDay", "committedWeek"]);
+// `liveTwinIds` is the duplicate check a test write consults as the real day does; it reads stored rows and commits nothing.
+const DAILY_READS = new Set(["pageForDay", "committedWeek", "liveTwinIds"]);
 const DAILY_NEVER = new Set(["planWeek", "rankOpen", "rankScore", "rankedCountsOf"]);
 const DAILY_MESSAGE =
-  "SPEC §7 (issue 1559): src/lib/generate reads the committed week — only pageForDay and committedWeek from opportunities/plan, and nothing that ranks.";
+  "SPEC §7 (issue 1559): src/lib/generate reads the committed week — only pageForDay, committedWeek and the duplicate check (liveTwinIds) from opportunities/plan, and nothing that ranks.";
 
 const dailyReadsCommit = {
   meta: { type: "problem", docs: { description: DAILY_MESSAGE } },
