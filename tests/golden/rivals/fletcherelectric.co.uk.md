@@ -30,5 +30,5 @@ From `scripts/panel/evidence/fletcherelectric.co.uk.json`: 12 stored searches, 5
 | electrical contractor leeds | absolutelyelectrical.co.uk |
 | eicr leeds | easyepc.org |
 | commercial electrician leeds | jpelectricalleeds.co.uk |
-| domestic electrician leeds | lee-electrics.co.uk |
+| domestic electrician leeds | mybuilder.com (not a competitor) |
 | consumer unit replacement leeds | sselectricalleeds.co.uk |

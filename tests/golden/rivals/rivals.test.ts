@@ -43,7 +43,7 @@ function render(domain: string): string {
     ...searches.map((row) => `| ${row.search} | ${row.type ?? "—"} | ${row.holder ?? "—"} |`),
     "",
     "| Absent from | Who's first |\n|---|---|",
-    ...presence.absentFrom.map((row) => `| ${row.keyword} | ${row.topHolder ?? "—"} |`),
+    ...presence.absentFrom.map((row) => `| ${row.keyword} | ${row.topHolder ?? "—"}${row.topHolderSource === true ? " (not a competitor)" : ""} |`),
     "",
   ].join("\n");
 }

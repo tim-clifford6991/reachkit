@@ -29,8 +29,8 @@ From `scripts/panel/evidence/streaksapp.com.json`: 14 stored searches, 5 rivals.
 
 | Absent from | Who's first |
 |---|---|
-| habit tracker | yopandtom.com |
-| habit tracker app | drginacleo.com |
-| habit tracking app | loophabits.org |
-| habit tracker templates | yopandtom.com |
-| best app for habit tracking | zapier.com |
+| habit tracker | google.com (not a competitor) |
+| habit tracker app | google.com (not a competitor) |
+| habit tracking app | alexanderfyoung.com (not a competitor) |
+| habit tracker templates | pinterest.com (not a competitor) |
+| best app for habit tracking | reddit.com (not a competitor) |

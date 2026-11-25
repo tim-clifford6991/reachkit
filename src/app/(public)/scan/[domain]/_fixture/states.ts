@@ -321,7 +321,7 @@ export const FIXTURE_REPORT: StoredReport = {
       { keyword: SEARCHES[0], volume: 8100, topHolder: RIVALS[0] },
       { keyword: SEARCHES[1], volume: 4400, topHolder: RIVALS[1] },
       { keyword: SEARCHES[3], volume: 2900, topHolder: RIVALS[2] },
-      { keyword: SEARCHES[4], volume: 1900, topHolder: RIVALS[0] },
+      { keyword: SEARCHES[4], volume: 1900, topHolder: "yelp.com", topHolderSource: true },
       { keyword: SEARCHES[5], volume: 1600, topHolder: null },
     ],
     mostSearched: { keyword: SEARCHES[0], volume: 8100, topHolder: RIVALS[0] },

@@ -31,4 +31,4 @@ From `scripts/panel/evidence/pdxsmiledesign.com.json`: 12 stored searches, 5 riv
 | dentist portland oregon | deltadental.com |
 | dental implants portland oregon | implant-dentistry-portland.com |
 | best dentist portland | sleepdentistry.com |
-| best dentist portland oregon | deltadental.com |
+| best dentist portland oregon | pdxmonthly.com (not a competitor) |

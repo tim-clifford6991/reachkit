@@ -27,8 +27,8 @@ From `scripts/panel/evidence/clearleft.com.json`: 12 stored searches, 5 rivals.
 
 | Absent from | Who's first |
 |---|---|
-| ux design agency | ineedsocial.co.uk |
+| ux design agency | clutch.co (not a competitor) |
 | user experience consultancy | tomstarley.co.uk |
-| user research agency | madebyunfold.co |
+| user research agency | digitalmarketplace.service.gov.uk (not a competitor) |
 | user experience research agency | zeeframes.com |
 | best ux design agency | interface-design.co.uk |
