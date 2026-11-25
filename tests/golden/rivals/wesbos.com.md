@@ -38,7 +38,7 @@ From `scripts/panel/evidence/wesbos.com.json`: 22 stored searches, 5 rivals.
 | Absent from | Who's first |
 |---|---|
 | javascript tutorial | w3schools.com |
-| online web development course | coursera.org |
+| online web development course | udemy.com (not a competitor) |
 | javascript is what | skillcrush.com |
-| web developer developer | w3schools.com |
+| web developer developer | wearedevelopers.com (not a competitor) |
 | css what is | mozilla.org |

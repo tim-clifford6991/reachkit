@@ -31,8 +31,8 @@ From `scripts/panel/evidence/baeckerei-hinkel.de.json`: 16 stored searches, 5 ri
 
 | Absent from | Who's first |
 |---|---|
-| bäckerei düsseldorf in der nähe | baeckerbote-duesseldorf.de |
+| bäckerei düsseldorf in der nähe | tonight.de (not a competitor) |
 | glutenfrei bäckerei düsseldorf | backbrueder-glutenfrei.de |
-| beste bäckerei düsseldorf | marktaktuell.com |
-| bäcker in düsseldorf | xn--bckerei-dsseldorf-qqb87b.de |
+| beste bäckerei düsseldorf | tripadvisor.de (not a competitor) |
+| bäcker in düsseldorf | dastelefonbuch.de (not a competitor) |
 | sauerteigbrot düsseldorf | oehme24.de |

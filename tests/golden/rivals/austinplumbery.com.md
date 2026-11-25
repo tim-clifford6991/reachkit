@@ -36,4 +36,4 @@ From `scripts/panel/evidence/austinplumbery.com.json`: 17 stored searches, 5 riv
 | emergency plumber austin | reliantplumbing.com |
 | emergency plumber austin texas | rotorooter.com |
 | emergency plumber austin tx | reliantplumbing.com |
-| best plumber austin | mooremoreplumbing.com |
+| best plumber austin | reddit.com (not a competitor) |

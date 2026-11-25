@@ -32,8 +32,8 @@ From `scripts/panel/evidence/zunicafe.com.json`: 17 stored searches, 5 rivals.
 
 | Absent from | Who's first |
 |---|---|
-| restaurants in san francisco | — |
-| restaurants in san francisco ca | exploretock.com |
-| restaurants san francisco | sftravel.com |
-| best restaurants san francisco | — |
-| brunch san francisco | townsendbrunch.com |
+| restaurants in san francisco | tripadvisor.com (not a competitor) |
+| restaurants in san francisco ca | resy.com (not a competitor) |
+| restaurants san francisco | eater.com (not a competitor) |
+| best restaurants san francisco | eater.com (not a competitor) |
+| brunch san francisco | jsfashionista.com (not a competitor) |
