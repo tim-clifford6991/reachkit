@@ -8,6 +8,7 @@
 import "../env";
 import { describe, expect, it } from "vitest";
 import { checkGrounding } from "../../../src/lib/generate/rules/grounding";
+import { fitFactRead } from "../../../src/lib/generate/pipeline/grounding";
 import { checkRivalSource } from "../../../src/lib/generate/rules/rivals";
 import { GROUNDED, SOURCE_TEXT } from "../fixtures";
 
@@ -35,6 +36,10 @@ describe("§8 hard rule 1 — grounded in the customer's own live page", () => {
     expect(checkGrounding({ grounded: elsewhere, sourceText: SOURCE_TEXT })).toEqual({
       rule: "grounding",
     });
+  });
+
+  it("a fit fact quoted from a page is one its read says: an offering's digest is on no page", () => {
+    expect(["Acme; Plan projects; Track seats", GROUNDED.passage].map((text) => fitFactRead({ text, source: { kind: "page" as const, url: `${GROUNDED.url}/` } }, [{ fact: GROUNDED, sourceText: SOURCE_TEXT }])?.text ?? null)).toEqual([null, GROUNDED.passage]);
   });
 
   it("an empty passage is not a fact", () => {

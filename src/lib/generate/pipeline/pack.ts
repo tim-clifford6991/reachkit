@@ -42,7 +42,7 @@ import { TEMPLATES, type PackNeed } from "../templates";
 import type { WritingMarket } from "../voice/market";
 import type { PromptKnowledge, PromptProfile } from "../voice/profile-block";
 import { chooseVoice, type PageVoice, type WritingVoice } from "../voice/register";
-import type { SourcedFact } from "./grounding";
+import { fitFactRead, type SourcedFact } from "./grounding";
 import { agesOf, newestCredible, type SourceAges } from "./claims";
 import { byTier, type SourceMix } from "./source-tier";
 import { neverASource, staleRivalPrice } from "./original";
@@ -648,7 +648,7 @@ export function buildPack(a: PackInputs): ContextPack {
   // Best tier first (SPEC §7 *The content standard*), newest credible first inside each.
   const claims: PackClaim[] = byTier(newestCredible(current, a.now)).map(({ readAt, ...fact }) => ({ ...fact, readAt: readAt.toISOString() }));
   const newPage = a.opportunity.family === "write" || a.opportunity.family === "earn";
-  const fit = a.opportunity.evidence?.family === "write" || a.opportunity.evidence?.family === "earn" ? a.opportunity.evidence.fitFact : null;
+  const fit = fitFactRead(a.opportunity.evidence?.family === "write" || a.opportunity.evidence?.family === "earn" ? a.opportunity.evidence.fitFact : null, a.facts);
   const business = { name: a.site.businessName, domain: a.site.domain, category: a.category, byline: a.byline, voice: a.voice, market: a.market ?? null, rivals: [...a.site.rivals] };
   const questions = buyerQuestions({
     report: a.report,
