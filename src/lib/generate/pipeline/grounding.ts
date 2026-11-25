@@ -37,6 +37,8 @@ import { readLatestMeasuredText, readMeasuredText, type MeasuredText } from "@/l
 import { isReadForFacts } from "@/lib/site-profile/knowledge/priority";
 import { readReportPage } from "./report-facts";
 import type { GroundedFact } from "../rules/types";
+import { checkGrounding } from "../rules/grounding";
+import { urlKey } from "../links/select";
 
 /** A passage short enough to quote and long enough to say something. */
 const PASSAGE_MIN_CHARS = 40;
@@ -186,6 +188,14 @@ export interface SourcedFact {
   /** Read off the report's own page, not one of the customer's (issue
    *  1163): a measurement, which no page of theirs states. */
   report?: true;
+}
+
+/** A row's fit fact, which a page quotes word for word linked to its page, kept only where that page's stored read says
+ *  it (hard rule 1's check): a digest of an offering's name and uses is on no page. A founder's answer links no page. */
+export function fitFactRead<T extends { text: string; source: { kind: "page"; url: string } | { kind: "founder" } }>(fit: T | null | undefined, facts: readonly SourcedFact[]): T | null {
+  if (fit == null || fit.source.kind !== "page") return fit ?? null;
+  const key = urlKey(fit.source.url);
+  return key !== null && facts.some(({ fact, sourceText }) => urlKey(fact.url) === key && checkGrounding({ grounded: { ...fact, passage: fit.text }, sourceText }) === null) ? fit : null;
 }
 
 export interface FactRead {
