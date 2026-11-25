@@ -40,4 +40,9 @@ describe("a study page is credible by its host, never by a tier one passage earn
     const spa = "https://www.searchenginejournal.com/win-generative-engine-optimization-peecai-spa/550612/", text = "How to win generative engine optimization with Peec AI. claim 0";
     expect([credibleAt(spa, "en"), tiered([fact(spa, 0)], { rivals, products: rivals, names: [{ domain: "peec.ai", name: "Peec AI" }], language: "en", pages: [{ url: spa, text }], capped: new Set() })[0]?.tier]).toEqual([false, "vendor"]);
   });
+  it("tiers SE Ranking's own roundup of tools (production, 25 Nov) as its vendor's, and a third party's roundup review", () => {
+    const own = "https://visible.seranking.com/blog/best-generative-engine-optimization-tools/", third = "https://example-reviews.com/best-geo-tools", text = "SE Visible by SE Ranking, Otterly AI and Peec AI compared. claim 0";
+    const pages = [{ url: own, text }, { url: third, text }], names = [{ domain: "otterly.ai", name: "Otterly AI" }, { domain: "peec.ai", name: "Peec AI" }];
+    expect(tiered([fact(own, 0), fact(third, 0)], { rivals: [], products: rivals, names, language: "en", pages, capped: new Set() }).map((each) => each.tier)).toEqual(["vendor", "review"]);
+  });
 });

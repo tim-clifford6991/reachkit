@@ -118,6 +118,8 @@ export function tiered(facts: readonly MarketFact[], a: { rivals: readonly strin
   const wire = new Set(a.pages.filter((page) => pressWire(page.url, page.text)).map((page) => page.url));
   const products = [...a.products.map((domain) => ({ domain })), ...(a.names ?? [])];
   const review = new Set(a.pages.filter((page) => new Set(namedIn(page.text, products)).size >= 2).map((page) => page.url));
+  // A roundup off a listed review or publication host that names its own site among the options is that seller's word.
+  const ownRoundup = (url: string, byAddress: SourceTier | undefined): boolean => byAddress === undefined && review.has(url) && namedIn(text.get(url) ?? "", [{ domain: siteOf(url) }]).length > 0;
   const paid = new Map(a.pages.filter((page) => sponsored(page.url, page.text)).map((page) => [page.url, namedIn(page.text, products).length > 0 ? "vendor" : "other"] as const));
   // A site two or more other sites cite as their original is a publisher.
   const citers = new Map<string, Set<string>>();
@@ -129,7 +131,7 @@ export function tiered(facts: readonly MarketFact[], a: { rivals: readonly strin
     if (paid.has(fact.url)) return paid.get(fact.url)!;
     if (fact.kind === "primary" || byAddress === "primary") return "primary";
     if (fact.via !== undefined) return "original";
-    if (a.products.some((product) => sameSite(host, product))) return "vendor";
+    if (a.products.some((product) => sameSite(host, product)) || ownRoundup(fact.url, byAddress)) return "vendor";
     if (!review.has(fact.url) && fact.secondHand !== true && methodBeside(fact)) return "original";
     if (byAddress !== undefined && fact.secondHand !== true) return byAddress;
     if (fact.kind === "recent" || (citers.get(siteOf(fact.url))?.size ?? 0) >= 2) return "publication";
