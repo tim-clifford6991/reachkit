@@ -16,11 +16,6 @@
 // submit label and the five `DomainProblem` lines (`src/lib/scan/domain.ts`,
 // WO-051) sit beside the one key this surface already owned.
 //
-// 2026-09-03: the owner ruled on the headline, field label and submit
-// label (WO-070 `## Log`, "landing copy approved"; strings per `BUILD.md`
-// §3) — those three are filled verbatim, byte for byte, and no longer
-// owner-owed.
-//
 // 2026-09-04: the owner ruled on the five `DomainProblem` lines (WO-070
 // `## Log`, this date's ruling) — filled verbatim, byte for byte. All
 // eight landing keys are now supplied; none is owner-owed.
@@ -490,6 +485,7 @@ export const REPORT_COPY = Object.freeze({
   "free-page.absent": "No free page this time. We found nothing worth writing.",
 
   "place.report.first-page.rival": "No competitor yet",
+  "presence.holder.source": "not a competitor",
   "landing.headline": "Get Found Where Your Competitors Are and Customers Search",
   "landing.field.label": "Your website",
   "landing.submit.label": "Scan My Site",
@@ -774,4 +770,5 @@ export const REPORT_COPY = Object.freeze({
   "report.google.waffle.you-lead": "You are on Google’s first page most often, for {you} of {total} searches.",
   "report.google.most": "Most searched: {search}, about {volume} times a month. First on Google: {holder}.",
   "report.google.most.none": "Most searched: {search}, about {volume} times a month.",
+  "report.google.most.you": "Most searched: {search}, about {volume} times a month. You are first on Google.",
 }) satisfies CopyPartition;

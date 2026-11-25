@@ -80,10 +80,11 @@ const HOLDER = "\u0001";
 /** The biggest search, its volume, and who is first on it, where stored. The
  *  search is mono; the competitor is a domain, mono and broken anywhere so it
  *  never splits at its hyphen in the UI face. */
-function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]> }): React.JSX.Element {
+function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]>; you: string }): React.JSX.Element {
   const slots = { search: SLOT, volume: volumeOf(p.most.volume) };
-  const holder = p.most.topHolder;
-  const [sentence = "", after = ""] = (holder === null ? copy("report.google.most.none", slots) : copy("report.google.most", { ...slots, holder: HOLDER })).split(HOLDER);
+  const holder = p.most.topHolder === p.you ? null : p.most.topHolder;
+  const none = p.most.topHolder === p.you ? "report.google.most.you" : "report.google.most.none";
+  const [sentence = "", after = ""] = (holder === null ? copy(none, slots) : copy("report.google.most", { ...slots, holder: HOLDER })).split(HOLDER);
   return (
     <p className="bg-base-200 rounded-box flex grow-0 items-start gap-2.5 px-3.5 py-3 text-sm" data-testid="presence-most-searched">
       <Search aria-hidden className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
@@ -92,12 +93,18 @@ function MostSearched(p: { most: NonNullable<PresenceSection["mostSearched"]> })
         {holder === null ? null : (
           <>
             <span className="font-mono break-all" data-testid="presence-most-holder">{holder}</span>
+            {p.most.topHolderSource === true ? <> <SourceBadge /></> : null}
             {after}
           </>
         )}
       </span>
     </p>
   );
+}
+
+/** A directory or publication first on a search: named, and never called a competitor. */
+function SourceBadge(): React.JSX.Element {
+  return <span className="badge badge-ghost badge-sm">{copy("presence.holder.source")}</span>;
 }
 
 export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.Element {
@@ -142,7 +149,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
             <AnswerMatrix rows={rows} label={copy("presence.title")} testId={PRESENCE_WAFFLE_TEST_ID} />
           </div>
         )}
-        {section.mostSearched === undefined ? null : <MostSearched most={section.mostSearched} />}
+        {section.mostSearched === undefined ? null : <MostSearched most={section.mostSearched} you={section.you.domain} />}
         {/* SPEC §2 (owner, 2026-10-07, issue 1328): the card is its finding
             and its waffle; the searches open from their own name. */}
         <details className="group border-base-300 border-t pt-2" data-testid="presence-absent-from">
@@ -231,6 +238,11 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
                           <Label>{copy("presence.absent-from.column.holder")}</Label>
                           {row.topHolder === null ? (
                             <span className="min-w-0">{copy("place.report.first-page.rival")}</span>
+                          ) : row.topHolderSource === true ? (
+                            <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                              <Num clamp={row.topHolder}>{row.topHolder}</Num>
+                              <SourceBadge />
+                            </span>
                           ) : (
                             <Num clamp={row.topHolder}>{row.topHolder}</Num>
                           )}
