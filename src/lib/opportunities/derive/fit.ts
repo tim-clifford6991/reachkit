@@ -88,7 +88,6 @@ export function boundTopFit(
     const search = searches[score.i]!;
     const chosen = fit < TOPIC_FIT.gate ? null : pickAngle(score.angles ?? [], { search: search.query ?? "", sources, ranks: search.ranks ?? [], rivals: names.rivals, ...(names.language === undefined ? {} : { language: names.language }), ...(knowledge === null ? {} : { passages: knowledge.length }) });
     const angle = chosen && { pattern: chosen.pattern, promise: chosen.promise, gap: chosen.gap };
-    // An offering's passage is a digest of its name and uses, which answers fit but is no page's words to quote.
     out.set(score.i, { fit, title: chosen?.title ?? null, angle, fact: passage === null || passage.about === "offering" ? null : { text: passage.text, source: passage.source } });
   }
   const order = new Map<number, number>();
