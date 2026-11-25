@@ -457,6 +457,7 @@ export async function composeRemainingPreview(
       // blocks, so one render answers for both.
       const { buildSpendCeilingAlert } = await import("../../../src/lib/mail/templates/ops");
       const mail = buildSpendCeilingAlert({ occasion: "reached", spentCents: 1240, ceilingCents: 1200 });
+      if (mail === null) throw new Error("a reached ceiling is told at once");
       return composeMail({ kind, subject: mail.subject, blocks: mail.blocks });
     }
     case "web-person": {

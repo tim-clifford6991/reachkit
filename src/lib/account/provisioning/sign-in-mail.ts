@@ -38,7 +38,7 @@ export async function sendSignInLink(a: {
   if (!link.issued) {
     // Recorded loudly: an account is open and its owner has no way in yet.
     console.warn(JSON.stringify({ event: "sign_in_link_not_issued", reason: link.reason }));
-    return { sent: false, because: "no_link" };
+    return tellOwnerUnsent("no_link");
   }
 
   const mail = a.afterPayment
@@ -54,5 +54,12 @@ export async function sendSignInLink(a: {
     // A request of its own, so "send it again" is a new mail even when it carries the same reused link.
     event: new Date().toISOString(),
   });
-  return result.sent ? { sent: true } : { sent: false, because: "mail" };
+  return result.sent ? { sent: true } : tellOwnerUnsent("mail");
+}
+
+/** A sign-in path that is down is told to the owner at once; the day and cause key the mail, so it arrives once a day. */
+async function tellOwnerUnsent(because: "no_link" | "mail"): Promise<SignInMailOutcome> {
+  const { reportIncident } = await import("@/lib/mail/ops");
+  await reportIncident({ occasion: "sign-in-unsent", cause: because });
+  return { sent: false, because };
 }

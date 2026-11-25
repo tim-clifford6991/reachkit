@@ -1,9 +1,9 @@
-// The owner's Monday digest. A site's first (deep) pass that found too little market mails at once; weekly passes fold into one mail per Monday,
-// sent by the maintenance tick once that Monday has ended in every zone (UTC−12 leaves it at Tuesday 12:00 UTC). Only that one week is ever due:
-// a week the tick missed is not mailed late.
-// Once: `scans.market_digest_at` is stamped on every weekly row read, only when the seam accepted the mail; a refusal stamps nothing and the
-// next tick retries. `running` and `failed` rows are not read; one that later finishes too small is sent alone.
-// The same mail carries, each left out where its read fails and never holding the digest back: each paying site's daily-promise line
+// The week's section of the owner's daily digest. A site's first (deep) pass that found too little market is told on its own; weekly passes
+// fold into one section, in the first digest after that Monday has ended in every zone (UTC−12 leaves it at Tuesday 12:00 UTC). Only that one
+// week is ever due: a week the digest missed is not told late.
+// Once: `scans.market_digest_at` is stamped on every weekly row read, only when the digest was accepted; a refusal stamps nothing and the
+// next digest retries. `running` and `failed` rows are not read; one that later finishes too small is told in a later digest.
+// The same section carries, each left out where its read fails and never holding the digest back: each paying site's daily-promise line
 // (`./promise-week`), its visits and clicks (`./visits-week`) and its untold empty days; the week's cost (`./cost-week`); the passes a health check failed on;
 // live hosted pages Google has not crawled `UNCRAWLED_AFTER_D` days after going live; and each site's market changes and how many pages used.
 import { tz } from "@date-fns/tz";
@@ -12,7 +12,8 @@ import { UNCRAWLED_AFTER_D } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readStoredReport } from "../report";
-import type { OpsIncident } from "@/lib/mail/templates/ops";
+import type { MarketWeek } from "@/lib/mail/templates/ops";
+import type { WeekSection } from "@/lib/mail/ops/incident";
 import type { UnhealthyPass } from "../health-record";
 import type { CostWeek } from "./cost-week";
 import type { PromiseWeek } from "./promise-week";
@@ -78,7 +79,7 @@ async function visitsOf(weekStart: string): Promise<VisitsWeek | null> {
   }
 }
 
-type UntoldWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["untold"]>;
+type UntoldWeek = NonNullable<MarketWeek["untold"]>;
 
 /** The week before `weekStart`'s days with no page that no alert was sent for, or `null` where there is none or they
  *  could not be read. */
@@ -102,7 +103,7 @@ async function untoldBefore(weekStart: string): Promise<UntoldWeek | null> {
   }
 }
 
-type ChangesWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["changes"]>;
+type ChangesWeek = NonNullable<MarketWeek["changes"]>;
 
 /** Each site's market changes the week before `weekStart` recorded, and how many of them that week's drafts use; `null`
  *  where no site recorded a week or they could not be read. */
@@ -164,7 +165,7 @@ async function unhealthyBefore(weekStart: string): Promise<UnhealthyPass[] | nul
   }
 }
 
-type UncrawledWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["uncrawled"]>;
+type UncrawledWeek = NonNullable<MarketWeek["uncrawled"]>;
 
 /** The live hosted pages Google had not crawled `UNCRAWLED_AFTER_D` days after going live, or `null` where there are
  *  none or they could not be read. */
@@ -220,29 +221,19 @@ function unread(columns: string, weekStart: string): MinimalQueryBuilder<DigestR
     .is("market_digest_at", null);
 }
 
-/** The week whose digest is due, as the tick's one subject — or none. */
-export async function marketDigestsDue(now: Date): Promise<readonly string[]> {
-  const weekStart = lastEndedMonday(now);
-  const { data, error } = await unread("id", weekStart).limit(1);
-  if (error) throw new Error(`marketDigestsDue: could not read the week's passes: ${error.message}`);
-  return (data ?? []).length > 0 ? [weekStart] : [];
-}
-
-/** One page of rows per tick: a larger week is finished by the next ticks. */
+/** One page of rows per digest: a larger week is finished by the next digests. */
 const ROWS_PER_DIGEST = 500;
 
 /**
- * Reads the week's unread weekly passes, mails the owner the ids of those
- * that found too little market, each paying site's promise line and what
- * that week cost, and stamps every row it read. Answers
- * whether the week is settled; `false` means the mail was not accepted and
- * nothing was stamped.
+ * Reads the due week's unread weekly passes: the ids of those that found too little market, each paying site's promise line and what
+ * that week cost. `null` when no week is due; `settle` stamps every row it read, called once the digest was accepted.
  */
-export async function sendMarketDigest(weekStart: string, now: Date): Promise<boolean> {
+export async function marketWeekSection(now: Date): Promise<WeekSection> {
+  const weekStart = lastEndedMonday(now);
   const { data, error } = await unread("id, report", weekStart).limit(ROWS_PER_DIGEST);
-  if (error) throw new Error(`sendMarketDigest: could not read the week's passes: ${error.message}`);
+  if (error) throw new Error(`marketWeekSection: could not read the week's passes: ${error.message}`);
   const rows = data ?? [];
-  if (rows.length === 0) return true;
+  if (rows.length === 0) return null;
 
   const tooSmall: string[] = [];
   for (const row of rows) {
@@ -264,30 +255,29 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
   const unhealthy = await unhealthyBefore(weekStart);
   const uncrawled = await uncrawledAt(now);
   const changes = await changesBefore(weekStart);
-  if (tooSmall.length > 0 || promise !== null || visits !== null || untold !== null || costs !== null || unhealthy !== null || uncrawled !== null || changes !== null) {
-    const { reportIncident } = await import("@/lib/mail/ops");
-    const accepted = await reportIncident({
-      occasion: "market-too-small-week",
-      weekStart,
-      scanIds: tooSmall,
-      ...(promise === null ? {} : { promise }),
-      ...(visits === null ? {} : { visits }),
-      ...(untold === null ? {} : { untold }),
-      ...(costs === null ? {} : { costs }),
-      ...(unhealthy === null ? {} : { unhealthy }),
-      ...(uncrawled === null ? {} : { uncrawled }),
-      ...(changes === null ? {} : { changes }),
-    });
-    if (!accepted) return false;
-  }
-
+  const told = tooSmall.length > 0 || promise !== null || visits !== null || untold !== null || costs !== null || unhealthy !== null || uncrawled !== null || changes !== null;
+  const week: MarketWeek = {
+    weekStart,
+    scanIds: tooSmall,
+    ...(promise === null ? {} : { promise }),
+    ...(visits === null ? {} : { visits }),
+    ...(untold === null ? {} : { untold }),
+    ...(costs === null ? {} : { costs }),
+    ...(unhealthy === null ? {} : { unhealthy }),
+    ...(uncrawled === null ? {} : { uncrawled }),
+    ...(changes === null ? {} : { changes }),
+  };
   const ids = rows.map((row) => row.id);
-  const stamped = await untyped()
-    .from<DigestRow>("scans")
-    .update({ market_digest_at: now.toISOString() })
-    .in("id", ids)
-    .is("market_digest_at", null);
-  if (stamped.error) throw new Error(`sendMarketDigest: could not stamp the week: ${stamped.error.message}`);
-  console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, visitsSites: visits?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0, uncrawled: uncrawled?.length ?? 0, changesSites: changes?.sites.length ?? 0 }));
-  return true;
+  return {
+    week: told ? week : null,
+    async settle() {
+      const stamped = await untyped()
+        .from<DigestRow>("scans")
+        .update({ market_digest_at: now.toISOString() })
+        .in("id", ids)
+        .is("market_digest_at", null);
+      if (stamped.error) throw new Error(`marketWeekSection: could not stamp the week: ${stamped.error.message}`);
+      console.log(JSON.stringify({ event: "market_digest", weekStart, read: ids.length, tooSmall: tooSmall.length, promiseSites: promise?.sites.length ?? 0, visitsSites: visits?.sites.length ?? 0, untold: untold?.length ?? 0, costs: costs !== null, drifting: costs?.drift?.sources.length ?? 0, unhealthy: unhealthy?.length ?? 0, uncrawled: uncrawled?.length ?? 0, changesSites: changes?.sites.length ?? 0 }));
+    },
+  };
 }

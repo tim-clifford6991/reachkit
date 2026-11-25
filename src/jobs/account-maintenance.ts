@@ -46,15 +46,15 @@ import {
   chaseSignIn,
   finishScanLeftRunning,
   destinationsDueHealth,
-  marketDigestsDue,
   noticeHostingEnd,
+  ownerDigestDue,
+  sendOwnerDigest,
   paymentsAwaitingSignIn,
   paymentsWithoutAccounts,
   EngineNotBuilt,
   purgeAccount,
   refreshDestinationHealth,
   remindSetup,
-  sendMarketDigest,
   scansLeftRunning,
   sitesDueHostingEndNotice,
   sitesDueHostingStop,
@@ -108,9 +108,8 @@ const DUE_WORK: readonly {
   { due: accountsDueWinback, handOff: winBack },
   // A destination's health, refreshed once its window has passed: no screen re-checks it.
   { due: destinationsDueHealth, handOff: refreshDestinationHealth },
-  // Issue 796: the weekly passes that found too little market, told to the
-  // owner as one digest per Monday rather than one mail per site.
-  { due: marketDigestsDue, handOff: sendMarketDigest },
+  // The owner's one operations mail a day: what was stored since the last, and the week's section.
+  { due: ownerDigestDue, handOff: sendOwnerDigest },
   // Issue 1478: what the vendors billed, a day and a month, beside the
   // ledger's estimate on the owner's cost page.
   vendorDayReading,

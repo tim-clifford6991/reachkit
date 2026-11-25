@@ -1,11 +1,11 @@
 // SPEC §6 *The Monday owner digest*: each paying hosted site's visits for the week before, by source, and the Search Console
 // clicks on its live pages. Stored rows only, 0¢; counts only, never a visitor or a referrer.
 import { AI_BLOG_ENGINES, WEEK_PLAN } from "@/lib/config/constants";
-import type { OpsIncident } from "@/lib/mail/templates/ops/incident";
+import type { MarketWeek } from "@/lib/mail/templates/ops/incident";
 import { googleRead, readingOf } from "@/lib/measure/page-reading";
 import { publishDb } from "@/lib/publish/db";
 
-export type VisitsWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["visits"]>;
+export type VisitsWeek = NonNullable<MarketWeek["visits"]>;
 
 /** A robot reading the page, never a visit; every other kind found is listed, so a new one needs no change here. */
 const FETCHES: ReadonlySet<string> = new Set(["answer_fetch", "own_fetch", "index_fetch", "crawl"]);

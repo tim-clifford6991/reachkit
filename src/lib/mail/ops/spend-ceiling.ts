@@ -1,47 +1,28 @@
 // The owner's spend alert — §6.5's ceilings and §11's switch: four fifths of the day's ceiling, the ceiling, a site's own cap,
-// a free-path bound, the kill switch engaged, or a ledger nobody could read. One send per `OWNER_EMAILS` address (BUILD §15), so one failure does not hide another.
+// a free-path bound, the kill switch engaged, or a ledger nobody could read. A refused spend is one send per `OWNER_EMAILS` address
+// (BUILD §15), so one failure does not hide another; a warning and a free-path bound are rows in the owner's daily digest.
 // An unwritten line makes `sendEmail` answer `not-composable`; the ceiling guard holds at the door whether or not anybody is told.
 // Nothing here throws: a failing report must not become a second failure of what it reports on.
 import { now } from "@/lib/config/now";
-import { env } from "@/lib/config/env";
 import { readDaySpendCents, readDayCeilingCents } from "@/lib/costs/daily";
 import type { LedgerUnreadable, SpendAlert } from "@/lib/costs/daily";
-import { sendEmail } from "../send";
 import { buildSpendCeilingAlert } from "../templates/ops";
 import type { OpsOccasion, OpsSubject, SpendAlertInput } from "../templates/ops";
-import { claimOwnerMail, releaseOwnerMail } from "./incident";
+import { claimOwnerMail, mailOwners, releaseOwnerMail, tellOwner } from "./incident";
 
-function log(occasion: OpsOccasion, outcome: string, detail?: string): void {
-  const line = {
-    event: "ops_spend_alert",
-    occasion,
-    outcome,
-    ...(detail === undefined ? {} : { detail }),
-  };
-  console.warn(JSON.stringify(line));
+function log(occasion: OpsOccasion, outcome: string): void {
+  console.warn(JSON.stringify({ event: "ops_spend_alert", occasion, outcome }));
 }
 
-/** Sends one occasion to every owner address; `sendEmail` reports rather than throws, so each result is logged, never raised.
- *  True when at least one address was accepted. */
+/** Sends a refused spend to every owner address, or stores a warning or a free-path bound for the digest; each result is logged,
+ *  never raised. True when at least one address was accepted, or the row was stored. */
 export async function sendOpsAlert(a: SpendAlertInput): Promise<boolean> {
   const mail = buildSpendCeilingAlert(a);
-  let accepted = false;
-  for (const to of env.OWNER_EMAILS) {
-    try {
-      const result = await sendEmail({
-        kind: "ops",
-        to,
-        event: `${new Date().toISOString().slice(0, 10)}/${JSON.stringify(a)}`,
-        subject: mail.subject,
-        blocks: mail.blocks,
-      });
-      log(a.occasion, result.sent ? "sent" : result.reason);
-      if (result.sent) accepted = true;
-    } catch (error) {
-      log(a.occasion, "threw", String(error));
-    }
+  if (mail === null) {
+    const code = a.occasion === "ledger-unreadable" ? a.reason : a.subject?.kind === "free-scan" ? a.subject.bound : `${Math.round(a.spentCents)} of ${Math.round(a.ceilingCents)} cents`;
+    return tellOwner(a.occasion, [code]);
   }
-  return accepted;
+  return mailOwners(mail, `${new Date().toISOString().slice(0, 10)}/${JSON.stringify(a)}`, (outcome) => log(a.occasion, outcome));
 }
 
 /** Keys this process has settled, so a database that cannot answer the claim costs one mail per process, never one per read. */
