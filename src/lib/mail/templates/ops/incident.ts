@@ -114,6 +114,11 @@ const UNCRAWLED_WEEK = "ops.uncrawled.week" satisfies CopyKey;
 const VISITS_WEEK = "ops.visits.week" satisfies CopyKey;
 const VISITS_SOURCE = "ops.visits.source" satisfies CopyKey;
 const CHANGES_WEEK = "ops.changes.week" satisfies CopyKey;
+const TOO_SMALL_WEEK = "mail.ops.incident.market-too-small-week" satisfies CopyKey;
+const DIGEST_SUBJECT = "ops.digest.subject" satisfies CopyKey;
+const DIGEST_HEADING = "ops.digest.heading" satisfies CopyKey;
+const DIGEST_LEAD = "ops.digest.lead" satisfies CopyKey;
+const DIGEST_LINE = "ops.digest.line" satisfies CopyKey;
 
 const BODY: Readonly<Record<AtOnce["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
@@ -288,7 +293,7 @@ function visitsRow(site: VisitsSite): ListRow {
 function weekBlocks(incident: MarketWeek): MailBlock[] {
   const blocks: MailBlock[] = [];
   if (incident.scanIds.length > 0) {
-    blocks.push({ block: "paragraph", text: "mail.ops.incident.market-too-small-week" }, {
+    blocks.push({ block: "paragraph", text: TOO_SMALL_WEEK }, {
       block: "facts",
       items: [
         { label: "mail.ops.incident.fact.week", value: closedDate(incident.weekStart) },
@@ -383,16 +388,16 @@ export interface DigestLine {
 /** The owner's digest: each stored occasion, oldest first, then the week's section where one is due. */
 export function buildOwnerDigest(lines: readonly DigestLine[], week: MarketWeek | null): { subject: CopyKey; blocks: readonly MailBlock[] } {
   return {
-    subject: "ops.digest.subject",
+    subject: DIGEST_SUBJECT,
     blocks: [
-      { block: "heading", text: "ops.digest.heading" },
+      { block: "heading", text: DIGEST_HEADING },
       ...(lines.length === 0
         ? []
         : ([
-            { block: "paragraph", text: "ops.digest.lead" },
+            { block: "paragraph", text: DIGEST_LEAD },
             {
               block: "facts",
-              items: lines.map((line): FactRow => ({ label: "ops.digest.line", labelVars: { occasion: closedName(line.occasion), n: count(line.count) }, value: line.codes.join(", ") || "—" })),
+              items: lines.map((line): FactRow => ({ label: DIGEST_LINE, labelVars: { occasion: closedName(line.occasion), n: count(line.count) }, value: line.codes.join(", ") || "—" })),
             },
           ] satisfies MailBlock[])),
       ...(week === null ? [] : weekBlocks(week)),
