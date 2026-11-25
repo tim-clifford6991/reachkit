@@ -131,7 +131,7 @@ const ROUTE: Route = {
   "no-draft-at-publish": buildIncidentAlert,
   "autopilot-stalled": buildIncidentAlert,
   "market-too-small": (i) => [i.tier],
-  "job-stale": (i) => [i.jobId],
+  "job-stale": (i) => i.jobId.startsWith("publish/") || i.jobId === "account/maintenance" ? buildIncidentAlert(i) : [i.jobId],
   "draft-stopped-twice": (i) => [i.domain],
   "replan-committed": (i) => i.sites.map((site) => site.domain),
   "serp-unreadable": (i) => [i.cause],

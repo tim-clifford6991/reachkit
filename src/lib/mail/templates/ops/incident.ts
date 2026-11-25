@@ -44,7 +44,7 @@ export type OpsIncident =
   | { occasion: "mail-stopped"; domains: readonly string[]; cause: "bounced" | "complained" | "sign-in-blocked" };
 
 /** The occasions told at once: a page failed to publish, a payment or sign-in path is down. */
-export type AtOnce = Extract<OpsIncident, { occasion: "job-failed" | "dead-lettered" | "boot-refused" | "sign-in-unsent" | "no-draft-at-publish" | "autopilot-stalled" }>;
+export type AtOnce = Extract<OpsIncident, { occasion: "job-failed" | "dead-lettered" | "boot-refused" | "sign-in-unsent" | "no-draft-at-publish" | "autopilot-stalled" | "job-stale" }>;
 
 /** One weekly read of the market, the promise, visits, changes and cost, a section of the first digest after the week has ended.
  *  Each paying site's daily promise: last week's days kept, missed with their reason, the standard met, and the coming week's
@@ -127,6 +127,7 @@ const BODY: Readonly<Record<AtOnce["occasion"], CopyKey>> = Object.freeze({
   "sign-in-unsent": "mail.ops.incident.sign-in-unsent",
   "no-draft-at-publish": "mail.ops.incident.no-draft-at-publish",
   "autopilot-stalled": "mail.ops.incident.autopilot-stalled",
+  "job-stale": "mail.ops.incident.job-stale",
 });
 
 /** A stopped page's sentence on one line, cut where a mail row stops being readable. */
@@ -161,6 +162,12 @@ function closedUrl(value: string): string {
   return /^https?:\/\/[^\s]{1,2000}$/.test(value) ? value : "unknown";
 }
 
+/** An instant to the minute in UTC, or `unknown`. */
+function closedInstant(value: string): string {
+  const at = new Date(value);
+  return Number.isNaN(at.getTime()) ? "unknown" : `${at.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
 function factsOf(incident: AtOnce): FactRow[] {
   switch (incident.occasion) {
     case "no-draft-at-publish":
@@ -172,6 +179,12 @@ function factsOf(incident: AtOnce): FactRow[] {
       ];
     case "autopilot-stalled":
       return [{ label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) }, ...stallFacts(incident)];
+    case "job-stale":
+      return [
+        { label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) },
+        { label: "mail.ops.incident.fact.last-run", value: closedInstant(incident.lastRunAt) },
+        { label: "mail.ops.incident.fact.interval", value: count(incident.intervalMinutes) },
+      ];
     case "sign-in-unsent":
       return [{ label: "mail.ops.incident.fact.cause", value: closedName(incident.cause) }];
     case "job-failed":

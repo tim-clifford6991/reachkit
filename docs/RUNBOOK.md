@@ -333,14 +333,15 @@ from 07:00 UTC (`job_error_mails` key `owner-digest`/`daily`/day): one line per 
 `ops_events` row of kind `owner-digest` since the last digest (`owner-digest-sent` holds the last row
 it listed), with its count and short codes, and the week's section once that Monday has ended
 everywhere. A day with nothing stored sends nothing. Only these come at once: a page that failed to
-publish (`no-draft-at-publish`, `autopilot-stalled`, a `publish/*` job failing), a payment or
+publish (`no-draft-at-publish`, `autopilot-stalled`, a `publish/*` job failing or stale, a stale
+`account/maintenance`, whose digest would never go), a payment or
 sign-in path that is down (`boot-refused`, a job whose claim found the database down, a sign-in link
 not sent, once a day per cause), and a refused spend (`reached`, `site-reached`,
 `kill-switch-engaged`, `ledger-unreadable`). A row that cannot be written is mailed at once instead.
 
 **The stale-job alert.** After recording its own run, each invocation reads the other rows. A
-scheduled job whose `last_run_at` is more than **twice its interval** ago is a `job-stale` digest
-line with the job. `stale_alerted_at` records it; the job is not told again until it has run and
+scheduled job whose `last_run_at` is more than **twice its interval** ago is mailed at once when it
+is `publish/*` or `account/maintenance` (which sends the digest), else it is a `job-stale` digest line. `stale_alerted_at` records it; the job is not told again until it has run and
 gone quiet again.
 
 **The failing-job mail.** A job that throws on its first delivery is told to `OWNER_EMAILS` (at

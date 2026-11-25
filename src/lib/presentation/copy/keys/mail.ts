@@ -603,6 +603,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.health-week": "These passes failed one of their own health checks in the last seven days. Their data is stored, and the headline numbers stay on the last healthy pass.",
   "mail.ops.incident.fact.health-check": "Failed check",
 
+  "mail.ops.incident.job-stale": "A scheduled job has not run for more than twice its usual interval.",
+  "mail.ops.incident.fact.last-run": "Last run",
+  "mail.ops.incident.fact.interval": "Runs every (minutes)",
   "mail.ops.incident.no-draft-at-publish": "A site's publish time passed with no page for the day. The cause is the one its draft run recorded.",
   "mail.ops.incident.fact.date": "Date",
   // Issue 1536: a site on autopilot that has gone twice its cadence without a delivered page.
