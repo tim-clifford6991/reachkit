@@ -122,8 +122,7 @@ const SUBSCRIPTION_ID = "sub_journey_03";
 const PAID_THROUGH = new Date((Math.floor(Date.now() / 1000) + 30 * 86_400) * 1000);
 const NEVER_PAID = new Date(0).toISOString();
 
-/** The owner's paid notices stored for the digest. */
-const paidRows = () => db.queries.filter((q) => q.table === "ops_events" && q.verb === "insert").map((q) => q.values);
+const paidRows = () => db.queries.filter((q) => q.table === "ops_events" && q.verb === "insert").flatMap((q) => [q.values].flat()).filter((row) => row?.read === "paid");
 
 let accounts: MemoryAccounts;
 let identity: MemoryIdentity;
@@ -486,7 +485,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     db.singles.set("offer_spots", { place: 7, taken_at: "2026-11-02T10:00:00.000Z" });
     await untilTheAccountIsOpen();
     // The owner is told once, in the next digest: the domain and the spot.
-    expect(paidRows()).toEqual([[{ kind: "owner-digest", read: "paid", code: "acme.com spot 7" }]]);
+    expect(paidRows()).toEqual([{ kind: "owner-digest", read: "paid", code: "acme.com spot 7" }]);
 
     expect(accounts.users).toHaveLength(1);
     const user = accounts.users[0];

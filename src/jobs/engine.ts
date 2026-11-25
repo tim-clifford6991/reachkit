@@ -306,8 +306,7 @@ export async function ownerDigestDue(): Promise<readonly string[]> {
   return due(new Date());
 }
 
-/** Sends the day's one owner digest, with the week's section where one is due. A digest the seam did not accept is a
- *  degradation, and the day is offered again at the next tick. */
+/** Sends the day's one owner digest with the week's section; one not accepted is a degradation, offered again next tick. */
 export async function sendOwnerDigest(day: string): Promise<EngineResult> {
   const { sendOwnerDigest: send } = await import("@/lib/mail/ops/incident");
   const { marketWeekSection } = await import("@/lib/scan/weekly/market-digest");

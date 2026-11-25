@@ -5,7 +5,7 @@
 // The kill-switch alert carries the day's two figures too: what was spent when it moved is the context the owner wants.
 // An unreadable ledger carries no figures: a spend nobody could read is never written as one.
 import type { CopyKey } from "@/lib/presentation/copy";
-import type { MailBlock } from "../../blocks/types";
+import type { FactRow, MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.ops.spend-ceiling.subject" satisfies CopyKey;
 const HEADING = "mail.ops.spend-ceiling.heading" satisfies CopyKey;
@@ -64,7 +64,7 @@ export function buildSpendCeilingAlert(a: SpendAlertInput): OpsAlertMail | null 
   if (line === "digest") return null;
   const heading = { block: "heading", text: HEADING } as const;
   if (a.occasion === "ledger-unreadable") return { subject: SUBJECT, blocks: [heading, { block: "paragraph", text: line, vars: { reason: a.reason } }] };
-  const site = a.subject?.kind === "site" ? [{ label: FACT_SITE, value: UUID_RE.test(a.subject.siteId) ? a.subject.siteId : "unknown" }] : [];
+  const site: FactRow[] = a.subject?.kind === "site" ? [{ label: FACT_SITE, value: UUID_RE.test(a.subject.siteId) ? a.subject.siteId : "unknown" }] : [];
   return {
     subject: SUBJECT,
     blocks: [
