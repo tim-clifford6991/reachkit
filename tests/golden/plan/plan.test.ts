@@ -255,6 +255,10 @@ describe("a week whose rows all go unready mid-week is committed again from the 
     expect(later()).toEqual(before);
     expect([await short(state, days[3]!), await short(state, days[4]!)].map((page) => page === null)).toEqual([true, false]);
     expect((state.recommits ?? []).map((r) => r.date)).toEqual([days[3], days[4]]);
+    // Production, 26 Nov: a live page published nine days ago answers a dated row's question, so its day writes another topic.
+    const twin = state.rows.find((row) => row.planned_for === days[5])!, page = { url: `https://${site.domain}/live`, publishedAt: new Date(AT.getTime() - 9 * 86_400_000), row: readOpportunity({ ...twin, id: "live" }), declined: false };
+    state.livePages = [page as unknown as OwnLivePage];
+    expect([await pageForDay(SITE_ID, days[5]!, AT, true)].map((o) => [o === null, o?.id === twin.id])).toEqual([[false, false]]);
     const second = await monday();
     await short(second.state, second.days[1]!);
     const places = second.state.rows.flatMap((row) => (row.plan_place == null ? [] : [row.plan_place]));

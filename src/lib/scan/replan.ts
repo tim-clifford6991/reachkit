@@ -178,9 +178,11 @@ export async function dryReplan(
     empty: null,
   };
   // A day counts as kept only where its row is one the day's select can take, as `pageForDay` reads it.
+  // A committed twin the new rules refuse is no day kept, so dropping it never holds the week.
+  const twins = new Set([...(entries.rejected.live_twin?.ids ?? []), ...(entries.rejected.same_topic?.ids ?? [])]);
   const count = (week: [string | null, OpportunityRow | undefined][]) => {
     const dated = week.filter(([date]) => date !== null);
-    return { dated: dated.length, writable: dated.filter(([, row]) => row?.status === "open" && row.ready).length };
+    return { dated: dated.length, writable: dated.filter(([, row]) => row?.status === "open" && row.ready && !twins.has(row.id)).length };
   };
   const days = {
     before: count(before.map((row) => [row.planned_for ?? null, rows.get(row.id) ?? row])),

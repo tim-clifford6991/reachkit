@@ -35,9 +35,13 @@ async function ranked(siteId: string, a: { now: Date; from?: string; record?: bo
   return { input, order, best: [...best].flatMap((id) => input.rows.filter((r) => r.id === id)), later, top, from, days };
 }
 
-/** The open rows the commit refuses as a live page's twin, by its own test, so supply never counts a place no week can use. */
-export const liveTwinIds = async (siteId: string, now: Date): Promise<Set<string>> =>
-  new Set(choose({ ...(await loadRanking(siteId, now)), at: now, from: now.toISOString().slice(0, 10) }).rejected.flatMap((r) => (r.reason === "live_twin" ? [r.opportunityId] : [])));
+/** The open rows the commit refuses as a live page's twin, by its own test, so supply never counts a place no week can use;
+ *  `asUpdates` adds the rows it refuses as a planned row's twin or turns into a live page's update, which no day writes as new. */
+export async function liveTwinIds(siteId: string, now: Date, asUpdates = false): Promise<Set<string>> {
+  const order = choose({ ...(await loadRanking(siteId, now)), at: now, from: now.toISOString().slice(0, 10) });
+  const updates = asUpdates ? order.committed.flatMap((e) => (e.set?.family === "improve" ? [e.opportunityId] : [])) : [];
+  return new Set([...order.rejected.flatMap((r) => (r.reason === "live_twin" || (asUpdates && r.reason === "same_topic") ? [r.opportunityId] : [])), ...updates]);
+}
 
 /** The rows the Monday commit checks the research of, best first. */
 export const weekCandidates = async (siteId: string, now: Date): Promise<OpportunityRow[]> => (await ranked(siteId, { now })).best;
@@ -82,7 +86,9 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
     await assessReadiness(siteId, { at: now, now, only });
     await assessFixPages(siteId, { report: null, now, only });
   }
-  const open = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && row.ready);
+  // A committed row the duplicate check now refuses is not written as new: the next spare, or the recommit, takes its date.
+  const twins = await liveTwinIds(siteId, now, true);
+  const open = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && row.ready && !(twins.has(row.id) && row.family !== "improve"));
   const row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
   if (row !== undefined) return planned(row);
   // A ready update dated later is the day's update fallback's to take first, so the recommit stays the last resort.
