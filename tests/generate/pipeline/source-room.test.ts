@@ -42,7 +42,7 @@ describe("a study page is credible by its host, never by a tier one passage earn
   });
   it("tiers SE Ranking's own roundup of tools (production, 25 Nov) as its vendor's, and a third party's roundup review", () => {
     const own = "https://visible.seranking.com/blog/best-generative-engine-optimization-tools/", third = "https://example-reviews.com/best-geo-tools", text = "SE Visible by SE Ranking, Otterly AI and Peec AI compared. claim 0";
-    const pages = [{ url: own, text }, { url: third, text }], names = [{ domain: "otterly.ai", name: "Otterly AI" }, { domain: "peec.ai", name: "Peec AI" }];
-    expect(tiered([fact(own, 0), fact(third, 0)], { rivals: [], products: rivals, names, language: "en", pages, capped: new Set() }).map((each) => each.tier)).toEqual(["vendor", "review"]);
+    const byline = "https://other-reviews.com/geo", pages = [{ url: own, text }, { url: third, text }, { url: byline, text: "Other Reviews tested Otterly AI and Peec AI. claim 0" }], names = [{ domain: "otterly.ai", name: "Otterly AI" }, { domain: "peec.ai", name: "Peec AI" }];
+    expect(tiered([fact(own, 0), fact(third, 0), fact(byline, 0)], { rivals: [], products: rivals, names, language: "en", pages, capped: new Set() }).map((each) => each.tier)).toEqual(["vendor", "review", "review"]);
   });
 });

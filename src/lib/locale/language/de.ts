@@ -203,6 +203,19 @@ export const DE: LanguagePack = {
   reported: /^(?!.*\b(?:wir|unsere?[mnrs]?)\b).*(?:\blaut\b|\bzufolge\b|\b(?:berichtet|berichtete|fand|ergab|schätzt|schätzte|zeigte|kam zu dem Schluss),? dass\b)/is,
   guidanceSearch: (target) => `${target} offizielle Anleitung`,
   businessHeading: (name) => `So macht es ${name}`,
+  ownData: {
+    answers(date, count, total, counted, named) {
+      const [who, one] = counted
+        ? [`${count} von ${total} KI-Antworten`, count === 1]
+        : count === 0
+          ? [total === 1 ? "keine KI-Antwort" : `keine der ${total} KI-Antworten`, true]
+          : [total === 1 ? "die eine KI-Antwort" : total === 2 ? "beide KI-Antworten" : `alle ${total} KI-Antworten`, total === 1];
+      return `In unseren Messungen am ${date} ${one ? "nannte" : "nannten"} ${who} zu diesem Thema ${named ?? "einen Wettbewerber"}.`;
+    },
+    ranked: (date, url, position) => `In unseren Messungen am ${date} stand unsere Seite ${url} in den Google-Ergebnissen für eine Suche zu diesem Thema auf Position ${position}.`,
+    answersSource: (date) => `Unsere eigenen Messungen von KI-Antworten, ${date}`,
+    rankedSource: (date) => `Unsere eigenen Messungen der Google-Ergebnisse, ${date}`,
+  },
   ownVoice: /\b(?:[Ww]ir|[Uu]ns(?:er|ere|erem|eren|erer|eres)?)\b/,
   backReferences: ["dies", "diese", "es", "wie erwähnt", "auch", "derselbe", "dieselbe", "dasselbe"],
   prefersRival: /(?<![\p{L}])(?:ist|sind|wäre|bleibt) (?:die |das |eine )?(?:bessere|beste|richtige|günstigere|einfachere) (?:Wahl|Option|Lösung)(?![\p{L}])/iu,

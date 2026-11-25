@@ -5,6 +5,7 @@
 // how many tracked AI answers named a rival. Each states the measurement and its date only, in the business's voice
 // ("our measurements"), never an outcome the sample cannot carry and never who measured it. An ask that did not
 // answer is not in the sample, so a reading that was not measured is never offered as 0.
+import { languagePack } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import type { StoredReport } from "@/lib/scan/report";
 import { topicWords } from "../rules/gaps";
@@ -23,14 +24,6 @@ type Report = Pick<StoredReport, "complete" | "verdict" | "prompts" | "ownRanked
 /** Below this many answers a share is no finding: the passage says all or none plainly, and a split is not offered. */
 const COUNTED_FROM = 5;
 
-/** "2 of 7 AI answers", or below `COUNTED_FROM` the plain whole ("both AI answers", "neither AI answer"), else `null`. */
-function answersSaid(count: number, total: number): string | null {
-  if (total >= COUNTED_FROM) return `${count} of ${total} AI answers`;
-  if (count === total) return total === 1 ? "the one AI answer" : total === 2 ? "both AI answers" : `all ${total} AI answers`;
-  if (count === 0) return total === 2 ? "neither AI answer" : `none of the ${total} AI answers`;
-  return null;
-}
-
 /** How many of the topic's words a text shares. */
 const shared = (topic: ReadonlySet<string>, text: string): number => [...topicWords(text)].filter((word) => topic.has(word)).length;
 
@@ -43,23 +36,23 @@ export function ownDataFact(report: Report, searches: readonly string[], busines
   const measuredAt = at.toISOString().slice(0, 10);
   // As a person writes the day in the page's language; the search is named by the page's subject, never quoted raw.
   const date = new Intl.DateTimeFormat(language === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(at);
-  const prompts = report.prompts;
+  const say = languagePack(language).ownData, prompts = report.prompts;
   const prompt = (prompts?.asked ?? [])
     .map((asked) => ({ answers: (prompts?.answers ?? []).filter((answer) => answer.promptId === asked.id), on: shared(topic, asked.text) }))
     .map((row) => {
       const named = row.answers.filter((answer) => answer.named || answer.linked).length;
       const rivals = row.answers.filter((answer) => answer.rivals.length > 0).length;
       // A rival count says more than a mention rate of none.
-      const [count, what] = named === 0 && rivals > 0 ? [rivals, "named a competitor"] : [named, `named ${business}`];
-      return { ...row, said: answersSaid(count, row.answers.length), what };
+      const [count, who] = named === 0 && rivals > 0 ? [rivals, null] : [named, business];
+      return { ...row, count, who, counted: row.answers.length >= COUNTED_FROM };
     })
-    .filter((row) => row.on > 0 && row.answers.length > 0 && row.said !== null)
+    .filter((row) => row.on > 0 && row.answers.length > 0 && (row.counted || row.count === 0 || row.count === row.answers.length))
     .sort((a, b) => b.on - a.on)[0];
   if (prompt !== undefined) {
     return {
-      passage: `In our measurements on ${date}, ${prompt.said} on this subject ${prompt.what}.`,
+      passage: say.answers(date, prompt.count, prompt.answers.length, prompt.counted, prompt.who),
       measuredAt,
-      source: `Our own measurements of AI answers, ${date}`,
+      source: say.answersSource(date),
     };
   }
   const ranked = report.ownRankedRows
@@ -67,8 +60,8 @@ export function ownDataFact(report: Report, searches: readonly string[], busines
     .sort((a, b) => shared(topic, b.keyword) - shared(topic, a.keyword) || a.position - b.position)[0];
   if (ranked === undefined) return null;
   return {
-    passage: `In our measurements on ${date}, our page ${ranked.url} was at position ${ranked.position} in Google's results for a search on this subject.`,
+    passage: say.ranked(date, ranked.url, ranked.position),
     measuredAt,
-    source: `Our own measurements of Google's results, ${date}`,
+    source: say.rankedSource(date),
   };
 }

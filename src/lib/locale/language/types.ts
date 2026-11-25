@@ -191,6 +191,14 @@ export interface LanguagePack {
   // ── A generated page's own words ────────────────────────────────────────
   /** The heading code gives a business section the writer left out (owner P3, 2026-11-16). */
   businessHeading(name: string): string;
+  /** The business's own measurement, on the page's subject, its day already written out (SPEC §7 *Two pools of facts*). */
+  ownData: {
+    /** `count` of `total` AI answers named `named` (a competitor where null); not `counted`, a count is all or none, said plainly. */
+    answers(date: string, count: number, total: number, counted: boolean, named: string | null): string;
+    ranked(date: string, url: string, position: number): string;
+    answersSource(date: string): string;
+    rankedSource(date: string): string;
+  };
   /** How a sentence opens that leans on the one before it, lower case (`standalone_lead`). */
   backReferences: readonly string[];
   /** A sentence that refers to the one before it, by its opening or a word that points back: it goes with a sentence a repair drops. */

@@ -125,6 +125,16 @@ export const EN: LanguagePack = {
   reported: /^(?!.*\b(?:we|our)\b).*(?:\baccording to\b|\b(?:reported|reports|found|finds|said|says|revealed|estimated|estimates|concluded)\s+that\b)/is,
   guidanceSearch: (target) => `${target} official guidance`,
   businessHeading: (name) => `How ${name} does it`,
+  ownData: {
+    answers(date, count, total, counted, named) {
+      const none = total === 1 ? "no AI answer" : total === 2 ? "neither AI answer" : `none of the ${total} AI answers`;
+      const all = total === 1 ? "the one AI answer" : total === 2 ? "both AI answers" : `all ${total} AI answers`;
+      return `In our measurements on ${date}, ${counted ? `${count} of ${total} AI answers` : count === 0 ? none : all} on this subject named ${named ?? "a competitor"}.`;
+    },
+    ranked: (date, url, position) => `In our measurements on ${date}, our page ${url} was at position ${position} in Google's results for a search on this subject.`,
+    answersSource: (date) => `Our own measurements of AI answers, ${date}`,
+    rankedSource: (date) => `Our own measurements of Google's results, ${date}`,
+  },
   backReferences: ["this", "these", "it", "as mentioned", "also", "the same"],
   prefersRival: /\b(?:is|are|would be|remains?) (?:the |a )?(?:better|best|right|stronger|cheaper|simpler) (?:pick|choice|fit|option|bet)\b/i,
   refersBack: /^(?:it|its|they|their|them|this|these|those|that|such|both|also|as mentioned)\b|\b(?:those|that much|as well|the same)\b/i,
