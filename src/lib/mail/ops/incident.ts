@@ -1,10 +1,11 @@
-// The owner's incident alert: no error-tracking vendor, so this seam tells `OWNER_EMAILS` when a job fails, exhausts its retries, or a deploy refuses to boot.
-// Nothing here throws: a report about a failure must not become a second one. Every arm ends in one log line.
+// The owner's operations mail: no error-tracking vendor, so this seam tells `OWNER_EMAILS`. Only a page that failed to publish,
+// a payment or sign-in path that is down, and a refused spend are sent at once; every other occasion is an `ops_events` row that
+// one daily digest lists. Nothing here throws: a report about a failure must not become a second one. Every arm ends in one log line.
 import { env } from "@/lib/config/env";
 import { sendEmail } from "../send";
-import { buildIncidentAlert, type OpsIncident } from "../templates/ops";
+import { buildIncidentAlert, buildOwnerDigest, type DigestLine, type MarketWeek, type OpsAlertMail, type OpsIncident } from "../templates/ops";
 
-function log(occasion: OpsIncident["occasion"], outcome: string): void {
+function log(occasion: string, outcome: string): void {
   console.warn(JSON.stringify({ event: "ops_incident_alert", occasion, outcome }));
 }
 
@@ -57,25 +58,138 @@ export async function releaseOwnerMail(key: ErrorMailKey): Promise<void> {
   if (error !== null) throw new Error(error.message);
 }
 
-/** Whether at least one owner address was accepted, for a caller that stamps its own once-ness. */
-export async function reportIncident(incident: OpsIncident, period?: string): Promise<boolean> {
-  const mail = buildIncidentAlert(incident);
+/** Sends one mail to every owner address, each result logged; true when at least one was accepted. */
+export async function mailOwners(mail: OpsAlertMail, event: string, logOutcome: (outcome: string) => void): Promise<boolean> {
   let owners: readonly string[];
   try {
     owners = env.OWNER_EMAILS;
   } catch {
-    log(incident.occasion, "no-owners");
+    logOutcome("no-owners");
     return false;
   }
   let accepted = false;
   for (const to of owners) {
     try {
-      const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks, event: `${period ?? new Date().toISOString().slice(0, 10)}/${JSON.stringify(incident)}` });
-      log(incident.occasion, result.sent ? "sent" : result.reason);
+      const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks, event });
+      logOutcome(result.sent ? "sent" : result.reason);
       if (result.sent) accepted = true;
     } catch {
-      log(incident.occasion, "threw");
+      logOutcome("threw");
     }
   }
   return accepted;
+}
+
+const DIGEST = "owner-digest";
+/** One row per digest sent; its `read` is the last digest row it listed. */
+const DIGESTED = "owner-digest-sent";
+const today = () => new Date().toISOString().slice(0, 10);
+
+type DigestRow = { readonly read: string; readonly code: string };
+
+/** Rows in id order become one line per occasion, in the order each first appeared. */
+function linesOf(rows: readonly DigestRow[]): DigestLine[] {
+  const lines = new Map<string, { count: number; codes: Set<string> }>();
+  for (const row of rows) {
+    const line = lines.get(row.read) ?? { count: 0, codes: new Set<string>() };
+    line.count += 1;
+    line.codes.add(row.code);
+    lines.set(row.read, line);
+  }
+  return [...lines].map(([occasion, line]) => ({ occasion, count: line.count, codes: [...line.codes] }));
+}
+
+/** Stores an occasion for the next digest, one row per short code. Where no row can be written, those lines go now as a digest
+ *  of their own, so nothing is dropped. True when stored or accepted. */
+export async function tellOwner(occasion: string, codes: readonly string[], period = today()): Promise<boolean> {
+  const rows = (codes.length > 0 ? codes : ["-"]).map((code) => ({ kind: DIGEST, read: occasion, code: code.slice(0, 40) }));
+  try {
+    const { dbAdmin } = await import("@/lib/db");
+    const { error } = await dbAdmin().from("ops_events").insert(rows);
+    if (error === null) {
+      log(occasion, "stored");
+      return true;
+    }
+  } catch {
+    // Told at once below.
+  }
+  return mailOwners(buildOwnerDigest(linesOf(rows), null), `${period}/${occasion}/${rows.map((row) => row.code).join(",")}`, (outcome) => log(occasion, outcome));
+}
+
+/** Where each incident goes: a mail told at once, or the digest rows' short codes. A new occasion without a route fails typecheck. */
+type Route = { [K in OpsIncident["occasion"]]: (incident: Extract<OpsIncident, { occasion: K }>) => OpsAlertMail | readonly string[] };
+
+/** A failing job is told at once when it is publishing, or when the database it claims in is not answering. */
+const job = (i: Extract<OpsIncident, { occasion: "job-failed" | "dead-lettered" }>) =>
+  i.down === true || i.jobId.startsWith("publish/") ? buildIncidentAlert(i) : [`${i.jobId} ${i.errorName}`];
+
+const ROUTE: Route = {
+  "job-failed": job,
+  "dead-lettered": job,
+  "boot-refused": buildIncidentAlert,
+  "sign-in-unsent": buildIncidentAlert,
+  "no-draft-at-publish": buildIncidentAlert,
+  "autopilot-stalled": buildIncidentAlert,
+  "market-too-small": (i) => [i.tier],
+  "job-stale": (i) => i.jobId.startsWith("publish/") || i.jobId === "account/maintenance" ? buildIncidentAlert(i) : [i.jobId],
+  "draft-stopped-twice": (i) => [i.domain],
+  "replan-committed": (i) => i.sites.map((site) => site.domain),
+  "serp-unreadable": (i) => [i.cause],
+  "vendor-low": (i) => [`$${(i.balanceCents / 100).toFixed(2)}${i.daysLeft === null ? "" : `, ${Math.floor(i.daysLeft)} days`}`],
+  "mail-stopped": (i) => i.domains.map((domain) => `${domain} ${i.cause}`),
+};
+
+/** Whether the occasion was told at once or stored, for a caller that stamps its own once-ness. */
+export async function reportIncident(incident: OpsIncident, period?: string): Promise<boolean> {
+  const routed = (ROUTE[incident.occasion] as (i: OpsIncident) => OpsAlertMail | readonly string[])(incident);
+  if (Array.isArray(routed)) return tellOwner(incident.occasion, routed, period);
+  const mail = routed as OpsAlertMail;
+  return mailOwners(mail, `${period ?? today()}/${JSON.stringify(incident)}`, (outcome) => log(incident.occasion, outcome));
+}
+
+/** The digest's hour: the owner reads one mail a day, after the night's work. */
+export const DIGEST_HOUR_UTC = 7;
+/** One page of rows per digest: a larger backlog is the next day's. */
+const ROWS_PER_DIGEST = 500;
+
+/** The UTC day whose digest may be due, from its hour on. */
+export function ownerDigestDue(now: Date): readonly string[] {
+  return now.getUTCHours() >= DIGEST_HOUR_UTC ? [now.toISOString().slice(0, 10)] : [];
+}
+
+/** The week's section where one is due, and the stamp that settles it once the digest is accepted. */
+export type WeekSection = { readonly week: MarketWeek | null; settle(): Promise<void> } | null;
+
+/** Sends the day's one digest: every stored row since the last digest, oldest first, and the week's section where one is due.
+ *  The day's `job_error_mails` claim makes a second tick send nothing; a digest not accepted releases it. False when not accepted. */
+export async function sendOwnerDigest(day: string, now: Date, weekSection: () => Promise<WeekSection>): Promise<boolean> {
+  const key = { jobId: DIGEST, errorName: "daily", day };
+  if (!(await claimOwnerMail(key, now))) return true;
+  let accepted = false;
+  try {
+    const { dbAdmin } = await import("@/lib/db");
+    const events = () => dbAdmin().from("ops_events");
+    const last = await events().select("read").eq("kind", DIGESTED).order("id", { ascending: false }).limit(1);
+    if (last.error !== null) throw new Error(`owner digest: ${last.error.message}`);
+    const stored = await events().select("id, read, code").eq("kind", DIGEST).gt("id", Number(last.data[0]?.read ?? 0)).order("id").limit(ROWS_PER_DIGEST);
+    if (stored.error !== null) throw new Error(`owner digest: ${stored.error.message}`);
+    const section = await weekSection();
+    // A day with nothing to say sends nothing; the week's read rows are still settled.
+    if (stored.data.length === 0 && (section === null || section.week === null)) {
+      accepted = true;
+      await section?.settle();
+      return true;
+    }
+    accepted = await mailOwners(buildOwnerDigest(linesOf(stored.data), section?.week ?? null), `digest/${day}`, (outcome) => log(DIGEST, outcome));
+    if (!accepted) return false;
+    const through = stored.data.at(-1)?.id;
+    if (through !== undefined) {
+      const { error } = await events().insert({ kind: DIGESTED, read: String(through), code: day });
+      if (error !== null) throw new Error(`owner digest: ${error.message}`);
+    }
+    await section?.settle();
+    return true;
+  } finally {
+    if (!accepted) await releaseOwnerMail(key).catch(() => undefined);
+  }
 }

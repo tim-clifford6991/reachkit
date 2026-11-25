@@ -546,9 +546,6 @@ export const MAIL_COPY = Object.freeze({
   // sentences. The body is where they differ, and they differ completely.
   "mail.ops.spend-ceiling.subject": "Spend alert",
   "mail.ops.spend-ceiling.heading": "Spend Ceiling",
-  /** Crossed `SPEND_ALERT_AT.warn` of the day's ceiling — nothing has been
-   *  refused yet; this is the hour to look. */
-  "mail.ops.spend-ceiling.warn": "Today’s spend has crossed the warning line, most of the way to the daily ceiling. Nothing has been refused yet — this is the hour to look.",
   /** Reached the ceiling: free scanning is refused for the rest of the UTC
    *  day and paid passes are holding. */
   "mail.ops.spend-ceiling.reached": "Today’s spend has reached the daily ceiling. Free scanning is refused for the rest of the UTC day; paid passes are holding.",
@@ -558,9 +555,6 @@ export const MAIL_COPY = Object.freeze({
    *  and shipped under the owner ruling of 2026-09-16 (#759); the owner
    *  corrects the wording. */
   "mail.ops.spend-ceiling.site-reached": "One site has reached its own daily cap. Its paid calls are refused for the rest of the UTC day; every other site is unaffected and the product’s own ceiling is untouched.",
-  /** Issue 885 — a free-path bound filled. The fact row names which bound;
-   *  the network key and the domain are never written into this mail. */
-  "mail.ops.spend-ceiling.free-scan-bound": "A free-scan bound has been reached: one network, or one address, has had every free scan it gets in this window. Free scanning carries on for everyone else.",
   /** The switch, found engaged. No released twin: a release cannot be told
    *  from an ordinary boot without durable state. */
   "mail.ops.spend-ceiling.kill-switch-engaged": "The kill switch is engaged. Scanning, generating and publishing are stopped until it is released.",
@@ -570,11 +564,8 @@ export const MAIL_COPY = Object.freeze({
    *  these are their labels, and the unit is the owner's word to choose. */
   "mail.ops.spend-ceiling.fact.spent": "spent today, in cents",
   "mail.ops.spend-ceiling.fact.ceiling": "daily ceiling, in cents",
-  /** Issue 885’s third row, drawn only where the alert is not about the
-   *  product as a whole. Closed values: a site id, or one of two bound
-   *  names — never a network key and never a domain. */
+  /** The third row of a site's own cap: its site id, never a domain. */
   "mail.ops.spend-ceiling.fact.site": "site",
-  "mail.ops.spend-ceiling.fact.bound": "bound reached",
 
   // ── The owner's incident alert (issue 330): a job invocation failed, a
   // job exhausted its retries, or a deployment refused to boot. Drafted and
@@ -586,14 +577,12 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.job-failed": "A job failed.",
   "mail.ops.incident.dead-lettered": "A job ran out of retries and was set aside.",
   "mail.ops.incident.boot-refused": "A deployment refused to boot.",
+  "mail.ops.incident.sign-in-unsent": "A customer asked for a sign-in link and it was not sent, so they cannot get in. This is the first today for this cause.",
   "mail.ops.incident.fact.job": "Job",
   "mail.ops.incident.fact.attempt": "Attempt",
   "mail.ops.incident.fact.error": "Error",
   "mail.ops.incident.fact.check": "Check",
-  // Issue #770: a paid pass read the market and found too little to plan from.
-  "mail.ops.incident.market-too-small": "A paid pass found too little search demand to plan any pages.",
   "mail.ops.incident.fact.scan": "Scan",
-  "mail.ops.incident.fact.tier": "Tier",
   // Issue 796: the Monday digest of weekly passes that found too little.
   "mail.ops.incident.market-too-small-week": "These weekly passes found too little search demand to plan any pages.",
   "mail.ops.incident.fact.week": "Week of",
@@ -613,28 +602,17 @@ export const MAIL_COPY = Object.freeze({
   // Issue 1287 (D58, drafted): the passes one of their own health checks failed on. Owner-only, so the site is named.
   "mail.ops.incident.health-week": "These passes failed one of their own health checks in the last seven days. Their data is stored, and the headline numbers stay on the last healthy pass.",
   "mail.ops.incident.fact.health-check": "Failed check",
-  // Issue #799: a scheduled job has gone quiet for twice its interval.
+
   "mail.ops.incident.job-stale": "A scheduled job has not run for more than twice its usual interval.",
   "mail.ops.incident.fact.last-run": "Last run",
   "mail.ops.incident.fact.interval": "Runs every (minutes)",
-
   "mail.ops.incident.no-draft-at-publish": "A site's publish time passed with no page for the day. The cause is the one its draft run recorded.",
   "mail.ops.incident.fact.date": "Date",
   // Issue 1536: a site on autopilot that has gone twice its cadence without a delivered page.
   "mail.ops.incident.autopilot-stalled": "A site on autopilot has had no page delivered for twice its publishing cadence. Its draft days in the database say why each day had none.",
   "mail.ops.incident.fact.last-delivered": "Last page delivered",
   "mail.ops.incident.fact.days-without": "Days without a page",
-  // Issue 1187: a draft the writing rules stopped twice (owner, D27).
-  "mail.ops.incident.draft-stopped-twice": "The writing rules stopped a page twice, so it was not published. Read the sentences below and decide whether the page or the rule is wrong.",
   "mail.ops.incident.fact.site": "Site",
-  "mail.ops.incident.fact.draft": "Draft",
-  "mail.ops.incident.fact.rule": "Rule",
-  "mail.ops.incident.fact.sentence": "Sentence",
-  // Issue 1587: DataForSEO credit runs out within a week, or is under ten dollars.
-  "mail.ops.incident.vendor-low": "DataForSEO credit is running low. When it reaches zero every draft fails, so top up or turn on auto-recharge in the dashboard.",
-  "mail.ops.incident.fact.balance": "Balance",
-  "mail.ops.incident.fact.days-left": "Days left at last week's spend",
-  "mail.ops.incident.fact.dashboard": "Dashboard",
 
   // ── SPEC §8, Retention (issue 569). Slots are named for what the sequence
   // can supply.

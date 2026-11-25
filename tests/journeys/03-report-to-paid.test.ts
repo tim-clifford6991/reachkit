@@ -122,6 +122,8 @@ const SUBSCRIPTION_ID = "sub_journey_03";
 const PAID_THROUGH = new Date((Math.floor(Date.now() / 1000) + 30 * 86_400) * 1000);
 const NEVER_PAID = new Date(0).toISOString();
 
+const paidRows = () => db.queries.filter((q) => q.table === "ops_events" && q.verb === "insert").flatMap((q) => [q.values].flat()).filter((row) => row?.read === "paid");
+
 let accounts: MemoryAccounts;
 let identity: MemoryIdentity;
 /** Supabase Auth, in memory: the user, the one live token, the session `verifyOtp` writes. */
@@ -482,10 +484,8 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
   it("step 2 — one payment becomes one account, one site on the report's domain, and one open subscription", async () => {
     db.singles.set("offer_spots", { place: 7, taken_at: "2026-11-02T10:00:00.000Z" });
     await untilTheAccountIsOpen();
-    // The owner is told once: the domain, the spot, and the founder's due days from the spot's own day.
-    const told = inbox.filter((m) => m.subject === "ops.paid.subject");
-    expect(told.map((m) => m.to)).toEqual(env.OWNER_EMAILS.map((owner) => [owner]));
-    for (const due of ["ops.paid.spot(acme.com,7,50)", "Tue, 3 Nov 2026", "Mon, 16 Nov 2026", "Wed, 2 Dec 2026"]) expect(told[0]?.text).toContain(due);
+    // The owner is told once, in the next digest: the domain and the spot.
+    expect(paidRows()).toEqual([{ kind: "owner-digest", read: "paid", code: "acme.com spot 7" }]);
 
     expect(accounts.users).toHaveLength(1);
     const user = accounts.users[0];
@@ -611,7 +611,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(accounts.sites).toHaveLength(1);
     expect(auth.generated).toHaveLength(1);
     expect(inbox).toHaveLength(mailsAfterFirst);
-    expect(inbox.filter((m) => m.subject === "ops.paid.subject")).toHaveLength(env.OWNER_EMAILS.length);
+    expect(paidRows()).toHaveLength(1);
     // Nothing was charged by anything on this path, either time.
     expect(vendor.chargesCreated).toBe(0);
   });

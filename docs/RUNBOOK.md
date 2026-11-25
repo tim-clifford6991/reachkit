@@ -328,14 +328,24 @@ from job_runs order by last_run_at;
 | every row old, or the table empty | nothing is firing: the app is not synced, or `/api/jobs` is not answering |
 | a job with no row at all | it has never run against this database — an event job nobody has sent yet, or a cron that never fired |
 
-**The stale-job alert.** After recording its own run, each invocation reads the other rows. A
-scheduled job whose `last_run_at` is more than **twice its interval** ago is mailed to
-`OWNER_EMAILS` through the incident mail (§6): *"A scheduled job has not run for more than
-twice its usual interval."* with the job, its last run and its interval. `stale_alerted_at` records
-that mail; the job is not mailed again until it has run and gone quiet again.
+**The owner's operations mail.** `OWNER_EMAILS` gets one digest a day, sent by `account/maintenance`
+from 07:00 UTC (`job_error_mails` key `owner-digest`/`daily`/day): one line per occasion stored as an
+`ops_events` row of kind `owner-digest` since the last digest (`owner-digest-sent` holds the last row
+it listed), with its count and short codes, and the week's section once that Monday has ended
+everywhere. A day with nothing stored sends nothing. Only these come at once: a page that failed to
+publish (`no-draft-at-publish`, `autopilot-stalled`, a `publish/*` job failing or stale, a stale
+`account/maintenance`, whose digest would never go), a payment or
+sign-in path that is down (`boot-refused`, a job whose claim found the database down, a sign-in link
+not sent, once a day per cause), and a refused spend (`reached`, `site-reached`,
+`kill-switch-engaged`, `ledger-unreadable`). A row that cannot be written is mailed at once instead.
 
-**The failing-job mail.** A job that throws on its first delivery is mailed to `OWNER_EMAILS` at
-most once per job, error class and Europe/Berlin day. The row in `job_error_mails` decides that, not
+**The stale-job alert.** After recording its own run, each invocation reads the other rows. A
+scheduled job whose `last_run_at` is more than **twice its interval** ago is mailed at once when it
+is `publish/*` or `account/maintenance` (which sends the digest), else it is a `job-stale` digest line. `stale_alerted_at` records it; the job is not told again until it has run and
+gone quiet again.
+
+**The failing-job mail.** A job that throws on its first delivery is told to `OWNER_EMAILS` (at
+once for `publish/*`, else in the digest) at most once per job, error class and Europe/Berlin day. The row in `job_error_mails` decides that, not
 the mail vendor's key. A send that no owner address accepted deletes its row, so the next tick tries
 again. A store that cannot answer still mails and logs
 `{"event":"ops_incident_alert","outcome":"claim_unavailable"}`.

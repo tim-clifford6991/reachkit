@@ -1,11 +1,11 @@
 // SPEC §6 *The Monday owner digest*: each paying site's line on the daily promise. The week before is read from its
 // pages and `draft_days`, the coming week's supply from the Monday commit's `week_research` row. Stored rows only, 0¢.
 import { WEEK_PLAN } from "@/lib/config/constants";
-import type { OpsIncident } from "@/lib/mail/templates/ops/incident";
+import type { MarketWeek } from "@/lib/mail/templates/ops/incident";
 import { publishDb } from "@/lib/publish/db";
 import { becameUpdate } from "@/lib/publish/record/needs-you";
 
-export type PromiseWeek = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["promise"]>;
+export type PromiseWeek = NonNullable<MarketWeek["promise"]>;
 type PromiseSite = PromiseWeek["sites"][number];
 
 /** A page of the week, with only the `meta` paths the line reads. */

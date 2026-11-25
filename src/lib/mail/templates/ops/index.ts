@@ -1,17 +1,17 @@
 // The owner's spend alert — §6.5's ceilings and the kill switch, as a block list only (ADR-040). One shape: the occasion picks the line.
-// A site cap or a free-path bound gets a third fact row naming whose ceiling it was, as a closed value; never a network key or a domain.
+// Only a refused spend is told at once; a warning and a free-path bound are digest rows.
+// A site cap gets a third fact row naming whose ceiling it was, as a closed value; never a domain.
 // The cent figures are fact-row values (data) under the owner's keyed labels, so no unit or currency is invented here.
 // The kill-switch alert carries the day's two figures too: what was spent when it moved is the context the owner wants.
 // An unreadable ledger carries no figures: a spend nobody could read is never written as one.
 import type { CopyKey } from "@/lib/presentation/copy";
-import type { MailBlock } from "../../blocks/types";
+import type { FactRow, MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.ops.spend-ceiling.subject" satisfies CopyKey;
 const HEADING = "mail.ops.spend-ceiling.heading" satisfies CopyKey;
 const FACT_SPENT = "mail.ops.spend-ceiling.fact.spent" satisfies CopyKey;
 const FACT_CEILING = "mail.ops.spend-ceiling.fact.ceiling" satisfies CopyKey;
 const FACT_SITE = "mail.ops.spend-ceiling.fact.site" satisfies CopyKey;
-const FACT_BOUND = "mail.ops.spend-ceiling.fact.bound" satisfies CopyKey;
 
 /** What happened. There is no `kill-switch-released`: a release cannot be told from a boot without remembered state (`src/jobs/kill-switch.ts`). */
 export type OpsOccasion =
@@ -25,11 +25,12 @@ export type OpsOccasion =
   /** A spend ledger could not be read, so the calls it guards are refused. */
   | "ledger-unreadable";
 
-const BODY: Readonly<Record<OpsOccasion, CopyKey>> = Object.freeze({
-  warn: "mail.ops.spend-ceiling.warn",
+/** Each occasion's place: its line, told at once, or the digest. */
+const ROUTE: Readonly<Record<OpsOccasion, CopyKey | "digest">> = Object.freeze({
+  warn: "digest",
   reached: "mail.ops.spend-ceiling.reached",
   "site-reached": "mail.ops.spend-ceiling.site-reached",
-  "free-scan-bound": "mail.ops.spend-ceiling.free-scan-bound",
+  "free-scan-bound": "digest",
   "kill-switch-engaged": "mail.ops.spend-ceiling.kill-switch-engaged",
   "ledger-unreadable": "mail.ops.spend-ceiling.ledger-unreadable",
 });
@@ -40,16 +41,6 @@ export type OpsSubject =
   | { readonly kind: "free-scan"; readonly bound: "network-day" | "domain-day" };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function subjectFact(subject: OpsSubject): { label: CopyKey; value: string } {
-  if (subject.kind === "site") {
-    return { label: FACT_SITE, value: UUID_RE.test(subject.siteId) ? subject.siteId : "unknown" };
-  }
-  return {
-    label: FACT_BOUND,
-    value: subject.bound === "network-day" || subject.bound === "domain-day" ? subject.bound : "unknown",
-  };
-}
 
 export interface OpsAlertMail {
   readonly subject: CopyKey;
@@ -67,31 +58,24 @@ export type SpendAlertInput =
   /** `reason` is `<ledger>/<cause>`, both closed words from `src/lib/costs/daily.ts`. */
   | { occasion: "ledger-unreadable"; reason: string };
 
-export function buildSpendCeilingAlert(a: SpendAlertInput): OpsAlertMail {
-  if (a.occasion === "ledger-unreadable") {
-    return {
-      subject: SUBJECT,
-      blocks: [
-        { block: "heading", text: HEADING },
-        { block: "paragraph", text: BODY[a.occasion], vars: { reason: a.reason } },
-      ],
-    };
-  }
+/** The mail told at once, or `null` where the occasion waits for the digest. */
+export function buildSpendCeilingAlert(a: SpendAlertInput): OpsAlertMail | null {
+  const line = ROUTE[a.occasion];
+  if (line === "digest") return null;
+  const heading = { block: "heading", text: HEADING } as const;
+  if (a.occasion === "ledger-unreadable") return { subject: SUBJECT, blocks: [heading, { block: "paragraph", text: line, vars: { reason: a.reason } }] };
+  const site: FactRow[] = a.subject?.kind === "site" ? [{ label: FACT_SITE, value: UUID_RE.test(a.subject.siteId) ? a.subject.siteId : "unknown" }] : [];
   return {
     subject: SUBJECT,
     blocks: [
-      { block: "heading", text: HEADING },
-      { block: "paragraph", text: BODY[a.occasion] },
+      heading,
+      { block: "paragraph", text: line },
       {
         block: "facts",
-        items: [
-          ...(a.subject === undefined ? [] : [subjectFact(a.subject)]),
-          { label: FACT_SPENT, value: String(Math.round(a.spentCents)) },
-          { label: FACT_CEILING, value: String(Math.round(a.ceilingCents)) },
-        ],
+        items: [...site, { label: FACT_SPENT, value: String(Math.round(a.spentCents)) }, { label: FACT_CEILING, value: String(Math.round(a.ceilingCents)) }],
       },
     ],
   };
 }
 
-export { buildIncidentAlert, closedName, type OpsIncident } from "./incident";
+export { buildIncidentAlert, buildOwnerDigest, closedName, type AtOnce, type DigestLine, type MarketWeek, type OpsIncident } from "./incident";

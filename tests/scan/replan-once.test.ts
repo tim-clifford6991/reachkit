@@ -1,5 +1,5 @@
-// After a planner deploy the `scan/rescore` tick re-commits a paying site's week once however many ticks run, and mails
-// the owner once the committed week as stored (a hand-set one included) beside the new one.
+// After a planner deploy the `scan/rescore` tick re-commits a paying site's week once however many ticks run, and tells
+// the owner once, as one digest row naming the site.
 import "../opportunities/env";
 import { beforeEach, expect, it, vi } from "vitest";
 import { fakeDb } from "../publish/harness";
@@ -9,7 +9,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 
 const { replanSites } = await import("@/lib/scan/replan");
 const { planWeek } = await import("@/lib/opportunities/plan");
-const { opportunityStore, setOpportunityStore } = await import("@/lib/opportunities/store");
+const { setOpportunityStore } = await import("@/lib/opportunities/store");
 const { __setVendorTransportForTesting } = await import("@/lib/mail/vendor/resend");
 const { memoryStore, newMemoryState } = await import("../opportunities/memory-store");
 const { AT, panelSite, SITE_ID, storedSerps } = await import("../golden/plan/panel");
@@ -49,13 +49,12 @@ beforeEach(async () => {
 const replay = <T>(body: (step: <S>(name: string, run: () => Promise<S>) => Promise<S>) => Promise<T>, memo = new Map<string, unknown>()): Promise<T> => body(async <S,>(name: string, run: () => Promise<S>) => (memo.has(name) ? (memo.get(name) as S) : Promise.reject(memo.set(name, await run())))).catch((e: unknown) => (e === memo ? replay(body, memo) : Promise.reject(e)));
 const tick = (hours: number) => replay((step) => replanSites(paying, { now: new Date(AT.getTime() + hours * HOUR), step }));
 const events = (kind: string) => db.rows("ops_events").filter((row) => row.kind === kind);
+const told = () => db.queries.filter((q) => q.table === "ops_events" && q.verb === "insert" && JSON.stringify(q.values).includes('"read":"replan-committed","code":"savvycal.com"')).length;
 
-it("re-commits the week once per planner, after an apply cut short too, and tells the owner once, with the committed week as it stood", async () => {
-  const handSet = (await opportunityStore().plannedRows(SITE_ID)).find((row) => row.planned_for === "2026-10-20")!;
+it("re-commits the week once per planner, after an apply cut short too, and tells the owner once", async () => {
   expect(await tick(0).catch(() => tick(1))).toEqual({ replanned: [SITE_ID], held: [], empty: [] });
   expect(await tick(1)).toBeNull();
-  expect([commits, mails.length, events("week_replanned").length, events("week_replan_told").length]).toEqual([1, 1, 1, 1]);
-  expect(mails[0]).toContain(`2026-10-20 · ${handSet.target_query}`);
+  expect([commits, told(), mails.length, events("week_replanned").length, events("week_replan_told").length]).toEqual([1, 1, 0, 1, 1]);
 });
 
 it("keeps every date whose topic still ranks and dates the lost day with a ready row", async () => {
@@ -66,9 +65,9 @@ it("keeps every date whose topic still ranks and dates the lost day with a ready
   expect(Object.fromEntries(dated().map((row) => [row.planned_for, row.id]))).toMatchObject({ ...before, "2026-10-21": expect.any(String) });
 });
 
-it("sends no mail at a next planner that leaves the week as committed, and logs it once", async () => {
+it("tells nothing more at a next planner that leaves the week as committed, and logs it once", async () => {
   await tick(0).catch(() => tick(1)).then(() => vi.stubEnv("RK_PLANNER", "0fa2"));
-  expect([await tick(2), mails.length, vi.mocked(console.log).mock.calls.filter(([line]) => String(line).includes("week_replan_unchanged")).length]).toEqual([{ replanned: [SITE_ID], held: [], empty: [] }, 1, 1]);
+  expect([await tick(2), told(), vi.mocked(console.log).mock.calls.filter(([line]) => String(line).includes("week_replan_unchanged")).length]).toEqual([{ replanned: [SITE_ID], held: [], empty: [] }, 1, 1]);
 });
 
 it("claims a week that dates no day empty, commits nothing, and does not dry-run it again at the same planner", async () => {

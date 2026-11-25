@@ -300,18 +300,18 @@ export async function finishScanLeftRunning(scanId: string): Promise<EngineResul
   return { done: true };
 }
 
-/** Issue 796: the Monday whose owner market digest is due, once that
- *  Monday has ended in every zone and a weekly pass of it is unread. */
-export async function marketDigestsDue(): Promise<readonly string[]> {
-  const { marketDigestsDue: due } = await import("@/lib/scan/weekly/market-digest");
+/** The day whose owner digest may be due: from its hour on, until the day's claim is taken. */
+export async function ownerDigestDue(): Promise<readonly string[]> {
+  const { ownerDigestDue: due } = await import("@/lib/mail/ops/incident");
   return due(new Date());
 }
 
-/** Sends that week's digest. A mail the seam did not accept is a
- *  degradation, and the week is offered again at the next tick. */
-export async function sendMarketDigest(weekStart: string): Promise<EngineResult> {
-  const { sendMarketDigest: send } = await import("@/lib/scan/weekly/market-digest");
-  return (await send(weekStart, new Date())) ? { done: true } : { degraded: "market-digest-not-sent" };
+/** Sends the day's one owner digest with the week's section; one not accepted is a degradation, offered again next tick. */
+export async function sendOwnerDigest(day: string): Promise<EngineResult> {
+  const { sendOwnerDigest: send } = await import("@/lib/mail/ops/incident");
+  const { marketWeekSection } = await import("@/lib/scan/weekly/market-digest");
+  const now = new Date();
+  return (await send(day, now, () => marketWeekSection(now))) ? { done: true } : { degraded: "owner-digest-not-sent" };
 }
 
 // ── The re-score — issues 1433 and 1481, built.

@@ -1,7 +1,6 @@
-// The owner's incident alert, one shape for every occasion: the occasion picks the line, and fact rows carry closed names only
-// (a registry job id, an attempt, an error class, a boot check). No customer input, payload, error message or subject id reaches it.
-// The exception is a draft the writing rules stopped twice: the owner cannot investigate a rule without its words, so that alert names
-// the site, each rule and the breaking sentences, and goes to `OWNER_EMAILS` only.
+// The owner's incident alert and daily digest. An alert told at once has one shape: the occasion picks the line, and fact rows carry
+// closed names only (a registry job id, an attempt, an error class, a boot check, a site). No customer input, payload, error message
+// or subject id reaches it. Every other occasion is one digest line: its name, its count and its short codes.
 import { SEARCH_READING_WINDOW_D, WEEK_PLAN } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { FactRow, ListRow, MailBlock } from "../../blocks/types";
@@ -12,61 +11,10 @@ export type OpsIncident =
   | { occasion: "job-failed"; jobId: string; attempt: number; errorName: string; down?: true }
   | { occasion: "dead-lettered"; jobId: string; errorName: string; down?: true }
   | { occasion: "boot-refused"; check: string; errorName: string }
+  // A sign-in link was not issued or not accepted by the mail vendor, so a customer cannot get in.
+  | { occasion: "sign-in-unsent"; cause: "no_link" | "mail" }
   // No error: the market was read and was too small. The scan's id and tier, never the domain.
   | { occasion: "market-too-small"; scanId: string; tier: string }
-  // One Monday's weekly passes that found too little market, one line a week rather than a mail per site, and each paying
-  // site's daily promise: last week's days kept, missed with their reason, the standard met, and the coming week's
-  // researched supply (`null`: not measured). Owner-only, so the site is named.
-  | {
-      occasion: "market-too-small-week";
-      weekStart: string;
-      scanIds: readonly string[];
-      promise?: {
-        weekStart: string;
-        sites: readonly {
-          domain: string;
-          kept: number;
-          days: number;
-          stopped: number;
-          unrecorded: number;
-          missed: readonly { date: string; reason: string }[];
-          standard: { met: number; of: number } | null;
-          supply: { researched: number; spares: number; uncovered: number; queued: number; short: number } | null;
-          low: boolean;
-        }[];
-      };
-      // Each paying hosted site's visits by source over the week (`null`: not measured) and its live pages' Search Console clicks.
-      visits?: { weekStart: string; sites: readonly { domain: string; visits: readonly { source: string; visits: number }[] | null; clicks: number | null }[] };
-      // Each site's market changes its week's pass recorded, and how many of them that week's drafts use.
-      changes?: { weekStart: string; sites: readonly { domain: string; recorded: number; used: number }[] };
-      // What the week cost: per site a measurement and a page, then free scans and smoke tests, then the ledger total, in cents.
-      costs?: {
-        weekStart: string;
-        sites: readonly {
-          domain: string;
-          measurements: { count: number; cents: number };
-          pages: { count: number; cents: number };
-        }[];
-        freeScans: { count: number; cents: number };
-        smokeTests: { count: number; cents: number };
-        totalCents: number | null;
-        // The week's Google SERP reads, how many timed out, and what those were billed.
-        serp?: { reads: number; timeouts: number; wastedCents: number } | null;
-        // The sources billed over `over` times their estimate, over only
-        // the rows the vendor priced.
-        drift?: { over: number; sources: readonly { source: string; billedCents: number; estimatedCents: number }[] } | null;
-      };
-      // Days with no page that were not mailed, because a later page was going out, each with its `draft_days` reason.
-      untold?: readonly { domain: string; date: string; reason: string }[];
-      // Passes a health check failed, each with the check and what it found.
-      unhealthy?: readonly {
-        scanId: string;
-        domain: string;
-        failing: readonly { check: string; detail: string }[];
-      }[];
-      // Live hosted pages Google had still not crawled a week after going live, each with Google's coverage line.
-      uncrawled?: readonly { domain: string; url: string; state: string; published: string }[];
-    }
   // No error: a scheduled job has not run for twice its interval. Job id, last run and interval in minutes.
   | { occasion: "job-stale"; jobId: string; lastRunAt: string; intervalMinutes: number }
   // No error: a paying site's publish time passed with no page. Owner-only, so the site is named; the reason is its `draft_days` code.
@@ -95,6 +43,62 @@ export type OpsIncident =
   // No error: a paying account's address bounced or complained, and its follow-up mail stopped, or it asked to sign in while stopped. Owner-only, so each paying site is named.
   | { occasion: "mail-stopped"; domains: readonly string[]; cause: "bounced" | "complained" | "sign-in-blocked" };
 
+/** The occasions told at once: a page failed to publish, a payment or sign-in path is down. */
+export type AtOnce = Extract<OpsIncident, { occasion: "job-failed" | "dead-lettered" | "boot-refused" | "sign-in-unsent" | "no-draft-at-publish" | "autopilot-stalled" | "job-stale" }>;
+
+/** One weekly read of the market, the promise, visits, changes and cost, a section of the first digest after the week has ended.
+ *  Each paying site's daily promise: last week's days kept, missed with their reason, the standard met, and the coming week's
+ *  researched supply (`null`: not measured). Owner-only, so the site is named. */
+export interface MarketWeek {
+  weekStart: string;
+  scanIds: readonly string[];
+  promise?: {
+    weekStart: string;
+    sites: readonly {
+      domain: string;
+      kept: number;
+      days: number;
+      stopped: number;
+      unrecorded: number;
+      missed: readonly { date: string; reason: string }[];
+      standard: { met: number; of: number } | null;
+      supply: { researched: number; spares: number; uncovered: number; queued: number; short: number } | null;
+      low: boolean;
+    }[];
+  };
+  // Each paying hosted site's visits by source over the week (`null`: not measured) and its live pages' Search Console clicks.
+  visits?: { weekStart: string; sites: readonly { domain: string; visits: readonly { source: string; visits: number }[] | null; clicks: number | null }[] };
+  // Each site's market changes its week's pass recorded, and how many of them that week's drafts use.
+  changes?: { weekStart: string; sites: readonly { domain: string; recorded: number; used: number }[] };
+  // What the week cost: per site a measurement and a page, then free scans and smoke tests, then the ledger total, in cents.
+  costs?: {
+    weekStart: string;
+    sites: readonly {
+      domain: string;
+      measurements: { count: number; cents: number };
+      pages: { count: number; cents: number };
+    }[];
+    freeScans: { count: number; cents: number };
+    smokeTests: { count: number; cents: number };
+    totalCents: number | null;
+    // The week's Google SERP reads, how many timed out, and what those were billed.
+    serp?: { reads: number; timeouts: number; wastedCents: number } | null;
+    // The sources billed over `over` times their estimate, over only
+    // the rows the vendor priced.
+    drift?: { over: number; sources: readonly { source: string; billedCents: number; estimatedCents: number }[] } | null;
+  };
+  // Days with no page that were not mailed, because a later page was going out, each with its `draft_days` reason.
+  untold?: readonly { domain: string; date: string; reason: string }[];
+  // Passes a health check failed, each with the check and what it found.
+  unhealthy?: readonly {
+    scanId: string;
+    domain: string;
+    failing: readonly { check: string; detail: string }[];
+  }[];
+  // Live hosted pages Google had still not crawled a week after going live, each with Google's coverage line.
+  uncrawled?: readonly { domain: string; url: string; state: string; published: string }[];
+}
+
 type ReplanRow = { date: string | null; search: string | null; page: string; type: string; points: number | null };
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
@@ -110,21 +114,20 @@ const UNCRAWLED_WEEK = "ops.uncrawled.week" satisfies CopyKey;
 const VISITS_WEEK = "ops.visits.week" satisfies CopyKey;
 const VISITS_SOURCE = "ops.visits.source" satisfies CopyKey;
 const CHANGES_WEEK = "ops.changes.week" satisfies CopyKey;
+const TOO_SMALL_WEEK = "mail.ops.incident.market-too-small-week" satisfies CopyKey;
+const DIGEST_SUBJECT = "ops.digest.subject" satisfies CopyKey;
+const DIGEST_HEADING = "ops.digest.heading" satisfies CopyKey;
+const DIGEST_LEAD = "ops.digest.lead" satisfies CopyKey;
+const DIGEST_LINE = "ops.digest.line" satisfies CopyKey;
 
-const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
+const BODY: Readonly<Record<AtOnce["occasion"], CopyKey>> = Object.freeze({
   "job-failed": "mail.ops.incident.job-failed",
   "dead-lettered": "mail.ops.incident.dead-lettered",
   "boot-refused": "mail.ops.incident.boot-refused",
-  "market-too-small": "mail.ops.incident.market-too-small",
-  "market-too-small-week": "mail.ops.incident.market-too-small-week",
-  "job-stale": "mail.ops.incident.job-stale",
+  "sign-in-unsent": "mail.ops.incident.sign-in-unsent",
   "no-draft-at-publish": "mail.ops.incident.no-draft-at-publish",
   "autopilot-stalled": "mail.ops.incident.autopilot-stalled",
-  "draft-stopped-twice": "mail.ops.incident.draft-stopped-twice",
-  "vendor-low": "mail.ops.incident.vendor-low",
-  "replan-committed": "ops.replan.committed",
-  "serp-unreadable": "ops.serp.unreadable",
-  "mail-stopped": "ops.mail-stopped",
+  "job-stale": "mail.ops.incident.job-stale",
 });
 
 /** A stopped page's sentence on one line, cut where a mail row stops being readable. */
@@ -165,87 +168,36 @@ function closedInstant(value: string): string {
   return Number.isNaN(at.getTime()) ? "unknown" : `${at.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
-function factsOf(incident: OpsIncident): FactRow[] {
-  if (incident.occasion === "market-too-small-week") {
-    return [
-      { label: "mail.ops.incident.fact.week", value: closedDate(incident.weekStart) },
-      ...incident.scanIds.map((id) => ({ label: "mail.ops.incident.fact.scan", value: closedId(id) }) as const),
-    ];
-  }
-  if (incident.occasion === "draft-stopped-twice") {
-    return [
-      { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
-      { label: "mail.ops.incident.fact.draft", value: closedId(incident.draftId) },
-      { label: "mail.ops.incident.fact.attempt", value: String(Math.max(0, Math.trunc(incident.attempts))) },
-      ...incident.failed.flatMap((failure): FactRow[] => [
-        { label: "mail.ops.incident.fact.rule", value: closedName(failure.rule) },
-        ...failure.sentences.map((sentence): FactRow => ({ label: "mail.ops.incident.fact.sentence", value: sentenceValue(sentence) })),
-      ]),
-    ];
-  }
-  if (incident.occasion === "job-stale") {
-    return [
-      { label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) },
-      { label: "mail.ops.incident.fact.last-run", value: closedInstant(incident.lastRunAt) },
-      { label: "mail.ops.incident.fact.interval", value: String(Math.max(0, Math.trunc(incident.intervalMinutes))) },
-    ];
-  }
-  if (incident.occasion === "no-draft-at-publish") {
-    return [
-      { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
-      { label: "mail.ops.incident.fact.date", value: closedDate(incident.date) },
-      { label: "mail.ops.incident.fact.cause", value: closedReason(incident.reason) },
-      ...(incident.stalled === undefined ? [] : stallFacts(incident.stalled)),
-    ];
-  }
-  if (incident.occasion === "autopilot-stalled") {
-    return [{ label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) }, ...stallFacts(incident)];
-  }
-  if (incident.occasion === "vendor-low") {
-    return [
-      { label: "mail.ops.incident.fact.balance", value: `$${(incident.balanceCents / 100).toFixed(2)}` },
-      ...(incident.daysLeft === null ? [] : [{ label: "mail.ops.incident.fact.days-left", value: count(Math.floor(incident.daysLeft)) } as const]),
-      { label: "mail.ops.incident.fact.dashboard", value: incident.dashboard },
-    ];
-  }
-  if (incident.occasion === "replan-committed") {
-    // A planner is hex, which may start with a digit.
-    const planner = /^[0-9a-z-]{1,40}$/i.test(incident.fingerprint) ? incident.fingerprint : "unknown";
-    const row = (r: ReplanRow) => sentenceValue(`${r.date ?? "spare"} · ${r.search ?? "—"} · ${r.page} · ${r.type} · ${r.points ?? "—"}`);
-    return [
-      { label: "ops.replan.fact.planner", value: planner },
-      ...incident.sites.flatMap((site): FactRow[] => [
-        { label: "mail.ops.incident.fact.site", value: closedDomain(site.domain) },
-        { label: "ops.replan.fact.from", value: closedDate(site.from) },
-        { label: "ops.replan.fact.unmeasured", value: site.unmeasured.map(closedName).join(", ") || "—" },
-        ...site.before.map((r): FactRow => ({ label: "ops.replan.fact.committed", value: row(r) })),
-        ...site.after.map((r): FactRow => ({ label: "ops.replan.fact.replanned", value: row(r) })),
-      ]),
-    ];
-  }
-  if (incident.occasion === "mail-stopped") {
-    return [...incident.domains.map((domain): FactRow => ({ label: "mail.ops.incident.fact.site", value: closedDomain(domain) })), { label: "mail.ops.incident.fact.cause", value: closedName(incident.cause) }];
-  }
-  if (incident.occasion === "serp-unreadable") return [{ label: "mail.ops.incident.fact.cause", value: closedName(incident.cause) }];
-  if (incident.occasion === "market-too-small") {
-    return [
-      { label: "mail.ops.incident.fact.scan", value: closedId(incident.scanId) },
-      { label: "mail.ops.incident.fact.tier", value: closedName(incident.tier) },
-    ];
-  }
-  const error = { label: "mail.ops.incident.fact.error", value: closedName(incident.errorName) } as const;
+function factsOf(incident: AtOnce): FactRow[] {
   switch (incident.occasion) {
+    case "no-draft-at-publish":
+      return [
+        { label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) },
+        { label: "mail.ops.incident.fact.date", value: closedDate(incident.date) },
+        { label: "mail.ops.incident.fact.cause", value: closedReason(incident.reason) },
+        ...(incident.stalled === undefined ? [] : stallFacts(incident.stalled)),
+      ];
+    case "autopilot-stalled":
+      return [{ label: "mail.ops.incident.fact.site", value: closedDomain(incident.domain) }, ...stallFacts(incident)];
+    case "job-stale":
+      return [
+        { label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) },
+        { label: "mail.ops.incident.fact.last-run", value: closedInstant(incident.lastRunAt) },
+        { label: "mail.ops.incident.fact.interval", value: count(incident.intervalMinutes) },
+      ];
+    case "sign-in-unsent":
+      return [{ label: "mail.ops.incident.fact.cause", value: closedName(incident.cause) }];
     case "job-failed":
       return [
         { label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) },
         // Zero-indexed on the platform; written one-indexed, as a person counts.
         { label: "mail.ops.incident.fact.attempt", value: String(Math.max(0, Math.trunc(incident.attempt)) + 1) },
-        error,
+        { label: "mail.ops.incident.fact.error", value: closedName(incident.errorName) },
       ];
     case "dead-lettered":
-      return [{ label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) }, error];
+      return [{ label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) }, { label: "mail.ops.incident.fact.error", value: closedName(incident.errorName) }];
     case "boot-refused":
-      return [{ label: "mail.ops.incident.fact.check", value: closedName(incident.check) }, error];
+      return [{ label: "mail.ops.incident.fact.check", value: closedName(incident.check) }, { label: "mail.ops.incident.fact.error", value: closedName(incident.errorName) }];
   }
 }
 
@@ -275,7 +227,7 @@ function each(line: { count: number; cents: number }): string {
   return `${money(line.count > 0 ? line.cents / line.count : 0)} × ${count(line.count)}`;
 }
 
-type WeekCosts = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["costs"]>;
+type WeekCosts = NonNullable<MarketWeek["costs"]>;
 
 function costFacts(costs: WeekCosts): FactRow[] {
   return [
@@ -310,7 +262,7 @@ function driftFacts(drift: NonNullable<WeekCosts["drift"]>): FactRow[] {
   ]);
 }
 
-type PromiseSite = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["promise"]>["sites"][number];
+type PromiseSite = NonNullable<MarketWeek["promise"]>["sites"][number];
 
 /** One site's promise line, its missed dates and its unresearched committed days under it. */
 function promiseRow(site: PromiseSite): ListRow {
@@ -336,7 +288,7 @@ function promiseRow(site: PromiseSite): ListRow {
   };
 }
 
-type VisitsSite = NonNullable<Extract<OpsIncident, { occasion: "market-too-small-week" }>["visits"]>["sites"][number];
+type VisitsSite = NonNullable<MarketWeek["visits"]>["sites"][number];
 
 /** One site's Google and AI visits and clicks, every other source it was visited from under it. */
 function visitsRow(site: VisitsSite): ListRow {
@@ -350,11 +302,17 @@ function visitsRow(site: VisitsSite): ListRow {
   };
 }
 
-/** The Monday digest: each part drawn only where it has something to say. */
-function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small-week" }>): MailBlock[] {
+/** The week's section: each part drawn only where it has something to say. */
+function weekBlocks(incident: MarketWeek): MailBlock[] {
   const blocks: MailBlock[] = [];
-  if (incident.scanIds.length > 0 || (incident.promise === undefined && incident.visits === undefined && incident.untold === undefined && incident.costs === undefined && incident.unhealthy === undefined && incident.uncrawled === undefined && incident.changes === undefined)) {
-    blocks.push({ block: "paragraph", text: BODY[incident.occasion] }, { block: "facts", items: factsOf(incident) });
+  if (incident.scanIds.length > 0) {
+    blocks.push({ block: "paragraph", text: TOO_SMALL_WEEK }, {
+      block: "facts",
+      items: [
+        { label: "mail.ops.incident.fact.week", value: closedDate(incident.weekStart) },
+        ...incident.scanIds.map((id) => ({ label: "mail.ops.incident.fact.scan", value: closedId(id) }) as const),
+      ],
+    });
   }
   if (incident.promise !== undefined) {
     const { sites, weekStart } = incident.promise;
@@ -422,16 +380,40 @@ function weekBlocks(incident: Extract<OpsIncident, { occasion: "market-too-small
   return blocks;
 }
 
-export function buildIncidentAlert(incident: OpsIncident): { subject: CopyKey; blocks: readonly MailBlock[] } {
-  if (incident.occasion === "market-too-small-week") {
-    return { subject: SUBJECT, blocks: [{ block: "heading", text: HEADING }, ...weekBlocks(incident)] };
-  }
+export function buildIncidentAlert(incident: AtOnce): { subject: CopyKey; blocks: readonly MailBlock[] } {
   return {
     subject: "down" in incident && incident.down ? ("mail.ops.incident.subject.down" satisfies CopyKey) : SUBJECT,
     blocks: [
       { block: "heading", text: HEADING },
       { block: "paragraph", text: BODY[incident.occasion] },
       { block: "facts", items: factsOf(incident) },
+    ],
+  };
+}
+
+/** One digest line: an occasion, how many times it was stored, and its distinct short codes. */
+export interface DigestLine {
+  readonly occasion: string;
+  readonly count: number;
+  readonly codes: readonly string[];
+}
+
+/** The owner's digest: each stored occasion, oldest first, then the week's section where one is due. */
+export function buildOwnerDigest(lines: readonly DigestLine[], week: MarketWeek | null): { subject: CopyKey; blocks: readonly MailBlock[] } {
+  return {
+    subject: DIGEST_SUBJECT,
+    blocks: [
+      { block: "heading", text: DIGEST_HEADING },
+      ...(lines.length === 0
+        ? []
+        : ([
+            { block: "paragraph", text: DIGEST_LEAD },
+            {
+              block: "facts",
+              items: lines.map((line): FactRow => ({ label: DIGEST_LINE, labelVars: { occasion: closedName(line.occasion), n: count(line.count) }, value: line.codes.join(", ") || "—" })),
+            },
+          ] satisfies MailBlock[])),
+      ...(week === null ? [] : weekBlocks(week)),
     ],
   };
 }

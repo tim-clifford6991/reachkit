@@ -8,6 +8,7 @@ import { applyEnvFixture } from "../mail/env-fixture";
 applyEnvFixture();
 
 const { runJob } = await import("@/jobs/run");
+const { sendOwnerDigest } = await import("@/lib/mail/ops/incident");
 const { __setVendorTransportForTesting } = await import("@/lib/mail/vendor/resend");
 type JobDefinition = import("@/jobs/types").JobDefinition;
 
@@ -69,4 +70,23 @@ describe("one ops mail per job per error kind per day", () => {
     await tick(failing(TypeError), "2026-10-20T06:00:00Z");
     expect(delivered).toHaveLength(3);
   });
+});
+
+it("two maintenance ticks on one day send one owner digest", async () => {
+  const claimed = new Set<string>();
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input instanceof Request ? input.url : input));
+    const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+    if (url.pathname.endsWith("/job_error_mails")) {
+      const { job_id, day } = JSON.parse(String(init?.body)) as { job_id: string; day: string };
+      const fresh = !claimed.has(`${job_id}|${day}`);
+      claimed.add(`${job_id}|${day}`);
+      return json(fresh ? [{ job_id }] : []);
+    }
+    if (init?.method === "POST") return new Response(null, { status: 201 });
+    return json(url.searchParams.get("kind") === "eq.owner-digest" ? [{ id: 1, read: "job-stale", code: "lead/nurture" }] : []);
+  });
+  for (const at of ["2026-11-25T07:00:00Z", "2026-11-25T07:05:00Z"]) await expect(sendOwnerDigest("2026-11-25", new Date(at), async () => null)).resolves.toBe(true);
+  vi.unstubAllGlobals();
+  expect(delivered).toHaveLength(1);
 });
