@@ -195,7 +195,8 @@ export async function dryReplan(
     }
   } else if (days.after.writable < days.before.writable) plan.held = `${days.after.writable} writable days where the committed week has ${days.before.writable}`;
   // Why it is held leads the line, since a log viewer cuts a long line before the weeks.
-  console.log(JSON.stringify({ event: "week_replan_dry_run", held: plan.held, empty: plan.empty, days, ...plan, rejected: entries.rejected }));
+  const { held, empty, ...weeks } = plan;
+  console.log(JSON.stringify({ event: "week_replan_dry_run", held, empty, days, ...weeks, rejected: entries.rejected }));
   return plan;
 }
 
