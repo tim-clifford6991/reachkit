@@ -52,7 +52,7 @@ function Day(p: { day: WeekDay }): React.JSX.Element {
   const state = dayStateOf(cell);
   const stateLine = stateLineOf(cell, false);
   // Plan's rule: a stopped or skipped day's own sentence says it, so its two words would repeat it.
-  const line = page !== null ? page.title : stateLine !== null && (state === "stopped" || state === "skipped") ? null : cardLineFor(cell, ALL);
+  const line = page !== null ? (page.proposed?.title ?? page.title) : stateLine !== null && (state === "stopped" || state === "skipped") ? null : cardLineFor(cell, ALL);
   return (
     // The longest state badge, "Being written", fits a seventh of the week at 1280.
     <li

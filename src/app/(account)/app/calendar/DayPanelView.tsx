@@ -248,10 +248,14 @@ function ChosenAndRead(p: { facts: readonly PaneFact[]; brief: Brief }): React.J
   );
 }
 
-/** A planned day that already has its row offers its stop, as the actions allow. */
+/** A planned day that already has its row offers its stop, as the actions allow; one with no draft, the mail's signed stop. */
 function PlannedStop(p: { cell: DayCell }): React.JSX.Element | null {
   const [busy, startTransition] = useTransition();
   const [pressed, setPressed] = useState<DayCommand | null>(null);
+  const href = p.cell.page?.stopHref;
+  if (href !== undefined) {
+    return <Link href={href} className="btn btn-ghost btn-warning min-h-11 self-start" data-testid="day-action-calendar.week.stop">{copy("calendar.week.stop")}</Link>;
+  }
   function command(asked: DayCommand, draftId: string): void {
     setPressed(asked);
     startTransition(async () => {

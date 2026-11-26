@@ -60,6 +60,7 @@ import {
 } from "@/lib/market/changes";
 import { readStop } from "../_shell/stop";
 import { plannedByDay } from "@/lib/opportunities/days";
+import { plannedStopPath } from "@/lib/opportunities/stop";
 import { opportunityStore } from "@/lib/opportunities/store";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
 import { publishDb } from "@/lib/publish/db";
@@ -558,8 +559,7 @@ export async function readCalendarFacts(a: {
     );
   }
 
-  // 2 — the dates left, each with the row committed for it. A date §9 has
-  //     already spoken for keeps its page.
+  // 2 — the dates left, each with the row committed for it. A date §9 has already spoken for keeps its page.
   //
   //     Nothing is planned at all where §9's facts could not be read: a
   //     month drawn as planned dates over pages that may be in review or
@@ -569,7 +569,7 @@ export async function readCalendarFacts(a: {
   const rows = new Map(week.days.map((day) => [day.opportunity.id, day.opportunity]));
   for (const [day, opportunityId] of plannedByDay(week.days, publishing.pagesByDay, publishing.readable ? dates : [])) {
     const row = rows.get(opportunityId);
-    if (row !== undefined) drafts.push({ ...plannedOn(day, row, locale.language, a.now), startedAt: publishing.startedAt.get(day) ?? null });
+    if (row !== undefined) drafts.push({ ...plannedOn(day, row, locale.language, a.now), startedAt: publishing.startedAt.get(day) ?? null, stopHref: plannedStopPath({ siteId: a.site.siteId, opportunityId, day }) });
   }
 
   return {

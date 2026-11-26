@@ -142,6 +142,8 @@ export interface DraftOnDay {
   startedAt?: Date | null;
   /** The customer took the page off its day, by a transition they made. */
   stoppedByYou?: boolean;
+  /** A planned page's `/veto` path, signed on the server for the signed-in site: the stop the Monday mail links. */
+  stopHref?: string;
 }
 
 export interface PageOnDay extends DraftOnDay {

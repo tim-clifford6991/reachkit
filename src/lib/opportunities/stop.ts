@@ -2,6 +2,7 @@
 // nothing. Stopping dismisses the open row, so no draft moves and ADR-080 is not reached; a written page has its own link.
 import { macFor, macMatches } from "@/lib/crypto/keys";
 import { dbAdmin } from "@/lib/db";
+import { vetoLinkPath } from "@/lib/publish/publishable/veto";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import { opportunityStore } from "./store";
 import type { PlanReason } from "./types";
@@ -34,6 +35,11 @@ function macOf(payload: string): Buffer {
 export function plannedStopToken(a: { siteId: string; opportunityId: string; day: string }): string {
   const payload = `${a.siteId}:${a.opportunityId}:${a.day}`;
   return `${Buffer.from(payload).toString("base64url")}${SEPARATOR}${macOf(payload).toString("base64url")}`;
+}
+
+/** The `/veto` path that stops a planned page: the mail adds its origin, This Week links it as is. */
+export function plannedStopPath(a: { siteId: string; opportunityId: string; day: string }): string {
+  return vetoLinkPath(plannedStopToken(a));
 }
 
 /** A veto token is bare base64url, which never holds the separator. */
