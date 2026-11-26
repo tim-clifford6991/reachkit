@@ -140,13 +140,6 @@ export function sitePassages<P extends { url: string; text: string; examples?: r
   }));
 }
 
-/** Freshest first, so a page read this week grounds ahead of one read a
- *  month ago; ties break on the URL, which `readMeasuredText` already
- *  orders by. */
-function freshestFirst(pages: readonly MeasuredText[]): MeasuredText[] {
-  return [...pages].reverse();
-}
-
 /** Content words, as both sides of the overlap count them. Two letters or
  *  fewer is not a word that tells two pages apart. */
 function wordsOf(text: string): Set<string> {
@@ -171,7 +164,7 @@ function sharedWords(wanted: ReadonlySet<string>, held: ReadonlySet<string>): nu
  *  the same pages always order the same way, so a regeneration is not a
  *  different fact by accident. */
 function aboutTheQuestionFirst(pages: readonly MeasuredText[], target?: string): MeasuredText[] {
-  const ordered = freshestFirst(pages);
+  const ordered = [...pages].reverse(); // freshest first: `readMeasuredText` orders by read date, then URL
   const wanted = wordsOf(target ?? "");
   if (wanted.size === 0) return ordered;
   return ordered
@@ -196,6 +189,15 @@ export function fitFactRead<T extends { text: string; source: { kind: "page"; ur
   if (fit == null || fit.source.kind !== "page") return fit ?? null;
   const key = urlKey(fit.source.url);
   return key !== null && facts.some(({ fact, sourceText }) => urlKey(fact.url) === key && checkGrounding({ grounded: { ...fact, passage: fit.text }, sourceText }) === null) ? fit : null;
+}
+
+/** Each URL's newest read only (hard rule 1's source): a sentence an older read had is not on the page now, and a passage
+ *  carries the date of the read that says it. An empty shell's read replaces no read that has text. */
+export function newestReads<P extends { url: string; text: string; measuredAt: Date }>(pages: readonly P[]): P[] {
+  const key = (page: P): string => urlKey(page.url) ?? page.url, rank = (page: P): number => (page.text === "" ? 0 : 1e15) + page.measuredAt.getTime();
+  const best = new Map<string, number>();
+  for (const page of pages) best.set(key(page), Math.max(best.get(key(page)) ?? -Infinity, rank(page)));
+  return pages.filter((page) => best.get(key(page)) === rank(page));
 }
 
 export interface FactRead {
@@ -224,7 +226,7 @@ export async function readAllFacts(a: FactRead): Promise<SourcedFact[]> {
     a.latest ? readLatestMeasuredText(a.siteId) : readMeasuredText({ siteId: a.siteId, scanId: a.scanId, customerOnly: true }),
     readReportPage(a.siteId),
   ]);
-  const own = sitePassages(aboutTheQuestionFirst(measured, a.target));
+  const own = sitePassages(aboutTheQuestionFirst(newestReads(measured), a.target));
   // The report is one more page in the rotation, after the site's own — and
   // only beside them: a site none of whose pages yields a passage is not
   // written from its measurements alone.
