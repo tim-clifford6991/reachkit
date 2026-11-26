@@ -35,9 +35,12 @@ async function ranked(siteId: string, a: { now: Date; from?: string; record?: bo
   return { input, order, best: [...best].flatMap((id) => input.rows.filter((r) => r.id === id)), later, top, from, days };
 }
 
-/** The open rows the commit refuses as a live page's twin, by its own test, so supply never counts a place no week can use. */
-export const liveTwinIds = async (siteId: string, now: Date): Promise<Set<string>> =>
-  new Set(choose({ ...(await loadRanking(siteId, now)), at: now, from: now.toISOString().slice(0, 10) }).rejected.flatMap((r) => (r.reason === "live_twin" ? [r.opportunityId] : [])));
+/** The open rows the commit refuses as a live page's twin, by its own test, so supply never counts a place no week can use;
+ *  `asNew` adds a planned row's twin and a live page's update, which no day writes as a new page. */
+export async function liveTwinIds(siteId: string, now: Date, asNew = false): Promise<Set<string>> {
+  const order = choose({ ...(await loadRanking(siteId, now)), at: now, from: now.toISOString().slice(0, 10) });
+  return new Set([...order.rejected.filter((r) => r.reason === "live_twin" || (asNew && r.reason === "same_topic")), ...order.committed.filter((e) => asNew && e.set?.family === "improve")].map((r) => r.opportunityId));
+}
 
 /** The rows the Monday commit checks the research of, best first. */
 export const weekCandidates = async (siteId: string, now: Date): Promise<OpportunityRow[]> => (await ranked(siteId, { now })).best;
@@ -82,7 +85,8 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
     await assessReadiness(siteId, { at: now, now, only });
     await assessFixPages(siteId, { report: null, now, only });
   }
-  const open = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && row.ready);
+  // A row the duplicate check now refuses is not written as new: the next spare, or the recommit, takes its date.
+  const twins = await liveTwinIds(siteId, now, true), open = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && row.ready && !(twins.has(row.id) && row.family !== "improve"));
   const row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
   if (row !== undefined) return planned(row);
   // A ready update dated later is the day's update fallback's to take first, so the recommit stays the last resort.
@@ -141,9 +145,7 @@ async function readDepth(siteId: string): Promise<Depth> {
   const store = opportunityStore();
   if ((await store.countUnused(siteId)) > 0) return { unused: await writableDays(siteId), exhaustedSince: null };
   // Since the last non-Fix status change, else the scan that last looked and found nothing, else no date.
-  const lastChange = await store.lastStatusChangeAt(siteId);
-  if (lastChange !== null) return { unused: 0, exhaustedSince: lastChange };
-  return { unused: 0, exhaustedSince: await store.latestCompletedScanAt(siteId) };
+  return { unused: 0, exhaustedSince: (await store.lastStatusChangeAt(siteId)) ?? (await store.latestCompletedScanAt(siteId)) };
 }
 
 /** Whether a site with no supply ever had a market to use up (#765): its report asked questions and it held a non-Fix row. */
@@ -151,8 +153,7 @@ export async function supplyMeasured(siteId: string): Promise<boolean> {
   const store = opportunityStore();
   const [report, lastChange] = await Promise.all([store.currentReport(siteId), store.lastStatusChangeAt(siteId)]);
   const questions = report?.questions;
-  const asked = questions !== undefined && questions.kind !== "unmeasured" && questions.value.length > 0;
-  return asked && lastChange !== null;
+  return questions !== undefined && questions.kind !== "unmeasured" && questions.value.length > 0 && lastChange !== null;
 }
 
 /** What a site's zero supply is (issue 855): `measured` — a market used up; `unmeasured` — never measured (#765);
@@ -160,8 +161,7 @@ export async function supplyMeasured(siteId: string): Promise<boolean> {
 export type SupplyState = "measured" | "unmeasured" | "measuring";
 
 export async function supplyState(siteId: string): Promise<SupplyState> {
-  const store = opportunityStore();
-  const report = await store.currentReport(siteId);
+  const report = await opportunityStore().currentReport(siteId);
   if (report !== null && stoppedOnCeiling(report.stoppedReason)) return "measuring";
   return (await supplyMeasured(siteId)) ? "measured" : "unmeasured";
 }
