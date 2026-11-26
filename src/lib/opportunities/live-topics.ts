@@ -1,5 +1,5 @@
 // SPEC §7 *Stop a live page*: each hour every live page the customer has not edited, or taken down and put back, is
-// read again from its own stored row against the site's market, tracked prompts and buyers' questions. 0¢: nothing is
+// read again from its own stored row against the kind of business ranking for its search. 0¢: nothing is
 // fetched and no model is asked. A page that would not be chosen today waits for a planned retarget, is kept and
 // refreshed at its own address where Google measured impressions on it, is retargeted to a ready topic of its cluster,
 // waits while young and unjudged, is kept and refreshed where it otherwise earns (a `working` verdict, a top-30 ranked
@@ -13,10 +13,8 @@ import { AI_BLOG_ENGINES, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { canonicalUrl, googleRead, readingOf } from "@/lib/measure/page-reading";
 import { oneQuestion, queryKey } from "./cluster";
-import { comparisonBrands, composedSearch, productsNamed, rivalNamesOf, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
-import { freshTopTen, OTHER_KIND_TOP_TEN, otherKindTopTen, type KindOfBusiness, type OtherKind, type TopTenRow } from "./derive/top-ten-kind";
-import type { IntentPrompt } from "./intent";
-import { comparisonWithoutAsking } from "./readiness";
+import { productsNamed, rivalNamesOf } from "./derive/topics";
+import { freshTopTen, otherKindTopTen, type KindOfBusiness, type OtherKind, type TopTenRow } from "./derive/top-ten-kind";
 import { isRetarget, type Opportunity } from "./types";
 import { takenDownByCustomer } from "@/lib/publish/take-down/standing";
 
@@ -65,13 +63,6 @@ export interface LiveTopicPage {
 export interface LiveTopicSite {
   /** The site's domain: the host the weekly measurement reads. */
   domain: string;
-  brands: ComparisonBrands;
-  prompts: readonly IntentPrompt[];
-  asked: readonly AskedBeside[];
-  /** The newest measured answers to the tracked prompts; absent reads none. */
-  answers?: readonly MeasuredAnswer[];
-  /** Whether a search is one ReachKit composed from the market in force; absent reads only the row's own mark. */
-  composed?: (query: string) => boolean;
   business: KindOfBusiness | null;
   /** The stored top ten for a search, at most 30 days old, or `null`. */
   topTen: (query: string) => readonly TopTenRow[] | null;
@@ -84,7 +75,7 @@ export interface LiveTopicSite {
   products?: (query: string) => string;
 }
 
-export type LiveTopicFailure = { rule: "no_demand" } | { rule: "other_kind"; kind: OtherKind };
+export type LiveTopicFailure = { rule: "other_kind"; kind: OtherKind };
 
 /** A reason a failing page is kept. */
 export type KeepSignal = "impressions" | "working" | "ranked" | "reads" | "host_unmeasured";
@@ -107,8 +98,6 @@ export function liveTopicFailure(page: LiveTopicPage, site: LiveTopicSite): Live
   const row = page.opportunity;
   const query = row.targetQuery ?? "";
   if (query.trim() === "") return null;
-  const evidence = { brands: site.brands, prompts: site.prompts, asked: site.asked, answers: site.answers, composed: site.composed };
-  if (comparisonWithoutAsking(row, evidence)) return { rule: "no_demand" };
   const topTen = site.topTen(query);
   const other = topTen === null ? null : otherKindTopTen(topTen, site.business, row);
   return other === null ? null : { rule: "other_kind", kind: other };
@@ -445,12 +434,10 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
       for (const siteId of new Set(addresses.map((address) => address.siteId))) {
         const held = addresses.filter((address) => address.siteId === siteId);
         const firstLive = new Date(Math.min(...held.flatMap((address) => address.versions.map((version) => Date.parse(version.published_at)))));
-        const [report, site, prompts, open, asked, scans, profile, topTenUrls, pending] = await Promise.all([
+        const [report, site, open, scans, profile, topTenUrls, pending] = await Promise.all([
           store.currentReport(siteId),
           readSiteMarket(siteId),
-          store.trackedPrompts(siteId),
           store.openRankable(siteId),
-          store.askedBeside(siteId, OTHER_KIND_TOP_TEN.maxAgeDays),
           db
             .from<{ ranked: unknown; created_at: string }>("scans")
             .select("ranked:report->ownRankedRows, created_at")
@@ -492,11 +479,6 @@ async function defaultDeps(): Promise<LiveTopicDeps> {
         });
         out.push({
           domain: site?.domain ?? "",
-          brands: comparisonBrands({ report, market }),
-          prompts,
-          asked,
-          answers: report?.prompts?.answers ?? [],
-          composed: (query) => composedSearch(query, market),
           business: market === null ? null : { kind: market.kind ?? null, serves: market.serves ?? null },
           topTen: (query) => freshTopTen(topTens.get(queryKey(query)), new Date()),
           open: open.map(readOpportunity),

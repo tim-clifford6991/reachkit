@@ -96,6 +96,13 @@ describe("a failing live page Google shows", () => {
     const unseen = page({ impressions: 0, clicks: 0 });
     expect(liveTopicVerdict(unseen, site([unseen]), AT).kind).toBe("retarget");
   });
+
+  it("is kept when nobody searches its comparison, and withdrawn only when another kind of business ranks for it", () => {
+    const old = { ...page({ impressions: 0, clicks: 0 }), opportunity: topic("o1", "reachkit vs profound"), signals: { firstLive: new Date("2026-01-01"), publishedAt: new Date("2026-01-01"), verdicts: ["not_moving"], ranked: false, reads: 0 } };
+    const at = (topTen: unknown) => ({ ...site([old]), brands: { own: ["reachkit"], rivals: ["profound"], others: [] }, open: [], topTen: () => topTen }) as unknown as LiveTopicSite;
+    expect(liveTopicVerdict(old, at(null), AT)).toEqual({ kind: "keeps" });
+    expect(liveTopicVerdict(old, at(agencies), AT)).toMatchObject({ kind: "withdraw", failure: { rule: "other_kind" } });
+  });
 });
 
 describe("a planned page that names a live page's product, with no top ten read", () => {
