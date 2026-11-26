@@ -3,7 +3,7 @@
 // and no daily run can have claimed, through `planWeek(from)` keeping every date whose topic the new rules still rank: it fills a date the new rules
 // emptied and never reorders, since only the weekly pass re-ranks a week the customer was shown. The owner's OK of each week stands.
 // Each site is dry-run first (`week_replan_dry_run`): a week dating fewer writable days than the committed one is held (`replan-held`); one dating none
-// is claimed `empty` (`replan-empty`) so the next planner retries. The owner is mailed the old and new weeks of the sites where a date's topic changed, once a day per site. One claim per (planner, site)
+// is claimed `empty` (`replan-empty`); either is reported on the tick that claims it, and the next planner retries it. The owner is mailed the old and new weeks of the sites where a date's topic changed, once a day per site. One claim per (planner, site)
 // in `ops_events`; the tick runs one at a time.
 import { unmeasuredPartsOf } from "@/lib/scan/weekly/account";
 import { reportIncident } from "@/lib/mail/ops/incident";
@@ -84,9 +84,8 @@ export async function replanSites(
   const claimed = new Map(events.filter((e) => e.kind === KIND && e.code === fingerprint).map((e) => [e.site_id, e.read]));
   const toldToday = new Set(events.filter((e) => e.kind === TOLD && e.code === day).map((e) => e.site_id));
   const due = sites.filter((site) => !claimed.has(site.siteId));
-  const stood = (read: string) => sites.filter((site) => claimed.get(site.siteId) === read).map((site) => site.siteId);
-  const [held, empty, replanned] = [stood("held"), stood("empty"), [] as string[]];
-  if (due.length + held.length + empty.length === 0) return null;
+  const [held, empty, replanned] = [[] as string[], [] as string[], [] as string[]];
+  if (due.length === 0) return null;
   const told: Replan[] = [];
   for (const site of due) {
     const id = site.siteId;
@@ -195,7 +194,8 @@ export async function dryReplan(
       plan.empty[reason] = (plan.empty[reason] ?? 0) + 1;
     }
   } else if (days.after.writable < days.before.writable) plan.held = `${days.after.writable} writable days where the committed week has ${days.before.writable}`;
-  console.log(JSON.stringify({ event: "week_replan_dry_run", ...plan, days, rejected: entries.rejected }));
+  // Why it is held leads the line, since a log viewer cuts a long line before the weeks.
+  console.log(JSON.stringify({ event: "week_replan_dry_run", held: plan.held, empty: plan.empty, days, ...plan, rejected: entries.rejected }));
   return plan;
 }
 

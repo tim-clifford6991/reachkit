@@ -70,10 +70,10 @@ it("tells nothing more at a next planner that leaves the week as committed, and 
   expect([await tick(2), told(), vi.mocked(console.log).mock.calls.filter(([line]) => String(line).includes("week_replan_unchanged")).length]).toEqual([{ replanned: [SITE_ID], held: [], empty: [] }, 1, 1]);
 });
 
-it("claims a week that dates no day empty, commits nothing, and does not dry-run it again at the same planner", async () => {
+it("claims a week that dates no day empty once, commits nothing, and does not dry-run or report it again at the same planner", async () => {
   for (const row of state.rows) Object.assign(row, { ready: false, unready_reason: "resting", rest_until: "2027-01-01T00:00:00Z", ...(row.planned_for == null ? {} : { planned_for: "2026-10-01" }) });
   expect(await tick(0)).toEqual({ replanned: [], held: [], empty: [SITE_ID] });
-  expect(await tick(1)).toEqual({ replanned: [], held: [], empty: [SITE_ID] });
+  expect(await tick(1)).toBeNull();
   const dryRuns = vi.mocked(console.log).mock.calls.filter(([line]) => String(line).includes("week_replan_dry_run")).length;
   expect([commits, dryRuns, events("week_replanned").map((row) => row.read)]).toEqual([0, 1, ["empty"]]);
 });
