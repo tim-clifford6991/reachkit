@@ -27,6 +27,8 @@ export interface KnowledgePassage {
   readonly about: "offering" | "audience" | "problem" | "differentiator";
   readonly text: string;
   readonly source: KnowledgeSource;
+  /** A page's passage its stored read does not say word for word: fit may be judged on it, but no page or brief quotes it. */
+  readonly unquoted?: true;
 }
 
 export type KnowledgeDigest = readonly KnowledgePassage[];
@@ -47,4 +49,17 @@ export function knowledgeDigest(base: KnowledgeBase): KnowledgeDigest {
     ...items("problem", base.problems),
     ...items("differentiator", base.differentiators),
   ];
+}
+
+/** Keeps a fit fact only where its page's stored read says it (hard rule 1's check, once, where a fit fact is stored). */
+export async function fitFactsQuoted(siteId: string): Promise<(fit: FitFact | null | undefined) => FitFact | null> {
+  const { readAllFacts, fitFactRead } = await import("@/lib/generate/pipeline/grounding");
+  const facts = await readAllFacts({ siteId });
+  return (fit) => fitFactRead(fit, facts);
+}
+
+/** The digest with each page passage its read does not say marked `unquoted`; where the reads fail, every page passage is. */
+export async function quotedDigest(siteId: string, digest: KnowledgeDigest): Promise<KnowledgeDigest> {
+  const quoted = await fitFactsQuoted(siteId).catch(() => null);
+  return digest.map((passage) => (passage.source.kind === "page" && quoted?.(passage) == null ? { ...passage, unquoted: true as const } : passage));
 }

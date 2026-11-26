@@ -4,7 +4,7 @@
 // emptied and never reorders, since only the weekly pass re-ranks a week the customer was shown. The owner's OK of each week stands.
 // Each site is dry-run first (`week_replan_dry_run`): a week dating fewer writable days than the committed one is held (`replan-held`); one dating none
 // is claimed `empty` (`replan-empty`); either is reported on the tick that claims it, and the next planner retries it. The owner is mailed the old and new weeks of the sites where a date's topic changed, once a day per site. One claim per (planner, site)
-// in `ops_events`; the tick runs one at a time.
+// in `ops_events`; the tick runs one at a time. Before its dry run, a site's stored fit facts its pages do not say are set to none.
 import { unmeasuredPartsOf } from "@/lib/scan/weekly/account";
 import { reportIncident } from "@/lib/mail/ops/incident";
 import { claimOpsEvent } from "@/lib/ops/events";
@@ -12,7 +12,8 @@ import { publishDateAtOrAfter } from "@/lib/publish/settings/clock";
 import { planWeek } from "@/lib/opportunities/plan";
 import { firstOpenDay } from "@/lib/opportunities/rank/open";
 import { opportunityStore, storeScope, type OpportunityRow, type OpportunityStore } from "@/lib/opportunities/store";
-import type { PlanReason, UnreadyReason, Winnability } from "@/lib/opportunities/types";
+import type { Evidence, PlanReason, UnreadyReason, Winnability } from "@/lib/opportunities/types";
+import { fitFactsQuoted } from "@/lib/site-profile/knowledge/read";
 
 /** Per site: its `from`, `unchanged`, `held`, `empty` or `no-week`. */
 const KIND = "week_replanned";
@@ -89,6 +90,7 @@ export async function replanSites(
   const told: Replan[] = [];
   for (const site of due) {
     const id = site.siteId;
+    await inStep(`replan-fit-facts-${id}`, () => unquoteFitFacts(id));
     const plan = await inStep(`replan-dry-${id}`, () => dryReplan(id, { now: a.now, clock: site, fingerprint }));
     const state = plan === null ? "no-week" : plan.empty !== null ? "empty" : plan.held !== null ? "held" : sameWeek(plan) ? "unchanged" : plan.from;
     // Claimed only after the apply, so an apply that never ran is tried again on the next tick; a changed week's claim time is a commit the daily tick reads.
@@ -100,6 +102,21 @@ export async function replanSites(
   if (told.length === 0 && due.length > 0) await inStep("replan-unchanged", async () => console.log(JSON.stringify({ event: "week_replan_unchanged", fingerprint, sites: due.length })));
   if (told.length > 0) await inStep("replan-told", () => tellOwner(told, fingerprint, day));
   return { replanned, held, empty };
+}
+
+/** Each open or queued new page's stored fit fact its page's read does not say, set to none and nothing else; 0¢, and a rerun finds none. */
+export async function unquoteFitFacts(siteId: string): Promise<number> {
+  const store = opportunityStore();
+  const fitted = (await store.clusterable(siteId)).flatMap((row) => {
+    const evidence = row.evidence as Evidence;
+    return row.status !== "done" && (evidence.family === "write" || evidence.family === "earn") && evidence.fitFact?.source.kind === "page" ? [{ id: row.id, evidence }] : [];
+  });
+  if (fitted.length === 0) return 0;
+  const quoted = await fitFactsQuoted(siteId);
+  const dropped = fitted.filter(({ evidence }) => quoted(evidence.fitFact) === null);
+  for (const { id, evidence } of dropped) await store.setEvidence(id, { ...evidence, fitFact: null });
+  if (dropped.length > 0) console.log(JSON.stringify({ event: "fit_facts_unquoted", siteId, count: dropped.length }));
+  return dropped.length;
 }
 
 /** The new week dates the same searches and pages on the same days as the committed one; the spares are not shown as days. */

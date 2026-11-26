@@ -694,9 +694,9 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .catch(() => []);
       // SPEC §6 (2026-09-29, issue 1133): the knowledge base beside it. A
       // read that fails is `null` (`readKnowledgeBase` never throws).
-      const { readKnowledgeBase, knowledgeDigest } = await import("@/lib/site-profile/knowledge/read");
+      const { readKnowledgeBase, knowledgeDigest, quotedDigest } = await import("@/lib/site-profile/knowledge/read");
       const base = site == null ? null : await readKnowledgeBase({ siteId, domain: site.domain });
-      const knowledge = base === null ? null : knowledgeDigest(base);
+      const knowledge = base === null ? null : await quotedDigest(siteId, knowledgeDigest(base));
       // SPEC §6 (D49, issue 1270): topics are derived from the market's
       // searched terms and the founder's own answer about who buys, so a
       // label nobody searches never reaches a page's subject.
