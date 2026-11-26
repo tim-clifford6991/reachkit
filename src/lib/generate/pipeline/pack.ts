@@ -715,7 +715,7 @@ export function buildPack(a: PackInputs): ContextPack {
   const table = TEMPLATES.listicle.blocks.table;
   const noComparison = table !== undefined && comparisonTable(pack, table.rivals) === null;
   if (a.type === "listicle" && (missing.includes("own_price") || (missing.includes("options") && noComparison))) return buildPack({ ...a, type: "qa" });
-  const ownData = ownDataFact(a.report, [question, ...searches], business.name ?? business.domain);
+  const ownData = ownDataFact(a.report, [question, ...searches], business.name ?? business.domain, a.locale?.language);
   return { ...pack, missing, ...(corrections.length === 0 ? {} : { corrections }), ...(ownData === null ? {} : { ownData }) };
 }
 
