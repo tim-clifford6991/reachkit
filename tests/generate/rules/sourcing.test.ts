@@ -8,7 +8,7 @@
 import "../env";
 import { describe, expect, it } from "vitest";
 import { checkGrounding } from "../../../src/lib/generate/rules/grounding";
-import { fitFactRead } from "../../../src/lib/generate/pipeline/grounding";
+import { fitFactRead, newestReads } from "../../../src/lib/generate/pipeline/grounding";
 import { checkRivalSource } from "../../../src/lib/generate/rules/rivals";
 import { GROUNDED, SOURCE_TEXT } from "../fixtures";
 
@@ -42,6 +42,9 @@ describe("§8 hard rule 1 — grounded in the customer's own live page", () => {
     expect(["Acme; Plan projects; Track seats", GROUNDED.passage].map((text) => fitFactRead({ text, source: { kind: "page" as const, url: `${GROUNDED.url}/` } }, [{ fact: GROUNDED, sourceText: SOURCE_TEXT }])?.text ?? null)).toEqual([null, GROUNDED.passage]);
   });
 
+  it("a site fact is read only off its URL's newest read: a sentence an older read had is not quoted", () => {
+    expect(newestReads([["https://a.example/", "Names a handful.", 17], ["https://a.example", "Mentions a few.", 24], ["https://a.example/", "", 25]].map(([url, text, day]) => ({ url: `${url}`, text: `${text}`, measuredAt: new Date(Date.UTC(2026, 8, Number(day))) }))).map((page) => page.text)).toEqual(["Mentions a few."]);
+  });
   it("an empty passage is not a fact", () => {
     expect(checkGrounding({ grounded: { ...GROUNDED, passage: "   " }, sourceText: SOURCE_TEXT })).toEqual({
       rule: "grounding",
