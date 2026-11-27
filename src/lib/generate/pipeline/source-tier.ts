@@ -73,7 +73,7 @@ const BESIDE = 400;
 const said = (search: string): string => search.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
 /** The products a search names, in their order: a run of up to four of its words that spells the product's stored
- *  name, its domain's own label or its whole domain ("peec ai"). */
+ *  name, its domain's own label or its whole domain ("peec ai"), or that domain without a "try", "get" or "use" prefix. */
 export function namedIn(search: string, products: readonly { domain: string; name?: string | null }[]): string[] {
   const words = said(search).split(" ");
   const runs = new Set<string>();
@@ -81,7 +81,7 @@ export function namedIn(search: string, products: readonly { domain: string; nam
     for (let to = from + 1; to <= Math.min(words.length, from + 4); to++) runs.add(nameLetters(words.slice(from, to).join(" ")));
   }
   return products
-    .filter((product) => [brandOf(product.domain), nameLetters(product.domain), nameLetters(product.name ?? "")].some((spelled) => spelled.length >= 3 && runs.has(spelled)))
+    .filter((product) => [brandOf(product.domain), nameLetters(product.domain), nameLetters(product.domain.replace(/^(?:try|get|use)(?=[a-z0-9-]{3,}\.)/i, "")), nameLetters(product.name ?? "")].some((spelled) => spelled.length >= 3 && runs.has(spelled)))
     .map((product) => product.domain);
 }
 

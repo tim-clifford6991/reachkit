@@ -165,7 +165,7 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
     const serp = await cachedSerp(researchSerps({ siteId, locale, target }, 0)[0]!, DRAFT_POLICY_VERSION);
     if (serp === null) return null;
     // A comparison's own products' pages are its first-hand evidence, never an independent source; other rivals' stay out.
-    const compared = new Set(site === null || report === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? [])),
+    const compared = new Set(site === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, report === null ? null : siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? [])),
       ofCompared = (url: string) => compared.has(registrableDomain(url) ?? "") && (site === null || !isOwnDomain(url, site.domain));
     const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && (foreign(url) || ofCompared(url)));
     const held = await Promise.all(urls.map(cached));
