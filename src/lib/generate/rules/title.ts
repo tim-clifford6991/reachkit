@@ -67,11 +67,9 @@ export interface FigureOwner {
 
 export interface TitleRuleInputs {
   type: ContentType;
-  /** The searches the title may lead with: D49's `searchTerm` where the
-   *  market holds one, and the target query. */
+  /** The searches the title may lead with: D49's `searchTerm` where the market holds one, and the target query. */
   terms: readonly string[];
-  /** The follow-up questions buyers were seen to ask about the target,
-   *  where the pack holds them. A title may lead with one as with a search. */
+  /** The follow-up questions buyers were seen to ask about the target, where the pack holds them. A title may lead with one as with a search. */
   follow: readonly string[];
   /** Whether the search itself is a question. */
   asks: boolean;
@@ -79,9 +77,7 @@ export interface TitleRuleInputs {
   rivals: readonly string[];
   /** The place the business serves, where it serves one. */
   places: readonly string[];
-  /** The pack's own words — its facts, its claims, what the business says of
-   *  itself, what was measured — and the counts of the page's own parts: a
-   *  number in the title is a specific where this holds it. */
+  /** The pack's own words — its facts, its claims, what the business says of itself, what was measured — and the counts of the page's own parts: a number in the title is a specific where this holds it. */
   holds: string;
   /** The row was planned with this title, which stands. */
   planned?: true;
@@ -91,22 +87,17 @@ export interface TitleRuleInputs {
   titles: readonly string[];
   /** The page's meta description. */
   description: string;
-  /** The page's language (SPEC §6, owner D66): the filler words, the banned
-   *  phrases and how a question opens are that language's. Absent is English. */
+  /** The page's language (SPEC §6, owner D66): the filler words, the banned phrases and how a question opens are that language's. Absent is English. */
   language?: Language;
   /** A page on a dated event in the market: its title says none of the language's news words. */
   hot?: true;
-  /** Set once the page has had its fix call: a title that lacks only its
-   *  specific then goes on (ruling 2026-10-11). */
+  /** Set once the page has had its fix call: a title that lacks only its specific then goes on (ruling 2026-10-11). */
   settled?: boolean;
-  /** Issue 1508: the options a comparison counts, the business among them
-   *  and an alternatives page's baseline not. Absent on any other page. */
+  /** Issue 1508: the options a comparison counts, the business among them and an alternatives page's baseline not. Absent on any other page. */
   options?: number;
-  /** On a page that counts no options, the question or step sections a leading count may be; empty where the top results
-   *  do not count. Absent, a count is not read. */
+  /** On a page that counts no options, the question or step sections a leading count may be; empty where the top results do not count. Absent, a count is not read. */
   counts?: readonly number[];
-  /** Issue 1552: on a page whose search compares products, the names the
-   *  business goes by; the title names one. Absent on any other page. */
+  /** Issue 1552: on a page whose search compares products, the names the business goes by; the title names one. Absent on any other page. */
   business?: readonly string[];
   /** Every market rival and the business, each with its own passages, and the counts of the page's own parts. */
   owners?: { rivals: readonly FigureOwner[]; business: FigureOwner; page: string };
@@ -153,8 +144,13 @@ const subjectOf = (text: string, language: Language = "en"): string[] => {
 /** A term's subject without the words that only rank it ("most", "leading"); all of it where that leaves nothing. */
 const askedOf = (term: string, language: Language): string[] =>
   [subjectOf(term.replace(new RegExp(`(?<![\\p{L}\\p{N}])(?:${languagePack(language).title.ranking})(?![\\p{L}\\p{N}])`, "giu"), " "), language), subjectOf(term, language)].find((words) => words.length > 0) ?? [];
-/** The title carries every word the search asks for, its ranking words aside: its strategies, calculator or alternatives. */
-export const carriesAsk = (title: string, search: string, language: Language = "en"): boolean => askedOf(search, language).every((word) => wordsOf(title, language).includes(word));
+/** A question's opening words, which a title that answers it keeps: a yes/no search's verb and subject ("can chatgpt"), a definition's "what is". */
+const questionLead = (search: string, language: Language): string[] => {
+  const text = search.trim().toLowerCase(), pack = languagePack(language), defined = new RegExp(`^(?:${pack.shapes.informationalStart})(?![\\p{L}\\p{N}])`, "u").exec(text)?.[0] ?? "";
+  return wordsPattern(pack.title.asksYesNo, true).test(text) ? wordsOf(text, language).slice(0, 2) : defined.includes(" ") ? wordsOf(defined, language) : [];
+};
+/** The title carries every word the search asks for, its ranking words aside (its strategies, calculator or alternatives), and the question it asks. */
+export const carriesAsk = (title: string, search: string, language: Language = "en"): boolean => [...askedOf(search, language), ...questionLead(search, language)].every((word) => wordsOf(title, language).includes(word));
 /** The title leads with the term's subject: its first words, the words that only rank it aside, are all there, and the
  *  first of them starts inside the head. A term of filler alone asks nothing. */
 function leadsWith(title: string, term: string, language: Language): boolean | null {
@@ -290,15 +286,19 @@ function nameTwice(title: string, search: string): boolean {
   return (title.match(/(?<![\p{L}\p{N}])\p{Lu}{2}(?![\p{L}\p{N}])/gu) ?? []).some((name) => said(title, name.toLowerCase()) > Math.max(1, said(search, name.toLowerCase())));
 }
 
-/** A title naming the business, or two words of what it `says` it sells that neither the search nor `common` (the buyer's outcome, the top results) says ("a Free AI Scan"), sells it. */
+/** A title naming the business, or two words of what it `says` it sells or promises that neither the search nor `common` (the buyer's outcome, the top results) says ("a Free AI Scan",
+ *  "Weekly Pages"), sells it; one narrowed to a buyer ("for Local Service Businesses") that no text of `audience` (the site's buyer and passages) states claims one. */
 function sellsOffering(title: string, search: string, offering: Parameters<typeof plannedTitleFaults>[3], language: Language): boolean {
   const added = subjectOf(title, language).filter((word) => !wordsOf([search, ...(offering?.common ?? [])].join("\n"), language).includes(word));
-  return offering !== undefined && ((offering.brand !== "" && added.includes(offering.brand)) || added.filter((word) => wordsOf(offering.says.join("\n"), language).includes(word)).length >= 2);
+  const held = [search, ...(offering?.common ?? []), ...(offering?.audience ?? [])].join("\n").toLowerCase(), joiner = languagePack(language).forBuyerSearch("", "").trim();
+  const buyer = new RegExp(`(?<![\\p{L}\\p{N}])${joiner}\\s+([^:?–—]+)`, "iu").exec(title)?.[1] ?? "", told = fillerOf(language).has(wordsOf(buyer, language)[0] ?? "");
+  const narrowed = offering?.audience !== undefined && !told && subjectOf(buyer, language).some((word) => !held.includes(word.slice(0, Math.max(4, word.length - 2))));
+  return offering !== undefined && (narrowed || (offering.brand !== "" && added.includes(offering.brand)) || added.filter((word) => wordsOf(offering.says.join("\n"), language).includes(word)).length >= 2);
 }
 /** What a planned angle's title fails of the writer's own wording rules: the lead, the banned phrases, tropes and a word
  *  or name said twice, a price lead, a claim joined on with or without a break. The planner keeps only a title the
  *  writer would keep. */
-export function plannedTitleFaults(title: string, search: string, language: Language = "en", offering?: { brand: string; says: readonly string[]; common: readonly string[] }): TitleFault[] {
+export function plannedTitleFaults(title: string, search: string, language: Language = "en", offering?: { brand: string; says: readonly string[]; common: readonly string[]; audience?: readonly string[] }): TitleFault[] {
   const faults: (TitleFault | false)[] = [
     leadsWith(title, search, language) === false && "term",
     (hasBanned(title, { terms: [search], language }) || nameTwice(title, search)) && "banned",
