@@ -301,6 +301,24 @@ describe("the pass says how much new-page supply each source gave, at no added c
     expect(state.rows.find((one) => one.target_query === "product analytics pricing")?.business_fit).toBe(2);
     expect(supply.sources.offering).toEqual({ offered: 2, searched: 2, fit: 1, candidates: 2, added: 2 });
   });
+
+  it("a held row the typed re-check refuses is dismissed only by a pass whose inserts landed, and a dated one keeps its day", async () => {
+    const answers: Record<string, unknown> = { [BUYER_SEARCHES_CALL_SITE]: { problems: [], solutions: [] }, [TYPED_CALL_SITE]: { typed: [] }, [FIT_CALL_SITE]: { scores: [], strongest: [] }, [SAME_QUESTION_CALL_SITE]: { pairs: [] } };
+    const held = (await deriveOpportunities(fakeCost().ctx, input())).created[0]!;
+    const query = "why users drop off after signup";
+    Object.assign(state.rows.find((row) => row.id === held.id)!, { target_query: query, target_ref: query, volume: null, evidence: { ...held.evidence, query, volume: unmeasured("undeterminable", AT) } });
+    createMock.mockImplementation(async (request: { tools?: { name: string }[] }) => toolUseMessage(answers[request.tools?.[0]?.name ?? ""] ?? {}, 100, 50, request.tools?.[0]?.name ?? ""));
+    const statusAfter = async (over: object, insert?: () => Promise<never>) => {
+      const rows = structuredClone(state.rows).map((row) => (row.id === held.id ? { ...row, ...over } : row));
+      const store = memoryStore(newMemoryState({ rows, nextId: state.nextId }));
+      setOpportunityStore(insert === undefined ? store : { ...store, insert });
+      await deriveOpportunities(fakeCost().ctx, { ...input(), market }).catch(() => null);
+      return rows.find((row) => row.id === held.id)!.status;
+    };
+    expect(await statusAfter({})).toBe("dismissed");
+    expect(await statusAfter({}, async () => { throw new Error("insert failed"); })).toBe("open");
+    expect(await statusAfter({ planned_for: "2026-11-30", plan_place: 0 })).toBe("open");
+  }, 60_000);
 });
 
 describe("a write that fails part-way dismisses no topic", () => {

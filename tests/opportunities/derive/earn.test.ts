@@ -9,7 +9,7 @@ import type { CanonicalDomain } from "../../../src/lib/scan/domain";
 import { earnAssetFor, earnCandidates } from "../../../src/lib/opportunities/derive/earn";
 import { onePerSearch } from "../../../src/lib/opportunities/derive";
 import { writeCandidates } from "../../../src/lib/opportunities/derive/write";
-import { SCAN_ID, SITE_ID, question, reportOf, search, serp, smallCounts } from "../fixtures";
+import { SCAN_ID, SITE_ID, question, reportOf, search, serp, smallCounts, unreadableCounts } from "../fixtures";
 
 const base = { siteId: SITE_ID, scanId: SCAN_ID, ownRanked: 0 };
 const counts = () => smallCounts(["appcues.com", "userpilot.com", "g2.com"]);
@@ -19,6 +19,13 @@ const answerCitingPlatform = serp({
 });
 
 describe("one Earn candidate per market question, from the measured surfaces alone", () => {
+  it("over a top ten nobody could size and no difficulty, a Write and an Earn target rank last, their top ten kept unmeasured", () => {
+    const report = reportOf({ questions: [question()], serps: [answerCitingPlatform] });
+    const rankedCounts = unreadableCounts(["appcues.com", "userpilot.com", "g2.com"]);
+    const rows = [...writeCandidates({ ...base, report, rankedCounts }).candidates, ...earnCandidates({ ...base, report, rankedCounts }).candidates];
+    expect(rows.map((row) => [row.family, row.fitBand, row.evidence.family !== "fix" && row.evidence.target?.topTen?.kind])).toEqual([["write", "not-yet", "unmeasured"], ["earn", "not-yet", "unmeasured"]]);
+  });
+
   it("an AI answer citing a platform beside a rival, and not the customer, yields one named-on row", () => {
     const report = reportOf({ questions: [question()], serps: [answerCitingPlatform] });
     const { candidates } = earnCandidates({ ...base, report, rankedCounts: counts() });

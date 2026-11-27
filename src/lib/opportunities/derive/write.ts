@@ -117,7 +117,8 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       at
     );
     // The search's own difficulty reads a top ten the counts could not. Right-sizing ranks and never drops (SPEC §6).
-    const fitBand = bandOf(assess({ top10RankedCounts, ownRanked: a.ownRanked, volume: question.search.volume, difficulty: question.search.difficulty ?? null }));
+    const verdict = assess({ top10RankedCounts, ownRanked: a.ownRanked, volume: question.search.volume, difficulty: question.search.difficulty ?? null });
+    const fitBand = bandOf(verdict);
 
     // A top ten made entirely of the customer's own pages is not a gap.
     if (serp.organic.every((row) => isOwnDomain(row.domain, ownDomain))) return;
@@ -151,6 +152,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
         ownRanked: a.ownRanked,
         answerRow: row,
         at,
+        unsized: !verdict.qualified && verdict.because === "unmeasured_top10",
       }),
       ...(answerRival !== null ? { win: { signal: "answer" as const, competitor: answerRival, absent: `an AI answer for "${query}" cites a rival and does not name the site` } } : {}),
       ...trendRead(question.search.trend, at),

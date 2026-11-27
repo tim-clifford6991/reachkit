@@ -56,8 +56,9 @@ export function rankedFreePages(report: Omit<StoredReport, "freePage">): Candida
   const ranked = candidates
     .map((candidate) => {
       // A keyword page over a top ten no one sized is not offered, nor is an outsized search.
-      const unread = !sized && candidate.type === "keyword_page" && candidate.fitBand === null;
-      const band: Winnability = sized || unread || candidate.fitBand === OUTSIZED ? (candidate.fitBand ?? OUTSIZED) : demandBand({ volume: volumeOf(candidate), ownRanked });
+      const unsized = candidate.evidence.family === "write" && candidate.evidence.target?.topTen !== undefined;
+      const unread = !sized && candidate.type === "keyword_page" && unsized;
+      const band: Winnability = sized || unread || (candidate.fitBand === OUTSIZED && !unsized) ? (candidate.fitBand ?? OUTSIZED) : demandBand({ volume: volumeOf(candidate), ownRanked });
       const { points } = pointsOf(candidate, { cited: new Set() });
       return { candidate, band, points };
     })

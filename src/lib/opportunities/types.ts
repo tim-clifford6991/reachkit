@@ -192,6 +192,8 @@ export interface TargetFacts {
   ceiling: number;
   /** One entry per engine the pass carried, in `BATTERY_ENGINES` order. */
   engines: readonly TargetEngine[];
+  /** Present where no ranked count and no difficulty sized the top ten: it ranks last, and is never read as a size. */
+  topTen?: Extract<Measured<number>, { kind: "unmeasured" }>;
 }
 
 /** The search's trend as the vendor gave it, and when it was read. Absent where it gave none: never a 0. */

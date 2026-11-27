@@ -129,6 +129,7 @@ export function earnCandidates(a: EarnInput): DerivationResult {
         ownRanked: a.ownRanked,
         answerRow: answerRows[index],
         at,
+        unsized: !verdict.qualified && verdict.because === "unmeasured_top10",
       }),
       ...trendRead(question.search.trend, at),
     };

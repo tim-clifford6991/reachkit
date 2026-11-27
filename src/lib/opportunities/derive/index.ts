@@ -134,7 +134,10 @@ export async function deriveOpportunities(
   // Before labelling, so the type is judged on the row that will be written: one page per search, then net-new.
   const planned = onePerSearch([...improve.candidates, ...earn.candidates, ...write.candidates]);
   const store = opportunityStore();
-  const held = (await store.clusterable(a.siteId)).map(readOpportunity);
+  const heldRows = await store.clusterable(a.siteId);
+  const held = heldRows.map(readOpportunity);
+  // A row the committed week dated keeps its day: no re-check this pass empties it (ruling 97).
+  const dated = new Set(heldRows.filter((row) => row.planned_for != null).map((row) => row.id));
 
   // A rival's own price is never a page about the rival alone; it gives way to the product against that rival.
   const rivalNames = rivalNamesOf({ report: a.report, market });
@@ -239,7 +242,7 @@ export async function deriveOpportunities(
 
   // "Would a buyer search this?" over every unmeasured search; a seen-asked search needs no check, as Google showed it.
   const unmeasuredOffers = offered.filter((topic) => topic.volume === null && topic.asked === undefined);
-  const unmeasuredRows = held.filter((row) => row.status === "open" && !gone.has(row.id) && row.family === "write" && row.targetQuery !== null && row.source !== "ai_gap" && (row.volume === null || row.volume.kind === "unmeasured"));
+  const unmeasuredRows = held.filter((row) => row.status === "open" && !gone.has(row.id) && !dated.has(row.id) && row.family === "write" && row.targetQuery !== null && row.source !== "ai_gap" && (row.volume === null || row.volume.kind === "unmeasured"));
   const typed = await judgeTyped(c, {
     searches: [...unmeasuredOffers.map((topic) => topic.query), ...unmeasuredRows.map((row) => row.targetQuery!)],
     market,
@@ -254,7 +257,6 @@ export async function deriveOpportunities(
       if (!typed.has(unmeasuredOffers.length + index)) gone.add(row.id);
     });
   }
-  for (const id of gone) await store.markDismissed(id);
   // An open comparison row written down unmeasured takes the volume this pass read for its search.
   const readVolumes = market?.demand?.searches ?? {};
   const readAt = new Date(market?.demand?.at ?? a.report.verdict.measuredAt);
@@ -442,7 +444,7 @@ export async function deriveOpportunities(
   // Every survivor is written before any loser is dismissed, so a failure part-way dismisses no topic.
   for (const row of plan.update) await store.setCluster(row.id, row.clusterKey, row.absorbedQueries);
   const { created, duplicates } = await persist({ candidates: plan.insert });
-  for (const id of plan.dismiss) await store.markDismissed(id);
+  for (const id of [...gone, ...plan.dismiss]) await store.markDismissed(id);
   const topFit = (index: number) => (fits.get(index)?.fit ?? 0) >= TOPIC_FIT.writeAt;
   const classOfRow = (row: Candidate) => classOf.get(queryKey(row.targetQuery ?? "")) ?? ledgerSourceOf(row);
   for (const question of questions) classOf.set(queryKey(question.targetQuery ?? ""), ledgerSourceOf({ source: question.source, asked: true }));

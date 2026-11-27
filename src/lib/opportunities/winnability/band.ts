@@ -154,8 +154,7 @@ export function assess(a: {
   return { qualified: true, band: rightSizedBand(a) };
 }
 
-/** The band an assessed target ranks in: below the bars it ranks as outsized; a top ten nobody could size leaves it unbanded, never read as 0. */
-export function bandOf(verdict: Assessment): Winnability | null {
-  if (verdict.qualified) return verdict.band;
-  return verdict.because === "unmeasured_top10" ? null : "not-yet";
+/** The band an assessed target ranks in: below the bars, or over a top ten nobody could size, it ranks last with the outsized. */
+export function bandOf(verdict: Assessment): Winnability {
+  return verdict.qualified ? verdict.band : "not-yet";
 }
