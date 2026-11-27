@@ -43,7 +43,9 @@ export type OpsIncident =
   // No error: a paying account's address bounced or complained, and its follow-up mail stopped, or it asked to sign in while stopped. Owner-only, so each paying site is named.
   | { occasion: "mail-stopped"; domains: readonly string[]; cause: "bounced" | "complained" | "sign-in-blocked" }
   // No error: a weekly step ran again after its attempt died, and what that attempt spent.
-  | { occasion: "step-retried"; step: string; attempt: number; cents: number };
+  | { occasion: "step-retried"; step: string; attempt: number; cents: number }
+  // No error: a weekly pass ended without a week, so it was released; its week, why, and what retakes it.
+  | { occasion: "weekly-failed"; weekStart: string; reason: "supply_failed" | "failed" | "market_unanswered"; retake: "next pass" | "re-run" };
 
 /** The occasions told at once: a page failed to publish, a payment or sign-in path is down. */
 export type AtOnce = Extract<OpsIncident, { occasion: "job-failed" | "dead-lettered" | "boot-refused" | "sign-in-unsent" | "no-draft-at-publish" | "autopilot-stalled" | "job-stale" }>;

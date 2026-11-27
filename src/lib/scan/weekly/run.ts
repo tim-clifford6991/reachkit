@@ -166,6 +166,7 @@ export async function finishWeekly(a: WeeklyPass, claim: WeeklyClaim, measured: 
   if (measured.status === "failed" || marketUnanswered || supplyFailed) {
     await releaseWeek(claim.scanId);
     logWeekly({ siteId: a.siteId, weekStart, outcome: supplyFailed ? "supply_failed" : "failed" });
+    await tellWeekFailed(a, claim, supplyFailed ? "supply_failed" : marketUnanswered ? "market_unanswered" : "failed");
     return { ran: true, scanId: claim.scanId, status: "failed", ...(supplyFailed ? { because: "supply_failed" as const } : {}) };
   }
 
@@ -178,6 +179,14 @@ export async function finishWeekly(a: WeeklyPass, claim: WeeklyClaim, measured: 
     return { ran: true, scanId: claim.scanId, status: "degraded", unmeasured: account.unmeasured };
   }
   return { ran: true, scanId: claim.scanId, status: "done" };
+}
+
+/** One digest line per attempt: the claim on its scan row makes a retried or re-delivered step tell nothing more. Never throws. */
+async function tellWeekFailed(a: WeeklyPass, claim: WeeklyClaim, reason: "supply_failed" | "failed" | "market_unanswered"): Promise<void> {
+  const { claimOwnerMail, reportIncident } = await import("@/lib/mail/ops");
+  // A claim that cannot be written still tells: a second line is better than none.
+  if (!(await claimOwnerMail({ jobId: "weekly-failed", errorName: claim.scanId, day: claim.weekStart }, a.now).catch(() => true))) return;
+  await reportIncident({ occasion: "weekly-failed", weekStart: claim.weekStart, reason, retake: a.rerun === undefined ? "next pass" : "re-run" });
 }
 
 /** No re-check has concluded yet in the site-local month the week starts in. */

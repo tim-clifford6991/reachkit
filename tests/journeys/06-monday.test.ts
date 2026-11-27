@@ -596,45 +596,43 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     JOURNEY_TIMEOUT_MS
   );
 
+  it("a pass whose supply throws reads degraded and is one failure line in the owner's digest, however often its step runs", async () => {
+    const claimed = new Set<unknown>(), told = () => db.queries.filter((q) => q.table === "ops_events" && q.verb === "insert" && JSON.stringify(q.values).includes("weekly-failed"));
+    db.answer = (q) => (q.table === "job_error_mails" ? (claimed.has(q.values?.error_name) ? [] : [claimed.add(q.values?.error_name)]) : ["domain_blocks", "fetches"].includes(q.table) ? [] : null);
+    setOpportunityStore({ ...opportunityDoubles.memoryStore(opportunities), hostedHostFor: () => Promise.reject(new Error("supply")) });
+    const { startWeeklyScan } = await import("../../src/jobs/engine"), report = () => db.rpcCalls.find((c) => c.fn === "store_current_report")?.args.p_report;
+    // The journey's scans row keeps no report, so the supply step reads the stored one; that step then runs twice, as a retry does.
+    const twice = async <T,>(name: string, body: () => Promise<T>) => (name.startsWith("supply-") ? ((scans.at(-1)!.report = report()), body().then(body)) : body());
+    await expect(startWeeklyScan({ siteId: SITE_ID, domain: DOMAIN, zone: ZONE, weekStart: "2026-08-31", now: MONDAY, step: twice })).resolves.toEqual({ degraded: "supply_failed" });
+    expect(told().map((q) => q.values)).toEqual([[{ kind: "owner-digest", read: "weekly-failed", code: "2026-08-31 supply_failed → next pass" }]]);
+  }, JOURNEY_TIMEOUT_MS);
+
   it(
     "the account of the week names what it did not reach, and never a week it did not take",
     async () => {
-      // Before the measurement, REQ-065 c3's arm: not measured, and the day
-      // the next one is due — never a silent skip and never a stale week.
-      const before = await weekly.accountForWeek({
-        siteId: SITE_ID,
-        weekStart: "2026-08-31",
-        now: MONDAY,
-      });
+      // Before the measurement: not measured, and the day the next one is due — never a silent skip and never a stale week.
+      const before = await weekly.accountForWeek({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
       expect(before.kind).toBe("not_measured");
       if (before.kind !== "not_measured") throw new Error("unreachable");
       expect(before.nextDueOn.getTime()).toBeGreaterThan(MONDAY.getTime());
 
       await measureTheWeek();
 
-      const after = await weekly.accountForWeek({
-        siteId: SITE_ID,
-        weekStart: "2026-08-31",
-        now: MONDAY,
-      });
+      const after = await weekly.accountForWeek({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
       expect(after.kind === "complete" || after.kind === "partial").toBe(true);
       if (after.kind === "not_measured" || after.kind === "not_owed") throw new Error("unreachable");
       // The date is the measurement's own, not the storage's.
       expect(after.measuredAt).toBeInstanceOf(Date);
       if (after.kind === "partial") {
-        // Every part it names is a section the blob says was not measured —
-        // a measured zero is a measurement and appears in no part.
-        for (const part of after.unmeasured) {
-          expect(["on_page", "market", "rivals", "score", "ai_answers", "rankings"]).toContain(part);
-        }
+        // Every part it names is a section the blob says was not measured; a measured zero is a measurement and appears in no part.
+        for (const part of after.unmeasured) expect(["on_page", "market", "rivals", "score", "ai_answers", "rankings"]).toContain(part);
       }
     },
     JOURNEY_TIMEOUT_MS
   );
 
   it("nothing is spent on a week that is not owed, and the refusal says which", async () => {
-    // A site with no stated zone has no local Monday, so no week of its own
-    // has begun (REQ-073 c1 forbids a zone we chose).
+    // A site with no stated zone has no local Monday, so no week of its own has begun (REQ-073 c1 forbids a zone we chose).
     sites = [{ id: SITE_ID, domain: DOMAIN, timezone: null, user_id: USER_ID }];
     await expect(weekly.dueSites(MONDAY)).resolves.toEqual([]);
     await expect(weekly.runWeekly({ siteId: SITE_ID, domain: DOMAIN, now: MONDAY })).resolves.toEqual({ ran: false, because: "week_not_begun" });
