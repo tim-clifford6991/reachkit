@@ -117,9 +117,12 @@ export async function writeFetchRow(row: {
   }
 }
 
-/** Stores what a later free read of a paid queued task returned on the row its post wrote; no second row is written. */
+/** Stores what a later free read of a paid queued task returned on the row its post wrote; no second row is written.
+ *  The outcome is rewritten with it (the database sets it on insert only), so an answer that arrived late is use, not failed spend. */
 export async function storeCollected(rowId: string, payload: unknown): Promise<void> {
-  const { error } = await untypedFetches(dbAdmin()).from<FetchesRow>("fetches").update({ payload: storable(payload) }).eq("id", rowId);
+  const failure = typeof payload === "object" && payload !== null && "vendorFailure" in payload ? (payload as { vendorFailure: unknown }).vendorFailure : undefined;
+  const outcome: FetchesRow["outcome"] = failure === undefined ? "ok" : failure === "timeout" ? "timeout" : "failed";
+  const { error } = await untypedFetches(dbAdmin()).from<FetchesRow>("fetches").update({ payload: storable(payload), outcome }).eq("id", rowId);
   if (error) throw new Error(`ledger.ts: update of fetches failed: ${error.message}`);
 }
 

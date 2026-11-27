@@ -191,7 +191,8 @@ export async function collectLateAnswers(a: {
     // so it is not read again, and an answer is served to a later ask of
     // the same day. A row this fails on is read again next round, and its
     // answer is not counted twice.
-    await Promise.all(settled.map((row) => table<LateRow>("fetches").update({ payload: row.payload }).eq("id", row.rowId)));
+    const { storeCollected } = await import("@/lib/costs/ledger");
+    await Promise.allSettled(settled.map((row) => storeCollected(row.rowId, row.payload)));
     const collected = { asks: asks.length, answered: late.length, left };
     console.log(JSON.stringify({ event: "weekly_late_answers", scanId: a.scanId, ...collected }));
     return collected;
