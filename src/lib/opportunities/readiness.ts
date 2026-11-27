@@ -143,8 +143,8 @@ export async function assessReadiness(
   // so `eligible` stays pure and synchronous.
   const covered = await coveredTopics(siteId, rows.map(readOpportunity), market, report?.domain ?? null);
   const ownPages = covered.size > 0 || rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
-  // A page an open update already targets takes no second one.
-  const updating = new Set(open.flatMap((row) => (row.family === "improve" && row.target_ref != null ? [canonicalUrl(row.target_ref)] : [])));
+  // A page an open or drafted, unpublished update already targets takes no second one.
+  const updating = new Set((covered.size === 0 ? [] : await store.clusterable(siteId)).flatMap((row) => (row.status !== "done" && row.family === "improve" && row.target_ref != null ? [canonicalUrl(row.target_ref)] : [])));
   const readOf = (o: Opportunity) => (o.targetQuery === null ? null : (topTens.get(queryKey(o.targetQuery)) ?? null));
   const ctx: ReadinessContext = {
     now,
@@ -181,7 +181,7 @@ export async function assessReadiness(
     // A duplicate of a live page that may be updated now is that page's update, so the hold costs no day.
     const match = reason === "destination_cannot_address" ? covered.get(opportunity.id) : undefined, url = match?.page.url, update = url != null && match!.page.live && !("hot" in opportunity.evidence) && !tooYoungToRefresh(match!.page, now) && ctx.canUpdate(url) && !updating.has(canonicalUrl(url)) ? asUpdate(opportunity, match!, now) : null;
     // A row the store will not convert (an update of the same search already queued) stays held.
-    if (update !== null && (await store.becomeUpdate(opportunity.id, { ...updateColumns(update), plan_write_as: null }).then(() => true, () => false))) {
+    if (update !== null && (await store.becomeUpdate(opportunity.id, { ...updateColumns(update), plan_write_as: null }).then(() => true, (error: unknown) => (console.warn(JSON.stringify({ event: "covered_update_refused", id: opportunity.id, error: String(error).slice(0, 200) })), false)))) {
       updating.add(canonicalUrl(url!));
       opportunity = { ...opportunity, ...update };
       reason = eligible(opportunity, ctx);
