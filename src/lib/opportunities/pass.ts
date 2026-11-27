@@ -103,9 +103,9 @@ export async function deriveForPass(
   await assessFixPages(a.siteId, { report: a.report });
   if (a.tier === "weekly" && !a.hasActiveAccess) return { tier: a.tier, added: 0 };
 
-  // One derivation over fixed measurements; a pass with no money left spends none.
   // Readiness first, so the top-up and the offers are sized on what is still writable once live pages hold their twins.
   if (!c.capHit()) await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
+  // One derivation over fixed measurements; a pass with no money left spends none.
   const derived = c.capHit() ? null : await deriveOpportunities(c, input);
   // A deep pass changed what the site holds, so its next evening commits the week again.
   if (a.tier === "deep") await store.commitPlan(a.siteId, []);
