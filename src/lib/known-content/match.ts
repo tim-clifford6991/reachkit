@@ -81,14 +81,19 @@ function inMarketWords(mine: string, theirs: string, market: MarketWords | null 
 }
 
 const KINDS = [
-  { kind: "price", words: /\b(?:prices?|pricing|priced|costs?|costing|how much)\b|[€$£]\s?\d|\d\s?(?:€|eur|usd|gbp)\b/ },
+  { kind: "price", words: /\b(?:prices?|pricing|priced|costs?)\b|\bhow much\b(?:.*\b(?:charges?|pay)\b|\s+(?:is|are|does|do)\s+(?:it|they)\b)|[€$£]\s?\d|\d\s?(?:€|eur|usd|gbp)\b/ },
   { kind: "definition", words: /\bwhat\s+(?:is|are)\b|\bwhat\b.*\bmeans?\b|\bmeaning\b|\bdefinition\b/ },
 ] as const;
+// A list of products is its own question, and a cost or a figure that only narrows the search asks no price.
+const LIST = /\b(?:best|top)\b|\b(?:tools|software|platforms|apps)\b/;
+const NARROWS = /\blow[- ]cost\b|\bcost[- ]effective\b|\b(?:under|below|less than|up to|cheaper than)\s+\S+/g;
 
 /** The question a text asks of its subject, where it is one every wording folds to: what it costs, or what it is. */
 function kindOf(text: string): (typeof KINDS)[number]["kind"] | null {
   const lower = text.toLowerCase();
-  return KINDS.find((k) => k.words.test(lower))?.kind ?? null;
+  if (LIST.test(lower)) return null;
+  const asked = lower.replace(NARROWS, " ");
+  return KINDS.find((k) => k.words.test(asked))?.kind ?? null;
 }
 
 /**
