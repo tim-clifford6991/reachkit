@@ -154,6 +154,7 @@ export const DE: LanguagePack = {
     ),
     ranking: "führende[nrsm]?|effektivste[nrsm]?|beliebteste[nrsm]?|empfohlene[nrsm]?|bewährte[nrsm]?",
     asksStart: "wie|was|warum|wieso|weshalb|welche[rsnm]?|wer|wann|wo|kann|können|ist|sind|lohnt|sollte|braucht|brauche",
+    asksYesNo: "kann|können|ist|sind|lohnt|sollte|braucht|brauche",
     free: "kostenlos|kostenfrei|gratis",
     serial: "folge|episode|ep|ausgabe|heft|band|bd|kapitel|staffel|teil",
     // Drafted (issue 759): the German counterparts of D51's banned patterns.

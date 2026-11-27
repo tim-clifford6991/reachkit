@@ -148,6 +148,8 @@ export interface LanguagePack {
     ranking: string;
     /** How a title that asks a question opens: an alternation. */
     asksStart: string;
+    /** Of those, the verbs that open a yes-or-no question ("Is", "Can"), which a title never leaves without its mark. */
+    asksYesNo: string;
     /** The words that say something costs nothing: an alternation. */
     free: string;
     /** The words that number an episode, an issue or a volume: an

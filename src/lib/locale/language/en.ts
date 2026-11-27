@@ -95,6 +95,7 @@ export const EN: LanguagePack = {
     ),
     ranking: "most|leading|effective|top[- ]rated|highest[- ]rated|best[- ]rated|best[- ]practices?|recommended|popular",
     asksStart: "how|what|why|which|who|when|where|can|does|do|is|are|should",
+    asksYesNo: "can|does|do|is|are|should",
     free: "free",
     serial: "episode|ep|issue|volume|vol|chapter|season|part",
     banned: TITLE.banned,
