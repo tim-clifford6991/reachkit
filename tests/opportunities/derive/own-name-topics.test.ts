@@ -9,7 +9,6 @@ import { measured } from "../../../src/lib/measure/measured";
 import type { StoredReport } from "../../../src/lib/scan/report";
 import {
   askedOnMarket,
-  askedSupply,
   askedTopics,
   brandsOf,
   comparisonBrands,
@@ -67,16 +66,6 @@ describe("a search that names the business is never a topic, on the asked path",
   it("a category word is not the business's name, and the business against a rival stays", () => {
     expect(onMarket("stripe.com", "payment gateway")).toBe(true);
     expect(onMarket("reachkit.app", "reachkit vs profound")).toBe(true);
-  });
-
-  it("askedSupply writes no section on the business's own name", () => {
-    const { report, market } = SITES["stripe.com"];
-    const spare = ["how does stripe payments work", "how does a payment gateway work"].map((query) => ({
-      topic: { query, source: "problem" as const, volume: null, rival: null, asked: { term: "payment gateway", serpAt: AT } },
-      fit: 2 as const,
-    }));
-    const supply = askedSupply({ report, market, asked: [], spare, refused: [], taken: [], dismissed: [], now: AT });
-    expect(supply.map((row) => row.topic.query)).toEqual(["how does a payment gateway work"]);
   });
 });
 

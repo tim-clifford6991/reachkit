@@ -236,7 +236,6 @@ describe("winnability ranks and never drops (§6)", () => {
     const report = reportOf({ questions: [question()], serps: [serp()] });
     const result = writeCandidates({ ...base, report, rankedCounts: bigCounts() });
     expect(result.candidates.map((c) => [c.type, c.fitBand])).toEqual([["answer_page", "not-yet"]]);
-    expect(result.rejected.not_yet).toBe(0);
   });
 
   it("a qualified candidate carries the band it qualified into", () => {
@@ -335,7 +334,7 @@ describe("nothing to derive from is not an error", () => {
     expect(result).toEqual({
       candidates: [],
       assessed: 0,
-      rejected: { not_yet: 0, unmeasured_top10: 0, duplicate_open: 0, own_brand: 0 },
+      rejected: { duplicate_open: 0, own_brand: 0 },
     });
   });
 

@@ -16,7 +16,7 @@ describe("supplyLedger", () => {
         candidates: ["product", "asked"],
         added: ["product"],
       },
-      rows: [...open(3), ...open(2, { family: "earn", businessFit: TOPIC_FIT.writeAt })],
+      rows: [...open(3), ...open(2, { family: "earn", businessFit: TOPIC_FIT.top })],
     });
     expect(ledger.sources.product).toEqual({ offered: 2, searched: 2, fit: 1, candidates: 1, added: 1 });
     expect(ledger.sources.written).toEqual({ offered: 2, searched: 1, fit: 0, candidates: 0, added: 0 });

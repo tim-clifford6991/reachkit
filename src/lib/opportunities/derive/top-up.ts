@@ -1,6 +1,6 @@
-// SPEC §7 *Pages left*: a weekly pass short of WEEK_RESEARCH.rowsMax writable rows offers the site's stored, measured, right-sized
-// searches to the pass's one fit call, so a short week fills from evidence and a dry one says which sources it tried.
-import { WEEK_RESEARCH, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
+// SPEC §7 *Pages left*: a weekly pass short of WEEK_RESEARCH.rowsMax writable rows offers the site's stored, measured searches,
+// right-sized first, to the pass's one fit call, so a short week fills from evidence and a dry one says which sources it tried.
+import { WEEK_RESEARCH } from "@/lib/config/constants";
 import type { Language, Locale } from "@/lib/locale/locales";
 import { placeOf } from "@/lib/locale/place";
 import type { MarketConclusion } from "@/lib/market/infer/types";
@@ -14,13 +14,13 @@ import type { StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
 import { demandBand, difficultyBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
-import type { Winnability } from "../types";
+import { OUTSIZED, type Winnability } from "../types";
 import { composedSearches, namesOwnOnly, noLongerRelevant, rivalBrandOnly, sourceOf, type AskedTopic, type ProposedTopic } from "./topics";
 
 /** 1: a stored keyword row; 2: a row the top-up bought; 3: a question source (asked, written from prompts, composed) priced by a row. */
 export type TopUpSource = 1 | 2 | 3;
 export type TopUpTopic = ProposedTopic & { topUp: TopUpSource; band: Winnability };
-const REASONS = ["not_a_topic", "unmeasured", "under_floor", "outsized", "not_needed", "low_fit"] as const;
+const REASONS = ["not_a_topic", "unmeasured", "not_needed", "low_fit"] as const;
 export type TopUpReason = (typeof REASONS)[number];
 
 /** Whether it fired, the writable rows before it, each source's offers, additions and rejections, and what it bought. */
@@ -73,7 +73,7 @@ export async function topUpWithPurchase(spend: TopUpSpend | undefined, a: TopUpA
 /** Three offers a missing row, as the fit call refuses some, inside the room the call has left. */
 const wanted = (a: Pick<TopUpArgs, "max" | "record">) => Math.max(0, Math.min(a.max, 3 * (WEEK_RESEARCH.rowsMax - a.record.have)));
 
-/** Pure. The searches a short site's top-up offers, by source, winnable before reach, then by volume. */
+/** Pure. The searches a short site's top-up offers, by source, winnable before reach before outsized, then by volume. */
 export function topUpTopics(a: TopUpArgs): TopUpTopic[] {
   if (!a.record.fired) return [];
   const brands = [...a.own, ...a.rivals];
@@ -107,16 +107,16 @@ export function topUpTopics(a: TopUpArgs): TopUpTopic[] {
   const seen = new Set(a.taken.map(queryKey));
   const ceiling = qualifyingDemand(a.ownRanked);
   const out: TopUpTopic[] = [];
-  const reasonOf = (key: string, read: { volume: number; difficulty: number | null } | undefined): TopUpReason | Exclude<Winnability, "not-yet"> => {
+  const reasonOf = (key: string, read: { volume: number; difficulty: number | null } | undefined): TopUpReason | Winnability => {
     const named = { market: a.market, own: a.own, rivals: a.rivals };
     if (malformedSearch(key, a.market?.rivals) !== null || rivalBrandOnly(key, named) || namesOwnOnly(key, named) || noLongerRelevant(key, named) !== null || (profile !== null && classifyIntent(key, profile) === "own_brand")) return "not_a_topic";
     if (read === undefined) {
       a.unpriced?.push(key);
       return "unmeasured";
     }
-    if (read.volume < WRITE_VOLUME_FLOOR_PER_MONTH) return "under_floor";
+    // A search under the floor ranks by its demand, and one too big for the site ranks last; neither is dropped.
     const band = difficultyBand({ difficulty: read.difficulty, ownRanked: a.ownRanked }) ?? demandBand({ volume: read.volume, ownRanked: a.ownRanked });
-    return read.volume > ceiling || band === "not-yet" ? "outsized" : band;
+    return read.volume > ceiling ? OUTSIZED : band;
   };
   for (const offer of offers) {
     const key = queryKey(offer.query);
@@ -124,10 +124,10 @@ export function topUpTopics(a: TopUpArgs): TopUpTopic[] {
     seen.add(key);
     const read = stored.get(key) ?? priced.get(key);
     const band = reasonOf(key, read);
-    if (band !== "winnable" && band !== "reach") a.record.rejected[band] += 1;
-    else out.push({ query: key, source: sourceOf(key, { brands }), volume: read!.volume, rival: null, topUp: offer.topUp, band, ...(offer.asked === undefined ? {} : { asked: { term: offer.asked.term, serpAt: offer.asked.serpAt } }), ...(offer.composed ?? false ? { composed: true as const } : {}) });
+    if (band === "not_a_topic" || band === "unmeasured") a.record.rejected[band] += 1;
+    else out.push({ query: key, source: sourceOf(key, { brands }), volume: read!.volume, difficulty: read!.difficulty, rival: null, topUp: offer.topUp, band, ...(offer.asked === undefined ? {} : { asked: { term: offer.asked.term, serpAt: offer.asked.serpAt } }), ...(offer.composed ?? false ? { composed: true as const } : {}) });
   }
-  const order = (topic: TopUpTopic) => topic.topUp * 10 + (topic.band === "winnable" ? 0 : 1);
+  const order = (topic: TopUpTopic) => topic.topUp * 10 + ["winnable", "reach", OUTSIZED].indexOf(topic.band);
   const ranked = out.sort((x, y) => order(x) - order(y) || (y.volume ?? 0) - (x.volume ?? 0));
   const offered = ranked.slice(0, wanted(a));
   a.record.rejected.not_needed += ranked.length - offered.length;

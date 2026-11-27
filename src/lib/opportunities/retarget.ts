@@ -40,7 +40,7 @@ export function retargetCandidate(
     evidence: { family: "improve", query: target, volume, pageUrl: page.url, shortfall: { kind: "retarget" } },
     acceptance: { form: "top20", query: target },
     fitBand: page.row.fitBand,
-    businessFit: TOPIC_FIT.writeAt,
+    businessFit: TOPIC_FIT.top,
     source: null,
     effort: EFFORT_BY_TYPE.refresh_page,
   };

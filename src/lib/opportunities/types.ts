@@ -380,13 +380,8 @@ export interface Opportunity {
   planReason?: PlanReason | null;
 }
 
-/** Why a candidate did not become an opportunity. Three counters, and the third is how a silent supply drought is
- *  told apart from a market with nothing in it. */
+/** Why a candidate did not become an opportunity, so a silent supply drought is told apart from a market with nothing in it. */
 export interface RejectionCount {
-  /** The winnability bar was not cleared. */
-  not_yet: number;
-  /** No top-ten domain had a ranked count we could read. */
-  unmeasured_top10: number;
   /** An equivalent open or queued opportunity already exists. */
   duplicate_open: number;
   /** A new page on a search naming the business itself, which wants its own site. */
@@ -394,7 +389,7 @@ export interface RejectionCount {
 }
 
 export function noRejections(): RejectionCount {
-  return { not_yet: 0, unmeasured_top10: 0, duplicate_open: 0, own_brand: 0 };
+  return { duplicate_open: 0, own_brand: 0 };
 }
 
 export function addRejections(a: RejectionCount, b: RejectionCount): RejectionCount {

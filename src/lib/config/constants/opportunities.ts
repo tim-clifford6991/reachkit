@@ -111,11 +111,6 @@ export const SELECTION = Object.freeze({                    // BUILD §6.7 step 
   minFresh: 4, freshWeeks: 4, minAnswering: 4,
 } as const);
 
-/** SPEC §6 *Topics by business fit*: `gate`: below it a target is `low_fit`
- *  and never supply. `writeAt`: the fit at which a search is a write target
- *  whatever its volume. `topShare`: the most of one pass's candidates that may
- *  hold the top fit — "under about 25%" — and `topMin` the floor of that count
- *  on a small set. `maxCandidates` bounds the one call. */
 /** SPEC §6 *Write targets in the buyer's words*: how many buyer searches a
  *  pass asks the small tier to write, how many of them must be problems or
  *  how-tos, the words one may run to, and how many proposals one "would a
@@ -124,8 +119,13 @@ export const BUYER_SEARCHES = Object.freeze({
   max: 16, minProblems: 6, minWords: 2, maxWords: 10, maxChecked: 60,
 } as const);
 
+/** SPEC §6 *Topics by business fit*: `gate`: below it a target is `low_fit`
+ *  and never supply. `top`: the top fit, which ranks and gates nothing.
+ *  `topShare`: the most of one pass's candidates that may hold the top fit —
+ *  "under about 25%" — and `topMin` the floor of that count on a small set.
+ *  `maxCandidates` bounds the one call. */
 export const TOPIC_FIT = Object.freeze({
-  gate: 1, writeAt: 3, topShare: 0.25, topMin: 3, maxCandidates: 80,
+  gate: 1, top: 3, topShare: 0.25, topMin: 3, maxCandidates: 80,
 } as const);
 
 /** SPEC §6 *Topics from what buyers were seen asking*: the most "People also
