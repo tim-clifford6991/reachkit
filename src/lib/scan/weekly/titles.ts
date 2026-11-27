@@ -2,9 +2,9 @@
 // angle (a fit of 2, a top-up, a row held from an earlier pass), or whose stored title fails today's checks, is asked in one batched call on the fit call's tier,
 // in a context of its own from the week's one sum, `CAPS.WEEK_C`, beside the titles the
 // commit's research already read for each search, at 0¢; an update shows its live page's own title, at 0¢. A search
-// whose every angle fails is asked once more with its failed gates named, then its angles repaired, then titled as its
-// own words in Title Case: a title gate ranks and never leaves a row untitled. A call that does not answer leaves its
-// rows to the site's next daily run.
+// whose every angle fails is asked once more with its failed gates named, then keeps its angle with the fewest faults once
+// repaired, else its stored title, else its own words in Title Case: a title gate ranks and never leaves a row untitled.
+// A call that does not answer leaves its rows to the site's next daily run.
 import { z } from "zod";
 import { withCostContext, type CostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
@@ -12,8 +12,8 @@ import { llm } from "@/lib/llm";
 import { siteLocale } from "@/lib/locale/site";
 import { researchSerps } from "@/lib/generate/pipeline/research";
 import type { Locale } from "@/lib/locale/locales";
-import { ANGLE_ASK, ANGLE_PATTERNS, angleGates, casedTitle, pickAngle, repairedAngle, type AngleContext, type ProposedAngle } from "@/lib/market/questions/angle";
-import { plannedTitleFaults } from "@/lib/generate/rules/title";
+import { ANGLE_ASK, ANGLE_PATTERNS, angleGates, casedTitle, pickAngle, repairedAngle, UNSUPPORTED, type AngleContext, type ProposedAngle } from "@/lib/market/questions/angle";
+import { brandOf } from "@/lib/market/questions/select";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { queryKey, topTenRowsOf } from "@/lib/opportunities/cluster";
 import { addressKey, ownLivePages } from "@/lib/opportunities/refresh";
@@ -33,7 +33,7 @@ const SCHEMA = z.strictObject({
 const TASK = [`Each of \`searches\` is a page this business will write this week. For each, give \`angles\`: ${ANGLE_ASK.pages}`, ANGLE_ASK.title].join(" ");
 const RETRY = [
   TASK,
-  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the search's words, with or without a break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; fact, its passage was not shown. Give new angles that pass them.",
+  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the search's words, with or without a break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; ask, it drops a word the search asks for; fact, its passage was not shown. Give new angles that pass them.",
 ].join(" ");
 
 /** Titles the open rows of the site's committed week that have none, or a new page's that fails today's title checks,
@@ -93,7 +93,9 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
   );
   const rivals = market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [];
   const sources = [...(knowledge ?? []).map((passage) => passage.text), report.domain, ...rivals];
-  const context = (search: (typeof all)[number]): AngleContext => ({ search: search.query, sources, ranks: search.ranks, rivals, language: locale.language, ...(knowledge == null ? {} : { passages: knowledge.length }) });
+  const says = [profile?.offeringType ?? "", ...(knowledge ?? []).filter((passage) => passage.about === "offering").map((passage) => passage.text)];
+  const offering = { brand: brandOf(report.domain), says, common: [market?.job ?? profile?.job ?? ""] };
+  const context = (search: (typeof all)[number]): AngleContext => ({ search: search.query, sources, ranks: search.ranks, rivals, offering, language: locale.language, ...(knowledge == null ? {} : { passages: knowledge.length }) });
   const searches = all.filter((search) => staleTitle(search.row.title ?? "", context(search)));
   if (searches.length === 0) return 0;
   const ask = (task: string, list: readonly Record<string, unknown>[]) =>
@@ -114,7 +116,7 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
     });
   const shown = (search: (typeof searches)[number], i: number) => ({ i, search: search.query, ...(search.ranks.length === 0 ? {} : { ranks: search.ranks }) });
   const proposed = new Map<number, ProposedAngle[]>();
-  const kept = new Map<number, ProposedAngle & { gap: number }>();
+  const kept = new Map<number, NonNullable<ReturnType<typeof pickAngle>>>();
   const take = (answer: Awaited<ReturnType<typeof ask>>): void => {
     if (answer.kind === "unmeasured") return;
     for (const { i, angles } of answer.value.titles) {
@@ -122,7 +124,7 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
       if (search === undefined || kept.has(i)) continue;
       proposed.set(i, [...(proposed.get(i) ?? []), ...angles]);
       const angle = pickAngle(angles, context(search));
-      if (angle !== null) kept.set(i, angle);
+      if (angle !== null && angle.faults.length === 0) kept.set(i, angle);
     }
   };
   // Each ask's rejections are logged, so a search left to its fallback says why.
@@ -145,6 +147,13 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
     const evidence = readOpportunity(search.row).evidence;
     if (search.query.trim() === "" || (evidence.family !== "write" && evidence.family !== "earn")) continue;
     const angle = kept.get(i) ?? repairedAngle(proposed.get(i) ?? [], context(search));
+    const stored = (search.row.title ?? "").trim();
+    if (keepsStored(stored, angle, context(search))) {
+      if (casedTitle(stored, context(search)) !== stored) await store.setEvidence(search.row.id, evidence, casedTitle(stored, context(search)));
+      titled += 1;
+      continue;
+    }
+    if (angle === null) console.log(JSON.stringify({ event: "week_title_fallback", siteId, search: search.query, reason: (proposed.get(i) ?? []).length === 0 ? "none" : "unsupported" }));
     const title = angle?.title ?? casedTitle(search.query, context(search), (proposed.get(i) ?? []).map((each) => each.promise));
     await store.setEvidence(search.row.id, angle === null ? evidence : { ...evidence, angle: { pattern: angle.pattern, promise: angle.promise, gap: angle.gap } }, title);
     titled += 1;
@@ -152,13 +161,21 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
   return titled;
 }
 
-/** A stored title to ask again: none, or one that fails the writer's wording rules or is not its own Title Case with
- *  each name in its sources' casing. Its search in Title Case, the last fallback, is never asked again. */
+/** What a stored title fails of the gates an angle is ranked by. */
+const storedFaults = (title: string, a: AngleContext): string[] => (title === "" ? ["empty"] : angleGates({ pattern: "P2", title, promise: "", fact: null }, a));
+
+/** A stored title gives way only to an angle with fewer faults, never to the fallback. A stored title that restates its search, or names what no source holds, always does. */
+function keepsStored(stored: string, angle: ReturnType<typeof pickAngle>, a: AngleContext): boolean {
+  const held = storedFaults(stored, a);
+  if (stored === "" || held.some((gate) => gate === "restates" || UNSUPPORTED.includes(gate))) return angle === null && stored !== "";
+  return angle === null || angle.faults.length >= held.length;
+}
+
+/** A stored title to ask again: none, one that fails a gate (its search restated, the fallback, among them; a word the
+ *  search asks for dropped), or is not its own Title Case with each name in its sources' casing. */
 export function staleTitle(stored: string, a: AngleContext): boolean {
   const title = stored.trim();
-  if (title === "") return true;
-  if (title === casedTitle(a.search, a)) return false;
-  return plannedTitleFaults(title, a.search, a.language).length > 0 || title !== casedTitle(title, a);
+  return storedFaults(title, a).length > 0 || title !== casedTitle(title, a);
 }
 
 /** The titles of the search's top results as the commit's research read them, at 0¢; none where none is held. */

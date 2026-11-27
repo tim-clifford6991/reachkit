@@ -150,12 +150,15 @@ const subjectOf = (text: string, language: Language = "en"): string[] => {
   return [...new Set(wordsOf(text, language).filter((word) => !filler.has(word)))];
 };
 
+/** A term's subject without the words that only rank it ("most", "leading"); all of it where that leaves nothing. */
+const askedOf = (term: string, language: Language): string[] =>
+  [subjectOf(term.replace(new RegExp(`(?<![\\p{L}\\p{N}])(?:${languagePack(language).title.ranking})(?![\\p{L}\\p{N}])`, "giu"), " "), language), subjectOf(term, language)].find((words) => words.length > 0) ?? [];
+/** The title carries every word the search asks for, its ranking words aside: its strategies, calculator or alternatives. */
+export const carriesAsk = (title: string, search: string, language: Language = "en"): boolean => askedOf(search, language).every((word) => wordsOf(title, language).includes(word));
 /** The title leads with the term's subject: its first words, the words that only rank it aside, are all there, and the
  *  first of them starts inside the head. A term of filler alone asks nothing. */
 function leadsWith(title: string, term: string, language: Language): boolean | null {
-  const ranking = new RegExp(`(?<![\\p{L}\\p{N}])(?:${languagePack(language).title.ranking})(?![\\p{L}\\p{N}])`, "giu");
-  const unranked = subjectOf(term.replace(ranking, " "), language);
-  const subject = (unranked.length > 0 ? unranked : subjectOf(term, language)).slice(0, TITLE.termWords);
+  const subject = askedOf(term, language).slice(0, TITLE.termWords);
   if (subject.length === 0) return null;
   const placed = placedWords(title, language);
   return (
@@ -287,15 +290,20 @@ function nameTwice(title: string, search: string): boolean {
   return (title.match(/(?<![\p{L}\p{N}])\p{Lu}{2}(?![\p{L}\p{N}])/gu) ?? []).some((name) => said(title, name.toLowerCase()) > Math.max(1, said(search, name.toLowerCase())));
 }
 
+/** A title naming the business, or two words of what it `says` it sells that neither the search nor `common` (the buyer's outcome, the top results) says ("a Free AI Scan"), sells it. */
+function sellsOffering(title: string, search: string, offering: Parameters<typeof plannedTitleFaults>[3], language: Language): boolean {
+  const added = subjectOf(title, language).filter((word) => !wordsOf([search, ...(offering?.common ?? [])].join("\n"), language).includes(word));
+  return offering !== undefined && ((offering.brand !== "" && added.includes(offering.brand)) || added.filter((word) => wordsOf(offering.says.join("\n"), language).includes(word)).length >= 2);
+}
 /** What a planned angle's title fails of the writer's own wording rules: the lead, the banned phrases, tropes and a word
  *  or name said twice, a price lead, a claim joined on with or without a break. The planner keeps only a title the
  *  writer would keep. */
-export function plannedTitleFaults(title: string, search: string, language: Language = "en"): TitleFault[] {
+export function plannedTitleFaults(title: string, search: string, language: Language = "en", offering?: { brand: string; says: readonly string[]; common: readonly string[] }): TitleFault[] {
   const faults: (TitleFault | false)[] = [
     leadsWith(title, search, language) === false && "term",
     (hasBanned(title, { terms: [search], language }) || nameTwice(title, search)) && "banned",
     priceLed(title, search) && "promise_figure",
-    (appendsClaim(title, search) || runsOnClaim(title, search, language)) && "claim",
+    (appendsClaim(title, search) || runsOnClaim(title, search, language) || sellsOffering(title, search, offering, language)) && "claim",
   ];
   return faults.filter((fault) => fault !== false);
 }

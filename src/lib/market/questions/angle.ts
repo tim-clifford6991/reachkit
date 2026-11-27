@@ -1,7 +1,7 @@
 // SPEC §6 *Every topic is an angle* (owner rulings 91–92, #2722): the one place a found search becomes a page's angle.
-// The model proposes two or three angles per search in one of five patterns; code keeps the one that passes every gate
-// and promises most of what the top results miss. The weekly topic step and the hot-topic lane both call `pickAngle`.
-import { plannedTitleFaults } from "@/lib/generate/rules/title";
+// The model proposes two or three angles per search in one of five patterns; code keeps the one with the fewest faults
+// that promises most of what the top results miss. Only a name no source holds excludes one. The weekly topic step and the hot-topic lane both call `pickAngle`.
+import { carriesAsk, plannedTitleFaults } from "@/lib/generate/rules/title";
 import { languagePack, SHAPES } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { contentTokens } from "@/lib/market/questions/select";
@@ -13,7 +13,7 @@ export type AnglePattern = (typeof ANGLE_PATTERNS)[number];
 /** How an angle is asked, word for word, by the fit call and by the commit's title call. */
 export const ANGLE_ASK = {
   pages: "two different pages that would answer it for this buyer, each in one `pattern`: P1 a problem and how this business's method fixes it; P2 the question answered from the business's own facts; P3 a comparison where the business is a real option; P4 how to do the job with a new thing the search or `ranks` names; P5 the search for a place or segment the business serves. `fact` is the `i` of the `product.knowledge` passage the page is written from: it supports the page, and the title need not repeat its words.",
-  title: "Each angle's `title` is a grammatical headline a person would say aloud, at most 65 characters, in Title Case. Keep each name's own casing (AI, ChatGPT, SEO) even where the search is lowercase. It leads with the search's main noun phrase, reordered or inflected as a headline needs, and states the reader's outcome, what they can do or decide, never a feature of this business, and one none of `ranks`, the titles that rank for the search now, already promises. `promise` says that outcome in at most eight words. One example per pattern, in other markets: P1 \"Losing Calls After Hours? How to Answer Every Lead\"; P2 \"What a Boiler Service Costs and What It Should Include\"; P3 \"Best Payroll Software for Small Teams: How to Choose\"; P4 \"How to Get Your Business Recommended by {a new thing the sources name}\"; P5 \"Emergency Plumber in Leeds: What to Expect Before They Arrive\". No hype word, no \"Why … Matters\", no word said twice, no clause about this business joined on after a dash. A title names a product, model, version, number, price or date only when it is written in the search, `product.knowledge` or `ranks`. A bare search with a number or a price appended is not an angle, and a price leads only a pricing or comparison search. A comparison title never says what a named competitor does, lacks or who uses it; it names the decision the page helps the reader make.",
+  title: "Each angle's `title` is a grammatical headline a person would say aloud, at most 65 characters, in Title Case. Keep each name's own casing (AI, ChatGPT, SEO) even where the search is lowercase. It leads with the search's main noun phrase, reordered or inflected as a headline needs, keeps the thing it asks for (strategies, a cost, a calculator, tools, alternatives), and states the reader's outcome, what they can do or decide, never a feature of this business, and one none of `ranks`, the titles that rank for the search now, already promises. `promise` says that outcome in at most eight words. One example per pattern, in other markets: P1 \"Losing Calls After Hours? How to Answer Every Lead\"; P2 \"What a Boiler Service Costs and What It Should Include\"; P3 \"Best Payroll Software for Small Teams: How to Choose\"; P4 \"How to Get Your Business Recommended by {a new thing the sources name}\"; P5 \"Emergency Plumber in Leeds: What to Expect Before They Arrive\". No hype word, no \"Why … Matters\", no word said twice, no clause about this business joined on after a dash. A title names a product, model, version, number, price or date only when it is written in the search, `product.knowledge` or `ranks`. A bare search with a number or a price appended is not an angle, and a price leads only a pricing or comparison search. A comparison title never says what a named competitor does, lacks or who uses it; it names the decision the page helps the reader make.",
 } as const;
 
 /** What the model proposes: a pattern, a title, what the reader gets, and the knowledge passage it joins the search to. */
@@ -45,6 +45,8 @@ export interface AngleContext {
   rivals?: readonly string[];
   /** The site's language: the writer's wording rules and its casing are that language's. Absent is English. */
   language?: Language;
+  /** The business's brand and offering texts, and the outcome its buyer wants: a title that sells the offering is a `claim`. */
+  offering?: NonNullable<Parameters<typeof plannedTitleFaults>[3]>;
 }
 
 const lowered = (text: string): string => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -105,19 +107,23 @@ function intentPoint(pattern: AnglePattern, search: string): number {
   return 0;
 }
 
+/** The gates that exclude an angle, reason 3: nothing to keep, or a name or a rival no source holds. Every other gate ranks. */
+export const UNSUPPORTED: readonly string[] = ["empty", "names", "rival"];
+
 /** The gates an angle fails, by name: its fact is a passage shown, its pattern fits the search's intent, it passes the
  *  writer's own wording rules (`plannedTitleFaults`), every figure and name in it is in the search or a source, a
- *  comparison names no rival the search does not, and it adds a word to the search. */
+ *  comparison names no rival the search does not, it adds a word to the search, and it keeps every word the search asks for. */
 export function angleGates(angle: ProposedAngle, a: AngleContext): string[] {
   const title = angle.title.trim();
   if (title === "" || !ANGLE_PATTERNS.includes(angle.pattern)) return ["empty"];
   const gates: (string | false)[] = [
     a.passages !== undefined && angle.fact !== null && (angle.fact < 0 || angle.fact >= a.passages) && "fact",
     !patternAllowed(angle.pattern, a.search) && "pattern",
-    ...plannedTitleFaults(title, a.search, a.language),
+    ...plannedTitleFaults(title, a.search, a.language, a.offering && { ...a.offering, common: [...a.offering.common, ...a.ranks] }),
     !namesAreReal(title, a) && "names",
     namesOtherRival(angle, a) && "rival",
     restates(title, a.search) && "restates",
+    !carriesAsk(title, a.search, a.language) && "ask",
   ];
   return gates.filter((gate) => gate !== false);
 }
@@ -128,26 +134,26 @@ export function casedTitle(text: string, a: AngleContext, promises: readonly str
 }
 
 /**
- * The one angle a search keeps, or `null` where none passes `angleGates`. Of those, the one whose promise the fewest top
- * results make, then the one whose pattern fits the intent, then the model's order; its title in Title Case with its
- * names' own casing. Pure.
+ * The one angle a search keeps, with the gates it still fails, or `null` where every one is `UNSUPPORTED`. Of the rest,
+ * the one with the fewest faults, then the one whose promise the fewest top results make and whose pattern fits the
+ * intent, then the model's order; its title in Title Case with its names' own casing. Pure.
  */
-export function pickAngle(proposed: readonly ProposedAngle[], a: AngleContext): (ProposedAngle & { gap: number }) | null {
+export function pickAngle(proposed: readonly ProposedAngle[], a: AngleContext): (ProposedAngle & { gap: number; faults: string[] }) | null {
   const kept = proposed
     .map((angle, order) => ({ ...angle, title: angle.title.trim(), promise: angle.promise.trim(), order }))
-    .filter((angle) => angleGates(angle, a).length === 0)
-    .map((angle) => ({ ...angle, gap: gapOf(angle.promise, a) }));
+    .map((angle) => ({ ...angle, faults: angleGates(angle, a), gap: gapOf(angle.promise, a) }))
+    .filter((angle) => !angle.faults.some((gate) => UNSUPPORTED.includes(gate)));
   const score = (angle: (typeof kept)[number]): number => GAP_POINTS(angle.gap) + intentPoint(angle.pattern, a.search);
-  const best = kept.sort((left, right) => score(right) - score(left) || left.order - right.order)[0];
-  const title = best === undefined ? "" : casedTitle(best.title, a, proposed.map((angle) => angle.promise));
-  return best === undefined ? null : { pattern: best.pattern, title, promise: best.promise, fact: best.fact, gap: best.gap };
+  const best = kept.sort((left, right) => left.faults.length - right.faults.length || score(right) - score(left) || left.order - right.order)[0];
+  if (best === undefined) return null;
+  return { pattern: best.pattern, title: casedTitle(best.title, a, proposed.map((angle) => angle.promise)), promise: best.promise, fact: best.fact, gap: best.gap, faults: best.faults };
 }
 
 const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** The angle `pickAngle` keeps once each title's small faults are repaired: a hype phrase the searcher did not use is
  *  dropped, and an abbreviation of the search's own words ("AEO") is written out as the search writes them. */
-export function repairedAngle(proposed: readonly ProposedAngle[], a: AngleContext): (ProposedAngle & { gap: number }) | null {
+export function repairedAngle(proposed: readonly ProposedAngle[], a: AngleContext): ReturnType<typeof pickAngle> {
   const searched = a.search.toLowerCase();
   const words = a.search.toLowerCase().split(/\s+/).filter((word) => word !== "");
   const pack = languagePack(a.language ?? "en");
