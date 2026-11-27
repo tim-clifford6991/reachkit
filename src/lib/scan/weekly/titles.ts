@@ -13,7 +13,6 @@ import { siteLocale } from "@/lib/locale/site";
 import { researchSerps } from "@/lib/generate/pipeline/research";
 import type { Locale } from "@/lib/locale/locales";
 import { ANGLE_ASK, ANGLE_PATTERNS, angleGates, casedTitle, pickAngle, repairedAngle, UNSUPPORTED, type AngleContext, type ProposedAngle } from "@/lib/market/questions/angle";
-import { carriesAsk } from "@/lib/generate/rules/title";
 import { brandOf } from "@/lib/market/questions/select";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { queryKey, topTenRowsOf } from "@/lib/opportunities/cluster";
@@ -34,7 +33,7 @@ const SCHEMA = z.strictObject({
 const TASK = [`Each of \`searches\` is a page this business will write this week. For each, give \`angles\`: ${ANGLE_ASK.pages}`, ANGLE_ASK.title].join(" ");
 const RETRY = [
   TASK,
-  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the search's words, with or without a break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; fact, its passage was not shown. Give new angles that pass them.",
+  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the search's words, with or without a break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; ask, it drops a word the search asks for; fact, its passage was not shown. Give new angles that pass them.",
 ].join(" ");
 
 /** Titles the open rows of the site's committed week that have none, or a new page's that fails today's title checks,
@@ -165,20 +164,18 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
 /** What a stored title fails of the gates an angle is ranked by. */
 const storedFaults = (title: string, a: AngleContext): string[] => (title === "" ? ["empty"] : angleGates({ pattern: "P2", title, promise: "", fact: null }, a));
 
-/** A stored title gives way only to an angle with fewer faults, or as many that carries what the search asks for where
- *  it does not; never to the fallback. A stored title that restates its search, or names what no source holds, always does. */
+/** A stored title gives way only to an angle with fewer faults, never to the fallback. A stored title that restates its search, or names what no source holds, always does. */
 function keepsStored(stored: string, angle: ReturnType<typeof pickAngle>, a: AngleContext): boolean {
   const held = storedFaults(stored, a);
   if (stored === "" || held.some((gate) => gate === "restates" || UNSUPPORTED.includes(gate))) return angle === null && stored !== "";
-  if (angle === null || angle.faults.length !== held.length) return angle === null || angle.faults.length > held.length;
-  return !carriesAsk(angle.title, a.search, a.language) || carriesAsk(stored, a.search, a.language);
+  return angle === null || angle.faults.length >= held.length;
 }
 
-/** A stored title to ask again: none, one that fails a gate (its search restated, the fallback, among them), drops what
- *  the search asks for, or is not its own Title Case with each name in its sources' casing. */
+/** A stored title to ask again: none, one that fails a gate (its search restated, the fallback, among them; a word the
+ *  search asks for dropped), or is not its own Title Case with each name in its sources' casing. */
 export function staleTitle(stored: string, a: AngleContext): boolean {
   const title = stored.trim();
-  return storedFaults(title, a).length > 0 || !carriesAsk(title, a.search, a.language) || title !== casedTitle(title, a);
+  return storedFaults(title, a).length > 0 || title !== casedTitle(title, a);
 }
 
 /** The titles of the search's top results as the commit's research read them, at 0¢; none where none is held. */

@@ -98,15 +98,13 @@ function gapOf(promise: string, a: AngleContext): number {
 
 const GAP_POINTS = (gap: number): number => (gap <= 1 ? 2 : gap === 2 ? 1 : 0);
 
-/** The pattern that answers the intent best scores a point: a comparison on a list, a method on a problem; a title that
- *  carries what the search asks for (its strategies, cost or alternatives) scores two over one that drops it. */
-function intentPoint(angle: ProposedAngle, a: AngleContext): number {
-  const text = lowered(a.search);
-  const asked = carriesAsk(angle.title, a.search, a.language) ? 2 : 0;
-  if (angle.pattern === "P3") return asked + (SHAPES.listicle.test(text) || SHAPES.solution.test(text) ? 1 : 0);
-  if (angle.pattern === "P1") return asked + (SHAPES.problem.test(text) || SHAPES.pain.test(text) ? 1 : 0);
-  if (angle.pattern === "P2") return asked + (SHAPES.informational.test(text) || SHAPES.price.test(text) ? 1 : 0);
-  return asked;
+/** The pattern that answers the intent best scores a point: a comparison on a list, a method on a problem. */
+function intentPoint(pattern: AnglePattern, search: string): number {
+  const text = lowered(search);
+  if (pattern === "P3") return SHAPES.listicle.test(text) || SHAPES.solution.test(text) ? 1 : 0;
+  if (pattern === "P1") return SHAPES.problem.test(text) || SHAPES.pain.test(text) ? 1 : 0;
+  if (pattern === "P2") return SHAPES.informational.test(text) || SHAPES.price.test(text) ? 1 : 0;
+  return 0;
 }
 
 /** The gates that exclude an angle, reason 3: nothing to keep, or a name or a rival no source holds. Every other gate ranks. */
@@ -114,7 +112,7 @@ export const UNSUPPORTED: readonly string[] = ["empty", "names", "rival"];
 
 /** The gates an angle fails, by name: its fact is a passage shown, its pattern fits the search's intent, it passes the
  *  writer's own wording rules (`plannedTitleFaults`), every figure and name in it is in the search or a source, a
- *  comparison names no rival the search does not, and it adds a word to the search. */
+ *  comparison names no rival the search does not, it adds a word to the search, and it keeps every word the search asks for. */
 export function angleGates(angle: ProposedAngle, a: AngleContext): string[] {
   const title = angle.title.trim();
   if (title === "" || !ANGLE_PATTERNS.includes(angle.pattern)) return ["empty"];
@@ -125,6 +123,7 @@ export function angleGates(angle: ProposedAngle, a: AngleContext): string[] {
     !namesAreReal(title, a) && "names",
     namesOtherRival(angle, a) && "rival",
     restates(title, a.search) && "restates",
+    !carriesAsk(title, a.search, a.language) && "ask",
   ];
   return gates.filter((gate) => gate !== false);
 }
@@ -136,15 +135,15 @@ export function casedTitle(text: string, a: AngleContext, promises: readonly str
 
 /**
  * The one angle a search keeps, with the gates it still fails, or `null` where every one is `UNSUPPORTED`. Of the rest,
- * the one with the fewest faults, then the one whose promise the fewest top results make and whose pattern and words fit
- * the intent, then the model's order; its title in Title Case with its names' own casing. Pure.
+ * the one with the fewest faults, then the one whose promise the fewest top results make and whose pattern fits the
+ * intent, then the model's order; its title in Title Case with its names' own casing. Pure.
  */
 export function pickAngle(proposed: readonly ProposedAngle[], a: AngleContext): (ProposedAngle & { gap: number; faults: string[] }) | null {
   const kept = proposed
     .map((angle, order) => ({ ...angle, title: angle.title.trim(), promise: angle.promise.trim(), order }))
     .map((angle) => ({ ...angle, faults: angleGates(angle, a), gap: gapOf(angle.promise, a) }))
     .filter((angle) => !angle.faults.some((gate) => UNSUPPORTED.includes(gate)));
-  const score = (angle: (typeof kept)[number]): number => GAP_POINTS(angle.gap) + intentPoint(angle, a);
+  const score = (angle: (typeof kept)[number]): number => GAP_POINTS(angle.gap) + intentPoint(angle.pattern, a.search);
   const best = kept.sort((left, right) => left.faults.length - right.faults.length || score(right) - score(left) || left.order - right.order)[0];
   if (best === undefined) return null;
   return { pattern: best.pattern, title: casedTitle(best.title, a, proposed.map((angle) => angle.promise)), promise: best.promise, fact: best.fact, gap: best.gap, faults: best.faults };

@@ -62,6 +62,14 @@ it("keeps a stored title over the search restated when both rounds are rejected"
   expect([await titleWeek(SITE_ID), state.rows[0]!.title]).toEqual([1, "Can ChatGPT Do SEO? What It Misses and What to Check"]);
 });
 
+it("asks again for an angle that drops what its search asks for, and keeps the one that carries it", async () => {
+  const state = newMemoryState({ rows: [{ ...rowOf("example.com", { query: "top answer engine optimization strategies for ai products", type: "answer_page", status: "open", volume: null } as unknown as StoredTopic, 0), site_id: SITE_ID, title: null, plan_place: 0 }], market: { buyer: "founders", job: "be found", category: "ai search visibility", synonyms: [], differentiators: [], notOurMarket: [], rivals: [] } as unknown as MarketConclusion });
+  setOpportunityStore(memoryStore(state));
+  const angle = (title: string) => ({ titles: [{ i: 0, angles: [{ pattern: "P2", title, promise: "which strategies work", fact: 0 }] }] });
+  create.mockResolvedValueOnce(toolUseMessage(angle("What Answer Engine Optimization Means for AI Products"), 5000, 1300, "topic-title")).mockResolvedValueOnce(toolUseMessage(angle("Answer Engine Optimization Strategies for AI Products: Which Work"), 5000, 1300, "topic-title"));
+  expect([await titleWeek(SITE_ID), state.rows[0]!.title]).toEqual([1, "Answer Engine Optimization Strategies for AI Products: Which Work"]);
+});
+
 it("keeps an angle that leads with the search's subject and drops its ranking words", async () => {
   const gates = (search: string, title: string) => angleGates({ pattern: "P3", title, promise: "how to choose one", fact: null }, { search, sources: [], ranks: [] });
   expect([gates("leading answer engine optimization platforms for ai products", "Answer Engine Optimization Platforms: How to Choose One for an AI Product"), gates("most effective generative engine optimization solutions", "Generative Engine Optimization Solutions: How to Choose One")]).toEqual([[], []]);
