@@ -13,6 +13,8 @@ import type { KnownMatch } from "@/lib/known-content/types";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { queryKey } from "./cluster";
 import { contentTypeOf, SHAPED } from "./content-type";
+import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
+import { canonicalUrl } from "@/lib/measure/page-reading";
 import { freshRead, offeringTopTen, type KindOfBusiness, type TopTenRead } from "./derive/top-ten-kind";
 import type { Evidence, Opportunity, UnreadyReason } from "./types";
 
@@ -137,11 +139,12 @@ export async function assessReadiness(
   };
   const measured = measuredMarketOf(market);
   const offMarket = (o: Opportunity) => (o.family === "write" || o.family === "earn") && measured !== undefined && o.targetQuery !== null && neverMeasured(o.targetQuery, measured) !== null;
-  // Read only where there is an update to deliver.
-  const ownPages = rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
   // One narrowed read per row whose topic could be covered, before the loop,
   // so `eligible` stays pure and synchronous.
   const covered = await coveredTopics(siteId, rows.map(readOpportunity), market, report?.domain ?? null);
+  const ownPages = covered.size > 0 || rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
+  // A page an open or drafted, unpublished update already targets takes no second one.
+  const updating = new Set((covered.size === 0 ? [] : await store.clusterable(siteId)).flatMap((row) => (row.status !== "done" && row.family === "improve" && row.target_ref != null ? [canonicalUrl(row.target_ref)] : [])));
   const readOf = (o: Opportunity) => (o.targetQuery === null ? null : (topTens.get(queryKey(o.targetQuery)) ?? null));
   const ctx: ReadinessContext = {
     now,
@@ -173,8 +176,16 @@ export async function assessReadiness(
     const stored = reshaped ? { ...read, evidence } : read;
     const band = ownRanked === null ? null : rebandFor(stored, ownRanked);
     if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);
-    const opportunity = band === null ? stored : { ...stored, fitBand: band };
-    const reason = stillStopped(opportunity) ? "resting" : eligible(opportunity, ctx);
+    let opportunity: Opportunity = band === null ? stored : { ...stored, fitBand: band };
+    let reason = stillStopped(opportunity) ? "resting" : eligible(opportunity, ctx);
+    // A duplicate of a live page that may be updated now is that page's update, so the hold costs no day.
+    const match = reason === "destination_cannot_address" ? covered.get(opportunity.id) : undefined, url = match?.page.url, update = url != null && match!.page.live && !("hot" in opportunity.evidence) && !tooYoungToRefresh(match!.page, now) && ctx.canUpdate(url) && !updating.has(canonicalUrl(url)) ? asUpdate(opportunity, match!, now) : null;
+    // A row the store will not convert (an update of the same search already queued) stays held.
+    if (update !== null && (await store.becomeUpdate(opportunity.id, { ...updateColumns(update), plan_write_as: null }).then(() => true, (error: unknown) => (console.warn(JSON.stringify({ event: "covered_update_refused", id: opportunity.id, error: String(error).slice(0, 200) })), false)))) {
+      updating.add(canonicalUrl(url!));
+      opportunity = { ...opportunity, ...update };
+      reason = eligible(opportunity, ctx);
+    }
     if (reason === null) ready += 1;
     if (stored.ready !== (reason === null) || stored.unreadyReason !== reason) {
       await store.setReadiness(opportunity.id, reason);
