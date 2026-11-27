@@ -23,7 +23,7 @@ import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { competitorOf, targetSearches } from "./pipeline";
 import { builtFromOutside, fellTo, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "./standard";
-import { credibleAt, credibleSearch, studySubject } from "./pipeline/source-tier";
+import { compares, credibleAt, credibleSearch, namedIn, studySubject } from "./pipeline/source-tier";
 import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchMarket, researchSerps, rivalPage, sitemapOf, storedAsk, type MarketResearch } from "./pipeline/research";
 import { knowledgeTexts, shares, topicWords } from "./pipeline/pack";
 import { alikeHeadings } from "./rules/headings";
@@ -164,17 +164,22 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
   const read = async (target: string): Promise<ResearchRead | null> => {
     const serp = await cachedSerp(researchSerps({ siteId, locale, target }, 0)[0]!, DRAFT_POLICY_VERSION);
     if (serp === null) return null;
-    const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && foreign(url));
+    // A comparison's own products' pages are its first-hand evidence, never an independent source; other rivals' stay out.
+    const compared = new Set(site === null || report === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? []));
+    const ofCompared = (url: string) => compared.has(registrableDomain(url) ?? "") && (site === null || !isOwnDomain(url, site.domain));
+    const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && (foreign(url) || ofCompared(url)));
     const held = await Promise.all(urls.map(cached));
     if (held.some((page) => page === undefined)) return null;
     const rivals = site === null || report === null ? [] : versusRivals(site, report, { targetQuery: target, absorbedQueries: [], title: null });
     if (rivals.length > 0 && cost === undefined) return null;
-    const firstHand = await Promise.all(rivals.map(ownPageRead));
     const topic = words(target);
-    const pages = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => {
+    const readable = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => {
       const language = languageOfText(page.text);
-      return page.text.split(/\s+/).length >= READ.words && (language === null || language === locale.language) && holds(topic, page.title);
+      return page.text.split(/\s+/).length >= READ.words && (language === null || language === locale.language);
     });
+    const own = readable.filter((page) => ofCompared(page.url));
+    const pages = readable.filter((page) => !ofCompared(page.url) && holds(topic, page.title));
+    const firstHand = await Promise.all(rivals.map((domain) => own.some((page) => registrableDomain(page.url) === registrableDomain(domain)) || ownPageRead(domain)));
     const questions: string[] = [];
     for (const asked of [...(serp.peopleAlsoAsk ?? []), ...pages.flatMap((page) => (page.headings ?? []).filter(isQuestionShaped))]) {
       if (!questions.some((held) => stemKey(held, locale.language) === stemKey(asked, locale.language) || alikeHeadings(held, asked))) questions.push(asked);
@@ -190,7 +195,7 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
       F: pages.filter((page) => page.text.split(/(?<=[.!?])\s+/).some(figured)).length,
       stepPages: pages.filter((page) => (page.headings ?? []).filter((heading) => STEP_RE.test(heading)).length >= READ.steps).length,
       asked: serp.peopleAlsoAsk?.length ?? 0,
-      urls: pages.map((page) => page.url),
+      urls: [...pages, ...own].map((page) => page.url),
       ...(rivals.length === 0 ? {} : { rivals: { need: rivals.length, have: firstHand.filter(Boolean).length } }),
       top: serp.organic.slice(0, 10).map(({ domain, url, title }) => ({ domain, url, title })),
       ...(facts === null ? {} : { facts: facts.some((text) => shares(topicWords(target), text)) ? facts.length : 0 }),
