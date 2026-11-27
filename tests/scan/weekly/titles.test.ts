@@ -8,6 +8,7 @@ import { reportOf, SITE_ID } from "../../opportunities/fixtures";
 import { memoryStore, newMemoryState } from "../../opportunities/memory-store";
 import { toolUseMessage } from "../../llm/fixtures";
 import { rowOf, type StoredTopic } from "../../golden/plan/panel";
+import { ownCasings, pageTitle } from "../../../src/lib/presentation/page-title";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -55,4 +56,9 @@ it("asks again for a page whose stored title fails today's checks, and leaves a 
 it("keeps an angle that leads with the search's subject and drops its ranking words", async () => {
   const gates = (search: string, title: string) => angleGates({ pattern: "P3", title, promise: "how to choose one", fact: null }, { search, sources: [], ranks: [] });
   expect([gates("leading answer engine optimization platforms for ai products", "Answer Engine Optimization Platforms: How to Choose One for an AI Product"), gates("most effective generative engine optimization solutions", "Generative Engine Optimization Solutions: How to Choose One")]).toEqual([[], []]);
+});
+
+it("writes a known name in its known casing over the model's, keeps a casing nothing contradicts, and closes an opening yes-or-no question with its mark", () => {
+  const titles = [pageTitle("Is chatGPT Worth It for iPhone Apps: What Founders Found", "en"), pageTitle("can chatGPT do seo", "en", ownCasings(["ChatGPT and SEO", "the model's chatGPT"])), pageTitle("How to Rank in chatGPT", "en"), pageTitle("Lohnt sich ChatGPT für Bäckereien", "de")];
+  expect(titles).toEqual(["Is ChatGPT Worth It for iPhone Apps? What Founders Found", "Can ChatGPT Do SEO?", "How to Rank in ChatGPT", "Lohnt sich ChatGPT für Bäckereien?"]);
 });
