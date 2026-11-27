@@ -63,7 +63,7 @@ export type WeeklyPass = {
 export type WeeklyClaim = { readonly scanId: string; readonly weekStart: string; readonly zone: string; readonly retaken?: true; readonly category?: string };
 
 /** The refusals, all before any spend, then the claim. `weekStart` is computed once from the site's zone and written at insert, so moving zone moves no measured week. */
-export async function claimWeekly(a: WeeklyPass): Promise<WeeklyClaim | Extract<WeeklyOutcome, { ran: false }>> {
+export async function claimWeekly(a: WeeklyPass): Promise<WeeklyClaim | Refused> {
   if (a.rerun !== undefined && !isTestSite(a.siteId)) return refuse(a.siteId, "not_a_test_site");
   // A site with no stated zone has no local Monday, so no week has begun; nothing is spent, and no zone is chosen for it.
   const zone = a.zone ?? (await readSiteZone(a.siteId));
@@ -201,7 +201,9 @@ export async function refreshWeeklyKnowledge(a: { scanId: string; siteId: string
   return null;
 }
 
-function refuse(siteId: string, because: WeeklyRefusal): WeeklyOutcome {
+type Refused = Extract<WeeklyOutcome, { ran: false }>;
+
+function refuse(siteId: string, because: WeeklyRefusal): Refused {
   logWeekly({ siteId, weekStart: null, outcome: because });
   return { ran: false, because };
 }

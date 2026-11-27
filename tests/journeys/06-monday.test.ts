@@ -19,45 +19,9 @@
 //   · Postgres   → a PostgREST-shaped double, plus §7's and §9's own
 //                  declared stores
 //
-// Five of those need a word.
-//
-// **The copy registry is NOT a fixture here, and that is the point of one
-// of these tests.** Journeys 02–05 resolve each key to itself so the path
-// can be walked; this journey is partly *about* the digest's own sentences.
-// Every one of them was owner-owed until issue #458 filled them on the
-// owner's 2026-09-10 approval, so it runs against the real registry and
-// asserts what that means now: `copy()` renders each of §12's weekly keys,
-// and the send seam composes the digest and hands the vendor a mail that
-// carries them. What still stops the sender on a week that judged a page
-// is the verdict word that page is given (`verdict.page.*`, another
-// partition's), which is still owed, and that is asserted too. The
-// mail's shape — which four sections, in which order, and which of them the
-// omission rule drops — is asserted on the block list, which carries keys
-// and no sentences and so needs no registry at all.
-//
-// **Who pays is billing's gate** (ADR-050). The journey's billing store
-// answers "everyone", because the flow under test is Monday's, not
-// billing's; that a paying site is selected and an ended one is not is
-// asserted against a live schema in `tests/scan/weekly/schema.test.ts`.
-//
-// **The weekly mail is sent (#181), and this journey sends it.**
-// `buildWeekly` composed it and `weeklyDigest` read what it needs, and
-// until #181 no module in `src/**` called either — the journey composed
-// the mail by hand and handed it to the send seam, which is exactly what
-// `sendWeeklyDigest` now does: once per `(site_id, week_start)`, stamped
-// on the week's own row only where the seam accepted it, and never for a
-// week the site did not measure. The composition rows below are unchanged
-// — they are about the block list — and the send is now the sender's.
-//
-// **The overview screen is still fixture-backed** (`_overview/provider.ts`
-// names the three issues that replace it). Its week strip is a pure
-// function of the site's own zone and today, so the journey drives that
-// for real and reads the fixture nowhere.
-//
-// **The standard queue's poll interval is collapsed.** A weekly pass buys
-// every SERP on the standard queue (§6.4 — live mode only where a human is
-// waiting, and nobody is waiting on Monday), so each is a `task_post` and
-// then a `task_get`. The journey stubs `setTimeout` to fire immediately.
+// The copy registry is real, since the digest's own sentences are asserted. Billing answers "everyone"; who pays is asserted in
+// `tests/scan/weekly/schema.test.ts`. The digest is sent by `sendWeeklyDigest`, once per week. The overview's week strip is a pure
+// function of the zone and today. Every SERP is queued on the standard queue, so `setTimeout` is stubbed to fire at once.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { envelope } from "./harness";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
