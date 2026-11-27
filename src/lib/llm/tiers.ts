@@ -116,6 +116,10 @@ const FIXED_REQUEST: ReadonlySet<Tier> = new Set<Tier>(["sonnet", "writer", "res
  *  The SDK's types predate `between_tools`, so `index.ts` casts it; the API documents it as Sonnet 5.5's lowest. */
 const TIER_THINKING: Readonly<Partial<Record<Tier, "between_tools">>> = Object.freeze({ research: "between_tools" });
 
+/** The tiers whose model answers a forced tool call with a 400 (Opus 5.5 and Sonnet 5.5, per the vendor's tool-use docs), so
+ *  the model chooses whether to call the answer tool; every other tier is forced to call it, so its answer always parses. */
+const CHOOSES_TOOL: ReadonlySet<Tier> = new Set<Tier>(["writer", "research"]);
+
 export interface TierBinding {
   tier: Tier;
   modelId: string;
@@ -127,6 +131,8 @@ export interface TierBinding {
   effort?: "low";
   /** Sent as `thinking.type`, in place of turning thinking off (`TIER_THINKING`). */
   thinking?: "between_tools";
+  /** The answer tool is forced (`tool_choice: tool`) rather than offered (`CHOOSES_TOOL`). */
+  forcesTool: boolean;
   inCentsPerM: number;
   outCentsPerM: number;
 }
@@ -145,6 +151,7 @@ export function tierBinding(tier: Tier): TierBinding {
     fixedRequest: FIXED_REQUEST.has(tier),
     ...(TIER_EFFORT[tier] === undefined ? {} : { effort: TIER_EFFORT[tier] }),
     ...(TIER_THINKING[tier] === undefined ? {} : { thinking: TIER_THINKING[tier] }),
+    forcesTool: !CHOOSES_TOOL.has(tier),
     inCentsPerM: priceBook.inCentsPerM,
     outCentsPerM: priceBook.outCentsPerM,
   });

@@ -10,7 +10,8 @@ export type LedgerSource = (typeof LEDGER_SOURCES)[number];
 export const LEDGER_STAGES = ["offered", "searched", "fit", "candidates", "added"] as const;
 export type LedgerStage = (typeof LEDGER_STAGES)[number];
 
-export type SourceCounts = Record<LedgerStage, number>;
+/** `fit` is `unmeasured` where the pass's fit judgement gave no answer: not judged is never a count of 0. */
+export type SourceCounts = Record<Exclude<LedgerStage, "fit">, number> & { fit: number | "unmeasured" };
 
 export interface SupplyLedger {
   sources: Record<LedgerSource, SourceCounts>;
@@ -58,12 +59,11 @@ export function supplyLedger(a: {
   stages: Partial<Record<LedgerStage, readonly LedgerSource[]>>;
   rows: readonly Parameters<typeof writable>[0][];
   unworded?: number;
-  topUp?: TopUpRecord;
+  topUp?: TopUpRecord; fitUnmeasured?: boolean;
 }): SupplyLedger {
-  const sources = Object.fromEntries(LEDGER_SOURCES.map((source) => [source, Object.fromEntries(LEDGER_STAGES.map((stage) => [stage, 0]))])) as Record<LedgerSource, SourceCounts>;
-  for (const stage of LEDGER_STAGES) {
-    for (const source of a.stages[stage] ?? []) sources[source][stage] += 1;
-  }
+  const counts = Object.fromEntries(LEDGER_SOURCES.map((source) => [source, Object.fromEntries(LEDGER_STAGES.map((stage) => [stage, 0]))])) as Record<LedgerSource, Record<LedgerStage, number>>;
+  for (const stage of LEDGER_STAGES) for (const source of a.stages[stage] ?? []) counts[source][stage] += 1;
+  const sources = Object.fromEntries(LEDGER_SOURCES.map((source) => [source, a.fitUnmeasured === true ? { ...counts[source], fit: "unmeasured" } : counts[source]])) as Record<LedgerSource, SourceCounts>;
   const dry = LEDGER_SOURCES.filter((source) => sources[source].added === 0);
   return afterReadiness({ sources, have: 0, short: 0, dry, unworded: a.unworded ?? 0, ...(a.topUp === undefined ? {} : { topUp: a.topUp }) }, a.rows);
 }

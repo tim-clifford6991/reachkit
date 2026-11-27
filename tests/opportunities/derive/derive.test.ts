@@ -8,7 +8,7 @@ import { BUYER_SEARCHES_CALL_SITE, TYPED_CALL_SITE } from "../../../src/lib/oppo
 import { FIT_CALL_SITE } from "../../../src/lib/opportunities/derive/fit";
 import { SAME_QUESTION_CALL_SITE } from "../../../src/lib/opportunities/derive/same-question";
 import { TYPING_CALL_SITE } from "../../../src/lib/opportunities/derive/typing";
-import { toolUseMessage } from "../../llm/fixtures";
+import { rawTextMessage, toolUseMessage } from "../../llm/fixtures";
 import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import { setOpportunityStore } from "../../../src/lib/opportunities/store";
 import { deriveOpportunities } from "../../../src/lib/opportunities/derive";
@@ -367,5 +367,19 @@ describe("a short site's top-up fills the week and its spares (re-run 9 committe
     expect((await weekCandidates(SITE_ID, AT)).length).toBeGreaterThanOrEqual(10);
     const week = await planWeek(SITE_ID, { now: AT, days: 7 });
     expect([week.filter((entry) => entry.plannedFor !== null).length, week.filter((entry) => entry.plannedFor === null).length]).toEqual([7, 3]);
+  }, 60_000);
+
+  it("a fit answer that never parses is forced, asked once more, and leaves every offer written unscored and its fit unmeasured (re-run 10)", async () => {
+    const fit: { tool_choice?: unknown }[] = [];
+    createMock.mockImplementation(async (request: { tools?: { name: string }[]; tool_choice?: unknown }) => {
+      const site = request.tools?.[0]?.name ?? "";
+      if (site === FIT_CALL_SITE) return fit.push(request), rawTextMessage("Here are the scores for each search.");
+      return toolUseMessage({ [BUYER_SEARCHES_CALL_SITE]: { problems: [], solutions: [] }, [TYPED_CALL_SITE]: { typed: [] }, [SAME_QUESTION_CALL_SITE]: { pairs: [] } }[site] ?? {}, 100, 50, site);
+    });
+    const terms = ["checklist", "email", "survey"].map((word, n) => ({ term: `onboarding ${word}`, volume: 40 + n }));
+    const { supply, created } = await deriveOpportunities(fakeCost().ctx, { ...input(), market: { buyer: "SaaS product teams", job: "Get new users to their first success", category: "user onboarding software", synonyms: [], differentiators: [], notOurMarket: [], categoryReason: "", rivals: [], terms }, topUp: {} });
+    expect(fit.map((request) => request.tool_choice)).toEqual([{ type: "tool", name: FIT_CALL_SITE }, { type: "tool", name: FIT_CALL_SITE }]);
+    expect(created.filter((row) => row.targetQuery?.startsWith("onboarding ")).map((row) => row.businessFit)).toEqual([null, null, null]);
+    expect(Object.values(supply.sources).map((counts) => counts.fit)).toEqual(Object.values(supply.sources).map(() => "unmeasured"));
   }, 60_000);
 });

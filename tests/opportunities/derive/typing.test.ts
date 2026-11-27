@@ -92,8 +92,8 @@ describe("the model labels, and the label goes through the cost seam", () => {
 
     const refined = await refineType(ctx, writeCandidate());
 
-    const sent = createMock.mock.calls[0]![0] as { tool_choice: { type: string }; tools: { name: string; strict: boolean }[] };
-    expect([sent.tool_choice, sent.tools[0]?.name, sent.tools[0]?.strict]).toEqual([{ type: "auto" }, TYPING_CALL_SITE, true]);
+    const sent = createMock.mock.calls[0]![0] as { tool_choice: unknown; tools: { name: string; strict: boolean }[] };
+    expect([sent.tool_choice, sent.tools[0]?.name, sent.tools[0]?.strict]).toEqual([{ type: "tool", name: TYPING_CALL_SITE }, TYPING_CALL_SITE, true]);
     expect(sources).toEqual([TYPING_CALL_SITE]);
     expect(refined.type).toBe("comparison_page");
     expect(refined.targetRef).toBe("appcues-vs-us");
