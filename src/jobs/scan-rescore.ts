@@ -20,7 +20,7 @@
 // network is refused while a scan is scored.
 //
 // The same tick re-commits each paying site's week once per planner deploy
-// (SPEC §7, `src/lib/scan/replan.ts`), after a dry run it logs; a held week is `replan-held`, a week with no day `replan-empty`. After it, once per
+// (SPEC §7, `src/lib/scan/replan.ts`), after a dry run it logs; a held week is `replan-held`, a week with no day `replan-empty`, each on the tick that claims it. After it, once per
 // standard deploy, it sets aside each waiting draft below the standard, so the draft tick writes its date again.
 import { activeSites, answerRescore, claimRescore, rescoreDue } from "@/jobs/engine";
 import type { JobDefinition, JobInput, Outcome } from "./types";
