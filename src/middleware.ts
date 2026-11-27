@@ -337,7 +337,7 @@ async function hostedRewrite(
  *  would be denying their own caller. `/api/jobs` matches its own
  *  `[[...slug]]` catch-all — the segment is optional. */
 function isAdapterPath(pathname: string): boolean {
-  if (pathname === "/api/stripe/webhook" || pathname === "/api/mail/webhook") return true;
+  if (pathname === "/api/stripe/webhook" || pathname === "/api/mail/webhook" || pathname === "/api/ops/trigger") return true;
   return pathname === "/api/jobs" || pathname.startsWith("/api/jobs/");
 }
 

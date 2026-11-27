@@ -9,7 +9,7 @@ import { applyEnvFixture } from "../mail/env-fixture";
 import { REST_URL, SERVICE_ROLE_KEY, loopbackFetch, psql, psqlRows } from "./substrate";
 
 const MIGRATIONS = path.resolve(import.meta.dirname, "../../supabase/migrations");
-const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "20261103150000_jobs_ops_events.sql"];
+const APPLIED = ["00000000000001_baseline.sql", "00000000000002_rls.sql", "00000000000004_sites_timezone_column.sql", "20261103150000_jobs_ops_events.sql", "20261127120000_jobs_box_trigger_claims.sql"];
 
 function run(sql: string): void {
   psql(["-v", "ON_ERROR_STOP=1", "-c", sql]);
@@ -24,13 +24,17 @@ function resetSchema(): void {
 }
 
 let events: typeof import("@/lib/ops/events");
+let trigger: typeof import("@/lib/ops/trigger");
+const SITE = "00000000-0000-4000-8000-0000000000b0";
 
 beforeAll(async () => {
   applyEnvFixture();
   process.env.SUPABASE_URL = REST_URL;
   process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_ROLE_KEY;
   globalThis.fetch = loopbackFetch as unknown as typeof fetch;
+  process.env.WEEKLY_RERUN_SITES = SITE;
   events = await import("@/lib/ops/events");
+  trigger = await import("@/lib/ops/trigger");
   resetSchema();
   for (const file of APPLIED) psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, file)]);
   run("NOTIFY pgrst, 'reload schema';");
@@ -82,5 +86,34 @@ describe("ops_events — the daily check's count of failed Settings reads", () =
     await events.releaseOpsEvent("week_recommitted", site, "2026-11-09");
     expect(await claim(site, "2026-11-09", "2026-11-10")).toBe(true);
     expect(value(`select count(*) from ops_events where kind = 'week_recommitted' and site_id = '${site}';`)).toBe("2");
+  });
+});
+
+describe("the box trigger: its own secret, the owner's daily caps, one send per claimed key", () => {
+  const sent: string[] = [];
+  const call = (body: object, secret: string | undefined = "s", authorization = "Bearer s") =>
+    trigger.boxTrigger({ authorization, secret, read: async () => JSON.stringify(body), now: new Date("2026-11-10T12:00:00Z"), send: async (_job, out) => void sent.push(...out.map((e) => e.key)) });
+  const claims = () => value("select count(*) from ops_events where kind = 'box_trigger';");
+
+  it("an unset or a wrong secret answers 401, claims nothing and sends nothing", async () => {
+    run(`insert into users (email, plan_status) values ('owner@example.com', 'active');
+      insert into sites (id, user_id, domain, timezone) select '${SITE}', id, 'reachkit.app', 'UTC' from users;`);
+    expect((await call({ kind: "test" }, undefined)).status).toBe(401);
+    expect((await call({ kind: "test" }, "s", "Bearer t")).status).toBe(401);
+    expect([claims(), sent.length]).toEqual(["0", 0]);
+  });
+
+  it("two re-runs claim two keys; the third answers 429 and is never sent", async () => {
+    const [first, second] = [await call({ kind: "rerun" }), await call({ kind: "rerun" })];
+    expect([first.status, second.status, first.body.key !== second.body.key]).toEqual([202, 202, true]);
+    expect(await call({ kind: "rerun" })).toMatchObject({ status: 429, body: { kind: "rerun", count: 2, cap: 2 } });
+    expect(sent).toEqual([first.body.key, second.body.key]);
+  });
+
+  it("the fifth test write answers 429; a repeat of a held claim is refused, so its key is sent once", async () => {
+    for (let i = 0; i < 4; i++) expect((await call({ kind: "test", date: "2026-11-12" })).status).toBe(202);
+    expect(await call({ kind: "test", date: "2026-11-12" })).toMatchObject({ status: 429, body: { kind: "test", count: 4, cap: 4 } });
+    expect(value(`set role service_role; select box_trigger_claim('${SITE}', 'test:2026-11-12:1', '{}', now());`)).toBe("f");
+    expect(sent.filter((key) => key === `draft:${SITE}:2026-11-12:test:1`)).toHaveLength(1);
   });
 });
