@@ -176,7 +176,7 @@ export interface RuleFailure {
     | { rule: "fit_claim"; sentences: string[] }
     /** A rival's figure without its page, as the draft has it, or what the sentence got wrong about the rival's source
      *  (a third party's page where the rival's own was read, or a claim without its plan) and the page's own sentence. */
-    | { rule: "rival_claim"; kind: "source"; figure: string; fault?: "third_party" | "plan"; sentence?: string }
+    | { rule: "rival_claim"; kind: "source"; figure: string; fault?: "third_party" | "plan" | "product" | "currency"; sentence?: string }
     /** The page's own sentence that denies a rival something. */
     | { rule: "rival_claim"; kind: "negative"; sentence: string }
     | { rule: "nothing_invented"; kind: InventedKind }

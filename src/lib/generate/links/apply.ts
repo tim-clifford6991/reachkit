@@ -59,6 +59,8 @@ export function applyLinks(
     appendMissing?: boolean;
     /** The heading of the business's own section the unreached pages are listed under; absent or not found, they close the body. */
     appendUnder?: string;
+    /** The site's other live pages: one the body names ("our … page") is linked there, within `CROSS_LINKS.SITE_MAX`. */
+    live?: readonly { url: string; label: string }[];
   }
 ): string {
   const chosen = new Map<string, LinkTarget>();
@@ -69,6 +71,11 @@ export function applyLinks(
   const grounded = a.groundedUrl === undefined ? null : urlKey(a.groundedUrl);
   const sources = new Set((a.factUrls ?? []).map(urlKey));
   const linked = new Set<string>();
+  const live = new Map<string, LinkTarget>();
+  for (const page of a.live ?? []) {
+    const key = urlKey(page.url);
+    if (key !== null && !chosen.has(key)) live.set(key, { source: "known", url: page.url, label: page.label });
+  }
 
   let inFence = false;
   const lines = markdown.split("\n").map((line) => {
@@ -88,7 +95,7 @@ export function applyLinks(
         return host === null ? token : `[${host}](${href})`;
       }
       const key = urlKey(absolute);
-      const target = key === null ? undefined : chosen.get(key);
+      const target = key === null ? undefined : (chosen.get(key) ?? live.get(key));
       if (key !== null && target !== undefined) {
         if (problem !== null || rewordsSlogan(label, target) || !namesTarget(label, target)) return problem === "empty" ? "" : label;
         linked.add(key);
@@ -98,6 +105,7 @@ export function applyLinks(
       return label;
     });
   });
+  linkMentions(lines, [...chosen.values(), ...live.values()], linked, (key) => chosen.has(key) || linked.size < CROSS_LINKS.SITE_MAX);
 
   // The site's own pages the body reached, and how many more it is owed.
   const reached = a.targets.filter((target) => {
@@ -129,6 +137,30 @@ export function applyLinks(
   }
   const body = lines.join("\n").replace(/\s+$/, "");
   return dedupeLinks(`${body}\n\n${list.join("\n")}\n`);
+}
+
+/** "our Acme alternatives page": a mention of one of the site's own pages, outside a code span or a link. */
+const MENTION_RE = /(`[^`]+`|\[[^\]\n]*\]\([^)\s]+\))|(?<![\p{L}\p{N}])(?:our|unsere[nmrs]?)\s+(?:[\p{L}\p{N}'’&-]+\s+){1,5}?(?:page|guide|Seite|Ratgeber)(?![\p{L}\p{N}])/giu;
+
+/** Each line with an unlinked mention of a page linked to it, where every word of the mention names that page and
+ *  `room` allows; a heading keeps its words. */
+function linkMentions(lines: string[], pages: readonly LinkTarget[], linked: Set<string>, room: (key: string) => boolean): void {
+  let inFence = false;
+  lines.forEach((line, index) => {
+    if (FENCE_RE.test(line)) inFence = !inFence;
+    if (inFence || /^[ \t]*#/.test(line)) return;
+    lines[index] = line.replace(MENTION_RE, (token: string, kept: string | undefined) => {
+      if (kept !== undefined) return token;
+      const words = linkWords(token).slice(1, -1);
+      const page = pages.find((each) => {
+        const key = urlKey(each.url);
+        return key !== null && !linked.has(key) && words.length > 0 && words.every((word) => namesTarget(word, each)) && room(key);
+      });
+      if (page === undefined) return token;
+      linked.add(urlKey(page.url)!);
+      return `[${token}](${safeHref(page.url)})`;
+    });
+  });
 }
 
 /** An address as a page is told apart: host and path, without its query or

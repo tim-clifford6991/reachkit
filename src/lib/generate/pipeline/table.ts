@@ -28,8 +28,8 @@
 //     plan's name and "price on request", linked to that page, so it keeps
 //     its row;
 //   * **the table is dated** (owner, D52; issue 1267): a line under it says
-//     when the prices were last checked — the day the oldest of the rivals'
-//     pages it stands on was read (`readAt`), so the date holds for every row;
+//     when the prices were last checked — the day the oldest of the pages its
+//     price cells cite was read (`readAt`), so the date holds for every row;
 //   * **a cell names its tier** (issue 1485): a rival's claim its own page
 //     states of one plan — a free trial, a starter tier — is shown under
 //     that plan's name, and *What it does* prefers a claim true of every
@@ -71,6 +71,8 @@ interface Option {
   baseline?: boolean;
   /** When this option's pages were read; the business's own row has none. */
   readAt: string[];
+  /** When the page its price cell cites was read. */
+  pricedAt?: string;
   cells: Partial<Record<Criterion, Cell>>;
 }
 
@@ -217,6 +219,7 @@ function rivalOption(pack: TablePack, domain: string): Option {
     name: rivalName(pack, domain),
     own: false,
     readAt: claims.map((claim) => claim.readAt),
+    ...((priced ?? custom) === undefined ? {} : { pricedAt: (priced ?? custom)!.readAt }),
     cells: {
       pricing:
         priced !== undefined
@@ -285,8 +288,10 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
   // What the page pass would take a row or a column out of is not a table
   // this page can stand on.
   if (completeTables(markdown) !== markdown) return null;
-  // ISO dates sort as text. A table always has a rival, and a rival a claim.
-  const oldest = options.flatMap((option) => option.readAt).sort()[0] ?? pack.builtAt;
+  // ISO dates sort as text. Prices are checked when the pages the price cells cite were read; a table without
+  // prices is dated by every page it stands on.
+  const priced = criteria.includes("pricing") ? options.flatMap((option) => (option.cells.pricing === undefined || option.pricedAt === undefined ? [] : [option.pricedAt])) : [];
+  const oldest = (priced.length > 0 ? priced : options.flatMap((option) => option.readAt)).sort()[0] ?? pack.builtAt;
   // D56: nothing here converts, so a table of more than one currency says so.
   const currencies = new Set(criteria.includes("pricing") ? options.flatMap((option) => [...currenciesOf(option.cells.pricing?.text ?? "")]) : []);
   return {

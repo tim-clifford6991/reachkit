@@ -297,7 +297,8 @@ export async function generateDraft(c: CostContext, a: GenerateInputs): Promise<
       ? { live: { title: pack.live.title, markdown: pack.live.markdown, year: new Date(pack.builtAt).getUTCFullYear() } }
       : {}),
   };
-  const linking = { domain: a.site.domain, targets: a.links, groundedUrl: grounding?.fact.url, factUrls: [...pack.facts.map((fact) => fact.url), ...(pack.fitFact?.url == null ? [] : [pack.fitFact.url])] };
+  const live = pack.pages.flatMap((page) => (page.status === "published" && page.url != null && page.title !== null ? [{ url: page.url, label: page.title }] : []));
+  const linking = { domain: a.site.domain, targets: a.links, live, groundedUrl: grounding?.fact.url, factUrls: [...pack.facts.map((fact) => fact.url), ...(pack.fitFact?.url == null ? [] : [pack.fitFact.url])] };
 
   /** The parts as the writer's words, tidied in code: the links held to the chosen pages, no table cell left empty,
    *  the closing line last. `lay` then makes the page of them (SPEC §7, issue 1137): a listicle's table is the one code

@@ -16,7 +16,8 @@
 // never anything a model wrote.
 import type { MarketFactRead } from "./brief";
 import { urlKey } from "../links/select";
-import { sentencesOf } from "./text";
+import { figuresOf } from "./figures";
+import { linksOf, renderOf, sentencesOf, sourceBlocksOf, splitSentences } from "./text";
 import type { RuleFailure } from "./types";
 
 /** A numeral a reader would meet as a figure: digits, optionally with
@@ -215,14 +216,59 @@ export function rivalScopeBreach(
   return null;
 }
 
+const CURRENCY_RE = /[$€£¥]|\b(?:USD|EUR|GBP|CHF|CAD|AUD|JPY)\b/g;
+const CURRENCY_CODE: Readonly<Record<string, string>> = { $: "USD", "€": "EUR", "£": "GBP", "¥": "JPY" };
+/** A comparison word or ratio between two amounts: double, half, 3×, 40% more. */
+const RATIO_RE = /\b(?:double[sd]?|twice|triple[sd]?|treble|thrice|half|halve[sd]?)\b|\d(?:[.,]\d+)?\s*(?:×|x\b|times\b)|\d\s*%\s*(?:more|less|cheaper|dearer|higher|lower|above|below)\b/i;
+
+/** Whether a text sets prices in two currencies against each other by a ratio: nothing converts them. */
+export function crossCurrencyRatio(text: string): boolean {
+  const currencies = new Set([...text.matchAll(CURRENCY_RE)].map((match) => CURRENCY_CODE[match[0]] ?? match[0].toUpperCase()));
+  return currencies.size > 1 && RATIO_RE.test(text);
+}
+
+/** Whether a stored claim is said of this product: read off its own page, about it, or naming it. */
+const credits = (fact: MarketFactRead, rival: NamedRival): boolean =>
+  fact.product === rival.domain || fact.about === rival.domain || rivalsNamedIn(fact.passage, [rival]).length > 0;
+
+/** The words of each sentence that credits a claim to a product its passage does not name: the claim is linked in a
+ *  sentence that names the product, or under a heading that does, and states its words or a figure of it. */
+export function misplacedClaims(markdown: string, rivals: readonly NamedRival[], facts: readonly MarketFactRead[]): Set<string> {
+  const out = new Set<string>();
+  let scope = { level: 0, rivals: [] as NamedRival[] };
+  for (const block of sourceBlocksOf(markdown)) {
+    const level = /^[ \t]*(#{1,6})[ \t]/.exec(block.raw)?.[1]?.length;
+    if (level !== undefined) {
+      // A product's own section is headed by its name ("2. Acme: best for teams"), never "Acme alternatives" or "Why
+      // look beyond Acme"; a sub-heading that heads no product stays in its product's section.
+      const words = renderOf(block.raw).replace(/^\s*\d+[.)]?\s*/, "").trim();
+      const named = /alternativ|\bvs\b|versus/i.test(words) ? [] : rivalsNamedIn(words, rivals).filter((rival) => rivalTokens(rival).some((token) => token.exec(words)?.index === 0));
+      if (named.length > 0 || level <= scope.level) scope = { level, rivals: named };
+      continue;
+    }
+    for (const piece of splitSentences(block.raw)) {
+      const text = renderOf(piece).replace(/\s+/g, " ").trim();
+      const subjects = [...new Set([...rivalsNamedIn(text, rivals), ...scope.rivals])];
+      if (subjects.length === 0) continue;
+      const cited = new Set(linksOf(piece).map(urlKey));
+      const values = new Set(figuresOf(text).flatMap((figure) => figure.values));
+      const carried = facts.filter((fact) => cited.has(urlKey(fact.url)) && (uses(text, fact) || figuresOf(fact.passage).some((figure) => figure.values.some((value) => values.has(value)))));
+      if (carried.length > 0 && !carried.some((fact) => subjects.some((rival) => credits(fact, rival)))) out.add(text);
+    }
+  }
+  return out;
+}
+
 export function checkRivalScope(a: {
   markdown: string;
   rivals: readonly NamedRival[];
   facts: readonly MarketFactRead[] | undefined;
 }): RuleFailure | null {
   if (a.rivals.length === 0 || a.facts === undefined || a.facts.length === 0) return null;
+  const misplaced = misplacedClaims(a.markdown, a.rivals, a.facts);
+  const compared = a.facts.some((fact) => crossCurrencyRatio(fact.passage));
   for (const sentence of sentencesOf(a.markdown)) {
-    const fault = rivalScopeBreach(sentence, a.rivals, a.facts);
+    const fault = rivalScopeBreach(sentence, a.rivals, a.facts) ?? (misplaced.has(sentence.text) ? "product" : !compared && crossCurrencyRatio(sentence.text) ? "currency" : null);
     if (fault === null) continue;
     return { rule: "rival_claim", detail: { rule: "rival_claim", kind: "source", figure: firstFigure(sentence.text) ?? "", fault, sentence: sentence.text } };
   }

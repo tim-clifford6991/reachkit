@@ -140,6 +140,15 @@ describe.each(PANEL)("rival claims for $kind", (c) => {
     expect(checkRivalScope({ markdown: `${link(c.review.quote, c.review.url)}.`, rivals, facts: withReview })?.detail).toMatchObject({ fault: "third_party" });
   });
 
+  it("a claim is credited only to a product its passage names, and two currencies are never set in a ratio", () => {
+    const roundup = { url: "https://roundup.example/best", passage: "The Pro plan costs $49 a month for five seats." };
+    const scope = (markdown: string) => checkRivalScope({ markdown, rivals, facts: [...factsOf(c), roundup] })?.detail;
+    expect(scope(`## ${c.rival.name}\n\nThe Pro plan costs ${link("$49 a month", roundup.url)}.`)).toMatchObject({ fault: "product" });
+    expect(scope(`## How the field prices\n\nOne roundup found ${link("the Pro plan costs $49 a month", roundup.url)}.`)).toBeUndefined();
+    expect(scope(`${c.rival.name} costs $49 a month, nearly double our €29.`)).toMatchObject({ fault: "currency" });
+    expect(scope(`${c.rival.name} costs $49 a month; we charge €29.`)).toBeUndefined();
+  });
+
   it("the table names the tier a rival's cell shows", () => {
     const claims: PackClaim[] = factsOf(c).map((fact) => ({ ...fact, title: c.rival.name }));
     const other: PackClaim = { passage: "Weekly reports for every client.", url: "https://other.example/features", title: "Other", readAt: TODAY.toISOString(), kind: "rival_features", product: "other.example", plan: null };
