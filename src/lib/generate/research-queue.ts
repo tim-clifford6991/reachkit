@@ -165,20 +165,15 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
     const serp = await cachedSerp(researchSerps({ siteId, locale, target }, 0)[0]!, DRAFT_POLICY_VERSION);
     if (serp === null) return null;
     // A comparison's own products' pages are its first-hand evidence, never an independent source; other rivals' stay out.
-    const compared = new Set(site === null || report === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? []));
-    const ofCompared = (url: string) => compared.has(registrableDomain(url) ?? "") && (site === null || !isOwnDomain(url, site.domain));
+    const compared = new Set(site === null || report === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? [])),
+      ofCompared = (url: string) => compared.has(registrableDomain(url) ?? "") && (site === null || !isOwnDomain(url, site.domain));
     const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && (foreign(url) || ofCompared(url)));
     const held = await Promise.all(urls.map(cached));
     if (held.some((page) => page === undefined)) return null;
     const rivals = site === null || report === null ? [] : versusRivals(site, report, { targetQuery: target, absorbedQueries: [], title: null });
     if (rivals.length > 0 && cost === undefined) return null;
-    const topic = words(target);
-    const readable = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => {
-      const language = languageOfText(page.text);
-      return page.text.split(/\s+/).length >= READ.words && (language === null || language === locale.language);
-    });
-    const own = readable.filter((page) => ofCompared(page.url));
-    const pages = readable.filter((page) => !ofCompared(page.url) && holds(topic, page.title));
+    const topic = words(target), readable = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => page.text.split(/\s+/).length >= READ.words && [null, locale.language].includes(languageOfText(page.text)));
+    const [own, pages] = [readable.filter((page) => ofCompared(page.url)), readable.filter((page) => !ofCompared(page.url) && holds(topic, page.title))];
     const firstHand = await Promise.all(rivals.map((domain) => own.some((page) => registrableDomain(page.url) === registrableDomain(domain)) || ownPageRead(domain)));
     const questions: string[] = [];
     for (const asked of [...(serp.peopleAlsoAsk ?? []), ...pages.flatMap((page) => (page.headings ?? []).filter(isQuestionShaped))]) {
