@@ -30,7 +30,7 @@ const SCHEMA = z.strictObject({
   ),
 });
 
-const TASK = [`Each of \`searches\` is a page this business will write this week. For each, give \`angles\`: ${ANGLE_ASK.pages}`, ANGLE_ASK.title, "A search with `news` is a page on that event: its title names `news.event` and a figure `news.claims` state, and answers the search's own question."].join(" ");
+const TASK = [`Each of \`searches\` is a page this business will write this week. For each, give \`angles\`: ${ANGLE_ASK.pages}`, ANGLE_ASK.title, "A search with `news` is a page on that event: its title leads with `news.event` and a figure `news.claims` state, then the reader's outcome (\"{Event} Cut {What} {Figure}: How to …\"), and never this business's product, cadence or method."].join(" ");
 const RETRY = [
   TASK,
   "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the search's words, with or without a break, what it sells or promises, or a buyer the site does not state; promise_figure, a price leading a page not about price, or a news page's title without its event and a figure its claims state; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; ask, it drops a word the search asks for, or the question it asks; fact, its passage was not shown. Give new angles that pass them.",
@@ -170,11 +170,13 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
 /** What a stored title fails of the gates an angle is ranked by. */
 const storedFaults = (title: string, a: AngleContext): string[] => (title === "" ? ["empty"] : angleGates({ pattern: "P2", title, promise: "", fact: null }, a));
 
-/** A stored title gives way only to an angle with fewer faults, never to the fallback. A stored title that restates its search, or names what no source holds, always does. */
+/** A stored title gives way only to an angle with fewer faults, or as many where it sells the business or drops a news page's figure and the angle does not; never
+ *  to the fallback. A stored title that restates its search, or names what no source holds, always does. */
 function keepsStored(stored: string, angle: ReturnType<typeof pickAngle>, a: AngleContext): boolean {
   const held = storedFaults(stored, a);
   if (stored === "" || held.some((gate) => gate === "restates" || UNSUPPORTED.includes(gate))) return angle === null && stored !== "";
-  return angle === null || angle.faults.length >= held.length;
+  const worse = held.some((gate) => (gate === "claim" || gate === "promise_figure") && !angle?.faults.includes(gate));
+  return angle === null || angle.faults.length > held.length || (angle.faults.length === held.length && !worse);
 }
 
 /** A stored title to ask again: none, one that fails a gate (its search restated, the fallback, among them; a word the
