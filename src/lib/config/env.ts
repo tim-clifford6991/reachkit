@@ -115,6 +115,8 @@ const schema = z.object({
   // The mail vendor's webhook signing secret. `.optional()`: without it every
   // webhook is refused, and mail goes out as before.
   RESEND_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // The box's token for `/api/ops/trigger`, never the event key. `.optional()`: unset, every call is refused.
+  BOX_TRIGGER_SECRET: z.string().min(1).optional(),
   // ReachKit verifies every hosted host in Search Console under its own
   // account. The binding is the service-account key JSON, or a JSON array of
   // them: Search Console holds 1,000 properties per account, so the array is
@@ -160,6 +162,8 @@ const SERVER_ONLY_KEYS = [
   "ANTHROPIC_ADMIN_KEY",
   // A signing secret is what makes a forged bounce unacceptable.
   "RESEND_WEBHOOK_SECRET",
+  // A token that starts a paid re-run or test write.
+  "BOX_TRIGGER_SECRET",
   // A service-account key that acts on every verified host.
   "GOOGLE_SEARCH_CONSOLE_KEYS",
 ] as const satisfies readonly (keyof Env)[];

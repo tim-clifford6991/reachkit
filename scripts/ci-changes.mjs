@@ -72,7 +72,7 @@ const DB = [
   /^src\/lib\/config\/((env|now|constants)\.ts$|constants\/)/,
   /^src\/lib\/opportunities\/(verdicts\/)?types\.ts$/,
   /^src\/lib\/(opportunities\/store|hot\/offer)\.ts$/,
-  /^src\/lib\/ops\/events\.ts$/,
+  /^src\/lib\/ops\/(events|trigger)\.ts$/,
   /^scripts\/lib\/budgets\.mjs$/,
   /^src\/lib\/costs\/(index|daily|ledger)\.ts$/,
   /^src\/lib\/measure\/text-store\.ts$/,
