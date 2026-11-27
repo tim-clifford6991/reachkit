@@ -4,11 +4,8 @@
 // domain whose ranked count ≤ max(500, 5× customer's). Bands
 // (Winnable/Reach/Not-yet)".
 //
-// Only a `measured` or `zero` count can satisfy a bar (see `counts.ts`).
-// An all-`unmeasured` top ten therefore does not qualify — and the caller
-// must be able to tell that case from a top ten of large rivals, because
-// the two mean different things: one is a market we could not read, the
-// other a market we read and found too hard. `assess()` returns which.
+// Only a `measured` or `zero` count can satisfy a bar (see `counts.ts`), so an
+// all-`unmeasured` top ten does not qualify; `assess()` says which of the two it was.
 //
 // Right-sizing (SPEC §6, 2026-09-16, #779): the bars above measure the
 // competition against the site's own footprint; `demandBand` measures the
@@ -27,21 +24,10 @@ import type { Measured } from "@/lib/measure/measured";
 import type { Winnability } from "../types";
 import { difficultyCeiling, qualifyingBar, qualifyingDemand, winnableBar, winnableDemand, winnableDifficulty } from "./bars";
 
-/** A count that may be compared against a bar at all. `zero` counts — a
- *  domain that ranks for nothing — are real values and are the smallest
- *  possible, so they satisfy every bar. */
-function comparable(count: Measured<number>): number | null {
-  return count.kind === "unmeasured" ? null : count.value;
-}
-
+/** The smallest count a bar can be compared against; a `zero` count is real and satisfies every bar. */
 function smallestComparable(counts: readonly Measured<number>[]): number | null {
-  let smallest: number | null = null;
-  for (const count of counts) {
-    const value = comparable(count);
-    if (value === null) continue;
-    if (smallest === null || value < smallest) smallest = value;
-  }
-  return smallest;
+  const values = counts.flatMap((count) => (count.kind === "unmeasured" ? [] : [count.value]));
+  return values.length === 0 ? null : Math.min(...values);
 }
 
 /** True where at least one top-ten domain has a readable ranked count at or
@@ -54,13 +40,8 @@ export function qualifies(a: {
   return smallest !== null && smallest <= qualifyingBar(a.ownRanked);
 }
 
-/**
- * The band. `winnable` where the smallest readable count clears the tighter
- * bar, `reach` where it clears only the qualifying bar, `not-yet`
- * otherwise — including a top ten we could not read at all, which is a
- * `not-yet` for the caller and an `unmeasured_top10` rejection for the
- * counter. `assess()` is the call that keeps those two apart.
- */
+/** The band: `winnable` where the smallest readable count clears the tighter bar, `reach` the qualifying one,
+ *  `not-yet` otherwise, a top ten nobody could read included. */
 export function bandWinnability(a: {
   top10RankedCounts: readonly Measured<number>[];
   ownRanked: number;
@@ -154,8 +135,7 @@ export function assess(a: {
   return { qualified: true, band: rightSizedBand(a) };
 }
 
-/** The band an assessed target ranks in: below the bars it ranks as outsized; a top ten nobody could size leaves it unbanded, never read as 0. */
-export function bandOf(verdict: Assessment): Winnability | null {
-  if (verdict.qualified) return verdict.band;
-  return verdict.because === "unmeasured_top10" ? null : "not-yet";
+/** The band an assessed target ranks in: below the bars, or over a top ten nobody could size, it ranks last with the outsized. */
+export function bandOf(verdict: Assessment): Winnability {
+  return verdict.qualified ? verdict.band : "not-yet";
 }

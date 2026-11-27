@@ -215,7 +215,7 @@ async function readPage(
     query: evidence.query,
     volume: evidence.volume,
     ...(answered === undefined ? {} : { answeredBy: copy(answered) }),
-    ...(choice.fitBand === null ? {} : { chances: copy(BAND_LABELS.winnability[choice.fitBand]) }),
+    ...(choice.fitBand === null || evidence.target?.topTen !== undefined ? {} : { chances: copy(BAND_LABELS.winnability[choice.fitBand]) }),
     ...(source === undefined ? {} : { writtenFrom: source }),
   };
 

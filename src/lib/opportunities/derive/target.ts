@@ -57,6 +57,7 @@ export function targetFactsOf(a: {
   ownRanked: number;
   answerRow: AnswerRow | undefined;
   at: Date;
+  unsized?: boolean;
 }): TargetFacts {
   const difficulty: Measured<number> =
     a.difficulty === undefined ? unmeasured<number>("undeterminable", a.at) : measured(a.difficulty, a.at);
@@ -64,5 +65,6 @@ export function targetFactsOf(a: {
     difficulty,
     ceiling: difficultyCeiling(a.ownRanked),
     engines: enginesOf(a.answerRow),
+    ...(a.unsized === true ? { topTen: { kind: "unmeasured" as const, reason: "undeterminable" as const, at: a.at } } : {}),
   };
 }
