@@ -325,7 +325,11 @@ describe("ADR-050 · issue #180 — the weekly selection decides who pays, throu
   it("a re-run whose news read finds nothing keeps the week's change, and its pass row holds each story's outcome", async () => {
     clearRows();
     const site = givenSite("market", "2026-12-31T00:00:00Z"), week = { siteId: site, weekStart: "2026-11-23", now: new Date("2026-11-27T08:00:00Z") };
-    const [monday, rerun] = ["monday", "rerun"].map(() => psqlRows(`insert into scans (site_id, domain, tier, status) values ('${site}', 'market.example.com', 'weekly', 'done') returning id;`)[0]![0]!);
+    const scan = () => psqlRows(`insert into scans (site_id, domain, tier, status) values ('${site}', 'market.example.com', 'weekly', 'done') returning id;`)[0]![0]!;
+    const [monday, rerun] = [scan(), scan()];
+    // PostgREST reads the tables this suite applied only once its schema cache reloads.
+    psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
+    await new Promise((resolve) => setTimeout(resolve, 300));
     const { claimMarketWeek } = await import("../../../src/lib/scan/weekly/store");
     const { storeWeek } = await import("../../../src/lib/scan/weekly/market-changes");
     const claims = ["a.com", "b.com"].map((host) => ({ url: `https://${host}/x`, publisher: host, publishedAt: "2026-11-24", quote: "Acme 5 ships today." }));
