@@ -29,7 +29,7 @@ import { answerBoxOf, renumberSteps } from "../rules/blocks";
 import { brandTokens, namesBrand } from "../rules/brand";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "../rules/people";
 import type { ProseRuleInputs } from "../rules/prose";
-import { checkRivalNegative, checkRivalScope, checkRivalSource, deniedRivals, factPageKeys, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
+import { checkRivalNegative, checkRivalScope, checkRivalSource, deniedRivals, factPageKeys, misplacedClaims, namedRivals, unsourcedRivalFigure, type NamedRival } from "../rules/rivals";
 import {
   blocksOf,
   hasLink,
@@ -236,7 +236,9 @@ function withoutUnsourcedRivals(markdown: string, inputs: RepairInputs): string 
   const rivals = inputs.rivals ?? [];
   const named = inputs.rivalsNamed ?? namedRivals(rivals, null);
   const factPages = [...inputs.sources.map((source) => source.url), ...(inputs.brief.marketFacts ?? []).map((fact) => fact.url)];
-  return withoutRivalBreaches(markdown, (piece) => checkRivalSource({ markdown: piece, rivals: [...rivals], factPages }) !== null || checkRivalScope({ markdown: piece, rivals: named, facts: inputs.brief.marketFacts }) !== null, inputs.prose?.language);
+  // A claim credited by its section's heading is read on the whole page; handed alone, a sentence has none.
+  const misplaced = misplacedClaims(markdown, named, inputs.brief.marketFacts ?? []);
+  return withoutRivalBreaches(markdown, (piece) => misplaced.has(wordsOf(piece)) || checkRivalSource({ markdown: piece, rivals: [...rivals], factPages }) !== null || checkRivalScope({ markdown: piece, rivals: named, facts: inputs.brief.marketFacts }) !== null, inputs.prose?.language);
 }
 
 /** The page without each sentence a rival rule still fails handed alone; a table keeps its block and loses only such a row. */

@@ -41,6 +41,7 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
     "Name a competing product only where `pack.claims` holds a claim from that product's own page (`pack.products` lists them), and say what that page says. Never state a figure about a competitor without linking the page it was read from.",
     "A claim with a `plan` is true of that plan only: name the plan in the sentence that states it (\"its free trial includes …\"), and never present a trial, a starter tier or one plan's limits as the whole product. Where `pack.claims` holds a competitor's own page, cite that page for it and no other page's claim about it.",
     "Never say a competitor has no, lacks or does not offer something unless a claim in `pack.claims` says so, linked in that same sentence. A page that does not mention a thing is not a page saying the product lacks it.",
+    "Put a claim under a product, in its section or its sentence, only where the claim's own words name that product. Set two prices in different currencies side by side, never as double, half or a percentage of each other.",
   ],
   nothing_invented: (a) => [
     "Never invent a byline, an author biography, a persona or a quotation. The page prints its own byline and dates: write neither.",

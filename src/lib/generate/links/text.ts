@@ -142,7 +142,19 @@ export function pageName(page: { url: string; title: string; h1: string }): stri
   return said[0] ?? "";
 }
 
-const CODE_OR_NUMBER_LINK_RE = /(`[^`]+`)|\[(\s*[\d.,]+%?\s*)\]\(([^)\s]+)\)/g;
+const CODE_OR_NUMBER_LINK_RE = /(`[^`]+`)|\[(\s*[\d.,]+[%+]?\s*)\]\(([^)\s]+)\)/g;
+/** A link with the rest of its figure outside it: "$[40](u)", "[40](u),000+". */
+const SPLIT_FIGURE_RE = /(`[^`]+`)|([\p{Sc}~≈+]?)\[([^\]\n]*)\]\(([^)\s]+)\)((?:[.,]\d+)*[+%]?)/gu;
+
+/** The line with each figure a link's text cuts taken whole into the link: no link ends inside a figure. */
+export function wholeFigureLinks(line: string): string {
+  return line.replace(SPLIT_FIGURE_RE, (token: string, code: string | undefined, lead: string, label: string, href: string, tail: string) => {
+    if (code !== undefined) return token;
+    const before = /^\d/.test(label) ? lead : "";
+    const after = /\d$/.test(label) ? tail : "";
+    return `${lead.slice(before.length)}[${before}${label}${after}](${href})${tail.slice(after.length)}`;
+  });
+}
 /** Up to five words after the figure, read as far as the next punctuation. */
 const AFTER_RE = /^((?:[ \t]+[\p{L}\p{N}][\p{L}\p{N}'’%-]*){1,5})/u;
 const BEFORE_RE = /((?:[\p{L}\p{N}][\p{L}\p{N}'’-]*[ \t]+){1,3})$/u;
@@ -172,7 +184,7 @@ export function unglueLinks(line: string): string {
  * is not a figure, and is unwrapped first.
  */
 export function widenNumberLinks(given: string): string {
-  const line = unglueLinks(given);
+  const line = unglueLinks(wholeFigureLinks(given));
   let out = "";
   let from = 0;
   CODE_OR_NUMBER_LINK_RE.lastIndex = 0;

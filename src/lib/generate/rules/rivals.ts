@@ -1,22 +1,9 @@
-// BUILD §8 hard rule 6 — no invented rival metrics.
-//
-// "No rival metrics invented; every rival claim links its public source."
-// A statement that names a rival and carries a numeral must carry a link in
-// **the same sentence** — and, since the two pools (SPEC §7, 2026-09-29;
-// issue 1135), that link is to a page one of the page's facts was read from.
-// The research step supplies those pages; an address the model reached for
-// on its own sources nothing.
-//
-// Sentence rather than paragraph, deliberately: a paragraph-wide scope lets
-// one sourced figure legitimise three unsourced ones standing beside it,
-// which is the failure the rule exists to prevent.
-//
-// The figure the failure carries is the numeral as it appears in the draft
-// — a stored value read straight out of the text, never a sentence and
-// never anything a model wrote.
+// BUILD §8 hard rule 6: no rival metric invented, and every rival claim links, in the same sentence, a page one of
+// the page's facts was read from. A sentence, not a paragraph, so one sourced figure never covers its neighbours.
 import type { MarketFactRead } from "./brief";
 import { urlKey } from "../links/select";
-import { sentencesOf } from "./text";
+import { figuresOf } from "./figures";
+import { linksOf, renderOf, sentencesOf, sourceBlocksOf, splitSentences } from "./text";
 import type { RuleFailure } from "./types";
 
 /** A numeral a reader would meet as a figure: digits, optionally with
@@ -80,27 +67,9 @@ export function checkRivalSource(a: {
   return null;
 }
 
-// ── Issue 1485: a rival's claim keeps its plan and its own page ─────────
-//
-// Found live on content.reachkit.app/profound-alternatives: Profound's
-// free trial ("50 prompts run daily for 7 days", three engines) stood as the
-// product, a third-party "$99" stood beside Profound's own pricing page, and
-// the FAQ said Profound has no free tier — which its own page contradicts.
-//
-// Three faults of `rival_claim`, beside a figure without its page:
-//
-//   * **its own page first.** A sentence that names a rival and links a page
-//     that is not that rival's, where the page was handed a claim from the
-//     rival's own page, cites the lesser source. It fails.
-//   * **its plan.** A claim the rival's own page states of one plan is true
-//     of that plan only. A sentence that uses it without naming the plan
-//     fails. A claim from a rival's price list recorded before plans were
-//     has no plan to name, and is used only where its own words name the
-//     plan they price ("Standard $ 189 /month").
-//   * **a denial.** "X has no / doesn't / lacks Y" about a rival
-//     fails unless a stored fact about that rival says so: one read off its
-//     own page or naming it, that denies something too and shares a word
-//     with what the sentence denies.
+// Beside a figure without its page, `rival_claim` fails a sentence that cites a lesser page for a rival whose own page
+// was read, uses one plan's claim without naming the plan, credits a claim to a product its passage does not name,
+// sets two currencies in a ratio, or denies a rival something no stored fact about it denies.
 
 /** A rival as the site's market names it: its domain, and its name where
  *  one is stored. */
@@ -215,14 +184,59 @@ export function rivalScopeBreach(
   return null;
 }
 
+const CURRENCY_RE = /[$€£¥]|\b(?:USD|EUR|GBP|CHF|CAD|AUD|JPY)\b/g;
+const CURRENCY_CODE: Readonly<Record<string, string>> = { $: "USD", "€": "EUR", "£": "GBP", "¥": "JPY" };
+/** A comparison word or ratio between two amounts: double, half, 3×, 40% more. */
+const RATIO_RE = /\b(?:double[sd]?|twice|triple[sd]?|treble|thrice|half|halve[sd]?)\b|\d(?:[.,]\d+)?\s*(?:×|x\b|times\b)|\d\s*%\s*(?:more|less|cheaper|dearer|higher|lower|above|below)\b/i;
+
+/** Whether a text sets prices in two currencies against each other by a ratio: nothing converts them. */
+export function crossCurrencyRatio(text: string): boolean {
+  const currencies = new Set([...text.matchAll(CURRENCY_RE)].map((match) => CURRENCY_CODE[match[0]] ?? match[0].toUpperCase()));
+  return currencies.size > 1 && RATIO_RE.test(text);
+}
+
+/** Whether a stored claim is said of this product: read off its own page, about it, or naming it. */
+const credits = (fact: MarketFactRead, rival: NamedRival): boolean =>
+  fact.product === rival.domain || fact.about === rival.domain || rivalsNamedIn(fact.passage, [rival]).length > 0;
+
+/** The words of each sentence that credits a claim to a product its passage does not name: the claim is linked in a
+ *  sentence that names the product, or under a heading that does, and states its words or a figure of it. */
+export function misplacedClaims(markdown: string, rivals: readonly NamedRival[], facts: readonly MarketFactRead[]): Set<string> {
+  const out = new Set<string>();
+  let scope = { level: 0, rivals: [] as NamedRival[] };
+  for (const block of sourceBlocksOf(markdown)) {
+    const level = /^[ \t]*(#{1,6})[ \t]/.exec(block.raw)?.[1]?.length;
+    if (level !== undefined) {
+      // A product's own section is headed by its name ("2. Acme: best for teams"), never "Acme alternatives" or "Why
+      // look beyond Acme"; a sub-heading that heads no product stays in its product's section.
+      const words = renderOf(block.raw).replace(/^\s*\d+[.)]?\s*/, "").trim();
+      const named = /alternativ|\bvs\b|versus/i.test(words) ? [] : rivalsNamedIn(words, rivals).filter((rival) => rivalTokens(rival).some((token) => token.exec(words)?.index === 0));
+      if (named.length > 0 || level <= scope.level) scope = { level, rivals: named };
+      continue;
+    }
+    for (const piece of splitSentences(block.raw)) {
+      const text = renderOf(piece).replace(/\s+/g, " ").trim();
+      const subjects = [...new Set([...rivalsNamedIn(text, rivals), ...scope.rivals])];
+      if (subjects.length === 0) continue;
+      const cited = new Set(linksOf(piece).map(urlKey));
+      const values = new Set(figuresOf(text).flatMap((figure) => figure.values));
+      const carried = facts.filter((fact) => cited.has(urlKey(fact.url)) && (uses(text, fact) || figuresOf(fact.passage).some((figure) => figure.values.some((value) => values.has(value)))));
+      if (carried.length > 0 && !carried.some((fact) => subjects.some((rival) => credits(fact, rival)))) out.add(text);
+    }
+  }
+  return out;
+}
+
 export function checkRivalScope(a: {
   markdown: string;
   rivals: readonly NamedRival[];
   facts: readonly MarketFactRead[] | undefined;
 }): RuleFailure | null {
   if (a.rivals.length === 0 || a.facts === undefined || a.facts.length === 0) return null;
+  const misplaced = misplacedClaims(a.markdown, a.rivals, a.facts);
+  const compared = a.facts.some((fact) => crossCurrencyRatio(fact.passage));
   for (const sentence of sentencesOf(a.markdown)) {
-    const fault = rivalScopeBreach(sentence, a.rivals, a.facts);
+    const fault = rivalScopeBreach(sentence, a.rivals, a.facts) ?? (misplaced.has(sentence.text) ? "product" : !compared && crossCurrencyRatio(sentence.text) ? "currency" : null);
     if (fault === null) continue;
     return { rule: "rival_claim", detail: { rule: "rival_claim", kind: "source", figure: firstFigure(sentence.text) ?? "", fault, sentence: sentence.text } };
   }

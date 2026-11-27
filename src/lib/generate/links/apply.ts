@@ -1,40 +1,14 @@
-// SPEC §7 Rules ("No link known to go nowhere", "one serialiser for
-// screen, copy-as-HTML and copy-as-Markdown", 2026-09-12; *Descriptive link
-// text*, 2026-10-10, issue 1391).
-//
-// Holds a finished body to the link list `select.ts` chose. The model is
-// told the list; this is what makes it true of the page whatever the model
-// did with it.
-//
-// **Three passes over the body's own Markdown, and nothing else.**
-//
-//   1. Every link's text is held to `text.ts`. A bare figure takes in the
-//      words it counts. A link into the customer's site whose text says
-//      nothing of the page — "here", an address, or the page's slogan
-//      reworded — is unwrapped: the sentence stands and the link does not.
-//      A link elsewhere with such text is named by its host.
-//   2. Every link into the customer's own site — an absolute address on
-//      their domain, or a site-relative `/path` — that is not a chosen
-//      target and not the grounded source is unwrapped to its label, and so
-//      is a link to a chosen target whose words share none with that
-//      page's name, headings or address — a price is not a page. A
-//      path the model guessed is exactly the dead link the rule forbids. A
-//      chosen target written relatively is rewritten absolute: the hosted
-//      destination serves from a subdomain, where `/pricing` is not theirs.
-//   3. The writer links a page where a sentence speaks to it, so most
-//      chosen pages are linked in the text. Where the body links fewer of
-//      the site's own pages than `CROSS_LINKS.SITE_MIN`, the best of the
-//      rest are listed until it holds that many, each under the page's own
-//      name; an earlier page of the cluster the body did not reach is
-//      listed too.
-//
-// Links to anywhere else — a rival's page a figure is sourced from — keep
-// their address: those are the hard rules' business.
-//
-// The result is Markdown, written in the grammar the one renderer
-// (`src/lib/publish/render/markdown.ts`) parses. It is stored as the
-// draft's body, so the screen, copy-as-HTML, copy-as-Markdown and every
-// destination read the same links from the same string.
+// SPEC §7 (no link known to go nowhere; descriptive link text): holds a finished body to the link list `select.ts`
+// chose, whatever the model did with it. Three passes over the body's own Markdown:
+//   1. A link's text is held to `text.ts`: a bare figure takes in the words it counts, and an on-site link whose text
+//      says nothing of the page is unwrapped; one elsewhere is named by its host.
+//   2. A link into the customer's site that is neither a chosen target, a live page, nor a fact's source is unwrapped,
+//      as is one whose words share none with its page; a relative target is made absolute. A mention of a chosen or
+//      live page ("our … page") is linked to it.
+//   3. Where the body links fewer site pages than `CROSS_LINKS.SITE_MIN`, the best of the rest are listed under their
+//      own names, with any earlier cluster page it did not reach.
+// Links elsewhere keep their address: those are the hard rules' business. The result is the stored body, so every
+// surface reads the same links from one string.
 import { CROSS_LINKS } from "@/lib/config/constants";
 import { onSite, urlKey, type LinkTarget } from "./select";
 import { isSlogan, linkTextProblem, linkWords, resembles, sameWord, widenNumberLinks } from "./text";
@@ -59,6 +33,8 @@ export function applyLinks(
     appendMissing?: boolean;
     /** The heading of the business's own section the unreached pages are listed under; absent or not found, they close the body. */
     appendUnder?: string;
+    /** The site's other live pages: one the body names ("our … page") is linked there, within `CROSS_LINKS.SITE_MAX`. */
+    live?: readonly { url: string; label: string }[];
   }
 ): string {
   const chosen = new Map<string, LinkTarget>();
@@ -69,6 +45,11 @@ export function applyLinks(
   const grounded = a.groundedUrl === undefined ? null : urlKey(a.groundedUrl);
   const sources = new Set((a.factUrls ?? []).map(urlKey));
   const linked = new Set<string>();
+  const live = new Map<string, LinkTarget>();
+  for (const page of a.live ?? []) {
+    const key = urlKey(page.url);
+    if (key !== null && !chosen.has(key)) live.set(key, { source: "known", url: page.url, label: page.label });
+  }
 
   let inFence = false;
   const lines = markdown.split("\n").map((line) => {
@@ -88,7 +69,7 @@ export function applyLinks(
         return host === null ? token : `[${host}](${href})`;
       }
       const key = urlKey(absolute);
-      const target = key === null ? undefined : chosen.get(key);
+      const target = key === null ? undefined : (chosen.get(key) ?? live.get(key));
       if (key !== null && target !== undefined) {
         if (problem !== null || rewordsSlogan(label, target) || !namesTarget(label, target)) return problem === "empty" ? "" : label;
         linked.add(key);
@@ -98,6 +79,7 @@ export function applyLinks(
       return label;
     });
   });
+  linkMentions(lines, [...chosen.values(), ...live.values()], linked, (key) => chosen.has(key) || linked.size < CROSS_LINKS.SITE_MAX);
 
   // The site's own pages the body reached, and how many more it is owed.
   const reached = a.targets.filter((target) => {
@@ -129,6 +111,30 @@ export function applyLinks(
   }
   const body = lines.join("\n").replace(/\s+$/, "");
   return dedupeLinks(`${body}\n\n${list.join("\n")}\n`);
+}
+
+/** "our Acme alternatives page": a mention of one of the site's own pages, outside a code span or a link. */
+const MENTION_RE = /(`[^`]+`|\[[^\]\n]*\]\([^)\s]+\))|(?<![\p{L}\p{N}])(?:our|unsere[nmrs]?)\s+(?:[\p{L}\p{N}'’&-]+\s+){1,5}?(?:page|guide|Seite|Ratgeber)(?![\p{L}\p{N}])/giu;
+
+/** Each line with an unlinked mention of a page linked to it, where every word of the mention names that page and
+ *  `room` allows; a heading keeps its words. */
+function linkMentions(lines: string[], pages: readonly LinkTarget[], linked: Set<string>, room: (key: string) => boolean): void {
+  let inFence = false;
+  lines.forEach((line, index) => {
+    if (FENCE_RE.test(line)) inFence = !inFence;
+    if (inFence || /^[ \t]*#/.test(line)) return;
+    lines[index] = line.replace(MENTION_RE, (token: string, kept: string | undefined) => {
+      if (kept !== undefined) return token;
+      const words = linkWords(token).slice(1, -1);
+      const page = pages.find((each) => {
+        const key = urlKey(each.url);
+        return key !== null && !linked.has(key) && words.length > 0 && words.every((word) => namesTarget(word, each)) && room(key);
+      });
+      if (page === undefined) return token;
+      linked.add(urlKey(page.url)!);
+      return `[${token}](${safeHref(page.url)})`;
+    });
+  });
 }
 
 /** An address as a page is told apart: host and path, without its query or
@@ -237,22 +243,8 @@ function safeLabel(label: string): string {
   return label.replace(/[[\]]/g, "").replace(/\s+/g, " ").trim();
 }
 
-/**
- * An address the inline grammar reads back whole.
- *
- * **Both parentheses, since issue 929.** The hand-written grammar ended a
- * link at the first `)`, so encoding that one was enough. The parser is
- * CommonMark now (`src/lib/publish/render/markdown.ts`), and its rule is
- * different: an unwrapped destination may contain parentheses only in
- * **balanced** pairs, so a URL with a lone `(` — which
- * `https://…/widget_(v2)` becomes the moment its `)` is encoded — is not a
- * destination at all and the whole link reads as literal text.
- *
- * Encoding both leaves an address with no parentheses in it, which every
- * Markdown parser reads back the same way and which resolves to the same
- * URL. Whitespace is encoded for the reason it always was: a space ends a
- * destination in CommonMark too.
- */
+/** An address every Markdown parser reads back whole: CommonMark allows only balanced parentheses in a destination and
+ *  ends one at a space, so both parentheses and whitespace are encoded. */
 function safeHref(url: string): string {
   return url.replace(/\(/g, "%28").replace(/\)/g, "%29").replace(/\s/g, "%20");
 }

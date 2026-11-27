@@ -1,49 +1,16 @@
-// SPEC §7 (owner, D47, 2026-10-04; issue 1258) — the listicle's comparison
-// table, built in code from the context pack.
-//
-// The model does not write this table. A writer handed a rival whose pricing
-// page states no price wrote "not stated", the page pass (`./sources.ts`)
-// then took that rival's column out, and the page was left comparing the
-// business with nobody (issue 1252's proof). So the table is laid out here,
-// from what the pack holds, before a word is written:
-//
-//   * **rows are the options** — the business first, then each rival whose
-//     own pricing or feature page yielded a claim;
-//   * **columns are the criteria** — what each option's own page says of its
-//     pricing and of what it does. A cell is a short value taken from a fact,
-//     linked to the page it was read from: a plan and its price as the
-//     product's pricing page states them, which wins over its other pages, or
-//     what it does in at most a dozen of the passage's words;
-//   * a criterion **most** options lack leaves the table. One only a few
-//     lack stays, and the option that lacks it **keeps its row**: the table
-//     is then laid out with one cell an option, each naming the criteria that
-//     option's page does state — so no cell is empty and none says a value is
-//     missing (owner, 2026-10-02: "a table never ships with an empty or 'not
-//     stated' cell");
-//   * **a price keeps its own currency** (owner, D56; issue 1282): a cell
-//     states a price as the option's own page states it and nothing
-//     converts. Where the cells name more than one currency, a line under
-//     the table says so. A rival whose pricing page states no current figure
-//     but says it prices on request has the cell "Custom pricing", or its
-//     plan's name and "price on request", linked to that page, so it keeps
-//     its row;
-//   * **the table is dated** (owner, D52; issue 1267): a line under it says
-//     when the prices were last checked — the day the oldest of the rivals'
-//     pages it stands on was read (`readAt`), so the date holds for every row;
-//   * **a cell names its tier** (issue 1485): a rival's claim its own page
-//     states of one plan — a free trial, a starter tier — is shown under
-//     that plan's name, and *What it does* prefers a claim true of every
-//     plan, so no row passes one plan's limits off as the product;
-//   * **an alternatives page's subject is its baseline** (issue 1508): on a
-//     page of alternatives to one product, that product's row stands under
-//     the business's, marked as the one compared against, and it is not
-//     one of the options the page counts;
-//   * **two rivals are always kept.** Fewer than two with a fact to set
-//     beside the business is no comparison: `null`, and the page is written
-//     as a Q&A (`./pack.ts`).
-//
-// Pure: the same pack gives the same table, so the pack's check, the writer's
-// prompt and the laid-out page all read one table.
+// SPEC §7 (D47): the listicle's comparison table, laid out in code from the pack before a word is written, so no
+// rival's column is lost to a writer's "not stated".
+//   * Rows are the options: the business, then each rival whose own pricing or feature page yielded a claim. Columns
+//     are what each option's own page says of its pricing (its pricing page first) and of what it does (a dozen words).
+//   * A criterion most options lack leaves; one only a few lack stays, laid out one cell an option naming what it
+//     states, so no cell is empty or "not stated".
+//   * A price keeps its own currency and nothing converts (D56); a line says so where the cells hold two. A rival
+//     whose page prices on request has "Custom pricing", or its plan and "price on request".
+//   * The table is dated (D52): the day the oldest of the pages its price cells cite was read.
+//   * A cell names the tier its claim is true of, and *What it does* prefers a claim true of every plan.
+//   * On an alternatives page the subject's row stands under the business's, as the baseline, and is not counted.
+//   * Fewer than two rivals is no comparison: `null`, and the page is a Q&A (`./pack.ts`).
+// Pure: one pack gives one table, so the pack's check, the prompt and the laid-out page read the same table.
 import { pagePathAlternation } from "@/lib/locale/language";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { copyIn } from "@/lib/presentation/copy/translated";
@@ -71,6 +38,8 @@ interface Option {
   baseline?: boolean;
   /** When this option's pages were read; the business's own row has none. */
   readAt: string[];
+  /** When the page its price cell cites was read. */
+  pricedAt?: string;
   cells: Partial<Record<Criterion, Cell>>;
 }
 
@@ -217,6 +186,7 @@ function rivalOption(pack: TablePack, domain: string): Option {
     name: rivalName(pack, domain),
     own: false,
     readAt: claims.map((claim) => claim.readAt),
+    ...((priced ?? custom) === undefined ? {} : { pricedAt: (priced ?? custom)!.readAt }),
     cells: {
       pricing:
         priced !== undefined
@@ -285,8 +255,10 @@ export function comparisonTable(pack: TablePack, minRivals: number): ComparisonT
   // What the page pass would take a row or a column out of is not a table
   // this page can stand on.
   if (completeTables(markdown) !== markdown) return null;
-  // ISO dates sort as text. A table always has a rival, and a rival a claim.
-  const oldest = options.flatMap((option) => option.readAt).sort()[0] ?? pack.builtAt;
+  // ISO dates sort as text. Prices are checked when the pages the price cells cite were read; a table without
+  // prices is dated by every page it stands on.
+  const priced = criteria.includes("pricing") ? options.flatMap((option) => (option.cells.pricing === undefined || option.pricedAt === undefined ? [] : [option.pricedAt])) : [];
+  const oldest = (priced.length > 0 ? priced : options.flatMap((option) => option.readAt)).sort()[0] ?? pack.builtAt;
   // D56: nothing here converts, so a table of more than one currency says so.
   const currencies = new Set(criteria.includes("pricing") ? options.flatMap((option) => [...currenciesOf(option.cells.pricing?.text ?? "")]) : []);
   return {
