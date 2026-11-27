@@ -3,8 +3,8 @@
 // `proposedTopics` are the searches beside the twelve measured; the one fit judgement writes down only those at fit 3.
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
 import { LANGUAGES, measuredLocale, type Language } from "@/lib/locale/locales";
-import { ASKED_TOPICS, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
-import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
+import { ASKED_TOPICS, EFFORT_BY_TYPE } from "@/lib/config/constants";
+import { comparisonsOf, ownSearched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { placeOf } from "@/lib/locale/place";
 import { placelessSeeds } from "@/lib/market/questions/offerings";
@@ -13,7 +13,7 @@ import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PromptAnswer, StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
-import { FAMILY_OF, type BusinessFit, type Evidence, type ReadTrend, type TopicSource } from "../types";
+import { FAMILY_OF, type Evidence, type ReadTrend, type TopicSource } from "../types";
 import { demandBand, difficultyBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import { slugify, trendRead, type Candidate } from "./candidate";
@@ -85,37 +85,6 @@ export function rivalPriceOf(
     return { rival: rival.domain, comparison: product === null ? null : pack.priceSearch(pack.versusSearch(product, name)) };
   }
   return null;
-}
-
-/**
- * SPEC §6 (owner D50 of 2026-10-05, issue 1271): whether `query` is a
- * comparison of named products that nobody searches for. True where it sets
- * the business against anything while the business's own brand is not
- * searched, and where it names products of which none is searched. A
- * comparison that names no product ("geo vs seo") is not judged here.
- *
- * A product a pass read and did not keep as a rival is still a named
- * product (issue 1285): it is known by the keyword its brand volume was
- * read under. "aeo engine alternatives" stayed open at 70 searches because
- * AEO Engine had left the rivals.
- */
-export function comparisonWithoutDemand(
-  query: string,
-  a: { market: MarketConclusion | null; own: readonly string[] }
-): boolean {
-  const text = normalise(query);
-  if (!SHAPES.comparison.test(text)) return false;
-  const namesOwn = names(text, a.own);
-  const standing = a.market?.rivals ?? [];
-  const rivals = standing.filter((rival) => names(text, [normalise(rival.name), brandOf(rival.domain)]));
-  const held = new Set(standing.flatMap((rival) => [rival.name, ...(rival.searchNames ?? [])].map(normalise)));
-  const others = Object.entries(a.market?.demand?.brands ?? {}).filter(([keyword]) => {
-    const brand = normalise(keyword);
-    return !held.has(brand) && !a.own.includes(brand) && names(text, [brand]);
-  });
-  if (!namesOwn && rivals.length === 0 && others.length === 0) return false;
-  if (namesOwn && !ownSearched(a.market)) return true;
-  return !namesOwn && !rivals.some((rival) => searched(rival.volume)) && !others.some(([, volume]) => searched(volume));
 }
 
 const MARKET_SUFFIX = /\s+(?:tools?|software|platforms?|apps?|systems?)$/;
@@ -624,7 +593,7 @@ function rivalFor(topic: ProposedTopic, a: { report: StoredReport; market: Marke
 export const writeTypeOf = (query: string) => (SHAPES.comparison.test(query) ? "comparison_page" : "keyword_page");
 
 /**
- * A proposal the pass judged at the top fit, as a Write candidate.
+ * A proposal as a Write candidate, unscored until the fit it was judged at is set on it.
  *
  * Nothing about it was measured in a top ten, and nothing here says it was:
  * its rival's address and position are `unmeasured`, its volume is the
@@ -670,21 +639,17 @@ export function candidateFor(
     evidence,
     acceptance: { form: "top20", query: topic.query },
     fitBand: band,
-    businessFit: TOPIC_FIT.writeAt,
+    businessFit: null,
     source: topic.source,
     effort: EFFORT_BY_TYPE[type],
   };
 }
 
-/** A question buyers were seen asking, with the fit and passage a pass judged for it, `null` where no pass has. */
-export type AskedSupply = { topic: ProposedTopic; fit: BusinessFit | null; fact?: Extract<Evidence, { family: "write" }>["fitFact"]; angle?: Extract<Evidence, { family: "write" }>["angle"] };
-
 /**
- * SPEC §7 (issue 1549): the questions buyers were seen asking that a pass
- * writes below the top fit, best first. Pure.
+ * SPEC §7 (issue 1549): the questions buyers were seen asking that no pass
+ * judged, written unscored, best first. Pure.
  *
- * The ones the pass judged to help, then the ones it never reached — those
- * asked beside the market's own searched terms first, and only where the
+ * Those asked beside the market's own searched terms first, and only where the
  * business's vocabulary supports every word and no rival is named. Each is
  * on the market, a search a buyer would type, not a rival's bare name,
  * in whatever shape its page type takes, and on no search the site already holds or dismissed. The collapse then folds
@@ -694,14 +659,13 @@ export function askedSupply(a: {
   report: StoredReport;
   market: MarketConclusion | null;
   asked: readonly AskedBeside[];
-  spare: readonly AskedSupply[];
   refused: readonly string[];
   /** Every search the site already holds a row on, or absorbed. */
   taken: readonly string[];
   /** The searches of its dismissed rows. */
   dismissed: readonly string[];
   now: Date;
-}): AskedSupply[] {
+}): ProposedTopic[] {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
   const seen = new Set([...a.taken, ...a.dismissed, ...a.refused].map(queryKey));
@@ -719,14 +683,7 @@ export function askedSupply(a: {
     passesRelevanceGuard(query, profile, marketWords === "" ? undefined : marketWords) &&
     !namesAnyBrand(query, rivals);
 
-  const out: AskedSupply[] = [];
-  const take = (supply: AskedSupply): void => {
-    if (!usable(supply.topic.query) || (supply.fit === null && !onTopic(supply.topic.query))) return;
-    seen.add(queryKey(supply.topic.query));
-    out.push(supply);
-  };
-  for (const spare of a.spare) take(spare);
-
+  const out: ProposedTopic[] = [];
   const terms = new Set(
     a.report.questions.kind === "unmeasured"
       ? []
@@ -734,7 +691,10 @@ export function askedSupply(a: {
   );
   const byTerm = [...a.asked].sort((x, y) => Number(terms.has(queryKey(y.term))) - Number(terms.has(queryKey(x.term))));
   for (const asked of askedTopics(byTerm, a.now, Number.POSITIVE_INFINITY)) {
-    take({ topic: { query: queryKey(asked.query), source: sourceOf(asked.query, { brands }), volume: null, rival: null, asked: { term: asked.term, serpAt: asked.serpAt, newSince: asked.newSince } }, fit: null });
+    const query = queryKey(asked.query);
+    if (!usable(query) || !onTopic(query)) continue;
+    seen.add(query);
+    out.push({ query, source: sourceOf(asked.query, { brands }), volume: null, rival: null, asked: { term: asked.term, serpAt: asked.serpAt, newSince: asked.newSince } });
   }
   return out;
 }

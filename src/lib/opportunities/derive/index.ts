@@ -27,7 +27,7 @@ import { refineType } from "./typing";
 import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 import { judgeFit, type FitJudgement, type FitSearch } from "./fit";
-import { askedOfReport, askedSupply, askedTopics, brandsOf, type AskedSupply, type ProposedTopic, candidateFor, comparisonWithoutDemand, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
+import { askedOfReport, askedSupply, askedTopics, brandsOf, type ProposedTopic, candidateFor, namesOwnOnly, noLongerRelevant, productsNamed, proposedTopics, rivalBrandOnly, rivalNamesOf, rivalPriceOf, sourceOf } from "./topics";
 import { judgeTyped, writeBuyerSearches } from "./buyer-searches";
 import { ledgerSourceOf, supplyLedger, writable, type LedgerSource, type SupplyLedger } from "./ledger";
 import { topUpRecord, topUpWithPurchase, type TopUpTopic } from "./top-up";
@@ -149,14 +149,6 @@ export async function deriveOpportunities(
     if (priced.comparison !== null) comparisons.push({ query: priced.comparison, rival: priced.rival });
     return true;
   };
-  // An open comparison of names nobody searches goes too, once the brands' volumes were read.
-  const unsearchedComparison = (row: (typeof held)[number]): boolean =>
-    market?.demand !== undefined &&
-    row.family === "write" &&
-    row.targetQuery !== null &&
-    row.source !== "ai_gap" &&
-    (row.volume === null || row.volume.kind === "unmeasured") &&
-    comparisonWithoutDemand(row.targetQuery, { market, own: named.own });
   // An undrafted, unretargeted open topic goes where it names a former rival or another market; an unknown store prunes nothing.
   const drafted = await store.draftedOpportunityIds(a.siteId).catch(() => null);
   const irrelevant = (row: (typeof held)[number]): boolean =>
@@ -175,7 +167,7 @@ export async function deriveOpportunities(
   for (const row of held) {
     if (row.status !== "open") continue;
     const neverDrafted = drafted !== null && !drafted.has(row.id) && !isRetarget(row);
-    if (aRivalsPrice(row) || unsearchedComparison(row) || irrelevant(row) || (neverDrafted && (aRivalsBrand(row) || notASearch(row)))) gone.add(row.id);
+    if (aRivalsPrice(row) || irrelevant(row) || (neverDrafted && (aRivalsBrand(row) || notASearch(row)))) gone.add(row.id);
   }
   // A dismissed topic returns only on a higher measured volume, and a stopped one never.
   const dismissed = await store.dismissedSearches(a.siteId).catch(() => []);
@@ -203,8 +195,8 @@ export async function deriveOpportunities(
   const ownBrand = new Set(ownSearches.filter((query) => namesOwnOnly(query, named)).map(queryKey)).size;
   const taken = [...derived, ...held].flatMap((row) => row.targetQuery ?? []);
   // The asked questions this pass would write unscored are scored in its one fit call, as no score is not planned.
-  const unreached = askedSupply({ report: a.report, market, asked: seen, spare: [], refused: [], taken: [...taken, ...held.flatMap((row) => row.absorbedQueries)], dismissed: dismissed.map((row) => row.query), now: a.report.verdict.measuredAt });
-  const beyond = unreached.filter(({ topic }) => !asked.some((one) => queryKey(one.query) === queryKey(topic.query))).length;
+  const unreached = askedSupply({ report: a.report, market, asked: seen, refused: [], taken: [...taken, ...held.flatMap((row) => row.absorbedQueries)], dismissed: dismissed.map((row) => row.query), now: a.report.verdict.measuredAt });
+  const beyond = unreached.filter((topic) => !asked.some((one) => queryKey(one.query) === queryKey(topic.query))).length;
   const room = Math.max(0, TOPIC_FIT.maxCandidates - judgedHere.length - HELD_ROWS_JUDGED - beyond);
   const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
   // SPEC §6 (owner, 2026-11-16): an earlier healthy pass's answers, as this pass checks its health after deriving and its late answers land later still.
@@ -294,7 +286,7 @@ export async function deriveOpportunities(
   const derivedPages = judgedHere.filter(isNewPage);
   const derivedClasses = derivedPages.map((candidate) => classed({ query: candidate.targetQuery!, source: sourceFor(candidate) }));
   const offeredClasses = proposing.map(classed);
-  const scoredAsked = unreached.filter(({ topic }) => !proposals.some((one) => queryKey(one.query) === queryKey(topic.query)));
+  const scoredAsked = unreached.filter((topic) => !proposals.some((one) => queryKey(one.query) === queryKey(topic.query)));
   // What already ranks for each search, from its stored top ten at 0¢: an angle promises what these titles do not.
   const ranked = topTenRowsOf(a.report);
   const ranks = (query: string): string[] => (ranked.get(queryKey(query))?.rows ?? []).slice(0, 5).map((row) => row.title);
@@ -302,7 +294,7 @@ export async function deriveOpportunities(
     ...judgedHere.map((candidate) => ({ query: candidate.targetQuery!, source: sourceFor(candidate), update: !isNewPage(candidate) })),
     ...unjudged.map((row) => ({ query: row.targetQuery!, source: sourceFor(row), update: !isNewPage(row) })),
     ...proposals.map((topic) => ({ query: topic.query, source: topic.source })),
-    ...scoredAsked.map(({ topic }) => ({ query: topic.query, source: topic.source })),
+    ...scoredAsked.map((topic) => ({ query: topic.query, source: topic.source })),
   ].map((search) => ({ ...search, ranks: ranks(search.query) }));
   const fits = await judgeFit(c, {
     searches,
@@ -331,12 +323,11 @@ export async function deriveOpportunities(
     await store.setBusinessFit(row.id, judged.fit, source, pageTypeOf({ ...row, source }));
     if (isNewPage(row)) await store.setEvidence(row.id, withFact(row, judged).evidence);
   }
-  // Fit ranks a proposal and gates only what the business does not sell; one the fit call left unanswered is kept unscored for the next pass, but an asked question, which the asked supply guards.
+  // Fit ranks a proposal and gates only what the business does not sell; one the fit call left unanswered is kept unscored for the next pass.
   const proposed: Candidate[] = [];
-  // What buyers were seen asking below the top fit is still written; what was judged off the business never is.
-  const spare: AskedSupply[] = [];
+  // An asked question judged off the business is never written, nor offered again unscored by the asked supply.
   const refused: string[] = [];
-  // A top-up search is measured and right-sized, so it is written at the gate, or unscored where the fit call gave none, up to the rows the week lacks.
+  // A top-up search is measured, so it is written at the gate, or unscored where the fit call gave none, up to the rows the week lacks.
   let lacking = WEEK_RESEARCH.rowsMax - have;
   for (const [index, topic] of proposals.entries()) {
     const judged = fits.get(judgedHere.length + unjudged.length + index);
@@ -360,14 +351,21 @@ export async function deriveOpportunities(
       if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged));
       continue;
     }
-    if (topic.asked !== undefined && judged !== undefined && judged.fit < TOPIC_FIT.writeAt) {
-      if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact, angle: judged.angle });
-      else refused.push(topic.query);
+    if (judged !== undefined && judged.fit < TOPIC_FIT.gate) {
+      if (topic.asked !== undefined) refused.push(topic.query);
+      continue;
     }
-    if (judged === undefined ? topic.asked !== undefined : judged.fit < (topic.asked === undefined ? TOPIC_FIT.gate : TOPIC_FIT.writeAt)) continue;
     const candidate = candidateFor(topic, { ...base, market, ownRanked });
     if (candidate !== null) proposed.push(judged === undefined ? { ...candidate, businessFit: null } : withFact({ ...candidate, businessFit: judged.fit, title: judged.title }, judged));
   }
+  // A question buyers asked beside this pass's proposals is written at the fit it was judged, as a section of its results page's topic.
+  scoredAsked.forEach((topic, index) => {
+    const judged = fits.get(judgedHere.length + unjudged.length + proposals.length + index);
+    if (judged === undefined) return;
+    if (judged.fit < TOPIC_FIT.gate) return void refused.push(topic.query);
+    classed(topic);
+    proposed.push(withFact({ ...candidateFor(topic, { ...base, market, ownRanked }), businessFit: judged.fit }, judged));
+  });
 
   const labelled: Candidate[] = [];
   for (const candidate of scored) {
@@ -385,26 +383,15 @@ export async function deriveOpportunities(
   }
   // A proposal's type is read off its own words and its title is the angle it was judged with, so it buys no label.
   labelled.push(...proposed);
-  // A question buyers asked below the top fit is still a section of its results page's topic.
-  scoredAsked.forEach(({ topic }, index) => {
-    const judged = fits.get(judgedHere.length + unjudged.length + proposals.length + index);
-    if (judged === undefined) return;
-    if (judged.fit >= TOPIC_FIT.gate) spare.push({ topic, fit: judged.fit, fact: judged.fact, angle: judged.angle });
-    else refused.push(topic.query);
-  });
   const questions = askedSupply({
     report: a.report,
     market,
     asked: seen,
-    spare,
     refused,
     taken: [...labelled.flatMap((row) => row.targetQuery ?? []), ...existing.flatMap((row) => [row.targetQuery ?? [], ...row.absorbedQueries].flat())],
     dismissed: dismissed.map((row) => row.query),
     now: a.report.verdict.measuredAt,
-  }).flatMap(({ topic, fit, fact, angle }) => {
-    const candidate = candidateFor(topic, { ...base, market, ownRanked });
-    return candidate === null ? [] : [fact === undefined ? { ...candidate, businessFit: fit } : withFact({ ...candidate, businessFit: fit }, { fact, angle: angle ?? null })];
-  });
+  }).map((topic) => candidateFor(topic, { ...base, market, ownRanked }));
 
   // One survivor per parent topic over held rows and this pass's, after labelling since the type decides precedence.
   // `today` re-bands held rows only where this pass measured the footprint; an unmeasured one would read as 0.
@@ -445,7 +432,7 @@ export async function deriveOpportunities(
   for (const row of plan.update) await store.setCluster(row.id, row.clusterKey, row.absorbedQueries);
   const { created, duplicates } = await persist({ candidates: plan.insert });
   for (const id of [...gone, ...plan.dismiss]) await store.markDismissed(id);
-  const topFit = (index: number) => (fits.get(index)?.fit ?? 0) >= TOPIC_FIT.writeAt;
+  const topFit = (index: number) => (fits.get(index)?.fit ?? 0) >= TOPIC_FIT.top;
   const classOfRow = (row: Candidate) => classOf.get(queryKey(row.targetQuery ?? "")) ?? ledgerSourceOf(row);
   for (const question of questions) classOf.set(queryKey(question.targetQuery ?? ""), ledgerSourceOf({ source: question.source, asked: true }));
   const unjudgedFit = new Map(unjudged.map((row, index) => [row.id, fits.get(judgedHere.length + index)?.fit ?? row.businessFit ?? null]));

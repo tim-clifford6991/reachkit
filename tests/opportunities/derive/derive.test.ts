@@ -347,3 +347,25 @@ describe("a write that fails part-way dismisses no topic", () => {
     expect(new Set(keys).size).toBe(keys.length);
   }, 60_000);
 });
+
+describe("a short site's top-up fills the week and its spares (re-run 9 committed 0 of 3)", () => {
+  it("measured searches too small or too big for the site are written, so the commit checks 10 rows and holds 3 spares", async () => {
+    createMock.mockImplementation(async (request: { messages: { content: string }[]; tools?: { name: string }[] }) => {
+      const site = request.tools?.[0]?.name ?? "";
+      const searches = (JSON.parse(request.messages[0]!.content) as { searches?: { i: number }[] }).searches ?? [];
+      const scores = searches.map(({ i }) => ({ i, fit: 3, fact: 0, angles: [] }));
+      const answer = { [BUYER_SEARCHES_CALL_SITE]: { problems: [], solutions: [] }, [TYPED_CALL_SITE]: { typed: [] }, [FIT_CALL_SITE]: { scores, strongest: [] }, [SAME_QUESTION_CALL_SITE]: { pairs: [] } }[site];
+      if (answer === undefined) throw new Error(`no model for ${site}`);
+      return toolUseMessage(answer, 100, 50, site);
+    });
+    const volumes = [40, 60, 80, 5, 8, 4000, 5000, 6000, 7000, 8000];
+    const terms = volumes.map((volume, n) => ({ term: `onboarding ${["checklist", "email", "survey", "flow", "metric", "video", "quiz", "portal", "kpi", "template"][n]}`, volume }));
+    const market: MarketConclusion = { buyer: "SaaS product teams", job: "Get new users to their first success", category: "user onboarding software", synonyms: [], differentiators: [], notOurMarket: [], categoryReason: "", rivals: [], terms };
+    state.now = AT;
+    await deriveOpportunities(fakeCost().ctx, { ...input(), market, topUp: {} });
+    const { planWeek, weekCandidates } = await import("../../../src/lib/opportunities/plan");
+    expect((await weekCandidates(SITE_ID, AT)).length).toBeGreaterThanOrEqual(10);
+    const week = await planWeek(SITE_ID, { now: AT, days: 7 });
+    expect([week.filter((entry) => entry.plannedFor !== null).length, week.filter((entry) => entry.plannedFor === null).length]).toEqual([7, 3]);
+  }, 60_000);
+});
