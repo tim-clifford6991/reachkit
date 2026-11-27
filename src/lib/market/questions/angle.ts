@@ -1,7 +1,7 @@
 // SPEC §6 *Every topic is an angle* (owner rulings 91–92, #2722): the one place a found search becomes a page's angle.
 // The model proposes two or three angles per search in one of five patterns; code keeps the one with the fewest faults
 // that promises most of what the top results miss. Only a name no source holds excludes one. The weekly topic step and the hot-topic lane both call `pickAngle`.
-import { carriesAsk, plannedTitleFaults, type Offering } from "@/lib/generate/rules/title";
+import { carriesAsk, plannedTitleFaults } from "@/lib/generate/rules/title";
 import { languagePack, SHAPES } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { contentTokens } from "@/lib/market/questions/select";
@@ -46,7 +46,7 @@ export interface AngleContext {
   /** The site's language: the writer's wording rules and its casing are that language's. Absent is English. */
   language?: Language;
   /** The business's brand and offering texts, and the outcome its buyer wants: a title that sells the offering is a `claim`. */
-  offering?: Offering;
+  offering?: NonNullable<Parameters<typeof plannedTitleFaults>[3]>;
 }
 
 const lowered = (text: string): string => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
