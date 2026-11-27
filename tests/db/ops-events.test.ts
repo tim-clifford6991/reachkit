@@ -91,7 +91,7 @@ describe("ops_events — the daily check's count of failed Settings reads", () =
 
 describe("the box trigger: its own secret, the owner's daily caps, one send per claimed key", () => {
   const sent: string[] = [];
-  const call = (body: object, secret: string | undefined = "s", authorization = "Bearer s") =>
+  const call = (body: object, secret: string | undefined, authorization = "Bearer s") =>
     trigger.boxTrigger({ authorization, secret, read: async () => JSON.stringify(body), now: new Date("2026-11-10T12:00:00Z"), send: async (_job, out) => void sent.push(...out.map((e) => e.key)) });
   const claims = () => value("select count(*) from ops_events where kind = 'box_trigger';");
 
@@ -104,15 +104,15 @@ describe("the box trigger: its own secret, the owner's daily caps, one send per 
   });
 
   it("two re-runs claim two keys; the third answers 429 and is never sent", async () => {
-    const [first, second] = [await call({ kind: "rerun" }), await call({ kind: "rerun" })];
+    const [first, second] = [await call({ kind: "rerun" }, "s"), await call({ kind: "rerun" }, "s")];
     expect([first.status, second.status, first.body.key !== second.body.key]).toEqual([202, 202, true]);
-    expect(await call({ kind: "rerun" })).toMatchObject({ status: 429, body: { kind: "rerun", count: 2, cap: 2 } });
+    expect(await call({ kind: "rerun" }, "s")).toMatchObject({ status: 429, body: { kind: "rerun", count: 2, cap: 2 } });
     expect(sent).toEqual([first.body.key, second.body.key]);
   });
 
   it("the fifth test write answers 429; a repeat of a held claim is refused, so its key is sent once", async () => {
-    for (let i = 0; i < 4; i++) expect((await call({ kind: "test", date: "2026-11-12" })).status).toBe(202);
-    expect(await call({ kind: "test", date: "2026-11-12" })).toMatchObject({ status: 429, body: { kind: "test", count: 4, cap: 4 } });
+    for (let i = 0; i < 4; i++) expect((await call({ kind: "test", date: "2026-11-12" }, "s")).status).toBe(202);
+    expect(await call({ kind: "test", date: "2026-11-12" }, "s")).toMatchObject({ status: 429, body: { kind: "test", count: 4, cap: 4 } });
     expect(value(`set role service_role; select box_trigger_claim('${SITE}', 'test:2026-11-12:1', '{}', now());`)).toBe("f");
     expect(sent.filter((key) => key === `draft:${SITE}:2026-11-12:test:1`)).toHaveLength(1);
   });
