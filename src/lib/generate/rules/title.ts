@@ -117,7 +117,7 @@ const WORD_RE = /[\p{L}\p{N}]+/gu;
 
 const languageOf = (a: Pick<TitleRuleInputs, "language">): Language => a.language ?? "en";
 
-/** The language's news words as one whole-word pattern: what a hot page's title and its angle never say. */
+/** The language's news words as one whole-word pattern: what a hot page's title never says. */
 export function newsWords(language: Language): RegExp {
   return wordsPattern(languagePack(language).title.news.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), false);
 }
