@@ -172,7 +172,7 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
     if (held.some((page) => page === undefined)) return null;
     const rivals = site === null || report === null ? [] : versusRivals(site, report, { targetQuery: target, absorbedQueries: [], title: null });
     if (rivals.length > 0 && cost === undefined) return null;
-    const topic = words(target), readable = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => page.text.split(/\s+/).length >= READ.words && [null, locale.language].includes(languageOfText(page.text)));
+    const topic = words(target), readable = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => page.text.split(/\s+/).length >= READ.words && (languageOfText(page.text) ?? locale.language) === locale.language);
     const [own, pages] = [readable.filter((page) => ofCompared(page.url)), readable.filter((page) => !ofCompared(page.url) && holds(topic, page.title))];
     const firstHand = await Promise.all(rivals.map((domain) => own.some((page) => registrableDomain(page.url) === registrableDomain(domain)) || ownPageRead(domain)));
     const questions: string[] = [];
