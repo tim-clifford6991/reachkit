@@ -11,11 +11,8 @@ const NEWS_FIT_SCHEMA = z.strictObject({
   results: z.array(z.strictObject({ result: z.number().int(), about: z.boolean(), event: z.boolean(), names: z.string().nullable() })),
 });
 
-/** Why a story in the market ranks lower: it reports no dated event, or names no new product, model, version, rule or price. */
-export type Weak = "not_an_event" | "not_named";
-
-/** What the judge held of a result: what it names, null and why where it is weak, or that it is not of the market. */
-export type NewsVerdict = { names: string; weak?: never } | { names: null; weak: Weak } | { not: "our_market" };
+/** What the judge held of a result: what it names; null and why it ranks lower (no dated event, or nothing new named); or not of the market. */
+export type NewsVerdict = { names: string; weak?: never } | { names: null; weak: "not_an_event" | "not_named" } | { not: "our_market" };
 
 /** Each index of `results` the judge answered for; `null` where the call could not be made or did not answer. */
 export async function newsFit(

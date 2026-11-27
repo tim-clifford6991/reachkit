@@ -7,7 +7,7 @@ import { CACHE_WINDOWS_D, RESEARCH } from "@/lib/config/constants";
 import { withCostContext, type CostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
 import { readClaims } from "@/lib/generate/pipeline/claims-read";
-import { newsFit, type Weak } from "@/lib/generate/pipeline/news-fit";
+import { newsFit, type NewsVerdict } from "@/lib/generate/pipeline/news-fit";
 import { fetchPage, type MarketFact, type ReadPage } from "@/lib/generate/pipeline/research";
 import { similarity } from "@/lib/generate/rules/similarity";
 import { siteWritingMarket, type WritingMarket } from "@/lib/generate/voice/market";
@@ -22,6 +22,9 @@ import { serpNews } from "@/lib/vendors/dataforseo";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
 import { readScanReport } from "../report";
 import { claimMarketWeek, readMarketChanges, storeMarketChanges } from "./store";
+
+/** Why a change in the market ranks lower: it reports no dated event, or names nothing new. */
+export type Weak = Extract<NewsVerdict, { weak: string }>["weak"];
 
 /** The owner's guards (rulings 90 and 91): two publishers inside 30 days, and no count; a copy 80% the same as another is that one. */
 export const MARKET_CHANGES = Object.freeze({ sources: 2, days: 30, sameText: 0.8 });
