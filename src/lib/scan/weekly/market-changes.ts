@@ -2,7 +2,7 @@
 // that move the site's market, from the week's one sum, `CAPS.WEEK_C`, a job step of its own. A story is a market change only where two
 // independent publishers reported it inside 30 days and the judgement holds it to be an event in the market; each is read
 // for claims, so nothing is speculated. The week's row is inserted before any spend, so a second run of the week buys
-// nothing; an owner's re-run takes the week over and reads the news again.
+// nothing; an owner's re-run takes the week over, reads the news again and keeps each change the week held.
 import { CACHE_WINDOWS_D, RESEARCH } from "@/lib/config/constants";
 import { withCostContext, type CostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
@@ -17,6 +17,7 @@ import { readSiteMarket } from "@/lib/market/infer/stored";
 import type { StoredMarket } from "@/lib/market/infer/types";
 import { googleWrapper, registrableDomain } from "@/lib/market/rivals/domains";
 import { topicWords } from "@/lib/opportunities/intent";
+import { replaceOpsEvent } from "@/lib/ops/events";
 import { serpNews } from "@/lib/vendors/dataforseo";
 import type { NewsRow } from "@/lib/vendors/dataforseo/types";
 import { readScanReport } from "../report";
@@ -24,6 +25,9 @@ import { claimMarketWeek, readMarketChanges, storeMarketChanges } from "./store"
 
 /** The owner's guards (rulings 90 and 91): two publishers inside 30 days, and no count; a copy 80% the same as another is that one. */
 export const MARKET_CHANGES = Object.freeze({ sources: 2, days: 30, sameText: 0.8 });
+
+/** The ops row, keyed by its scan, that holds what became of each story a pass read and of each event its hot step judged. */
+export const MARKET_PASS = "market_changes_pass";
 
 export interface MarketChange {
   title: string;
@@ -35,6 +39,12 @@ export interface MarketChange {
   /** The days the change was first and last read on. */
   firstSeen: string;
   lastSeen: string;
+}
+
+/** What became of one story the week's news read found: a stored change, or the step that dropped it. */
+export interface StoryOutcome {
+  title: string;
+  outcome: "change" | "one_source" | "unjudged" | "cap" | "not_our_market" | "not_an_event" | "not_named";
 }
 
 type Report = ReadPage & { publisher: string; source: string; publishedAt: string };
@@ -69,13 +79,14 @@ export function newsQueries(stored: Pick<StoredMarket, "current" | "pending">, c
   return [...new Set([...watch, category].map((term) => term.trim()).filter((term) => term !== ""))];
 }
 
-/** The week's market changes, bought under `c`; `[]` where the cap, the vendor or the judgement leaves none. */
+/** The week's market changes, bought under `c`, and what became of each story read; `[]` where the cap, the vendor or the judgement leaves none. */
 export async function buyMarketChanges(
   c: CostContext,
   a: { siteId: string; locale: Locale; terms: readonly string[]; notOurs: ReadonlySet<string>; market: WritingMarket; today: Date; again?: true }
-): Promise<Omit<MarketChange, "firstSeen" | "lastSeen">[]> {
+): Promise<{ changes: Omit<MarketChange, "firstSeen" | "lastSeen">[]; stories: StoryOutcome[] }> {
   const counts = { queries: a.terms.slice(0, RESEARCH.newsSearches), rows: 0, stories: 0, judged: 0, events: 0 };
-  const told = <T>(found: T[]): T[] => (console.log(JSON.stringify({ event: "market_changes_read", siteId: a.siteId, ...counts, claimed: found.length })), found);
+  const said: StoryOutcome[] = [];
+  const told = (changes: Omit<MarketChange, "firstSeen" | "lastSeen">[]) => (console.log(JSON.stringify({ event: "market_changes_read", siteId: a.siteId, ...counts, claimed: changes.length })), { changes, stories: said });
   const today = a.today.toISOString().slice(0, 10);
   const since = new Date(a.today.getTime() - MARKET_CHANGES.days * 86_400_000).toISOString().slice(0, 10);
   const inWindow = (day: string): boolean => day >= since && day <= today;
@@ -89,8 +100,10 @@ export async function buyMarketChanges(
   });
 
   // Each story's reports read and dated by their own page where it states one; a syndicated copy is the report it copies.
-  const stories: Report[][] = [];
-  for (const story of storiesOf(rows)) {
+  const found = storiesOf(rows), stories: { held: Report[]; fate: StoryOutcome }[] = [];
+  // Each story is the cap's until a step decides it.
+  said.push(...found.map((story): StoryOutcome => ({ title: story[0]!.title, outcome: "cap" })));
+  for (const [n, story] of found.entries()) {
     if (c.capHit()) break;
     const reads = await Promise.all(story.map((row) => fetchPage(row.url, row.publishedAt)));
     const held: Report[] = [];
@@ -99,20 +112,23 @@ export async function buyMarketChanges(
       if (read === null || !inWindow(publishedAt) || held.some((h) => h.publisher === publisher || similarity(h.text, read.page.text) >= MARKET_CHANGES.sameText)) return;
       held.push({ ...read.page, publisher, source: row.source, publishedAt });
     });
-    if (held.length >= MARKET_CHANGES.sources) stories.push(held);
+    if (held.length >= MARKET_CHANGES.sources) stories.push({ held, fate: said[n]! });
+    else said[n]!.outcome = "one_source";
   }
   Object.assign(counts, { rows: rows.length, stories: stories.length });
   if (stories.length === 0 || c.capHit()) return told([]);
 
   // Judged a batch at a time, and read for claims a call's pages at a time, while the cap leaves room: the cap is the only bound.
-  const kept: { story: Report[]; names: string }[] = [];
+  const kept: { story: Report[]; names: string; fate: StoryOutcome }[] = [];
   for (let at = 0; at < stories.length && !c.capHit(); at += RESEARCH.recentJudged) {
     const batch = stories.slice(at, at + RESEARCH.recentJudged);
-    const about = await newsFit(c, { locale: a.locale, market: a.market, fallback: a.terms.at(-1) ?? "", results: batch.map((story) => story[0]!) });
+    const about = await newsFit(c, { locale: a.locale, market: a.market, fallback: a.terms.at(-1) ?? "", results: batch.map(({ held }) => held[0]!) });
     counts.judged += batch.length;
-    batch.forEach((story, n) => {
-      const names = about?.get(n);
-      if (names !== undefined) kept.push({ story, names });
+    batch.forEach(({ held, fate }, n) => {
+      const verdict = about?.get(n);
+      if (verdict === undefined) fate.outcome = about === null ? "unjudged" : "not_our_market";
+      else if ("not" in verdict) fate.outcome = `not_${verdict.not}`;
+      else kept.push({ story: held, names: verdict.names, fate });
     });
   }
   counts.events = kept.length;
@@ -125,13 +141,17 @@ export async function buyMarketChanges(
       locale: a.locale, search: a.market.category, rivals: [], today: a.today, siteId: a.siteId, calls: 1,
     })));
   }
-  return told(kept.flatMap(({ story, names }) => {
+  return told(kept.flatMap(({ story, names, fate }) => {
     const claims = facts.flatMap((fact) => {
       const report = story.find((page) => page.url === fact.url);
       return report === undefined ? [] : [{ url: report.url, publisher: report.source, publishedAt: report.publishedAt, quote: fact.passage }];
     });
     // A change one publisher's claims carry is never stated.
-    if (new Set(claims.map((claim) => publisherOf({ url: claim.url, domain: claim.publisher }))).size < MARKET_CHANGES.sources) return [];
+    if (new Set(claims.map((claim) => publisherOf({ url: claim.url, domain: claim.publisher }))).size < MARKET_CHANGES.sources) {
+      fate.outcome = c.capHit() ? "cap" : "one_source";
+      return [];
+    }
+    fate.outcome = "change";
     const reportedOn = story.map((page) => page.publishedAt).sort()[0]!;
     return [{ title: story[0]!.title, names, reportedOn, words: [...topicWords(story[0]!.title)], claims }];
   }));
@@ -157,15 +177,23 @@ async function recordWeek(a: { scanId: string; siteId: string; weekStart: string
   const found = await withCostContext({ scanId: a.scanId, cap: "WEEK", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, (c) =>
     buyMarketChanges(c, { siteId: a.siteId, locale, terms: newsQueries(site.stored, market.category), notOurs, market, today: a.now, ...(a.again ? { again: true as const } : {}) })
   );
+  return storeWeek(a, found);
+}
+
+/** Stores a read as the week's: its changes, each change the week already held still inside the window, and what became of each story. */
+export async function storeWeek(a: { scanId: string; siteId: string; weekStart: string; now: Date }, found: Awaited<ReturnType<typeof buyMarketChanges>>): Promise<number> {
   // A change seen in an earlier week keeps the week it was first seen.
-  const earlier = (await readMarketChanges({ siteIds: [a.siteId], from: new Date(Date.parse(`${a.weekStart}T00:00:00Z`) - 5 * 7 * 86_400_000).toISOString().slice(0, 10) }))
-    .flatMap((week) => week.changes as Partial<MarketChange>[])
-    .filter((change) => Array.isArray(change.words) && typeof change.firstSeen === "string");
-  const day = a.now.toISOString().slice(0, 10);
-  const changes: MarketChange[] = found.map((change) => {
+  const weeks = await readMarketChanges({ siteIds: [a.siteId], from: new Date(Date.parse(`${a.weekStart}T00:00:00Z`) - 5 * 7 * 86_400_000).toISOString().slice(0, 10) });
+  const stored = (week?: string) => weeks.filter((held) => week === undefined || held.weekStart === week).flatMap((held) => held.changes as Partial<MarketChange>[])
+    .filter((change): change is MarketChange => Array.isArray(change.words) && typeof change.firstSeen === "string" && typeof change.reportedOn === "string");
+  const earlier = stored(), day = a.now.toISOString().slice(0, 10), since = new Date(a.now.getTime() - MARKET_CHANGES.days * 86_400_000).toISOString().slice(0, 10);
+  const changes: MarketChange[] = found.changes.map((change) => {
     const before = earlier.find((held) => sameTopic(new Set(held.words), new Set(change.words)));
     return { ...change, firstSeen: before?.firstSeen ?? day, lastSeen: day };
   });
-  await storeMarketChanges({ siteId: a.siteId, weekStart: a.weekStart, changes });
-  return changes.length;
+  // A re-run adds to the week: each change it already holds inside the window stays, though the news no longer carries it.
+  const kept = stored(a.weekStart).filter((held) => held.reportedOn >= since && !changes.some((change) => sameTopic(new Set(change.words), new Set(held.words))));
+  await storeMarketChanges({ siteId: a.siteId, weekStart: a.weekStart, changes: [...changes, ...kept] });
+  await replaceOpsEvent(MARKET_PASS, a.siteId, a.scanId, JSON.stringify({ stories: found.stories }));
+  return changes.length + kept.length;
 }

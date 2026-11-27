@@ -256,8 +256,8 @@ export async function claimMarketWeek(a: { siteId: string; weekStart: string; sc
   const { error } = await dbAdmin().from("market_changes").insert({ site_id: a.siteId, week_start: a.weekStart, scan_id: a.scanId });
   if (error === null) return true;
   if (error.code !== UNIQUE_VIOLATION) throw new Error(`weekly: could not claim the market week: ${error.message}`);
-  // Only a re-run's row differs from the week's claimant, and it takes the week over; the same row again is one claim.
-  const taken = await dbAdmin().from("market_changes").update({ scan_id: a.scanId, changes: null }).eq("site_id", a.siteId).eq("week_start", a.weekStart).neq("scan_id", a.scanId).select("site_id");
+  // Only a re-run's row differs from the week's claimant, and it takes the week over, its changes kept to add to; the same row again is one claim.
+  const taken = await dbAdmin().from("market_changes").update({ scan_id: a.scanId }).eq("site_id", a.siteId).eq("week_start", a.weekStart).neq("scan_id", a.scanId).select("site_id");
   if (taken.error) throw new Error(`weekly: could not claim the market week: ${taken.error.message}`);
   return (taken.data ?? []).length > 0;
 }

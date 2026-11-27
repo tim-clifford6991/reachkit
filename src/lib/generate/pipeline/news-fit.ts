@@ -11,12 +11,14 @@ const NEWS_FIT_SCHEMA = z.strictObject({
   results: z.array(z.strictObject({ result: z.number().int(), about: z.boolean(), event: z.boolean(), names: z.string().nullable() })),
 });
 
-/** Each index of `results` judged an event in the market, with the new product, model, version, rule or price it names;
- *  `null` where the call could not be made or did not answer. */
+/** What the judge held of a result: the new product, model, version, rule or price it names, or which test it failed. */
+export type NewsVerdict = { names: string } | { not: "our_market" | "an_event" | "named" };
+
+/** Each index of `results` the judge answered for; `null` where the call could not be made or did not answer. */
 export async function newsFit(
   c: CostContext,
   a: { locale: Locale; market: Pick<WritingMarket, "category" | "synonyms" | "market">; fallback: string; results: readonly { title: string; source: string; text: string }[] }
-): Promise<Map<number, string> | null> {
+): Promise<Map<number, NewsVerdict> | null> {
   const job = a.market.market?.job ?? null;
   const answer = await llm(c, {
     site: "generate.news_fit",
@@ -50,5 +52,6 @@ export async function newsFit(
     },
   });
   if (answer.kind === "unmeasured") return null;
-  return new Map(answer.value.results.flatMap((row) => (row.about && row.event && row.names !== null && row.names.trim() !== "" ? [[row.result - 1, row.names.trim()] as const] : [])));
+  return new Map(answer.value.results.map((row): [number, NewsVerdict] => [row.result - 1,
+    !row.about ? { not: "our_market" } : !row.event ? { not: "an_event" } : row.names === null || row.names.trim() === "" ? { not: "named" } : { names: row.names.trim() }]));
 }

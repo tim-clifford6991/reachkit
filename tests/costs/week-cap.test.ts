@@ -82,7 +82,7 @@ describe("a site's week spends from one sum", () => {
     const changes = await withCostContext({ scanId: WEEK, cap: "WEEK", policyVersion: 1, rollUp: "none", activity: "weekly", priorCents: CAPS.WEEK_C }, (c) =>
       buyMarketChanges(c, { siteId: "s", locale: DEFAULT_LOCALE, terms: ["plumbing", "plumber"], notOurs: new Set(), market, today: new Date() })
     );
-    expect(changes).toEqual([]);
+    expect(changes).toEqual({ changes: [], stories: [] });
     expect(calls.vendor).toEqual([]);
   });
 
@@ -100,7 +100,7 @@ describe("a site's week spends from one sum", () => {
   it("a second run of Monday's judge finds the week's event claimed: it judges nothing and adds no topic", async () => {
     const { offerHotTopics } = await import("@/lib/hot/offer");
     expect(await offerHotTopics({ siteId: "s", scanId: WEEK, now: new Date("2026-11-20T08:00:00Z") })).toBe(0);
-    expect(calls.claims).toEqual(["eq.hot_topic"]);
+    expect(calls.claims).toEqual(["eq.hot_topic", "eq.hot_topic", "eq.market_changes_pass"]);
     expect(calls.model).toBe(0);
     expect(calls.vendor).toEqual([]);
   });

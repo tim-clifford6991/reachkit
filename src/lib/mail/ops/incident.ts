@@ -139,6 +139,7 @@ const ROUTE: Route = {
   "mail-stopped": (i) => i.domains.map((domain) => `${domain} ${i.cause}`),
   "step-retried": (i) => [`${i.step} attempt ${i.attempt} ${i.cents}¢`],
   "weekly-failed": (i) => [`${i.weekStart} ${i.reason} → ${i.retake}`],
+  hot: (i) => [i.because === null ? `${i.stories ?? "?"} stories, ${i.events} events, ${i.offered} offered` : `none, because ${i.because}`],
 };
 
 /** Whether the occasion was told at once or stored, for a caller that stamps its own once-ness. */
