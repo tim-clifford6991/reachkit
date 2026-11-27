@@ -1,13 +1,13 @@
 // SPEC §6 *Market changes* (owner ruling 90): the weekly pass asks Google News what happened this past week to the things
 // that move the site's market, from the week's one sum, `CAPS.WEEK_C`, a job step of its own. A story is a market change only where two
-// independent publishers reported it inside 30 days and the judgement holds it to be an event in the market; each is read
+// independent publishers reported it inside 30 days and the judgement holds it to be in the market; each is read
 // for claims, so nothing is speculated. The week's row is inserted before any spend, so a second run of the week buys
 // nothing; an owner's re-run takes the week over, reads the news again and keeps each change the week held.
 import { CACHE_WINDOWS_D, RESEARCH } from "@/lib/config/constants";
 import { withCostContext, type CostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
 import { readClaims } from "@/lib/generate/pipeline/claims-read";
-import { newsFit } from "@/lib/generate/pipeline/news-fit";
+import { newsFit, type Weak } from "@/lib/generate/pipeline/news-fit";
 import { fetchPage, type MarketFact, type ReadPage } from "@/lib/generate/pipeline/research";
 import { similarity } from "@/lib/generate/rules/similarity";
 import { siteWritingMarket, type WritingMarket } from "@/lib/generate/voice/market";
@@ -33,6 +33,8 @@ export interface MarketChange {
   title: string;
   /** The new product, model, version, rule or price it reports, and the day it was first reported; null where it names none. */
   names: string | null;
+  /** Why it ranks lower, where the judge held it no dated event or naming nothing new. */
+  weak?: Weak;
   reportedOn: string;
   words: string[];
   claims: { url: string; publisher: string; publishedAt: string; quote: string }[];
@@ -44,7 +46,11 @@ export interface MarketChange {
 /** What became of one story the week's news read found: a stored change, or the step that dropped it. */
 export interface StoryOutcome {
   title: string;
-  outcome: "change" | "one_source" | "unjudged" | "cap" | "not_our_market" | "not_an_event" | "not_named";
+  publishers: string[];
+  /** What the judge held it names; null where it named none or did not judge it. */
+  names: string | null;
+  weak?: Weak;
+  outcome: "change" | "one_source" | "unjudged" | "cap" | "not_our_market";
 }
 
 type Report = ReadPage & { publisher: string; source: string; publishedAt: string };
@@ -86,7 +92,11 @@ export async function buyMarketChanges(
 ): Promise<{ changes: Omit<MarketChange, "firstSeen" | "lastSeen">[]; stories: StoryOutcome[] }> {
   const counts = { queries: a.terms.slice(0, RESEARCH.newsSearches), rows: 0, stories: 0, judged: 0, events: 0 };
   const said: StoryOutcome[] = [];
-  const told = (changes: Omit<MarketChange, "firstSeen" | "lastSeen">[]) => (console.log(JSON.stringify({ event: "market_changes_read", siteId: a.siteId, ...counts, claimed: changes.length })), { changes, stories: said });
+  const told = (changes: Omit<MarketChange, "firstSeen" | "lastSeen">[]) => {
+    for (const story of said) console.log(JSON.stringify({ event: "market_changes_story", siteId: a.siteId, ...story }));
+    console.log(JSON.stringify({ event: "market_changes_read", siteId: a.siteId, ...counts, claimed: changes.length }));
+    return { changes, stories: said };
+  };
   const today = a.today.toISOString().slice(0, 10);
   const since = new Date(a.today.getTime() - MARKET_CHANGES.days * 86_400_000).toISOString().slice(0, 10);
   const inWindow = (day: string): boolean => day >= since && day <= today;
@@ -102,7 +112,7 @@ export async function buyMarketChanges(
   // Each story's reports read and dated by their own page where it states one; a syndicated copy is the report it copies.
   const found = storiesOf(rows), stories: { held: Report[]; fate: StoryOutcome }[] = [];
   // Each story is the cap's until a step decides it.
-  said.push(...found.map((story): StoryOutcome => ({ title: story[0]!.title, outcome: "cap" })));
+  said.push(...found.map((story): StoryOutcome => ({ title: story[0]!.title, publishers: [...new Set(story.map(publisherOf))], names: null, outcome: "cap" })));
   for (const [n, story] of found.entries()) {
     if (c.capHit()) break;
     const reads = await Promise.all(story.map((row) => fetchPage(row.url, row.publishedAt)));
@@ -119,7 +129,7 @@ export async function buyMarketChanges(
   if (stories.length === 0 || c.capHit()) return told([]);
 
   // Judged a batch at a time, and read for claims a call's pages at a time, while the cap leaves room: the cap is the only bound.
-  const kept: { story: Report[]; names: string; fate: StoryOutcome }[] = [];
+  const kept: { story: Report[]; names: string | null; weak?: Weak; fate: StoryOutcome }[] = [];
   for (let at = 0; at < stories.length && !c.capHit(); at += RESEARCH.recentJudged) {
     const batch = stories.slice(at, at + RESEARCH.recentJudged);
     const about = await newsFit(c, { locale: a.locale, market: a.market, fallback: a.terms.at(-1) ?? "", results: batch.map(({ held }) => held[0]!) });
@@ -127,8 +137,8 @@ export async function buyMarketChanges(
     batch.forEach(({ held, fate }, n) => {
       const verdict = about?.get(n);
       if (verdict === undefined) fate.outcome = about === null ? "unjudged" : "not_our_market";
-      else if ("not" in verdict) fate.outcome = `not_${verdict.not}`;
-      else kept.push({ story: held, names: verdict.names, fate });
+      else if ("not" in verdict) fate.outcome = "not_our_market";
+      else kept.push({ story: held, ...verdict, fate: Object.assign(fate, verdict) });
     });
   }
   counts.events = kept.length;
@@ -141,7 +151,7 @@ export async function buyMarketChanges(
       locale: a.locale, search: a.market.category, rivals: [], today: a.today, siteId: a.siteId, calls: 1,
     })));
   }
-  return told(kept.flatMap(({ story, names, fate }) => {
+  return told(kept.flatMap(({ story, names, weak, fate }) => {
     const claims = facts.flatMap((fact) => {
       const report = story.find((page) => page.url === fact.url);
       return report === undefined ? [] : [{ url: report.url, publisher: report.source, publishedAt: report.publishedAt, quote: fact.passage }];
@@ -153,7 +163,7 @@ export async function buyMarketChanges(
     }
     fate.outcome = "change";
     const reportedOn = story.map((page) => page.publishedAt).sort()[0]!;
-    return [{ title: story[0]!.title, names, reportedOn, words: [...topicWords(story[0]!.title)], claims }];
+    return [{ title: story[0]!.title, names, ...(weak === undefined ? {} : { weak }), reportedOn, words: [...topicWords(story[0]!.title)], claims }];
   }));
 }
 

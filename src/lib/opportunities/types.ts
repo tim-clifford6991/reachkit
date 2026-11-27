@@ -5,7 +5,7 @@ import type { KnownSource } from "@/lib/known-content/types";
 import type { SiteCheck } from "@/lib/site-issues/types";
 import type { FitFact } from "@/lib/site-profile/knowledge/read";
 import type { TopicAngle } from "@/lib/market/questions/angle";
-import type { HotClaim, HotReason } from "@/lib/hot/detect";
+import type { HotClaim, HotEvent, HotReason } from "@/lib/hot/detect";
 import type { SearchTrend } from "@/lib/vendors/dataforseo/types";
 
 /** §7's table, read down the `Type` column, plus SPEC §0's Earn family: a source names a rival and not the customer,
@@ -233,7 +233,7 @@ export type Evidence =
       fitFact?: FitFact | null;
       /** The angle the topic keeps (`market/questions/angle.ts`); `null` where none passed, absent where judged before. */
       angle?: TopicAngle | null;
-      hot?: { claims: HotClaim[]; reason?: HotReason; changes?: boolean }; // A timely page's event: the reports its pack cites, its reason, whether it changes what a buyer does.
+      hot?: { claims: HotClaim[]; reason?: HotReason; changes?: boolean; weak?: HotEvent["weak"] }; // A timely page's event: the reports its pack cites, its reason, whether it changes what a buyer does, why it ranks lower.
     }
   | {
       family: "improve";

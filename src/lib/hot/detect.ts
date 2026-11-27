@@ -33,6 +33,8 @@ export interface HotEvent {
   b: string;
   title: string;
   claims: HotClaim[];
+  /** Why it ranks lower, where its change is weak. */
+  weak?: MarketChange["weak"];
 }
 
 const DAY_MS = 86_400_000;
@@ -45,19 +47,20 @@ export function cutAtWord(text: string, max: number): string {
   return cut.slice(0, Math.max(cut.lastIndexOf(" "), 1)).trim();
 }
 
-/** The changes' events a page dated `day` may answer, newest first. A change whose name its sources do not carry names nothing. */
+/** The changes' events a page dated `day` may answer, newest first: named by what the change names, else by its title. A name its sources do not carry names nothing. */
 export function hotEvents(changes: readonly Partial<MarketChange>[], day: string): HotEvent[] {
   const since = new Date(Date.parse(`${day}T00:00:00Z`) - HOT.days * DAY_MS).toISOString().slice(0, 10);
   const events = new Map<string, HotEvent>();
   for (const change of changes) {
-    if (typeof change.names !== "string" || !Array.isArray(change.claims) || !Array.isArray(change.words)) continue;
+    const named = typeof change.names === "string" ? change.names : (change.title ?? "");
+    if (named.trim() === "" || !Array.isArray(change.claims) || !Array.isArray(change.words)) continue;
     const claims = change.claims.filter((claim) => typeof claim?.publishedAt === "string" && claim.publishedAt >= since && claim.publishedAt <= day).map((claim) => ({ ...claim, ...(change.lastSeen === undefined ? {} : { readOn: change.lastSeen }) }));
     const publishers = [...new Map(claims.map((claim) => [registrableDomain(claim.url) ?? claim.url, claim.publisher])).values()];
     const said = [change.title ?? "", ...claims.map((claim) => claim.quote)].join(" ").toLowerCase();
-    if (publishers.length < HOT.sources || !said.includes(change.names.trim().toLowerCase())) continue;
+    if (publishers.length < HOT.sources || (typeof change.names === "string" && !said.includes(change.names.trim().toLowerCase()))) continue;
     const key = `news:${createHash("sha256").update([...change.words].sort().join(" ")).digest("hex").slice(0, 32)}`;
     const date = claims.map((claim) => claim.publishedAt).sort()[0]!;
-    if (!events.has(key)) events.set(key, { key, signal: "news", event: cutAtWord(change.names, HOT.eventChars), date, a: publishers[0]!, b: publishers[1]!, title: change.title ?? "", claims });
+    if (!events.has(key)) events.set(key, { key, signal: "news", event: cutAtWord(named, HOT.eventChars), date, a: publishers[0]!, b: publishers[1]!, title: change.title ?? "", claims, ...(change.weak === undefined ? {} : { weak: change.weak }) });
   }
   return [...events.values()].sort((x, y) => y.date.localeCompare(x.date));
 }

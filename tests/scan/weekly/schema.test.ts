@@ -22,6 +22,7 @@
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "../../../src/lib/db/topics";
+import type { StoryOutcome } from "../../../src/lib/scan/weekly/market-changes";
 import {
   REST_URL,
   psql,
@@ -337,12 +338,29 @@ describe("ADR-050 · issue #180 — the weekly selection decides who pays, throu
     expect(await claimMarketWeek({ ...week, scanId: monday })).toBe(true);
     await storeWeek({ ...week, scanId: monday, now: new Date("2026-11-24T08:00:00Z") }, { changes: [held], stories: [{ title: held.title, outcome: "change" }] });
     expect(await claimMarketWeek({ ...week, scanId: rerun })).toBe(true);
-    const stories = [{ title: "Acme 5 ships", outcome: "not_an_event" }, { title: "Acme rivals", outcome: "one_source" }, { title: "Acme 6", outcome: "cap" }] as const;
+    const stories = [{ title: "Acme 5 ships", outcome: "not_our_market" }, { title: "Acme rivals", outcome: "one_source" }, { title: "Acme 6", outcome: "cap" }].map((s) => ({ ...s, publishers: ["a.com"], names: null })) as StoryOutcome[];
     expect(await storeWeek({ ...week, scanId: rerun }, { changes: [], stories: [...stories] })).toBe(1);
     const [changes] = psqlRows(`select changes from market_changes where site_id = '${site}' and week_start = '2026-11-23';`)[0]!;
     expect((JSON.parse(changes!) as { title: string; firstSeen: string }[]).map((c) => [c.title, c.firstSeen])).toEqual([["Acme 5 ships", "2026-11-24"]]);
     const [read] = psqlRows(`select read from ops_events where kind = 'market_changes_pass' and code = '${rerun}';`)[0]!;
     expect((JSON.parse(read!) as { stories: unknown[] }).stories).toEqual(stories);
+    psql(["-c", "delete from market_changes; delete from ops_events;"]);
+  });
+
+  it("a story that names nothing is still the week's change, its event named by its title and its row ranked at most a fortnight's", async () => {
+    clearRows();
+    const site = givenSite("weak", "2026-12-31T00:00:00Z"), now = new Date("2026-11-27T00:00:00Z");
+    const scanId = psqlRows(`insert into scans (site_id, domain, tier, status) values ('${site}', 'weak.example.com', 'weekly', 'done') returning id;`)[0]![0]!;
+    const { storeWeek } = await import("../../../src/lib/scan/weekly/market-changes"), { readHotEvents } = await import("../../../src/lib/hot/detect");
+    const { hotRow } = await import("../../../src/lib/hot/offer"), { timelyOf } = await import("../../../src/lib/hot/timely");
+    const claims = ["a.com", "b.com"].map((host) => ({ url: `https://${host}/s`, publisher: host, publishedAt: "2026-11-24", quote: "AI answers cut clicks by 40%." }));
+    const change = { title: "AI answers cut clicks by 40%, a study finds", names: null, weak: "not_named" as const, reportedOn: "2026-11-24", words: ["ai", "answers", "clicks", "study"], claims };
+    await storeWeek({ siteId: site, weekStart: "2026-11-23", now, scanId }, { changes: [change], stories: [] });
+    const events = await readHotEvents(site, "2026-11-27");
+    expect(events.map((e) => [e.event, e.weak])).toEqual([[change.title, "not_named"]]);
+    const angle = { search: "ai answers clicks", title: null, angle: null, fact: null, fit: null, changes: true, angles: [] };
+    const row = hotRow({ siteId: site, scanId, language: "en", angle, event: events[0]!, reason: { ...events[0]!, detectedOn: "2026-11-27" }, now });
+    expect(timelyOf({ evidence: row.evidence }, new Date("2026-11-27T00:00:00Z"))).toBe(2);
     psql(["-c", "delete from market_changes; delete from ops_events;"]);
   });
 });

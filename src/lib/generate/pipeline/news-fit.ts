@@ -1,5 +1,5 @@
 // SPEC §7 (issue 1262): the call that holds news results to events in the site's market, for the weekly pass's market
-// changes, and names what each reports. An explainer is not news of a change, so it never reaches the claims call.
+// changes, and names what each reports. An explainer or a story naming nothing new is still a change, ranked lower.
 import { z } from "zod";
 import { RESEARCH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -11,8 +11,11 @@ const NEWS_FIT_SCHEMA = z.strictObject({
   results: z.array(z.strictObject({ result: z.number().int(), about: z.boolean(), event: z.boolean(), names: z.string().nullable() })),
 });
 
-/** What the judge held of a result: the new product, model, version, rule or price it names, or which test it failed. */
-export type NewsVerdict = { names: string } | { not: "our_market" | "an_event" | "named" };
+/** Why a story in the market ranks lower: it reports no dated event, or names no new product, model, version, rule or price. */
+export type Weak = "not_an_event" | "not_named";
+
+/** What the judge held of a result: what it names, null and why where it is weak, or that it is not of the market. */
+export type NewsVerdict = { names: string; weak?: never } | { names: null; weak: Weak } | { not: "our_market" };
 
 /** Each index of `results` the judge answered for; `null` where the call could not be made or did not answer. */
 export async function newsFit(
@@ -53,5 +56,5 @@ export async function newsFit(
   });
   if (answer.kind === "unmeasured") return null;
   return new Map(answer.value.results.map((row): [number, NewsVerdict] => [row.result - 1,
-    !row.about ? { not: "our_market" } : !row.event ? { not: "an_event" } : row.names === null || row.names.trim() === "" ? { not: "named" } : { names: row.names.trim() }]));
+    !row.about ? { not: "our_market" } : !row.event ? { names: null, weak: "not_an_event" } : row.names === null || row.names.trim() === "" ? { names: null, weak: "not_named" } : { names: row.names.trim() }]));
 }
