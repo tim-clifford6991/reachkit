@@ -35,31 +35,9 @@ export function rankedCountsOf(report: StoredReport): RankedCounts {
   return rankedCountsFromSizes(report.rivalSizes.value, at);
 }
 
-function inputFor(a: {
-  siteId: string;
-  report: StoredReport;
-  hostedHost: string | null;
-  inventory: readonly InventoryRow[];
-  known: DeriveInput["known"];
-  market: DeriveInput["market"];
-  knowledge: DeriveInput["knowledge"];
-  competitors: readonly string[];
-  prompts: readonly string[];
-}): DeriveInput {
-  return {
-    siteId: a.siteId,
-    scanId: a.report.scanId,
-    report: a.report,
-    ownRanked: a.report.ownRanked,
-    rankedCounts: rankedCountsOf(a.report),
-    hostedHost: a.hostedHost,
-    inventory: a.inventory,
-    market: a.market ?? null,
-    knowledge: a.knowledge ?? null,
-    competitors: a.competitors,
-    prompts: a.prompts,
-    ...(a.known === undefined ? {} : { known: a.known }),
-  };
+function inputFor(a: { siteId: string; report: StoredReport; hostedHost: string | null; inventory: readonly InventoryRow[]; known: DeriveInput["known"]; market: DeriveInput["market"]; knowledge: DeriveInput["knowledge"]; competitors: readonly string[]; prompts: readonly string[] }): DeriveInput {
+  const { siteId, report, hostedHost, inventory, competitors, prompts } = a;
+  return { siteId, scanId: report.scanId, report, ownRanked: report.ownRanked, rankedCounts: rankedCountsOf(report), hostedHost, inventory, market: a.market ?? null, knowledge: a.knowledge ?? null, competitors, prompts, ...(a.known === undefined ? {} : { known: a.known }) };
 }
 
 /** SPEC §6 *A competitor wins, the site is absent*: each competitor's ranked rows its sizing cached, 0¢; a miss reads as nothing read. */
