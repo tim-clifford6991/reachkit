@@ -4,7 +4,7 @@
 // The scale is anchored (3: the searcher would buy this product instead of what the top results list), and the top is
 // bounded in code: at most `TOPIC_FIT.topShare` keep a 3, in the model's own order, and the rest are 2. A new topic of
 // 2 or 3 names the knowledge-base passage that answers it, and one naming none it was shown is stored as 1. The model
-// cannot add, drop or change a search. An unavailable model or a reached cap is no judgement, and nothing is proposed.
+// cannot add, drop or change a search. An unavailable model or a reached cap is no judgement, and every search stays unscored.
 import type { Language, Locale } from "@/lib/locale/locales";
 import type { FitFact, KnowledgeDigest } from "@/lib/site-profile/knowledge/read";
 import { z } from "zod";
@@ -104,10 +104,7 @@ export function boundTopFit(
   return out;
 }
 
-/**
- * Fit for each of `searches`, by its index. Empty where there is nothing to
- * judge, nothing to judge against, or no judgement came back.
- */
+/** Fit for each of `searches`, by its index. Empty where there is nothing to judge, nothing to judge against, or no judgement came back. */
 export async function judgeFit(
   c: CostContext,
   a: {
@@ -136,7 +133,7 @@ export async function judgeFit(
           rivals: a.market.rivals.map((rival) => rival.name || rival.domain),
         };
 
-  const answer = await llm(c, {
+  const ask = () => llm(c, {
     site: FIT_CALL_SITE,
     input: {
       task: TASK,
@@ -153,6 +150,8 @@ export async function judgeFit(
     tier: "sonnet",
     ...(a.locale === undefined ? {} : { locale: a.locale }),
   });
+  // Asked once more only where the answer came back unreadable, never cut off or refused; the cap still decides.
+  const first = await ask(), answer = first.kind === "unmeasured" && first.because === "parse" ? await ask() : first;
   if (answer.kind === "unmeasured") return new Map();
   return boundTopFit(answer.value.scores, answer.value.strongest, searches, a.knowledge ?? null, { own: [a.domain], rivals: a.market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [], ...(a.locale === undefined ? {} : { language: a.locale.language }) });
 }

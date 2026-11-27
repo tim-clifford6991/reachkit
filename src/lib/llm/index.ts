@@ -134,9 +134,9 @@ function estimateTokens(text: string): number {
 /** A tool name the vendor accepts is `[a-zA-Z0-9_-]{1,128}`; a call site such as `generate.brief` carries a dot. */
 const TOOL_NAME_UNSAFE = /[^a-zA-Z0-9_-]/g;
 
-/** The call site's schema as one strict tool the model may call: the vendor holds a call's `input` to the schema and
- *  returns it already parsed. The choice is the model's, since newer models refuse a forced call, so a text answer
- *  is still read by `parseJson`. `null`, plain text, for a schema that is not an object or that cannot be written as
+/** The call site's schema as one strict tool: the vendor holds a call's `input` to the schema and returns it already
+ *  parsed. A tier whose model refuses a forced call chooses whether to call it (`forcesTool`), so a text answer is
+ *  still read by `parseJson`. `null`, plain text, for a schema that is not an object or that cannot be written as
  *  JSON Schema; building the request never throws. The SDK moves what strict mode refuses (lengths, bounds) into
  *  descriptions, and the Zod `safeParse` below stays the gate on either path. */
 function answerToolFor(site: LlmCallSite, schema: ZodType<unknown>): Anthropic.Tool | null {
@@ -317,9 +317,7 @@ async function callModel(
   const client = new Anthropic({
     apiKey: binding.apiKey,
     timeout: binding.timeoutMs,
-    // `INFERENCE_MAX_RETRIES`, passed rather than defaulted (issue #452):
-    // the SDK's own default is 2, which made every attempt three requests
-    // and the tier's timeout three times the wall clock it reads as.
+    // Passed rather than defaulted: the SDK's own 2 made every attempt three requests.
     maxRetries: INFERENCE_MAX_RETRIES,
   });
   const message = await client.messages.create(
@@ -332,7 +330,7 @@ async function callModel(
       messages: [{ role: "user", content: prompt.user }],
       ...(tool === null
         ? {}
-        : { tools: [tool], tool_choice: { type: "auto" as const } }),
+        : { tools: [tool], tool_choice: binding.forcesTool ? { type: "tool" as const, name: tool.name } : { type: "auto" as const } }),
     },
     { timeout: remainingMs }
   );
@@ -590,9 +588,7 @@ export async function llm<T>(
     costCents: result.costCents,
     durationMs: outcome.durationMs,
     parseOutcome: outcome.parseOutcome,
-    // Spread, not a written `failure: outcome.failure` — an explicit
-    // `undefined` survives into the record's key set, and a successful
-    // call's line carries BP-009's six fields exactly.
+    // Spread, so a successful call's line carries BP-009's six fields exactly.
     ...(outcome.failure === undefined ? {} : { failure: outcome.failure }),
     ...(outcome.retryExhausted === undefined ? {} : { retryExhausted: outcome.retryExhausted }),
     ...(outcome.diagnosis === undefined ? {} : outcome.diagnosis),
@@ -600,9 +596,12 @@ export async function llm<T>(
   });
 
   if (outcome.parseOutcome === "success") return measured(outcome.value as T, at);
+  // A weekly pass's failed call is a digest line of its own, with its class and its cents, so no count reads it as a 0.
+  if (c.cap === "WEEK") {
+    const failure = outcome.failure === "parse" ? `parse/${outcome.diagnosis?.parseFailure ?? "json"}` : (outcome.failure ?? "unknown");
+    await (await import("@/lib/mail/ops/incident")).tellOwner("model-call-failed", [`${call.site} ${failure} ${result.costCents.toFixed(2)}¢`]);
+  }
   if (outcome.retryExhausted === "cap") return unmeasured("not_attempted", at);
-  // "unparseable" and "unavailable" both degrade the caller into the
-  // same `UnmeasuredReason` — see file header for why this is
-  // `undeterminable`, not the `unparseable` BP-009's prose names.
-  return unmeasured("undeterminable", at, outcome.diagnosis?.parseFailure === "cut_off" ? "cut_off" : outcome.failure);
+  // Both failures degrade the caller to `undeterminable` (see file header); a miss the same request would repeat names its kind.
+  return unmeasured("undeterminable", at, outcome.retryExhausted === "deterministic" ? outcome.diagnosis?.parseFailure : outcome.failure);
 }

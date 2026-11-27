@@ -454,6 +454,7 @@ export async function deriveOpportunities(
     ],
     unworded,
     ...(topUp === undefined ? {} : { topUp }),
+    fitUnmeasured: searches.length > 0 && fits.size === 0,
   });
   // A candidate the collapse folded into a held row is that row's duplicate: an equivalent open or queued row exists.
   const folded = labelled.length + questions.length - plan.insert.length;
