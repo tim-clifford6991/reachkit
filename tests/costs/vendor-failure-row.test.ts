@@ -146,6 +146,10 @@ describe("issue #504 — a failed vendor call is a row, never a null payload", (
     expect(row.payload).toEqual({ vendorFailure: "deadline", endpoint: SERP, billed: true, taskId: "task-id-fixture" });
     expect(row.cost_cents).toBe(row.reserved_cents);
   });
+  it("a task the last ask left on the queue is read, not posted again, and its row is no longer failed spend", async () => {
+    db.rows.set("fetches", [{ id: "row-held", created_at: new Date().toISOString(), payload: { vendorFailure: "deadline", endpoint: "serp/google/ai_mode", billed: true, taskId: "task-id-fixture" } }]); const vendor = stubVendorFetch(() => envelope({ items: [{ type: "ai_overview", markdown: "An answer.", references: [] }] })), result = await inContext(async (c) => (await import("../../src/lib/vendors/dataforseo/ai")).aiMode(c, { query: "best crm", mode: "std", scope: { site: "site-1" }, locale: { country: "US", language: "en" } }));
+    expect([result.kind, vendor.requests.map((r) => r.method), fetchInserts(), db.queries.find((q) => q.verb === "update")]).toMatchObject(["measured", ["GET"], [], { filters: [["id", "row-held"]], values: { outcome: "ok" } }]);
+  });
 
   it("a `task_post` the standard queue did not accept is its task code, unbilled", async () => {
     stubVendorFetch(() => envelope(undefined, 40501));

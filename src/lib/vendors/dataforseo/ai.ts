@@ -173,6 +173,8 @@ export async function aiMode(
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
     fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, a.locale, { keyword: a.query }, a.abortMs, a.untilMs),
     parse: parseAiMode,
+    // A re-ask of a task still on the queue reads it (free `task_get`): a retried step never pays for the same answer twice.
+    ...(a.mode === "std" ? { adopt: { read: (taskId: string, untilMs: number) => collectTask(AI_MODE_PATHS, taskId, untilMs), ...(a.untilMs === undefined ? {} : { untilMs: a.untilMs }) } } : {}),
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
     onReused: () => {
       reused = true;
