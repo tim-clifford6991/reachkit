@@ -142,7 +142,7 @@ export function pageName(page: { url: string; title: string; h1: string }): stri
   return said[0] ?? "";
 }
 
-const CODE_OR_NUMBER_LINK_RE = /(`[^`]+`)|\[(\s*\p{Sc}?[\d.,]+[%+]?\s*)\]\(([^)\s]+)\)/gu;
+const CODE_OR_NUMBER_LINK_RE = /(`[^`]+`)|\[(\s*[\d.,]+[%+]?\s*)\]\(([^)\s]+)\)/g;
 /** A link with the rest of its figure outside it: "$[40](u)", "[40](u),000+". */
 const SPLIT_FIGURE_RE = /(`[^`]+`)|([\p{Sc}~≈+]?)\[([^\]\n]*)\]\(([^)\s]+)\)((?:[.,]\d+)*[+%]?)/gu;
 

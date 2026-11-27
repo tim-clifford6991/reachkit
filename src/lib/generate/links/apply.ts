@@ -1,40 +1,14 @@
-// SPEC §7 Rules ("No link known to go nowhere", "one serialiser for
-// screen, copy-as-HTML and copy-as-Markdown", 2026-09-12; *Descriptive link
-// text*, 2026-10-10, issue 1391).
-//
-// Holds a finished body to the link list `select.ts` chose. The model is
-// told the list; this is what makes it true of the page whatever the model
-// did with it.
-//
-// **Three passes over the body's own Markdown, and nothing else.**
-//
-//   1. Every link's text is held to `text.ts`. A bare figure takes in the
-//      words it counts. A link into the customer's site whose text says
-//      nothing of the page — "here", an address, or the page's slogan
-//      reworded — is unwrapped: the sentence stands and the link does not.
-//      A link elsewhere with such text is named by its host.
-//   2. Every link into the customer's own site — an absolute address on
-//      their domain, or a site-relative `/path` — that is not a chosen
-//      target and not the grounded source is unwrapped to its label, and so
-//      is a link to a chosen target whose words share none with that
-//      page's name, headings or address — a price is not a page. A
-//      path the model guessed is exactly the dead link the rule forbids. A
-//      chosen target written relatively is rewritten absolute: the hosted
-//      destination serves from a subdomain, where `/pricing` is not theirs.
-//   3. The writer links a page where a sentence speaks to it, so most
-//      chosen pages are linked in the text. Where the body links fewer of
-//      the site's own pages than `CROSS_LINKS.SITE_MIN`, the best of the
-//      rest are listed until it holds that many, each under the page's own
-//      name; an earlier page of the cluster the body did not reach is
-//      listed too.
-//
-// Links to anywhere else — a rival's page a figure is sourced from — keep
-// their address: those are the hard rules' business.
-//
-// The result is Markdown, written in the grammar the one renderer
-// (`src/lib/publish/render/markdown.ts`) parses. It is stored as the
-// draft's body, so the screen, copy-as-HTML, copy-as-Markdown and every
-// destination read the same links from the same string.
+// SPEC §7 (no link known to go nowhere; descriptive link text): holds a finished body to the link list `select.ts`
+// chose, whatever the model did with it. Three passes over the body's own Markdown:
+//   1. A link's text is held to `text.ts`: a bare figure takes in the words it counts, and an on-site link whose text
+//      says nothing of the page is unwrapped; one elsewhere is named by its host.
+//   2. A link into the customer's site that is neither a chosen target, a live page, nor a fact's source is unwrapped,
+//      as is one whose words share none with its page; a relative target is made absolute. A mention of a chosen or
+//      live page ("our … page") is linked to it.
+//   3. Where the body links fewer site pages than `CROSS_LINKS.SITE_MIN`, the best of the rest are listed under their
+//      own names, with any earlier cluster page it did not reach.
+// Links elsewhere keep their address: those are the hard rules' business. The result is the stored body, so every
+// surface reads the same links from one string.
 import { CROSS_LINKS } from "@/lib/config/constants";
 import { onSite, urlKey, type LinkTarget } from "./select";
 import { isSlogan, linkTextProblem, linkWords, resembles, sameWord, widenNumberLinks } from "./text";
@@ -269,22 +243,8 @@ function safeLabel(label: string): string {
   return label.replace(/[[\]]/g, "").replace(/\s+/g, " ").trim();
 }
 
-/**
- * An address the inline grammar reads back whole.
- *
- * **Both parentheses, since issue 929.** The hand-written grammar ended a
- * link at the first `)`, so encoding that one was enough. The parser is
- * CommonMark now (`src/lib/publish/render/markdown.ts`), and its rule is
- * different: an unwrapped destination may contain parentheses only in
- * **balanced** pairs, so a URL with a lone `(` — which
- * `https://…/widget_(v2)` becomes the moment its `)` is encoded — is not a
- * destination at all and the whole link reads as literal text.
- *
- * Encoding both leaves an address with no parentheses in it, which every
- * Markdown parser reads back the same way and which resolves to the same
- * URL. Whitespace is encoded for the reason it always was: a space ends a
- * destination in CommonMark too.
- */
+/** An address every Markdown parser reads back whole: CommonMark allows only balanced parentheses in a destination and
+ *  ends one at a space, so both parentheses and whitespace are encoded. */
 function safeHref(url: string): string {
   return url.replace(/\(/g, "%28").replace(/\)/g, "%29").replace(/\s/g, "%20");
 }

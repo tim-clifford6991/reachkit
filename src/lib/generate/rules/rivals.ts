@@ -1,19 +1,5 @@
-// BUILD §8 hard rule 6 — no invented rival metrics.
-//
-// "No rival metrics invented; every rival claim links its public source."
-// A statement that names a rival and carries a numeral must carry a link in
-// **the same sentence** — and, since the two pools (SPEC §7, 2026-09-29;
-// issue 1135), that link is to a page one of the page's facts was read from.
-// The research step supplies those pages; an address the model reached for
-// on its own sources nothing.
-//
-// Sentence rather than paragraph, deliberately: a paragraph-wide scope lets
-// one sourced figure legitimise three unsourced ones standing beside it,
-// which is the failure the rule exists to prevent.
-//
-// The figure the failure carries is the numeral as it appears in the draft
-// — a stored value read straight out of the text, never a sentence and
-// never anything a model wrote.
+// BUILD §8 hard rule 6: no rival metric invented, and every rival claim links, in the same sentence, a page one of
+// the page's facts was read from. A sentence, not a paragraph, so one sourced figure never covers its neighbours.
 import type { MarketFactRead } from "./brief";
 import { urlKey } from "../links/select";
 import { figuresOf } from "./figures";
@@ -81,27 +67,9 @@ export function checkRivalSource(a: {
   return null;
 }
 
-// ── Issue 1485: a rival's claim keeps its plan and its own page ─────────
-//
-// Found live on content.reachkit.app/profound-alternatives: Profound's
-// free trial ("50 prompts run daily for 7 days", three engines) stood as the
-// product, a third-party "$99" stood beside Profound's own pricing page, and
-// the FAQ said Profound has no free tier — which its own page contradicts.
-//
-// Three faults of `rival_claim`, beside a figure without its page:
-//
-//   * **its own page first.** A sentence that names a rival and links a page
-//     that is not that rival's, where the page was handed a claim from the
-//     rival's own page, cites the lesser source. It fails.
-//   * **its plan.** A claim the rival's own page states of one plan is true
-//     of that plan only. A sentence that uses it without naming the plan
-//     fails. A claim from a rival's price list recorded before plans were
-//     has no plan to name, and is used only where its own words name the
-//     plan they price ("Standard $ 189 /month").
-//   * **a denial.** "X has no / doesn't / lacks Y" about a rival
-//     fails unless a stored fact about that rival says so: one read off its
-//     own page or naming it, that denies something too and shares a word
-//     with what the sentence denies.
+// Beside a figure without its page, `rival_claim` fails a sentence that cites a lesser page for a rival whose own page
+// was read, uses one plan's claim without naming the plan, credits a claim to a product its passage does not name,
+// sets two currencies in a ratio, or denies a rival something no stored fact about it denies.
 
 /** A rival as the site's market names it: its domain, and its name where
  *  one is stored. */
