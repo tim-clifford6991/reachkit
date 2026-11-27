@@ -1,2 +1,2 @@
-top booking tools for consultants: held, destination_cannot_address
+top booking tools for consultants: placed
 savvycal vs calendly: placed

@@ -1,33 +1,7 @@
-// SPEC §7 (2026-09-20, #928) — "A planned page that overlaps one of them
-// becomes an **update** of that page where the destination can publish to
-// it; otherwise the topic is skipped and the existing page is linked from
-// related pages."
-//
-// The net-new rule, as a function over candidates. Pure: the matches are
-// handed in (the database narrows, `known-content/match.ts` scores) and the
-// destination's answer is a predicate, so the whole of this decision is
-// assertable with no database, no network and no vendor.
-//
-// **Three outcomes, and the third is the ordinary one.**
-//
-//   · *Covered, and the destination can publish to that page* — the
-//     candidate becomes a `refresh_page` update of it. `refresh_page` and
-//     not a new type: its job, as the drafting prompt already states it, is
-//     "bring the page up to date with what is true now, keeping what still
-//     holds and replacing what no longer does" — which is what a planned
-//     page on a topic the site already covers is for. Its shortfall is the
-//     new `covered` arm, which records the page and the score that matched
-//     them, so nothing is invented: a `thin` or `position` shortfall would
-//     be a measurement of that page that nobody took.
-//   · *Covered, and it cannot* — the candidate stays as it was. Readiness
-//     stores `destination_cannot_address` against it (`readiness.ts`), so it never
-//     fills a day, and the page that covers it becomes a link target.
-//   · *Not covered* — untouched. Most pages are net new, and this function
-//     is a pass over a list for them.
-//
-// **A Fix and an Improve are never converted.** A Fix targets no search, and
-// an Improve is already an update of an existing page — converting one
-// against a *different* page would move a row's target under it.
+// SPEC §7 *Known content*: a planned page that repeats one the site has becomes that page's `refresh_page` update where
+// the destination can publish to it and the page is past the refresh floor; otherwise it stays as it was, and readiness
+// makes it the update once it may be one or holds it `destination_cannot_address`. Pure: the matches are handed in and
+// the destination's answer is a predicate. A Fix and an Improve are never converted: an Improve already updates a page.
 import { EFFORT_BY_TYPE, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
 import { measured } from "@/lib/measure/measured";
 import type { KnownMatch } from "@/lib/known-content/types";
