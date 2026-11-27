@@ -2,8 +2,9 @@
 // and the one account of a week every surface reads.
 export type { DueSite } from "./due";
 export { dueSites } from "./due";
-export type { WeeklyOutcome, WeeklyRefusal } from "./run";
-export { refreshWeeklyKnowledge, runWeekly } from "./run";
+export type { WeeklyClaim, WeeklyOutcome, WeeklyPass, WeeklyRefusal } from "./run";
+export { claimWeekly, finishWeekly, measureWeekly, refreshWeeklyKnowledge, runWeekly } from "./run";
+export { watchedSteps } from "./dead-attempts";
 export type { UnmeasuredPart, WeekAccount } from "./account";
 export { accountForWeek, nextDueOn, unmeasuredPartsOf } from "./account";
 export type { WeekMovement } from "./movement";

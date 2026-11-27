@@ -606,6 +606,31 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
   );
 
   it(
+    "a measure step that died after it spent is retried on its own row, and buys nothing twice",
+    async () => {
+      const held = () => db.queries.filter((q) => q.table === "fetches" && q.verb === "insert").map((q) => q.values ?? {});
+      // The ledger answers from what was bought: the same key, and the same scan where the read asks for its own.
+      db.answer = (query) =>
+        query.table === "domain_blocks" ? [] : query.table !== "fetches" ? null : query.verb !== "select" ? [] : held().filter((row) => query.filters.every(([column, value]) => !["source", "cache_key", "scan_id"].includes(column) || row[column] === value));
+      const pass = { siteId: SITE_ID, domain: DOMAIN, zone: ZONE, now: MONDAY };
+      const claim = await weekly.claimWeekly(pass);
+      if ("ran" in claim) throw new Error("unreachable");
+      await weekly.measureWeekly(pass, claim);
+      const first = held().length;
+      const bought = new Set(held().filter((row) => Number(row.cost_cents) > 0).map((row) => `${row.source}|${row.cache_key}`));
+      expect(bought.size).toBeGreaterThan(0);
+
+      // The platform retries the scheduled pass's step with its stored claim, and the row is still `running`.
+      const measured = await weekly.measureWeekly(pass, claim);
+      const again = held().slice(first).filter((row) => Number(row.cost_cents) > 0 && bought.has(`${row.source}|${row.cache_key}`));
+      expect(again).toEqual([]);
+      await expect(weekly.finishWeekly(pass, claim, measured)).resolves.toMatchObject({ ran: true, scanId: claim.scanId });
+      expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.id)).toEqual([claim.scanId]);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
     "the account of the week names what it did not reach, and never a week it did not take",
     async () => {
       // Before the measurement, REQ-065 c3's arm: not measured, and the day

@@ -5,7 +5,7 @@
 // A pass with no report, or refused for credit, releases its claim: the row is kept `failed` (the ledger references it) and the next hourly tick
 // retakes it inside the same week, spending only what is left of its `WEEK` cap. A partial report is a measured week, never retried,
 // except one whose market a call never answered: with no market there are no searches, rankings or panel, so it is released once, and its retake stands.
-// What the week found becomes supply inside this pass's cost context and cap, through `runScan`'s hook after the store; access is passed on, not re-asked.
+// What the week found becomes supply inside this pass's cost context and cap, through `spendOnStoredReport` after the store; access is passed on, not re-asked.
 // The kill switch (`scan+generate+publish`) is asked here before any spend, since this starts a scan outside the `scan/run` job's door;
 // the week then reads `not_measured` with its next due date.
 import { env } from "@/lib/config/env";
@@ -16,7 +16,8 @@ import { accountForWeek, type UnmeasuredPart } from "./account";
 import { hasActiveAccess } from "@/lib/account/billing";
 import { dayRefused, isTestSite } from "./rerun";
 import { claimRerun, claimWeek, readSiteZone, releaseWeek, supersedeWeek } from "./store";
-import { runScan, spendOnStoredReport } from "../run";
+import { reportSupplyFailed, runScan, spendOnStoredReport } from "../run";
+import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
 import { localClock, weekHasBegun, weekStartFor, weekStartInstant } from "./week";
 
@@ -38,8 +39,13 @@ export type WeeklyOutcome =
   | { readonly ran: true; readonly scanId: string; readonly status: "failed"; readonly because?: "vendor_funds" | "supply_failed" }
   | { readonly ran: false; readonly because: WeeklyRefusal };
 
-/** One site's weekly measurement. `weekStart` is computed once from the site's zone and written at insert, so moving zone moves no measured week. */
-export async function runWeekly(a: {
+/** One site's weekly measurement, as its job runs it: `claimWeekly`, `measureWeekly` and `finishWeekly`, each a step of its own. */
+export async function runWeekly(a: WeeklyPass): Promise<WeeklyOutcome> {
+  const claim = await claimWeekly(a);
+  return "ran" in claim ? claim : finishWeekly(a, claim, await measureWeekly(a, claim));
+}
+
+export type WeeklyPass = {
   siteId: string;
   domain: string;
   /** The site's own zone. The caller has it — `dueSites` selected on it —
@@ -51,13 +57,18 @@ export async function runWeekly(a: {
   /** Sent by the owner for a listed test site: the named week measured again on a fresh budget. */
   rerun?: { readonly mail: boolean };
   weekStart?: string;
-}): Promise<WeeklyOutcome> {
+};
+
+/** The row a pass claimed, as plain data: a retried step reads it back, so it measures on its own row and never claims a second. */
+export type WeeklyClaim = { readonly scanId: string; readonly weekStart: string; readonly zone: string; readonly retaken?: true; readonly category?: string };
+
+/** The refusals, all before any spend, then the claim. `weekStart` is computed once from the site's zone and written at insert, so moving zone moves no measured week. */
+export async function claimWeekly(a: WeeklyPass): Promise<WeeklyClaim | Extract<WeeklyOutcome, { ran: false }>> {
   if (a.rerun !== undefined && !isTestSite(a.siteId)) return refuse(a.siteId, "not_a_test_site");
   // A site with no stated zone has no local Monday, so no week has begun; nothing is spent, and no zone is chosen for it.
   const zone = a.zone ?? (await readSiteZone(a.siteId));
   if (zone === null || zone === undefined) return refuse(a.siteId, "week_not_begun");
 
-  // 1. The four refusals, all of them before any spend.
   if (env.KILL_SWITCH) return refuse(a.siteId, "kill_switch");
 
   const thisWeek = weekStartFor({ at: a.now, zone });
@@ -74,84 +85,93 @@ export async function runWeekly(a: {
   if (a.rerun !== undefined && (await dayRefused(a.siteId, a.now))) return refuse(a.siteId, "spend_ceiling");
   const claim = a.rerun !== undefined ? await claimRerun(a) : await claimWeek({ siteId: a.siteId, domain: a.domain, weekStart });
   if (!claim.claimed) return refuse(a.siteId, "already_measured");
+  return { scanId: claim.scanId, weekStart, zone, ...(claim.retaken === true ? { retaken: true as const } : {}), ...(category === undefined ? {} : { category }) };
+}
 
-  // 2. The one pipeline. Everything about what a weekly pass buys — the
-  //    standard queue, the `WEEK` cap, which stages degrade — is
-  //    `TIER_PARAMETERS.weekly`'s and is not restated here.
-  let status: "done" | "degraded" | "failed";
-  let fundsRefused: true | undefined;
-  let supplyFailed: true | undefined;
-  let marketUnanswered = false;
+/** The one pipeline on the claimed row. What a weekly pass buys — the standard queue, the `WEEK` cap, which stages degrade — is
+ *  `TIER_PARAMETERS.weekly`'s. A retry measures on the same row, so its cap opens on what the dead attempt spent and its stored reads are served back. */
+export async function measureWeekly(a: WeeklyPass, claim: WeeklyClaim): Promise<{ status: ScanStatus; fundsRefused?: true }> {
   try {
-    ({ status, fundsRefused, supplyFailed } = await runScan({
+    const { status, fundsRefused } = await runScan({
       scanId: claim.scanId,
       siteId: a.siteId,
       domain: a.domain,
       tier: "weekly",
       // Only values measured this week, each dated this week: a read from before the site's Monday, or before an early pass began, is last week's.
-      measuredSince: new Date(Math.min(+weekStartInstant({ weekStart, zone }), +a.now)),
-      ...(category === undefined ? {} : { category }),
+      measuredSince: new Date(Math.min(+weekStartInstant({ weekStart: claim.weekStart, zone: claim.zone }), +a.now)),
+      ...(claim.category === undefined ? {} : { category: claim.category }),
       concludesMarket: true,
       failsWhenFundsRefused: true,
-      afterReport: async ({ report, cost }) => {
-        // Released only on a first claim, since an outage answers at 0¢ and would retake the week every hour; nothing more is spent on a released week.
-        marketUnanswered = claim.retaken !== true && report.market.kind === "unmeasured" && report.market.reason === "undeterminable";
-        if (marketUnanswered) return;
-        let threw = false;
-        try {
-          try {
-            // Typing goes first so the rival re-check spends what it leaves, never the reserve held for it.
-            await deriveForPass(cost, {
-              tier: "weekly",
-              siteId: a.siteId,
-              report,
-              hasActiveAccess: true,
-              topUp: topUpSpend(claim.scanId, FREE_SCAN_POLICY_VERSION),
-              rivalRows: cachedRivalRows(a.siteId),
-            });
-          } finally {
-            // A monthly re-check the cap refused stays due on every pass until one concludes.
-            const { readSiteMarket } = await import("@/lib/market/infer/stored");
-            const checkedAt = await readSiteMarket(a.siteId).then((site) => site?.stored.rivalsCheckedAt, () => undefined);
-            if (rivalsDue(checkedAt, weekStart, zone)) {
-              const { recheckRivalsOf } = await import("../market-conclusion");
-              await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report, at: a.now });
-            }
-          }
-        } catch (error) {
-          threw = true;
-          throw error;
-        } finally {
-          // The pass checks its own health last, against the rivals it leaves in force. It never throws.
-          const { recordPassHealth } = await import("../health-record");
-          await recordPassHealth({ scanId: claim.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: true, supplyFailed: threw });
-        }
-      },
-    }));
+    });
+    return { status, ...(fundsRefused === true ? { fundsRefused } : {}) };
   } catch (error) {
-    // A crash leaves no week: the claim goes, and the next tick retries
-    // inside the same site-local week.
+    // A crash leaves no week: the claim goes, and the next tick retries inside the same site-local week.
     await releaseWeek(claim.scanId);
     throw error;
   }
+}
+
+/** The week's supply on the stored report, inside the pass's cost context and cap, then the account of what came back. */
+export async function finishWeekly(a: WeeklyPass, claim: WeeklyClaim, measured: { status: ScanStatus; fundsRefused?: true }): Promise<WeeklyOutcome> {
+  const { weekStart, zone } = claim;
+  let marketUnanswered = false;
+  let supplyFailed = false;
+  try {
+    await spendOnStoredReport({ scanId: claim.scanId, tier: "weekly" }, async ({ report, cost }) => {
+      // Released only on a first claim, since an outage answers at 0¢ and would retake the week every hour; nothing more is spent on a released week.
+      marketUnanswered = claim.retaken !== true && report.market.kind === "unmeasured" && report.market.reason === "undeterminable";
+      if (marketUnanswered) return;
+      let threw = false;
+      try {
+        try {
+          // Typing goes first so the rival re-check spends what it leaves, never the reserve held for it.
+          await deriveForPass(cost, {
+            tier: "weekly",
+            siteId: a.siteId,
+            report,
+            hasActiveAccess: true,
+            topUp: topUpSpend(claim.scanId, FREE_SCAN_POLICY_VERSION),
+            rivalRows: cachedRivalRows(a.siteId),
+          });
+        } finally {
+          // A monthly re-check the cap refused stays due on every pass until one concludes.
+          const { readSiteMarket } = await import("@/lib/market/infer/stored");
+          const checkedAt = await readSiteMarket(a.siteId).then((site) => site?.stored.rivalsCheckedAt, () => undefined);
+          if (rivalsDue(checkedAt, weekStart, zone)) {
+            const { recheckRivalsOf } = await import("../market-conclusion");
+            await recheckRivalsOf({ siteId: a.siteId, domain: a.domain, cost, report, at: a.now });
+          }
+        }
+      } catch (error) {
+        threw = true;
+        throw error;
+      } finally {
+        // The pass checks its own health last, against the rivals it leaves in force. It never throws.
+        const { recordPassHealth } = await import("../health-record");
+        await recordPassHealth({ scanId: claim.scanId, siteId: a.siteId, domain: a.domain, report, asksPrompts: true, supplyFailed: threw });
+      }
+    });
+  } catch (error) {
+    supplyFailed = true;
+    await reportSupplyFailed({ scanId: claim.scanId, siteId: a.siteId }, error);
+  }
 
   // A week the vendor refused for credit was stored `failed` by the pass itself, so it stays due until a pass after the top-up measures it.
-  if (fundsRefused === true) {
+  if (measured.fundsRefused === true) {
     logWeekly({ siteId: a.siteId, weekStart, outcome: "vendor_funds" });
     return { ran: true, scanId: claim.scanId, status: "failed", because: "vendor_funds" };
   }
 
   // A week whose supply step threw measured but left no topics for its days: released and retaken as a failed pass is.
-  if (status === "failed" || marketUnanswered || supplyFailed === true) {
+  if (measured.status === "failed" || marketUnanswered || supplyFailed) {
     await releaseWeek(claim.scanId);
-    logWeekly({ siteId: a.siteId, weekStart, outcome: supplyFailed === true ? "supply_failed" : "failed" });
-    return { ran: true, scanId: claim.scanId, status: "failed", ...(supplyFailed === true ? { because: "supply_failed" as const } : {}) };
+    logWeekly({ siteId: a.siteId, weekStart, outcome: supplyFailed ? "supply_failed" : "failed" });
+    return { ran: true, scanId: claim.scanId, status: "failed", ...(supplyFailed ? { because: "supply_failed" as const } : {}) };
   }
 
   if (a.rerun !== undefined) await supersedeWeek({ siteId: a.siteId, weekStart, scanId: claim.scanId, mail: a.rerun.mail });
 
-  // 3. What came back, read through the one account of the week — so the
-  //    parts a degraded run did not reach are named in exactly one place.
+  // What came back, read through the one account of the week, so the parts a degraded run did not reach are named in exactly one place.
   const account = await accountForWeek({ siteId: a.siteId, weekStart, now: a.now });
   logWeekly({ siteId: a.siteId, weekStart, outcome: account.kind });
   if (account.kind === "partial") {

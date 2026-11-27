@@ -64,6 +64,7 @@ async function sitePass(input: JobInput): Promise<Outcome> {
     early: input.data.early === true,
     ...(input.data.rerun === true && typeof input.data.key === "string" ? { rerun: { key: input.data.key, mail: input.data.mail === true } } : {}),
     ...(input.step === undefined ? {} : { step: input.step }),
+    ...(input.attempt === undefined ? {} : { attempt: input.attempt }),
   });
   return "degraded" in result ? { outcome: "degraded", subjectId: siteId as string, step: result.degraded } : { outcome: "ran", subjectId: siteId as string };
 }

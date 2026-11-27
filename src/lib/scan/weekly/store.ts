@@ -178,6 +178,13 @@ export async function releaseWeek(scanId: string): Promise<void> {
   if (error) throw new Error(`weekly: could not release the claim: ${error.message}`);
 }
 
+/** What the row's ledger holds so far, in cents; the database keeps `cost_cents` summed from it. */
+export async function scanCents(scanId: string): Promise<number> {
+  const { data, error } = await untyped().from<{ cost_cents: number | null }>("scans").select("cost_cents").eq("id", scanId).limit(1);
+  if (error) throw new Error(`weekly: could not read the pass's spend: ${error.message}`);
+  return Number(data?.[0]?.cost_cents ?? 0) || 0;
+}
+
 /** One site's week as it stands: the row, its status, and the report it
  *  stored. `null` where the week has no row at all. */
 export interface WeekScan {
