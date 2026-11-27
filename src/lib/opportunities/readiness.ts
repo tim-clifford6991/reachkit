@@ -86,16 +86,15 @@ async function coveredTopics(siteId: string, rows: readonly Opportunity[], marke
   const out = new Map<string, KnownMatch>();
   const { alreadyCovered, productsOf } = await import("@/lib/known-content/match");
   const store = opportunityStore();
-  const products = domain === null ? [] : productsOf(domain, market);
+  const names = domain === null ? [] : productsOf(domain, market);
   // A list or comparison is also matched on the products its page compares, which its search's words may not share.
-  const listed = (o: Opportunity) => products.length > 0 && contentTypeOf(o) === "listicle";
-  const comparing = rows.some(listed) ? await store.knownContentNear({ siteId, query: products.join(" or ") }) : [];
+  const products = { names, pages: names.length > 0 && rows.some((o) => contentTypeOf(o) === "listicle") ? await store.knownContentNear({ siteId, query: names.join(" or ") }) : [] };
   for (const row of rows) {
     if (row.family === "improve" || row.family === "fix") continue;
     const query = row.targetQuery ?? "";
     if (query.trim() === "") continue;
     const near = await store.knownContentNear({ siteId, query });
-    const match = listed(row) ? alreadyCovered({ query, title: row.title, products }, [...near, ...comparing], market) : alreadyCovered({ query, title: row.title }, near, market);
+    const match = alreadyCovered({ query, title: row.title, ...(contentTypeOf(row) === "listicle" ? { products } : {}) }, near, market);
     if (match !== null) out.set(row.id, match);
   }
   return out;

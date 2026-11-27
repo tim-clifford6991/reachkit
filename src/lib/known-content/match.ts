@@ -26,8 +26,8 @@ import type { KnownMatch, KnownPage } from "./types";
 export interface PlannedTopic {
   query: string | null;
   title?: string | null;
-  /** A list or comparison topic only: the business and its tracked rivals, the products such a page compares. */
-  products?: readonly string[];
+  /** A list or comparison topic only: the business and its tracked rivals, which such a page compares, and the pages naming them. */
+  products?: { names: readonly string[]; pages: readonly KnownPage[] };
 }
 
 /** The business and its tracked rivals, by name. */
@@ -38,7 +38,7 @@ export function productsOf(domain: string, market: Pick<MarketConclusion, "rival
 /** A live page whose headings name the products this topic's page would compare, all but at most one and at most one
  *  other: the same products in the same shape are the same question, however the search is worded. */
 function sameProducts(topic: PlannedTopic, page: KnownPage): boolean {
-  const all = topic.products ?? [];
+  const all = topic.products?.names ?? [];
   if (!page.live || page.url === null || all.length === 0) return false;
   const asked = all.filter((product) => namesBrand(topic.query ?? "", product));
   const mine = asked.length >= 2 ? asked : all;
@@ -107,6 +107,6 @@ function better(page: KnownPage, than: KnownPage): boolean {
 export function alreadyCovered(topic: PlannedTopic, pages: readonly KnownPage[], market?: MarketWords | null): KnownMatch | null {
   const closest = closestKnown(topic, pages, market);
   if (closest !== null && closest.score >= KNOWN_CONTENT.COVERED_MIN) return closest;
-  const [same] = pages.filter((page) => sameProducts(topic, page)).sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0));
+  const [same] = [...pages, ...(topic.products?.pages ?? [])].filter((page) => sameProducts(topic, page)).sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0));
   return same === undefined ? null : { page: same, score: pageScore(topic, same, market) };
 }

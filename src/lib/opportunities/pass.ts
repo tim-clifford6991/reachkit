@@ -77,23 +77,14 @@ async function knownGateFor(a: { siteId: string; report: StoredReport; market: D
   const canUpdate = canUpdateFrom(await store.hostedOwnPages(a.siteId));
   // One read per search, resolved first so the gate the candidates pass through is pure.
   const near = new Map<string, readonly KnownPage[]>();
-  const queries =
-    a.report.questions.kind === "unmeasured"
-      ? []
-      : a.report.questions.value.map((question) => question.search.keyword);
+  const queries = a.report.questions.kind === "unmeasured" ? [] : a.report.questions.value.map((question) => question.search.keyword);
   for (const query of new Set(queries)) if (query.trim() !== "") near.set(query.trim().toLowerCase(), await store.knownContentNear({ siteId: a.siteId, query }));
+  const names = productsOf(a.report.domain, a.market ?? null);
   // A list or comparison is also matched on the products its page compares, which its search's words may not share.
-  const products = productsOf(a.report.domain, a.market ?? null);
-  const comparing = await store.knownContentNear({ siteId: a.siteId, query: products.join(" or ") });
-  const match = (candidate: Candidate, pages: readonly KnownPage[], title?: string | null) => {
-    const query = candidate.targetQuery ?? "";
-    return contentTypeOf(candidate) === "listicle" ? alreadyCovered({ query, title, products }, [...pages, ...comparing], a.market) : alreadyCovered({ query, title }, pages, a.market);
-  };
+  const products = { names, pages: await store.knownContentNear({ siteId: a.siteId, query: names.join(" or ") }) };
+  const match = (c: Candidate, pages: readonly KnownPage[] | undefined, title?: string | null) => (pages === undefined ? null : alreadyCovered({ query: c.targetQuery ?? "", title, ...(contentTypeOf(c) === "listicle" ? { products } : {}) }, pages, a.market));
   return {
-    covered: (candidate) => {
-      const pages = near.get((candidate.targetQuery ?? "").trim().toLowerCase());
-      return pages === undefined ? null : match(candidate, pages);
-    },
+    covered: (candidate) => match(candidate, near.get((candidate.targetQuery ?? "").trim().toLowerCase())),
     read: async (candidate) => (candidate.targetQuery === null ? null : match(candidate, await store.knownContentNear({ siteId: a.siteId, query: candidate.targetQuery }), candidate.title)),
     canUpdate,
     at: a.report.verdict.measuredAt,
@@ -116,10 +107,7 @@ export async function deriveForPass(
   }
 ): Promise<PassOutcome> {
   const store = opportunityStore();
-  const [hostedHost, inventory] = await Promise.all([
-    store.hostedHostFor(a.siteId),
-    store.inventoryFor(a.report.domain),
-  ]);
+  const [hostedHost, inventory] = await Promise.all([store.hostedHostFor(a.siteId), store.inventoryFor(a.report.domain)]);
 
   // Before the derivation, so the net-new rule reads this pass's index of the site and not last week's. Never throws.
   await store.refreshKnownContent({ siteId: a.siteId, domain: a.report.domain, inventory });
@@ -148,10 +136,7 @@ export async function deriveForPass(
   const twins = derived === null ? new Set<string>() : await liveTwinIds(a.siteId, a.report.verdict.measuredAt);
   const supply = derived === null ? null : afterReadiness(derived.supply, (await store.openRankable(a.siteId)).filter((row) => !twins.has(row.id)).map(readOpportunity));
   // `spentCents` tells a spent reserve (at the cap) from a day or site ceiling (below it), which `capHit()` lumps.
-  const derivation =
-    supply === null
-      ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() }
-      : { derived: added, ...supply };
+  const derivation = supply === null ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() } : { derived: added, ...supply };
   // Rows, not log lines: the runtime log drops a long request's tail, and the daily check tells a thin pass from a dry source.
   await recordOpsEvent("supply_pass", JSON.stringify({ tier: a.tier, added, ...derivation }), a.report.scanId, a.siteId);
   if (supply !== null && supply.have < SUPPLY_SHORT_BELOW) {
