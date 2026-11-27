@@ -155,10 +155,8 @@ function askedOf(term: string, language: Language): string[] {
   const unranked = subjectOf(term.replace(new RegExp(`(?<![\\p{L}\\p{N}])(?:${languagePack(language).title.ranking})(?![\\p{L}\\p{N}])`, "giu"), " "), language);
   return unranked.length > 0 ? unranked : subjectOf(term, language);
 }
-
 /** The title carries every word the search asks for, its ranking words aside: its strategies, calculator or alternatives. */
 export const carriesAsk = (title: string, search: string, language: Language = "en"): boolean => askedOf(search, language).every((word) => wordsOf(title, language).includes(word));
-
 /** The title leads with the term's subject: its first words, the words that only rank it aside, are all there, and the
  *  first of them starts inside the head. A term of filler alone asks nothing. */
 function leadsWith(title: string, term: string, language: Language): boolean | null {
@@ -294,12 +292,10 @@ function nameTwice(title: string, search: string): boolean {
   return (title.match(/(?<![\p{L}\p{N}])\p{Lu}{2}(?![\p{L}\p{N}])/gu) ?? []).some((name) => said(title, name.toLowerCase()) > Math.max(1, said(search, name.toLowerCase())));
 }
 
-/** The business's brand, its offering's texts, and what any page may say: the buyer's outcome, the top results' titles. */
 export type Offering = { brand: string; says: readonly string[]; common: readonly string[] };
-/** A title naming the business, or two words of its offering that neither the search nor `common` says ("a Free AI Scan"), sells it. */
+/** A title naming the business, or two words of what it `says` it sells that neither the search nor `common` (the buyer's outcome, the top results) says ("a Free AI Scan"), sells it. */
 function sellsOffering(title: string, search: string, offering: Offering | undefined, language: Language): boolean {
-  const said = new Set(wordsOf([search, ...(offering?.common ?? [])].join("\n"), language));
-  const added = subjectOf(title, language).filter((word) => !said.has(word));
+  const added = subjectOf(title, language).filter((word) => !wordsOf([search, ...(offering?.common ?? [])].join("\n"), language).includes(word));
   return offering !== undefined && ((offering.brand !== "" && added.includes(offering.brand)) || added.filter((word) => wordsOf(offering.says.join("\n"), language).includes(word)).length >= 2);
 }
 
