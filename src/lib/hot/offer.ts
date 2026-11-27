@@ -35,7 +35,7 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
     const store = opportunityStore(), day = a.now.toISOString().slice(0, 10);
     const events = await readHotEvents(a.siteId, day);
     if (events.length === 0) return 0;
-    const context = () => Promise.all([store.currentReport(a.siteId), store.marketFor(a.siteId), siteLocale(a.siteId)] as const);
+    const context = () => Promise.all([store.currentReport(a.siteId), store.marketFor(a.siteId, { quoted: true }), siteLocale(a.siteId)] as const);
     let read: ReturnType<typeof context> | undefined;
     return await withCostContext({ scanId: a.scanId, cap: "WEEK", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, async (c) => {
       let added = 0;
