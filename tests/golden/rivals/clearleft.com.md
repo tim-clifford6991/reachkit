@@ -14,7 +14,7 @@ From `scripts/panel/evidence/clearleft.com.json`: 12 stored searches, 5 rivals.
 |---|---|---|
 | top ux design agency | answer_page | interface-design.co.uk |
 | user experience consultancy | answer_page | tomstarley.co.uk |
-| ux design agency | — | — |
+| ux design agency | keyword_page | ineedsocial.co.uk |
 | user experience research agency | answer_page | zeeframes.com |
 | best ux design agency | keyword_page | interface-design.co.uk |
 | digital design service | — | — |
@@ -23,7 +23,7 @@ From `scripts/panel/evidence/clearleft.com.json`: 12 stored searches, 5 rivals.
 | digital design consultancy | answer_page | digitaldesignonline.co.uk |
 | ux service | — | — |
 | ux consultancy | answer_page | uxconsultancy.com |
-| design thinking consultancy | — | — |
+| design thinking consultancy | keyword_page | cmce.org.uk |
 
 | Absent from | Who's first |
 |---|---|

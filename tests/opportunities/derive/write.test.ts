@@ -231,26 +231,7 @@ describe("§7: `format_page` is not derived from measurement", () => {
   });
 });
 
-describe("winnability gates keyword pages only (§6, 2026-09-15)", () => {
-  const keywordSearch = () =>
-    reportOf({
-      questions: [question({ search: search({ keyword: "user onboarding software" }) })],
-      serps: [serp({ aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } })],
-    });
-
-  it("a keyword page over a top ten of large rivals is dropped and counts a not_yet", () => {
-    const result = writeCandidates({ ...base, report: keywordSearch(), rankedCounts: bigCounts() });
-    expect(result.candidates).toEqual([]);
-    expect(result.rejected.not_yet).toBe(1);
-    expect(result.assessed).toBe(1);
-  });
-
-  it("a keyword page over a top ten we could not size is dropped and counts an unmeasured_top10", () => {
-    const result = writeCandidates({ ...base, report: keywordSearch(), rankedCounts: unreadableCounts() });
-    expect(result.candidates).toEqual([]);
-    expect(result.rejected.unmeasured_top10).toBe(1);
-  });
-
+describe("winnability ranks and never drops (§6)", () => {
   it("an answer page over the same large rivals survives, with its band recorded", () => {
     const report = reportOf({ questions: [question()], serps: [serp()] });
     const result = writeCandidates({ ...base, report, rankedCounts: bigCounts() });

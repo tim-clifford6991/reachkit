@@ -30,7 +30,7 @@ import { isOwnDomain, isPlatformDomain, ownPlaceIn, registrableDomain, resolvedR
 import { measured } from "@/lib/measure/measured";
 import { measuredLocale } from "@/lib/locale/locales";
 import type { StoredReport } from "@/lib/scan/report";
-import { assess } from "../winnability/band";
+import { assess, bandOf } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type EarnAsset, type Evidence } from "../types";
 import { emptyDerivation, slugify, trendRead, type Candidate, type DerivationResult } from "./candidate";
@@ -113,11 +113,6 @@ export function earnCandidates(a: EarnInput): DerivationResult {
       volume: question.search.volume,
       difficulty: question.search.difficulty ?? null,
     });
-    if (!verdict.qualified) {
-      if (verdict.because === "unmeasured_top10") result.rejected.unmeasured_top10 += 1;
-      else result.rejected.not_yet += 1;
-      return;
-    }
 
     const surface = fromAnswer !== null ? "ai_answer" : "search_result";
     const volume = measured(question.search.volume, at);
@@ -149,7 +144,7 @@ export function earnCandidates(a: EarnInput): DerivationResult {
       evidence,
       acceptance:
         surface === "ai_answer" ? { form: "named_on", question: question.text } : { form: "top20", query },
-      fitBand: verdict.band,
+      fitBand: bandOf(verdict),
       effort: EFFORT_BY_TYPE.listed_page,
     } satisfies Candidate);
   });

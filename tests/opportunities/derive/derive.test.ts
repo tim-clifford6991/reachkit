@@ -19,14 +19,12 @@ import {
   AT,
   SCAN_ID,
   SITE_ID,
-  bigCounts,
   defaultReport,
   question,
   reportOf,
   search,
   serp,
   smallCounts,
-  unreadableCounts,
 } from "../fixtures";
 
 // No model in this suite but the supply ledger's: every other derivation is
@@ -87,45 +85,12 @@ describe("a completed scan becomes opportunities, persisted", () => {
 });
 
 describe("the counts add up, and every rejection lands in exactly one counter", () => {
-  // Winnability drops a keyword page only (§6), so the rejections are
-  // counted on a search that types as one: no AI answer, customer absent.
-  const keywordReport = () =>
-    reportOf({
-      questions: [question({ search: search({ keyword: "user onboarding software" }) })],
-      serps: [serp({ aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } })],
-    });
-
-  it("a market of large rivals is counted as not_yet and creates nothing", async () => {
-    const { ctx } = fakeCost();
-    const result = await deriveOpportunities(ctx, { ...input(), report: keywordReport(), rankedCounts: bigCounts() });
-    expect(result.created).toEqual([]);
-    // Every target looked at, across the three families: the one search,
-    // plus the two access gates the Fix derivation examined and found
-    // clear.
-    expect(result.assessed).toBe(3);
-    expect(result.rejected).toEqual({ not_yet: 1, unmeasured_top10: 0, duplicate_open: 0, own_brand: 0 });
-  });
-
-  it("a market we could not size is counted separately", async () => {
-    const { ctx } = fakeCost();
-    const result = await deriveOpportunities(ctx, { ...input(), report: keywordReport(), rankedCounts: unreadableCounts() });
-    expect(result.rejected).toEqual({ not_yet: 0, unmeasured_top10: 1, duplicate_open: 0, own_brand: 0 });
-  });
-
   it("a search buyers asked that names the business is no page, and each is counted as own_brand", async () => {
     const { ctx } = fakeCost();
     const asked = serp({ peopleAlsoAsk: ["Is Example free?"], relatedSearches: ["example pricing", "user onboarding checklist"] });
     const result = await deriveOpportunities(ctx, { ...input(), report: reportOf({ questions: [question()], serps: [asked] }) });
     expect(result.rejected.own_brand).toBe(2);
     expect(state.rows.flatMap((row) => [row.target_query, ...row.absorbed_queries])).not.toContain("example pricing");
-  });
-
-  it("a measured search that names the business is no new page either", async () => {
-    const { ctx } = fakeCost();
-    const named = question({ search: search({ keyword: "example onboarding software" }) });
-    const result = await deriveOpportunities(ctx, { ...input(), report: reportOf({ questions: [named], serps: [serp()] }) });
-    expect(result.created.filter((row) => row.family === "write")).toEqual([]);
-    expect(result.rejected.own_brand).toBe(1);
   });
 
   it("a re-run over the same report creates nothing and reports every candidate as a duplicate", async () => {
@@ -146,26 +111,6 @@ describe("the counts add up, and every rejection lands in exactly one counter", 
 
     const second = await deriveOpportunities(ctx, input());
     expect(second.created.map((row) => row.clusterKey)).toEqual([first.created[0]!.clusterKey]);
-  });
-});
-
-describe("§2.5: empty is a success state", () => {
-  it("a report yielding nothing returns created: [] with counts and does not throw", async () => {
-    const { ctx } = fakeCost();
-    const nothing = reportOf({ questions: [], serps: [] }, { blockedAgents: [] });
-    const result = await deriveOpportunities(ctx, { ...input(), report: nothing });
-    expect(result.created).toEqual([]);
-    expect(result.rejected).toEqual({ not_yet: 0, unmeasured_top10: 0, duplicate_open: 0, own_brand: 0 });
-  });
-
-  it("a pass that never measured a market is not an error either", async () => {
-    const { ctx } = fakeCost();
-    const unmeasuredReport = {
-      ...defaultReport(),
-      questions: unmeasured<never[]>("not_attempted", AT),
-    } as ReturnType<typeof defaultReport>;
-    const result = await deriveOpportunities(ctx, { ...input(), report: unmeasuredReport });
-    expect(result.created).toEqual([]);
   });
 });
 

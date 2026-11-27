@@ -131,8 +131,7 @@ export function rightSizedBand(a: {
  *  rejection counters a failure belongs in.
  *
  *  `outsized` is the search's demand, or its difficulty, above the site's
- *  ceiling. It counts as `not_yet` — the winnability bar was not cleared —
- *  and, unlike the competition bar, it refuses every new target type. */
+ *  ceiling. Neither failure drops a target: `bandOf` gives the band it ranks in. */
 export type Assessment =
   | { qualified: true; band: Winnability }
   | { qualified: false; because: "outsized" | "not_yet" | "unmeasured_top10" };
@@ -153,4 +152,10 @@ export function assess(a: {
   if (smallest === null) return { qualified: false, because: "unmeasured_top10" };
   if (!qualifies(a)) return { qualified: false, because: "not_yet" };
   return { qualified: true, band: rightSizedBand(a) };
+}
+
+/** The band an assessed target ranks in: below the bars it ranks as outsized; a top ten nobody could size leaves it unbanded, never read as 0. */
+export function bandOf(verdict: Assessment): Winnability | null {
+  if (verdict.qualified) return verdict.band;
+  return verdict.because === "unmeasured_top10" ? null : "not-yet";
 }
