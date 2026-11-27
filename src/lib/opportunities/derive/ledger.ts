@@ -72,7 +72,7 @@ export function supplyLedger(a: {
 export function shortfallOf(sources: SupplyLedger["sources"], rows: readonly Opportunity[], twins: ReadonlySet<string>): string {
   const counts = new Map<LedgerSource, Record<string, number>>();
   for (const row of rows.filter((one) => one.family === "write" || one.family === "earn")) {
-    const reason = twins.has(row.id) ? "live_twin" : writable(row) ? "placed" : (row.businessFit ?? TOPIC_FIT.gate) < TOPIC_FIT.gate ? "low_fit" : (row.unreadyReason ?? "not_assessed");
+    const reason = twins.has(row.id) ? "live_twin" : writable(row) ? "placed" : (row.unreadyReason ?? "not_assessed");
     const of = counts.get(ledgerSourceOf(row)) ?? {};
     counts.set(ledgerSourceOf(row), { ...of, [reason]: (of[reason] ?? 0) + 1 });
   }

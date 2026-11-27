@@ -468,6 +468,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     heldJudged: boolean;
     after?: (cost: CostContext, report: StoredReport, market: MarketConclusion) => Promise<void>;
     padTo?: number; // Pads the searches to this many, each padded one served its base search's top ten.
+    covered?: number; // Held rows are stored ready, and a live page of the site answers this many of them.
   }) {
     const base = a.site.searches;
     const site = { ...a.site, searches: Array.from({ length: Math.max(a.padTo ?? 0, base.length) }, (_, n) => (n < base.length ? base[n]! : `${base[n % base.length]} ${n}`)) };
@@ -508,7 +509,8 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     const phrased = [...new Set(serps.flatMap((one) => [...(one.peopleAlsoAsk ?? []), ...(one.relatedSearches ?? [])]))];
     // The topics the run held stay open: judged, with the passage a usual week's carry; unjudged, judged again beside this pass's.
     const state = newMemoryState({
-      rows: (site.topics ?? []).map((topic, n) => [rowOf(site.site.domain, { ...topic, ready: false } as StoredTopic, n), topic] as const).map(([row, topic]) => ({ ...row, site_id: SITE_ID, business_fit: a.heldJudged ? (topic.fit ?? 2) : null, ...(a.heldJudged ? { evidence: { ...(row.evidence as object), fitFact: KNOWN[0] } } : {}) })),
+      knownContent: (site.topics ?? []).slice(0, a.covered ?? 0).map((topic) => ({ source: "crawl" as const, ref: topic.query, url: `https://${site.site.domain}/${topic.query.replaceAll(" ", "-")}`, title: topic.query, headings: [], live: true, publishedAt: AT })),
+      rows: (site.topics ?? []).map((topic, n) => [rowOf(site.site.domain, { ...topic, ready: a.covered !== undefined } as StoredTopic, n), topic] as const).map(([row, topic]) => ({ ...row, site_id: SITE_ID, business_fit: a.heldJudged ? (topic.fit ?? 2) : null, ...(a.heldJudged ? { evidence: { ...(row.evidence as object), fitFact: KNOWN[0] } } : {}) })),
     });
     setOpportunityStore({
       ...memoryStore(state),
@@ -577,6 +579,14 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     // Typing eighty rows may meet the cap afterwards; the fit call is never the one refused.
     expect(warned.filter((line) => line.includes('"cap_hit"') && line.includes('"topic-fit"'))).toEqual([]);
     expect(closed).toBeLessThanOrEqual(CAPS.WEEK_C);
+  });
+
+  // Re-run 7 (27 Nov): rows a live page answers were counted as supply, so the top-up stopped short and the week had empty days.
+  it("a week's supply is counted after readiness holds the rows a live page answers, so the top-up is sized on what is left", async () => {
+    await deriveAtTheLine({ site: panel("2026-10-07").find((one) => one.site.domain === "tattly.com")!, heldJudged: true, covered: 4 });
+    const pass = db.queries.find((q) => q.table === "ops_events" && q.values?.kind === "supply_pass");
+    // Seven ready new-page rows, three of them answered by a live page: four are left, where the stale flags counted seven.
+    expect(JSON.parse(String(pass?.values?.read)).topUp.have).toBe(4);
   });
 
   // A usual full week: the measurement at the line, then this week's typing, then the rivals' one ask (ruling B5).
