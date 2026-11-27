@@ -204,8 +204,8 @@ export interface OpportunityStore {
   setBusinessFit(opportunityId: string, fit: BusinessFit, source: TopicSource, pageType: PageType | null): Promise<void>;
   /** The site's structured market in force (`null` where none has been
    *  concluded) — what the fit is judged against — and the rivals it is
-   *  measured against, as registrable domains. */
-  marketFor(siteId: string): Promise<{
+   *  measured against, as registrable domains; `quoted` marks the digest's passages no page says, for a caller that stores a fit fact. */
+  marketFor(siteId: string, a?: { quoted: true }): Promise<{
     market: MarketConclusion | null;
     competitors: readonly string[];
     /** The site's tracked buyer prompts, the branded ones left out (issue 1208). Absent reads as none. */
@@ -684,7 +684,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
 
     setBusinessFit: (opportunityId, fit, source, pageType) => updateRow("setBusinessFit", opportunityId, { business_fit: fit, source, page_type: pageType }),
 
-    async marketFor(siteId) {
+    async marketFor(siteId, a) {
       const { readSiteMarket } = await import("@/lib/market/infer/stored");
       const site = await readSiteMarket(siteId);
       const { readPromptSet } = await import("@/lib/market/prompts/store");
@@ -696,7 +696,7 @@ export function supabaseOpportunityStore(): OpportunityStore {
       // read that fails is `null` (`readKnowledgeBase` never throws).
       const { readKnowledgeBase, knowledgeDigest, quotedDigest } = await import("@/lib/site-profile/knowledge/read");
       const base = site == null ? null : await readKnowledgeBase({ siteId, domain: site.domain });
-      const knowledge = base === null ? null : await quotedDigest(siteId, knowledgeDigest(base));
+      const knowledge = base === null ? null : a?.quoted ? await quotedDigest(siteId, knowledgeDigest(base)) : knowledgeDigest(base);
       // SPEC §6 (D49, issue 1270): topics are derived from the market's
       // searched terms and the founder's own answer about who buys, so a
       // label nobody searches never reaches a page's subject.

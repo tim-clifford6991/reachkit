@@ -115,7 +115,7 @@ export async function deriveForPass(
 
   // A market that cannot be read leaves fit judged against the profile, never a pass that derives nothing.
   const { market, competitors, prompts, knowledge, area } = await store
-    .marketFor(a.siteId)
+    .marketFor(a.siteId, { quoted: true })
     .catch(() => ({ market: null, competitors: [] as readonly string[], prompts: [] as readonly string[], knowledge: null, area: null }));
   const known = await knownGateFor({ siteId: a.siteId, report: a.report, market });
   const searchRivals = a.report.rivals.kind === "measured" ? a.report.rivals.value.map((rival) => rival.domain) : [];
