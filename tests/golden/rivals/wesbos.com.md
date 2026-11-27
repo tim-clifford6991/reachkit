@@ -12,28 +12,28 @@ From `scripts/panel/evidence/wesbos.com.json`: 22 stored searches, 5 rivals.
 
 | Search | Type | Holder |
 |---|---|---|
-| good online programming courses | — | — |
-| online courses programming | — | — |
-| web developer near me | — | — |
-| web developer developer | — | — |
-| javascript is what | — | — |
-| free online courses for programming | — | — |
-| best online courses for programming | — | — |
-| css what is | — | — |
-| javascript for | — | — |
-| online web programming courses | — | — |
-| front end development course | — | — |
-| javascript tutorial | — | — |
-| online web development course | — | — |
-| best course for web development | — | — |
-| html and css course | — | — |
-| best online course for web development | — | — |
+| good online programming courses | answer_page | coursera.org |
+| online courses programming | answer_page | datacamp.com |
+| web developer near me | keyword_page | builtinaustin.com |
+| web developer developer | answer_page | w3schools.com |
+| javascript is what | answer_page | skillcrush.com |
+| free online courses for programming | answer_page | freecodecamp.org |
+| best online courses for programming | answer_page | coursera.org |
+| css what is | answer_page | mozilla.org |
+| javascript for | answer_page | mozilla.org |
+| online web programming courses | answer_page | codepath.org |
+| front end development course | answer_page | coursera.org |
+| javascript tutorial | keyword_page | w3schools.com |
+| online web development course | answer_page | coursera.org |
+| best course for web development | answer_page | edx.org |
+| html and css course | keyword_page | classcentral.com |
+| best online course for web development | answer_page | edx.org |
 | learn javascript online | answer_page | learnjavascript.online |
 | web design course for beginners | answer_page | w3schools.com |
-| learn web development | — | — |
-| full stack web development course | — | — |
-| web development course | — | — |
-| coding course for beginners | — | — |
+| learn web development | keyword_page | web.dev |
+| full stack web development course | answer_page | freecodecamp.org |
+| web development course | answer_page | alison.com |
+| coding course for beginners | answer_page | codechef.com |
 
 | Absent from | Who's first |
 |---|---|

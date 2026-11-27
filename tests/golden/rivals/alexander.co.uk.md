@@ -12,7 +12,7 @@ From `scripts/panel/evidence/alexander.co.uk.json`: 14 stored searches, 5 rivals
 
 | Search | Type | Holder |
 |---|---|---|
-| accountancy firm manchester | — | — |
+| accountancy firm manchester | keyword_page | professional-accountants.co.uk |
 | accountants in manchester uk | — | — |
 | tax accountant near me | — | — |
 | tax accountant manchester | keyword_page | ahaccountant.co.uk |

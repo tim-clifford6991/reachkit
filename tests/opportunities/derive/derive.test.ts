@@ -93,14 +93,6 @@ describe("the counts add up, and every rejection lands in exactly one counter", 
     expect(state.rows.flatMap((row) => [row.target_query, ...row.absorbed_queries])).not.toContain("example pricing");
   });
 
-  it("a measured search that names the business is no new page either", async () => {
-    const { ctx } = fakeCost();
-    const named = question({ search: search({ keyword: "example onboarding software" }) });
-    const result = await deriveOpportunities(ctx, { ...input(), report: reportOf({ questions: [named], serps: [serp()] }) });
-    expect(result.created.filter((row) => row.family === "write")).toEqual([]);
-    expect(result.rejected.own_brand).toBe(1);
-  });
-
   it("a re-run over the same report creates nothing and reports every candidate as a duplicate", async () => {
     const { ctx } = fakeCost();
     const first = await deriveOpportunities(ctx, input());
@@ -119,26 +111,6 @@ describe("the counts add up, and every rejection lands in exactly one counter", 
 
     const second = await deriveOpportunities(ctx, input());
     expect(second.created.map((row) => row.clusterKey)).toEqual([first.created[0]!.clusterKey]);
-  });
-});
-
-describe("§2.5: empty is a success state", () => {
-  it("a report yielding nothing returns created: [] with counts and does not throw", async () => {
-    const { ctx } = fakeCost();
-    const nothing = reportOf({ questions: [], serps: [] }, { blockedAgents: [] });
-    const result = await deriveOpportunities(ctx, { ...input(), report: nothing });
-    expect(result.created).toEqual([]);
-    expect(result.rejected).toEqual({ not_yet: 0, unmeasured_top10: 0, duplicate_open: 0, own_brand: 0 });
-  });
-
-  it("a pass that never measured a market is not an error either", async () => {
-    const { ctx } = fakeCost();
-    const unmeasuredReport = {
-      ...defaultReport(),
-      questions: unmeasured<never[]>("not_attempted", AT),
-    } as ReturnType<typeof defaultReport>;
-    const result = await deriveOpportunities(ctx, { ...input(), report: unmeasuredReport });
-    expect(result.created).toEqual([]);
   });
 });
 

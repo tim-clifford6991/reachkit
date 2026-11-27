@@ -13,22 +13,22 @@ From `scripts/panel/evidence/austinplumbery.com.json`: 17 stored searches, 5 riv
 | Search | Type | Holder |
 |---|---|---|
 | plumber austin | — | — |
-| best plumber austin | — | — |
-| austin emergency plumber | — | — |
-| emergency plumber austin texas | — | — |
-| plumbing repair austin | — | — |
-| commercial plumber austin | — | — |
-| best plumber in austin texas | — | — |
-| plumbing services austin | — | — |
-| commercial plumber austin tx | — | — |
-| plumbing repair austin texas | — | — |
-| emergency plumber austin tx | — | — |
-| austin tx plumbing repair | — | — |
-| leak repair austin | — | — |
-| plumbing repair austin tx | — | — |
+| best plumber austin | answer_page | mooremoreplumbing.com |
+| austin emergency plumber | answer_page | 1800homeusa.com |
+| emergency plumber austin texas | answer_page | rotorooter.com |
+| plumbing repair austin | keyword_page | radiantplumbing.com |
+| commercial plumber austin | keyword_page | csmechanical.co |
+| best plumber in austin texas | answer_page | mrrooter.com |
+| plumbing services austin | keyword_page | goettl.com |
+| commercial plumber austin tx | keyword_page | fisher-services.com |
+| plumbing repair austin texas | keyword_page | abacusplumbing.com |
+| emergency plumber austin tx | keyword_page | reliantplumbing.com |
+| austin tx plumbing repair | keyword_page | radiantplumbing.com |
+| leak repair austin | keyword_page | abacusplumbing.com |
+| plumbing repair austin tx | keyword_page | wilsonplumbingaustin.com |
 | plumbing services austin tx | — | — |
 | plumber near austin tx | keyword_page | abacusplumbing.com |
-| emergency plumber austin | — | — |
+| emergency plumber austin | answer_page | reliantplumbing.com |
 
 | Absent from | Who's first |
 |---|---|

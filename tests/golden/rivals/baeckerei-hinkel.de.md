@@ -13,7 +13,7 @@ From `scripts/panel/evidence/baeckerei-hinkel.de.json`: 16 stored searches, 5 ri
 | Search | Type | Holder |
 |---|---|---|
 | bester bäcker düsseldorf | — | — |
-| bio bäckerei düsseldorf | — | — |
+| bio bäckerei düsseldorf | keyword_page | bulle-baeckerei.de |
 | traditionsbäcker in meiner nähe | — | — |
 | bäcker in düsseldorf | keyword_page | xn--bckerei-dsseldorf-qqb87b.de |
 | beste bäckerei düsseldorf | keyword_page | marktaktuell.com |
@@ -21,13 +21,13 @@ From `scripts/panel/evidence/baeckerei-hinkel.de.json`: 16 stored searches, 5 ri
 | bio bäcker düsseldorf | keyword_page | brotinstitut.de |
 | brötchen düsseldorf | answer_page | dorfbaeckerei-ackermann.de |
 | sauerteigbrot düsseldorf | keyword_page | oehme24.de |
-| brötchen bestellen düsseldorf | — | — |
+| brötchen bestellen düsseldorf | keyword_page | kamps-lieferservice.de |
 | bäckerei düsseldorf | — | — |
-| bäckerei düsseldorf in der nähe | — | — |
-| glutenfrei bäckerei düsseldorf | — | — |
+| bäckerei düsseldorf in der nähe | answer_page | baeckerbote-duesseldorf.de |
+| glutenfrei bäckerei düsseldorf | keyword_page | backbrueder-glutenfrei.de |
 | bäcker düsseldorf | — | — |
 | glutenfreier bäcker düsseldorf | — | — |
-| glutenfreie backwaren düsseldorf | — | — |
+| glutenfreie backwaren düsseldorf | keyword_page | backbrueder-glutenfrei.de |
 
 | Absent from | Who's first |
 |---|---|

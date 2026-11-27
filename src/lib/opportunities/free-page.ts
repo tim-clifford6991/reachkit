@@ -2,9 +2,8 @@
 //
 // The report offers the page the paid engine would write first, chosen from
 // what the scan already measured. It spends nothing and calls no model: the
-// candidates are `writeCandidates`' — the same Write derivation, with the
-// same right-sizing (a search outsized for the site's own footprint is
-// refused there) — and nothing here adds one.
+// candidates are `writeCandidates`' — the same Write derivation, which keeps
+// an outsized search with its band; the one first page is never one.
 //
 // **The order.** The owner's Write type order first (`comparePrecedence`,
 // 2026-09-15), then the search's right-sized band, then §7's points. The free
@@ -21,7 +20,7 @@ import type { FreePageSection, StoredReport } from "@/lib/scan/report";
 import { comparePrecedence } from "./cluster";
 import type { Candidate } from "./derive/candidate";
 import { holderOf, sourceReadingOf, writeCandidates } from "./derive/write";
-import type { Opportunity, Winnability } from "./types";
+import { OUTSIZED, type Opportunity, type Winnability } from "./types";
 import { pointsOf, volumeOrder } from "./rank/points";
 import { demandBand } from "./winnability/band";
 import { rankedCountsFromSizes } from "./winnability/counts";
@@ -56,7 +55,9 @@ export function rankedFreePages(report: Omit<StoredReport, "freePage">): Candida
 
   const ranked = candidates
     .map((candidate) => {
-      const band: Winnability = sized ? (candidate.fitBand ?? "not-yet") : demandBand({ volume: volumeOf(candidate), ownRanked });
+      // A keyword page over a top ten no one sized is not offered, nor is an outsized search.
+      const unread = !sized && candidate.type === "keyword_page" && candidate.fitBand === null;
+      const band: Winnability = sized || unread || candidate.fitBand === OUTSIZED ? (candidate.fitBand ?? OUTSIZED) : demandBand({ volume: volumeOf(candidate), ownRanked });
       const { points } = pointsOf(candidate, { cited: new Set() });
       return { candidate, band, points };
     })

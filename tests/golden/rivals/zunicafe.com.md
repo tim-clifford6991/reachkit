@@ -13,21 +13,21 @@ From `scripts/panel/evidence/zunicafe.com.json`: 17 stored searches, 5 rivals.
 | Search | Type | Holder |
 |---|---|---|
 | best restaurants san francisco | — | — |
-| top brunch places in san francisco | — | — |
-| best new restaurants in san francisco | — | — |
+| top brunch places in san francisco | keyword_page | halicopteraway.com |
+| best new restaurants in san francisco | keyword_page | lazybearsf.com |
 | top brunch spots in san francisco | — | — |
 | restaurants in san francisco | — | — |
-| fine dining san francisco | — | — |
-| brunch san francisco | — | — |
-| lunch spots san francisco | — | — |
-| places to eat san francisco | — | — |
-| best brunch place in san francisco | — | — |
+| fine dining san francisco | keyword_page | garydanko.com |
+| brunch san francisco | keyword_page | townsendbrunch.com |
+| lunch spots san francisco | keyword_page | urbandaddy.com |
+| places to eat san francisco | keyword_page | exploretock.com |
+| best brunch place in san francisco | keyword_page | woodenspoonsf.com |
 | best brunch spots in san francisco | — | — |
 | lunch san francisco | — | — |
-| restaurants san francisco | — | — |
-| dinner san francisco | — | — |
-| restaurants in san francisco ca | — | — |
-| best new restaurants san francisco ca | — | — |
+| restaurants san francisco | keyword_page | sftravel.com |
+| dinner san francisco | keyword_page | sftravel.com |
+| restaurants in san francisco ca | keyword_page | exploretock.com |
+| best new restaurants san francisco ca | keyword_page | lazybearsf.com |
 | top restaurants in san francisco ca | — | — |
 
 | Absent from | Who's first |
