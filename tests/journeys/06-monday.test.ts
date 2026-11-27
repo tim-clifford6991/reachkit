@@ -581,12 +581,14 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       if ("ran" in claim) throw new Error("unreachable");
       await weekly.measureWeekly(pass, claim);
       const first = held().length;
-      const bought = new Set(held().filter((row) => Number(row.cost_cents) > 0).map((row) => `${row.source}|${row.cache_key}`));
+      // An empty answer is bought again by rule (no negative cache), so only a settled answer counts as held.
+      const settled = (row: Record<string, unknown>) => Number(row.cost_cents) > 0 && !(Array.isArray(row.payload) && row.payload.length === 0);
+      const bought = new Set(held().filter(settled).map((row) => `${row.source}|${row.cache_key}`));
       expect(bought.size).toBeGreaterThan(0);
 
       // The platform retries the scheduled pass's step with its stored claim, and the row is still `running`.
       const measured = await weekly.measureWeekly(pass, claim);
-      const again = held().slice(first).filter((row) => Number(row.cost_cents) > 0 && bought.has(`${row.source}|${row.cache_key}`));
+      const again = held().slice(first).filter((row) => settled(row) && bought.has(`${row.source}|${row.cache_key}`));
       expect(again).toEqual([]);
       await expect(weekly.finishWeekly(pass, claim, measured)).resolves.toMatchObject({ ran: true, scanId: claim.scanId });
       expect(scans.filter((scan) => scan.tier === "weekly").map((scan) => scan.id)).toEqual([claim.scanId]);
