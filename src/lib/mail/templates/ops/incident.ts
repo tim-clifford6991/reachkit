@@ -41,7 +41,9 @@ export type OpsIncident =
   // No error: DataForSEO credit runs out within a week. Days left is null where last week's spend was not measured.
   | { occasion: "vendor-low"; balanceCents: number; daysLeft: number | null; dashboard: string }
   // No error: a paying account's address bounced or complained, and its follow-up mail stopped, or it asked to sign in while stopped. Owner-only, so each paying site is named.
-  | { occasion: "mail-stopped"; domains: readonly string[]; cause: "bounced" | "complained" | "sign-in-blocked" };
+  | { occasion: "mail-stopped"; domains: readonly string[]; cause: "bounced" | "complained" | "sign-in-blocked" }
+  // No error: a weekly step ran again after its attempt died, and what that attempt spent.
+  | { occasion: "step-retried"; step: string; attempt: number; cents: number };
 
 /** The occasions told at once: a page failed to publish, a payment or sign-in path is down. */
 export type AtOnce = Extract<OpsIncident, { occasion: "job-failed" | "dead-lettered" | "boot-refused" | "sign-in-unsent" | "no-draft-at-publish" | "autopilot-stalled" | "job-stale" }>;

@@ -90,6 +90,8 @@ export interface CostContext {
     billedCents?: () => number | undefined;
     /** A stored answer this caller must not be served: read past, so the call is bought again. */
     unusable?: (payload: unknown) => boolean;
+    /** Served only from this context's scan, whatever the window: what a retried step already bought is not bought twice. */
+    sameScan?: true;
     /** `more` adds `cents` to this call's reservation under the same three ceilings, or refuses and answers false.
      *  A stand-in context may pass none. */
     run: (more?: (cents: number) => Promise<boolean>) => Promise<P>;
@@ -260,6 +262,7 @@ export async function withCostContext<T>(
       settleCents?: (payload: P) => number;
       billedCents?: () => number | undefined;
       unusable?: (payload: unknown) => boolean;
+      sameScan?: true;
       run: (more?: (cents: number) => Promise<boolean>) => Promise<P>;
     }): Promise<
       { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
@@ -271,6 +274,7 @@ export async function withCostContext<T>(
         policyVersion: ctx.policyVersion,
         freshnessDays: call.freshnessDays,
         ...(call.unusable ? { unusable: call.unusable } : {}),
+        ...(call.sameScan === true ? { scanId: ctx.scanId } : {}),
       });
       if (cached) {
         return { payload: cached.payload as P, fresh: false, costCents: 0, storedAt: cached.storedAt };

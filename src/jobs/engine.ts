@@ -18,7 +18,7 @@
 import { runFirstPass } from "@/lib/scan/weekly/first";
 import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
 import { TIMING, WEEK_RESEARCH } from "@/lib/config/constants";
-import { dueSites, refreshWeeklyKnowledge, runWeekly, type DueSite, type WeeklyOutcome } from "@/lib/scan/weekly";
+import { claimWeekly, dueSites, finishWeekly, measureWeekly, refreshWeeklyKnowledge, watchedSteps, type DueSite, type WeeklyOutcome } from "@/lib/scan/weekly";
 import type { StepRunner } from "./types";
 
 /** A site and the zone its own clock runs in. Due-ness is computed from
@@ -111,13 +111,7 @@ export async function alertSiteDay(a: {
   return alert(a);
 }
 
-// ── The weekly measurement — issue #41, built.
-//
-// Two calls into `src/lib/scan/weekly/`, and no logic of their own. The
-// selection is one engine call rather than "every active site, filtered
-// here", because three of its four predicates — active access, a stated
-// zone, and no row for `(site_id, week_start)` — are database questions,
-// and a job body reaches no database.
+// ── The weekly measurement: calls into `src/lib/scan/weekly/`, since three of the selection's four predicates are database questions.
 
 export type { DueSite } from "@/lib/scan/weekly";
 
@@ -144,13 +138,14 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
  *  of. Only a week with no measurement at all sends nothing, and that
  *  decision is `sendWeeklyDigest`'s, read from `accountForWeek`. */
 export async function startWeeklyScan(
-  a: DueSite & { readonly now: Date; readonly step?: StepRunner; readonly early?: boolean; readonly rerun?: Rerun }
+  a: DueSite & { readonly now: Date; readonly step?: StepRunner; readonly attempt?: number; readonly early?: boolean; readonly rerun?: Rerun }
 ): Promise<EngineResult> {
-  const step: StepRunner = a.step ?? ((_name, body) => body());
-  const { siteId, domain, zone, now, weekStart } = a;
-  const outcome = await step(`measure-${a.siteId}`, () =>
-    runWeekly({ siteId, domain, zone, now, ...(a.early === true ? { early: true, weekStart } : {}), ...(a.rerun === undefined ? {} : { rerun: { mail: a.rerun.mail }, weekStart }) })
-  );
+  const { siteId, domain, zone, now, weekStart } = a, watch = watchedSteps(a.step ?? ((_name, body) => body()), { siteId, attempt: a.attempt ?? 0 }), step = watch.step;
+  const pass = { siteId, domain, zone, now, ...(a.early === true ? { early: true, weekStart } : {}), ...(a.rerun === undefined ? {} : { rerun: { mail: a.rerun.mail }, weekStart }) };
+  // The claim, the scan and its supply are steps of their own: a retried step measures on the row its first attempt claimed, and each fits the function limit.
+  const claim = await step(`claim-${siteId}`, () => claimWeekly(pass));
+  const scanned = "ran" in claim ? claim : { claim, measured: await step(`scan-${siteId}`, () => measureWeekly(pass, claim)) };
+  const outcome = "ran" in scanned ? scanned : await step(`supply-${siteId}`, () => finishWeekly(pass, scanned.claim, scanned.measured));
   // A refused re-run touches nothing further; every re-run records what it cost.
   const recorded = (rerun: Rerun) => step(`rerun-${siteId}`, async () => (await import("@/lib/scan/weekly/rerun")).recordRerun({ siteId, weekStart, key: rerun.key, outcome }));
   if (a.rerun !== undefined && !outcome.ran) return recorded(a.rerun).then(() => ({ degraded: outcome.because }));
@@ -188,7 +183,7 @@ export async function startWeeklyScan(
   }
   const told = await step(`tell-${a.siteId}`, async () => { const hot = await import("@/lib/hot/offer"), unstored = outcome.ran && (await hot.topicUnstored(siteId, outcome.scanId)), told = await tellWeek(a, outcome); return unstored && "done" in told ? { degraded: hot.HOT_FAILED } : told; });
   if (a.rerun !== undefined) await recorded(a.rerun);
-  return told;
+  return watch.died() && "done" in told ? { degraded: "step-retried" } : told;
 }
 
 /** The owner's re-run of a test site's week: its own idempotency key, and whether the Monday mail goes again. */

@@ -559,12 +559,10 @@ export async function llm<T>(
   const result = await c.recordFetch<AttemptOutcome>({
     source: call.site,
     cacheKey,
-    // BP-009 states no caching policy for this seam (unlike BP-008's own
-    // per-vendor `CACHE_WINDOWS_D`). `freshnessDays: 0` keeps
-    // `recordFetch`'s cache-first/ledger-always shape (BP-007) while
-    // never actually serving a stale model response back (rule 1.1 —
-    // parameter, reversal cost one number, this file only).
+    // No stale model answer is ever served back, while the call keeps `recordFetch`'s cache-first, ledger-always shape.
     freshnessDays: 0,
+    // A weekly pass's retried step is served the answers its dead attempt settled; anywhere else a model call is always asked.
+    ...(c.cap === "WEEK" ? { sameScan: true as const, unusable: (outcome: unknown) => (outcome as AttemptOutcome).parseOutcome !== "success" } : {}),
     costCents: attemptCents,
     settleCents: (outcome) => costCentsFor(call.tier, outcome.tokensIn, outcome.tokensOut),
     run: (more) => runAttempts(binding, call.schema, prompt, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site], attempts, async () => more === undefined || (await more(attemptCents))),

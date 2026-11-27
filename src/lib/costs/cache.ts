@@ -34,18 +34,20 @@ export async function readCache(params: {
   freshnessDays: number;
   /** The caller's own rule for a stored answer it must not be served; such a row stays and is read past. */
   unusable?: (payload: unknown) => boolean;
+  /** Read this scan's own rows, whatever their age, in place of the window. */
+  scanId?: string;
 }): Promise<{ payload: unknown; storedAt: Date } | null> {
   const cutoff = new Date(
     Date.now() - params.freshnessDays * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  const { data, error } = await untypedFetches(dbAdmin())
+  const keyed = untypedFetches(dbAdmin())
     .from<Pick<FetchesRow, "payload" | "created_at">>("fetches")
     .select("payload, created_at")
     .eq("source", params.source)
     .eq("cache_key", params.cacheKey)
-    .eq("policy_version", params.policyVersion)
-    .gt("created_at", cutoff)
+    .eq("policy_version", params.policyVersion);
+  const { data, error } = await (params.scanId === undefined ? keyed.gt("created_at", cutoff) : keyed.eq("scan_id", params.scanId))
     .order("created_at", { ascending: false })
     .limit(CACHE_READ_SCAN_LIMIT);
 
