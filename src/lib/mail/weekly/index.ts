@@ -16,9 +16,8 @@ import { resultsOf, type TilePass } from "@/lib/measure/results";
 import { readTileRows } from "@/lib/measure/results-store";
 import { committedWeek, opportunityById } from "@/lib/opportunities";
 import { placedByDay, plannedByDay, serviceWeek } from "@/lib/opportunities/days";
-import { plannedStopToken } from "@/lib/opportunities/stop";
+import { plannedStopPath } from "@/lib/opportunities/stop";
 import { whyOf } from "@/lib/opportunities/why";
-import { vetoLinkPath } from "@/lib/publish/publishable";
 import { scheduledPagesFor } from "@/lib/publish/record";
 import { becameUpdate, critical, needsYouOf, setAsideOf } from "@/lib/publish/record/needs-you";
 import { fromMail } from "@/lib/publish/reads/count";
@@ -363,16 +362,11 @@ async function theWeek(siteId: string, weekStart: string, at: Date): Promise<Mea
       update: opportunity.evidence.family === "improve" || opportunity.evidence.family === "fix",
       ...(why === undefined ? {} : { why: copy(why.sentence, why.values) }),
       // A written page is stopped where it is read; a planned one by its own signed link.
-      stopHref: draftHref ?? stopHrefOf(siteId, opportunity.id, entry.day),
-      editHref: draftHref ?? appHref("/app/calendar"),
+      stopHref: draftHref ?? appHref(plannedStopPath({ siteId, opportunityId: opportunity.id, day: entry.day })),
+      editHref: draftHref ?? appHref(`/app/calendar?day=${entry.day}`),
     });
   }
   return measured(days, at);
-}
-
-function stopHrefOf(siteId: string, opportunityId: string, day: string): string {
-  const token = plannedStopToken({ siteId, opportunityId, day });
-  return new URL(vetoLinkPath(token), env.NEXT_PUBLIC_APP_URL).toString();
 }
 
 /** The account as the shell states it: complete carries no line, partial names its missing sections. */

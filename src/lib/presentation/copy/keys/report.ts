@@ -413,7 +413,7 @@ export const REPORT_COPY = Object.freeze({
   "check.slow-pages.title": "Slow pages",
   "check.broken-links.title": "Broken internal links",
   "check.phone-usability.title": "Hard to use on a phone",
-  // The report's plain name; the account's Technical issues view keeps "Broken internal links" (board AppIssues).
+  // The report's plain name; the account's Site Fixes view keeps "Broken internal links" (board AppIssues).
   "check.broken-links.plain": "Links between pages that go nowhere",
   "check.status.not-run": "Couldn’t run",
   "check.structured-data.title": "Pages with no labels for Google",
@@ -423,7 +423,7 @@ export const REPORT_COPY = Object.freeze({
   "check.identity.found": "The labels say who runs the site: {type}.",
   "check.identity.none": "No label says who runs the site.",
   // Issue 1550 (drafted): the one thing to do about each check the customer
-  // fixes, on the account's Technical issues view.
+  // fixes, on the account's Site Fixes view.
   "check.noindex-pages.fix": "Turn off noindex on these pages in your site builder or plugin. Then Google can list them.",
   "check.sitemap.fix": "Turn on your sitemap in your site builder or plugin. Add its address to robots.txt.",
   "check.slow-pages.fix": "Turn on page caching with your host. Shrink the biggest images on these pages.",

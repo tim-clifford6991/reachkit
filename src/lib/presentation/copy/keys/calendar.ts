@@ -181,7 +181,7 @@ export const CALENDAR_COPY = Object.freeze({
   // They are stated as facts about the page and never as progress
   // ("saving…"): the panel speaks only after the machine has answered, so
   // there is no moment at which one of these is a guess.
-  "calendar.answer.veto": "Stopped. This page won’t go live.",
+  "calendar.answer.veto": "Stopped. We won’t write this one.",
   "calendar.answer.skip": "Stopped. We won’t write this one.",
   // Issue 1196: "about two minutes" was not true — a page written again is
   // rewritten by the hourly draft tick (`src/jobs/draft-generate.ts`).
@@ -394,7 +394,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.reason.outsized": "This search is bigger than your site usually wins today. It’s in the week because nothing better-sized was ready.",
   "calendar.reason.no-footprint": "List and comparison pages do better once your site shows up in your market’s searches. Yours doesn’t yet, so this one ranked lower.",
   "calendar.day.held-for-fix": "Waiting on your fix: {fix}.",
-  "calendar.day.held-for-fix.link": "Open This Fix in Technical Issues",
+  "calendar.day.held-for-fix.link": "Open This Fix in Site Fixes",
   "calendar.day.stopped.line": "Stopped by you on {day}. Other days are not affected.",
   "calendar.day.skipped.line": "Nothing worth writing for this day, so no page.",
   "calendar.day.past.none.line": "No page went live on this day.",
@@ -422,7 +422,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.why.volume.value": "{count} searches",
   "calendar.why.answered-today-by": "Best competitor",
   "calendar.pane.yours": "Your page",
-  "calendar.pane.planned.next": "Goes live on its own at {time} on {day}. We write it before then, and you can read, edit or stop it once written.",
+  "calendar.pane.planned.next": "Goes live on its own at {time} on {day}. We write it before then, and you can read and edit it once written.",
   "calendar.pane.why.heading": "Why We Chose It",
   "calendar.pane.search.heading": "The Search",
   "calendar.pane.ai": "AI answers",

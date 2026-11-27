@@ -294,6 +294,8 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
     whyLine: whySentenceOf({ points: 5, parts: [{ part: "fit", n: 3 }, { part: index % 2 === 0 ? "demand" : "ai_gap", n: 2 }], rule: "best" }),
     ...HOT[day],
     ...(PLANS[day] === undefined ? {} : { plan: PLANS[day] }),
+    // A planned page is stopped by the Monday mail's signed link, which the store signs on the server.
+    ...(state === "planned" ? { stopHref: `/veto/fixture-${day}` } : {}),
     ...(state === "generating" ? { startedAt: new Date(Date.UTC(2026, 8, 15, 11, 0, 0)) } : {}),
   };
 });

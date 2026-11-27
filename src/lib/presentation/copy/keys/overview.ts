@@ -71,7 +71,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The control's word and the count of the issues not shown are owner-owed.
   "overview.alert.site-issue.action": "See the Fix",
   "overview.alert.site-issue.overflow": "{remaining} more in Site Fixes.",
-  /* ── Technical issues, the account's view of the checks it fixes (issue 1550, drafted) */
+  /* ── Site Fixes, the account's view of the checks it fixes (issue 1550, drafted) */
   "overview.issues.title": "Site Fixes",
   "overview.issues.lead": "Optional. Whoever runs your website can make them; ReachKit can’t.",
   "overview.issues.found": "Found {date}.",
@@ -150,7 +150,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.waiting.stop": "Stop This Page",
   // Every action answers (SPEC §4, 2026-09-20): the two words the control
   // says back, on the screen, in place of silence.
-  "overview.waiting.stopped": "Stopped. This page won’t go live.",
+  "overview.waiting.stopped": "Stopped. We won’t write this one.",
   "overview.waiting.stop-refused": "Not stopped: this page may already be going live. You can still stop it in This Week.",
 
   // ── This week: the word a day carries when nothing is scheduled on it.
@@ -401,7 +401,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.today.eyebrow": "Goes live today at {time}",
   "overview.today.eyebrow.tomorrow": "Goes live tomorrow at {time}",
   "overview.today.eyebrow.on": "Goes live {day} at {time}",
-  "overview.today.stop-note": "Stop: it won’t go live. Tomorrow’s page is not affected.",
+  "overview.today.stop-note": "Stop: it won’t go live, and we won’t write this topic again. Tomorrow’s page is not affected.",
   // A page published since the last reading is left out of each step's count.
   "overview.ladder.unread": "{k} not checked yet",
   // ── The head, this week's pages, the site-fix line and the states without

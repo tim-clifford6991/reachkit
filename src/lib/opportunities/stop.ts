@@ -2,6 +2,7 @@
 // nothing. Stopping dismisses the open row, so no draft moves and ADR-080 is not reached; a written page has its own link.
 import { macFor, macMatches } from "@/lib/crypto/keys";
 import { dbAdmin } from "@/lib/db";
+import { vetoLinkPath } from "@/lib/publish/publishable/veto";
 import { weekStartFor } from "@/lib/scan/weekly/week";
 import { opportunityStore } from "./store";
 import type { PlanReason } from "./types";
@@ -27,14 +28,13 @@ export type PlannedPreview =
   | { ok: false; reason: "used"; domain: string | null }
   | { ok: false; reason: "written" | "expired" | "unknown" };
 
-function macOf(payload: string): Buffer {
-  return macFor(HKDF_INFO, payload);
-}
-
 export function plannedStopToken(a: { siteId: string; opportunityId: string; day: string }): string {
   const payload = `${a.siteId}:${a.opportunityId}:${a.day}`;
-  return `${Buffer.from(payload).toString("base64url")}${SEPARATOR}${macOf(payload).toString("base64url")}`;
+  return `${Buffer.from(payload).toString("base64url")}${SEPARATOR}${macFor(HKDF_INFO, payload).toString("base64url")}`;
 }
+
+/** The `/veto` path that stops a planned page: the mail adds its origin, This Week links it as is. */
+export const plannedStopPath = (a: { siteId: string; opportunityId: string; day: string }): string => vetoLinkPath(plannedStopToken(a));
 
 /** A veto token is bare base64url, which never holds the separator. */
 export function isPlannedStopToken(token: string): boolean {
