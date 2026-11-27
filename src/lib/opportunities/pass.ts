@@ -10,7 +10,9 @@ import { storedRivalRows } from "@/lib/vendors/dataforseo/labs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import { assessFixPages } from "./fix-page";
-import type { KnownMatch } from "@/lib/known-content/types";
+import type { KnownPage } from "@/lib/known-content/types";
+import { contentTypeOf } from "./content-type";
+import type { Candidate } from "./derive/candidate";
 import { deriveOpportunities, type DeriveInput } from "./derive";
 import { afterReadiness } from "./derive/ledger";
 import { liveTwinIds } from "./plan";
@@ -70,20 +72,29 @@ export const cachedRivalRows = (siteId: string) => async (domains: readonly stri
 /** The net-new gate: the page the site already has on a topic, and whether its destination can update it.
  *  `undefined` where the index cannot be read, so nothing is converted or refused. */
 async function knownGateFor(a: { siteId: string; report: StoredReport; market: DeriveInput["market"] }): Promise<DeriveInput["known"]> {
-  const { alreadyCovered } = await import("@/lib/known-content/match");
+  const { alreadyCovered, productsOf } = await import("@/lib/known-content/match");
   const store = opportunityStore();
   const canUpdate = canUpdateFrom(await store.hostedOwnPages(a.siteId));
   // One read per search, resolved first so the gate the candidates pass through is pure.
-  const topics = new Map<string, KnownMatch | null>();
+  const near = new Map<string, readonly KnownPage[]>();
   const queries =
     a.report.questions.kind === "unmeasured"
       ? []
       : a.report.questions.value.map((question) => question.search.keyword);
-  const read = async (query: string, title?: string | null) => alreadyCovered({ query, title }, await store.knownContentNear({ siteId: a.siteId, query }), a.market);
-  for (const query of new Set(queries)) if (query.trim() !== "") topics.set(query.trim().toLowerCase(), await read(query));
+  for (const query of new Set(queries)) if (query.trim() !== "") near.set(query.trim().toLowerCase(), await store.knownContentNear({ siteId: a.siteId, query }));
+  // A list or comparison is also matched on the products its page compares, which its search's words may not share.
+  const products = productsOf(a.report.domain, a.market ?? null);
+  const comparing = await store.knownContentNear({ siteId: a.siteId, query: products.join(" or ") });
+  const match = (candidate: Candidate, pages: readonly KnownPage[], title?: string | null) => {
+    const query = candidate.targetQuery ?? "";
+    return contentTypeOf(candidate) === "listicle" ? alreadyCovered({ query, title, products }, [...pages, ...comparing], a.market) : alreadyCovered({ query, title }, pages, a.market);
+  };
   return {
-    covered: (candidate) => topics.get((candidate.targetQuery ?? "").trim().toLowerCase()) ?? null,
-    read: async (candidate) => (candidate.targetQuery === null ? null : read(candidate.targetQuery, candidate.title)),
+    covered: (candidate) => {
+      const pages = near.get((candidate.targetQuery ?? "").trim().toLowerCase());
+      return pages === undefined ? null : match(candidate, pages);
+    },
+    read: async (candidate) => (candidate.targetQuery === null ? null : match(candidate, await store.knownContentNear({ siteId: a.siteId, query: candidate.targetQuery }), candidate.title)),
     canUpdate,
     at: a.report.verdict.measuredAt,
   };
