@@ -45,7 +45,9 @@ export type OpsIncident =
   // No error: a weekly step ran again after its attempt died, and what that attempt spent.
   | { occasion: "step-retried"; step: string; attempt: number; cents: number }
   // No error: a weekly pass ended without a week, so it was released; its week, why, and what retakes it.
-  | { occasion: "weekly-failed"; weekStart: string; reason: "supply_failed" | "failed" | "market_unanswered"; retake: "next pass" | "re-run" };
+  | { occasion: "weekly-failed"; weekStart: string; reason: "supply_failed" | "failed" | "market_unanswered"; retake: "next pass" | "re-run" }
+  // No error: a pass's hot step, the stories its news read held (`null`: none read), the events judged and offered, or why none was.
+  | { occasion: "hot"; stories: number | null; events: number; offered: number; because: string | null };
 
 /** The occasions told at once: a page failed to publish, a payment or sign-in path is down. */
 export type AtOnce = Extract<OpsIncident, { occasion: "job-failed" | "dead-lettered" | "boot-refused" | "sign-in-unsent" | "no-draft-at-publish" | "autopilot-stalled" | "job-stale" }>;

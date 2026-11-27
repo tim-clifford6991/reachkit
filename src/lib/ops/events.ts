@@ -93,6 +93,13 @@ export async function opsEventRead(kind: string, siteId: string, code: string): 
   return (held.data[0] as { read: string } | undefined)?.read ?? null;
 }
 
+/** The site's `kind` rows, each its key and its read. */
+export async function opsEventsOf(kind: string, siteId: string): Promise<{ code: string; read: string }[]> {
+  const held = await (await events())().select("code, read").eq("kind", kind).eq("site_id", siteId);
+  if (held.error !== null) throw new Error(`ops_events read: ${held.error.message}`);
+  return held.data as { code: string; read: string }[];
+}
+
 /** Writes a `kind` row for the site where none is held with `code` as its key, awaited because the row gates its
  *  caller; `false` where one already was. */
 export async function claimOpsEvent(kind: string, siteId: string, code: string, read: string): Promise<boolean> {
