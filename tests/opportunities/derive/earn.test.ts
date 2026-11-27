@@ -9,7 +9,7 @@ import type { CanonicalDomain } from "../../../src/lib/scan/domain";
 import { earnAssetFor, earnCandidates } from "../../../src/lib/opportunities/derive/earn";
 import { onePerSearch } from "../../../src/lib/opportunities/derive";
 import { writeCandidates } from "../../../src/lib/opportunities/derive/write";
-import { SCAN_ID, SITE_ID, bigCounts, question, reportOf, search, serp, smallCounts } from "../fixtures";
+import { SCAN_ID, SITE_ID, question, reportOf, search, serp, smallCounts } from "../fixtures";
 
 const base = { siteId: SITE_ID, scanId: SCAN_ID, ownRanked: 0 };
 const counts = () => smallCounts(["appcues.com", "userpilot.com", "g2.com"]);
@@ -58,13 +58,6 @@ describe("one Earn candidate per market question, from the measured surfaces alo
     });
     const report = reportOf({ questions: [question()], serps: [named] });
     expect(earnCandidates({ ...base, report, rankedCounts: counts() }).candidates).toEqual([]);
-  });
-
-  it("carries Write's own winnability: a market too big to win yields no row and counts the rejection", () => {
-    const report = reportOf({ questions: [question()], serps: [answerCitingPlatform] });
-    const out = earnCandidates({ ...base, report, rankedCounts: bigCounts(["appcues.com", "userpilot.com", "g2.com"]) });
-    expect(out.candidates).toEqual([]);
-    expect(out.rejected.not_yet).toBe(1);
   });
 });
 

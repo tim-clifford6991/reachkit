@@ -340,16 +340,6 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
     }
   });
 
-  it("a search outsized for the site offers no update either — both sides are right-sized alike", () => {
-    const report = reportOf(
-      { questions: [question({ search: search({ volume: 50_000 }) })], serps: [rivalsOnly] },
-      { ownRankedRows: ranked([{ keyword: "best user onboarding software", position: 12, url: POST }]) }
-    );
-    const result = improveCandidates({ ...base, report, rankedCounts: smallCounts() });
-    expect(result.candidates).toEqual([]);
-    expect(result.rejected.not_yet).toBe(1);
-  });
-
   it("of two ranking pages, the one the crawl read as about the question goes first, over a better position", () => {
     const OTHER = "https://example.com/blog/release-notes";
     const report = reportOf(

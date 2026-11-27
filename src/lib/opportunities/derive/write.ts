@@ -8,7 +8,7 @@ import { measuredLocale } from "@/lib/locale/locales";
 import { localOfReport } from "@/lib/scan/cards";
 import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
-import { assess, rightSizedBand } from "../winnability/band";
+import { assess, bandOf } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type OpportunityType, type TopicSource, type WriteRival } from "../types";
 import { emptyDerivation, slugify, trendRead, type Candidate, type DerivationResult } from "./candidate";
@@ -116,17 +116,8 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       a.rankedCounts,
       at
     );
-    // The search's own difficulty, where the vendor measured one (issue
-    // 858): it reads a top ten the counts could not, and it still does
-    // where a pass's purse could not size every domain its own SERPs hold
-    // (issue 901).
-    const sizing = {
-      top10RankedCounts,
-      ownRanked: a.ownRanked,
-      volume: question.search.volume,
-      difficulty: question.search.difficulty ?? null,
-    };
-    const verdict = assess(sizing);
+    // The search's own difficulty reads a top ten the counts could not. Right-sizing ranks and never drops (SPEC §6).
+    const fitBand = bandOf(assess({ top10RankedCounts, ownRanked: a.ownRanked, volume: question.search.volume, difficulty: question.search.difficulty ?? null }));
 
     // A top ten made entirely of the customer's own pages is not a gap.
     if (serp.organic.every((row) => isOwnDomain(row.domain, ownDomain))) return;
@@ -148,16 +139,6 @@ export function writeCandidates(a: WriteInput): DerivationResult {
     else if (customerAbsent && namesARival(query, rivalDomains)) type = "comparison_page";
     else if (customerAbsent && rival !== null && question.search.volume >= WRITE_VOLUME_FLOOR_PER_MONTH) type = "keyword_page";
     if (type === null) return;
-
-    // The competition bar gates `keyword_page` only (SPEC §6, 2026-09-15).
-    // An answer or comparison page keeps its band — ranking still weighs it
-    // — but a top ten of large domains does not drop it. A search outsized
-    // for the site drops every type (right-sizing law, §6, 2026-09-16).
-    if (!verdict.qualified && (type === "keyword_page" || verdict.because === "outsized")) {
-      if (verdict.because === "unmeasured_top10") result.rejected.unmeasured_top10 += 1;
-      else result.rejected.not_yet += 1;
-      return;
-    }
 
     const evidence: Evidence = {
       family: "write",
@@ -188,7 +169,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
         type === "answer_page"
           ? { form: "named_on", question: question.text }
           : { form: "top20", query },
-      fitBand: verdict.qualified ? verdict.band : rightSizedBand(sizing),
+      fitBand,
       // An AI-answer gap is the one source measured here; every other is
       // read off the search's own words. A category's "best X" stays one
       // whatever its answer cited (round 1 review, 2026-10-02): it ranks

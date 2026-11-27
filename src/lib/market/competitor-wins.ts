@@ -1,7 +1,7 @@
 // SPEC §6 *A competitor wins, the site is absent*: a question a competitor in force is mentioned, linked, cited or ranked
 // on and the site is not becomes an `ai_gap` topic, titled as the buyer asks it. Pure, 0¢: the answers are a healthy
 // pass's stored reading, the wordings the site's own stored SERPs, the ranked rows the rivals' sizing cached.
-import { PLAN_DEPTH, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
+import { PLAN_DEPTH } from "@/lib/config/constants";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { ownPlaceIn, registrableDomain } from "@/lib/market/rivals/domains";
@@ -56,8 +56,8 @@ function siteAbsent(key: string, a: { report: StoredReport; ownRanked: Measured<
  * not the site (`prompt`), a competitor's page that answer cited (`cited`), and a search a competitor's stored ranked
  * rows hold at 1–20 where a stored reading shows the site absent (`ranked`). The AI answer cells of the report's own
  * searches are the fourth, read where those searches are derived (`derive/write.ts`). A prompt or a page is worded
- * by the "People also ask" question or related search `closestPrompt` matches to it, else proposes nothing (a prompt
- * counts as `unworded`); a ranked search is the buyer's own words.
+ * by the "People also ask" question or related search `closestPrompt` matches to it, else by its own words, unmeasured; a
+ * ranked search is the buyer's own words, right-sized ones first and an outsized one ranked lower, never dropped.
  */
 export function competitorWins(a: {
   section: PromptsSection | null;
@@ -77,7 +77,6 @@ export function competitorWins(a: {
   const competitors = new Set(a.competitors.flatMap((domain) => registrableDomain(domain) ?? []));
   const seen = new Set(a.taken.map(queryKey));
   const gaps: ProposedTopic[] = [];
-  let unworded = 0;
   const add = (query: string, topic: Omit<ProposedTopic, "query" | "source">): void => {
     const key = queryKey(query);
     if (key === "" || gaps.length >= a.max || seen.has(key) || malformedSearch(key, a.market?.rivals) !== null) return;
@@ -98,8 +97,8 @@ export function competitorWins(a: {
     });
     if (won[0] === undefined) continue;
     const wording = worded(prompt.text);
-    if (wording === null) unworded += 1;
-    else add(wording.query, { volume: null, rival: won[0].rival, asked: { term: wording.term, serpAt: wording.serpAt }, prompt: { id: prompt.id, text: prompt.text }, win: { signal: "prompt", competitor: won[0].rival, absent: won[0].absent } });
+    const asked = wording === null ? {} : { asked: { term: wording.term, serpAt: wording.serpAt } };
+    add(wording?.query ?? prompt.text, { volume: null, rival: won[0].rival, ...asked, prompt: { id: prompt.id, text: prompt.text }, win: { signal: "prompt", competitor: won[0].rival, absent: won[0].absent } });
     for (const { answer, absent } of won) {
       for (const url of answer.cited ?? []) {
         const domain = domainOf(url);
@@ -114,16 +113,18 @@ export function competitorWins(a: {
   const wins = [...a.ranked].filter(([domain]) => competitors.has(registrableDomain(domain) ?? domain)).flatMap(([domain, rows]) =>
     rows.flatMap((row) => {
       const band = difficultyBand({ difficulty: row.difficulty, ownRanked }) ?? demandBand({ volume: row.searchVolume, ownRanked });
-      const sized = row.searchVolume >= WRITE_VOLUME_FLOOR_PER_MONTH && row.searchVolume <= qualifyingDemand(ownRanked) && band !== "not-yet";
-      const absent = row.position <= RANKED_PLACE_MAX && sized ? siteAbsent(queryKey(row.keyword), a) : null;
-      return absent === null ? [] : [{ row, domain, absent }];
+      const sized = row.searchVolume <= qualifyingDemand(ownRanked) && band !== "not-yet";
+      const absent = row.position <= RANKED_PLACE_MAX ? siteAbsent(queryKey(row.keyword), a) : null;
+      return absent === null ? [] : [{ row, domain, absent, sized }];
     })
   );
-  // Right-sized, largest first, and a week's worth: the one fit call is shared with every other source.
+  // Right-sized first, then largest, and a week's worth: the one fit call is shared with every other source.
   const room = Math.min(a.max, gaps.length + PLAN_DEPTH);
-  for (const { row, domain, absent } of wins.sort((x, y) => y.row.searchVolume - x.row.searchVolume || x.row.position - y.row.position)) {
+  const order = (x: (typeof wins)[number], y: (typeof wins)[number]) => Number(y.sized) - Number(x.sized) || y.row.searchVolume - x.row.searchVolume || x.row.position - y.row.position;
+  for (const { row, domain, absent } of wins.sort(order)) {
     if (gaps.length >= room) break;
-    add(row.keyword, { volume: row.searchVolume, rival: domain, win: { signal: "ranked", competitor: domain, absent: `${domain} ranks ${row.position}; ${absent}` } });
+    add(row.keyword, { volume: row.searchVolume, difficulty: row.difficulty, rival: domain, win: { signal: "ranked", competitor: domain, absent: `${domain} ranks ${row.position}; ${absent}` } });
   }
-  return { gaps, unworded };
+  // Every prompt is proposed, worded or not; the count stays for the ledger's shape.
+  return { gaps, unworded: 0 };
 }

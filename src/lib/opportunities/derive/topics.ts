@@ -3,7 +3,7 @@
 // `proposedTopics` are the searches beside the twelve measured; the one fit judgement writes down only those at fit 3.
 import { PRICE_FILLER, SHAPES, languagePack } from "@/lib/locale/language";
 import { LANGUAGES, measuredLocale, type Language } from "@/lib/locale/locales";
-import { ASKED_TOPICS, CONTENT_MIX, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
+import { ASKED_TOPICS, EFFORT_BY_TYPE, TOPIC_FIT } from "@/lib/config/constants";
 import { comparisonsOf, ownSearched, searched } from "@/lib/market/infer/demand";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { placeOf } from "@/lib/locale/place";
@@ -13,9 +13,8 @@ import { malformedSearch } from "@/lib/market/questions/well-formed";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { PromptAnswer, StoredReport } from "@/lib/scan/report";
 import { queryKey } from "../cluster";
-import { contentTypeOf } from "../content-type";
 import { FAMILY_OF, type BusinessFit, type Evidence, type ReadTrend, type TopicSource } from "../types";
-import { demandBand } from "../winnability/band";
+import { demandBand, difficultyBand } from "../winnability/band";
 import { qualifyingDemand } from "../winnability/bars";
 import { slugify, trendRead, type Candidate } from "./candidate";
 
@@ -192,6 +191,8 @@ export interface ProposedTopic {
   source: TopicSource;
   /** The demand the pass read for it, where its market set carried the search; `null` where nothing measured it. */
   volume: number | null;
+  /** The vendor's difficulty for it, where a rival's ranked row carried one. */
+  difficulty?: number | null;
   /** The rival the search names, where it names one. */
   rival: string | null;
   /** Where buyers were seen asking it (issue 1519): the search whose SERP showed it and when that SERP was bought. */
@@ -531,7 +532,7 @@ export function proposedTopics(a: {
   language?: Language;
   /** What buyers were seen asking beside the site's searches (`askedTopics`, issue 1519). */
   asked?: readonly AskedTopic[];
-  /** The SERPs buyers were seen asking beside, which a one-place business's rival alternatives need (issue 1520). */
+  /** The SERPs buyers were seen asking beside. No proposal is held for want of them. */
   seen?: readonly AskedBeside[];
   /** The site holds under `PLAN_DEPTH` writable rows; then `area`, the place it serves, is never in an offering's topic. */
   short?: boolean;
@@ -557,8 +558,6 @@ export function proposedTopics(a: {
     if (rivalBrandOnly(key, { market: a.market, own, rivals }) || namesOwnOnly(key, { own, rivals })) return;
     // Issue 1314: a search nobody would type as it stands is no topic.
     if (malformedSearch(key, a.market?.rivals) !== null) return;
-    // A comparison of names nobody searches is no topic, unless the pass read demand for the search itself.
-    if (!volumes.has(key) && comparisonWithoutDemand(key, { market: a.market, own })) return;
     seen.add(key);
     out.push({ query: key, source, volume: volumes.get(key) ?? null, rival, ...(trends.get(key) === undefined ? {} : { trend: trends.get(key) }), ...more });
   };
@@ -580,30 +579,13 @@ export function proposedTopics(a: {
 
   if (market !== null) {
     const product = own[0] ?? null;
-    // Issue 1520: a business that serves one place is offered a rival's
-    // alternatives only where buyers were seen asking for them — its
-    // rivals' names are what buyers type to reach those rivals.
-    const compared = comparisonBrands({ report: a.report, market });
-    const unasked = (query: string): boolean =>
-      market.serves != null &&
-      alternativesOf(query, compared) !== null &&
-      comparisonUnasked({
-        query,
-        volume: volumes.get(queryKey(query)) ?? 0,
-        brands: compared,
-        prompts: a.report.prompts?.asked ?? [],
-        answers: a.report.prompts?.answers ?? [],
-        asked: a.seen ?? [],
-      });
-
     // Anchored on the product: a searched rival's alternatives, the
     // product against each rival where its own brand is searched — else the
     // most-searched rivals against each other (D50) — the category for its
     // buyer, its price, and what it is not.
     // D50's comparisons, by the one derivation the pass read volumes for (D64).
-    for (const comparison of comparisonsOf({ rivals: market.rivals, product, ownSearched: ownSearched(market), searchedOnly: true, language })) {
-      if (!unasked(comparison.query)) add(comparison.query, "product", comparison.rival);
-    }
+    // A comparison nobody was seen asking is proposed unmeasured, so it ranks with no demand part.
+    for (const comparison of comparisonsOf({ rivals: market.rivals, product, ownSearched: ownSearched(market), searchedOnly: true, language })) add(comparison.query, "product", comparison.rival);
     for (const search of a.written ?? []) add(search, sourceOf(search, { brands }), null);
     // The market's own names, what it is not, and the problem the product is
     // hired for. They are the vendor's words until the pass's "would a buyer
@@ -618,12 +600,11 @@ export function proposedTopics(a: {
     add(topic.query, sourceOf(topic.query, { brands }), null, { asked: { term: topic.term, serpAt: topic.serpAt, newSince: topic.newSince } });
   }
 
-  // What the pass read and did not ask: its market set, largest first, at any volume the site may be offered; never its own name.
+  // What the pass read and did not ask: its market set, right-sized first, then largest first; never its own name.
   const ceiling = qualifyingDemand(a.ownRanked);
   const read = [...suggestions]
-    .filter((row) => row.volume <= ceiling)
     .filter((row) => profile === null || classifyIntent(row.keyword, profile) !== "own_brand")
-    .sort((x, y) => y.volume - x.volume || (x.keyword < y.keyword ? -1 : 1));
+    .sort((x, y) => Number(x.volume > ceiling) - Number(y.volume > ceiling) || y.volume - x.volume || (x.keyword < y.keyword ? -1 : 1));
   for (const row of read) add(row.keyword, sourceOf(row.keyword, { brands }), null);
 
   return out;
@@ -648,17 +629,17 @@ export const writeTypeOf = (query: string) => (SHAPES.comparison.test(query) ? "
  * Nothing about it was measured in a top ten, and nothing here says it was:
  * its rival's address and position are `unmeasured`, its volume is the
  * market set's reading or `unmeasured`, and its acceptance is the plain
- * top-20 test. It never claims an AI-answer gap. `null` where the search is
- * outsized for the site; with no rival to point at, it names none.
+ * top-20 test. It never claims an AI-answer gap. A search outsized for the
+ * site keeps the outsized band and ranks lower; with no rival to point at, it names none.
  */
 export function candidateFor(
   topic: ProposedTopic,
   a: { siteId: string; scanId: string; report: StoredReport; market: MarketConclusion | null; ownRanked: number }
-): Candidate | null {
+): Candidate {
   const at = a.report.verdict.measuredAt;
   const rival = rivalFor(topic, a);
-  const band = topic.volume === null ? "winnable" : demandBand({ volume: topic.volume, ownRanked: a.ownRanked });
-  if (band === "not-yet") return null;
+  const hard = difficultyBand({ difficulty: topic.difficulty, ownRanked: a.ownRanked }) === "not-yet";
+  const band = hard ? "not-yet" : topic.volume === null ? "winnable" : demandBand({ volume: topic.volume, ownRanked: a.ownRanked });
 
   const volume: Measured<number> =
     topic.volume === null ? unmeasured<number>("not_attempted", at) : measured(topic.volume, at);
@@ -706,8 +687,7 @@ export type AskedSupply = { topic: ProposedTopic; fit: BusinessFit | null; fact?
  * asked beside the market's own searched terms first, and only where the
  * business's vocabulary supports every word and no rival is named. Each is
  * on the market, a search a buyer would type, not a rival's bare name,
- * written as a Q&A, how-to or documentation page, and
- * on no search the site already holds or dismissed. The collapse then folds
+ * in whatever shape its page type takes, and on no search the site already holds or dismissed. The collapse then folds
  * each into the page of the results page it was seen on.
  */
 export function askedSupply(a: {
@@ -725,11 +705,8 @@ export function askedSupply(a: {
   const { own, rivals } = brandsOf(a);
   const brands = [...own, ...rivals];
   const seen = new Set([...a.taken, ...a.dismissed, ...a.refused].map(queryKey));
-  const answers = (query: string): boolean =>
-    (CONTENT_MIX.NON_COMMERCIAL_TYPES as readonly string[]).includes(contentTypeOf({ type: "keyword_page", targetQuery: query }) ?? "");
   const usable = (query: string): boolean =>
     !seen.has(queryKey(query)) &&
-    answers(query) &&
     askedOnMarket(query, { market: a.market, own, rivals }) &&
     malformedSearch(query, a.market?.rivals) === null &&
     !rivalBrandOnly(query, { market: a.market, own, rivals });

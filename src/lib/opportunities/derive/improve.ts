@@ -10,7 +10,7 @@ import { isOwnDomain, registrableDomain, resolvedHost, resolvedRows } from "@/li
 import { measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
-import { demandBand, rightSizedBand } from "../winnability/band";
+import { rightSizedBand } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type Shortfall } from "../types";
 import { canonicalUrl } from "@/lib/measure/page-reading";
@@ -133,22 +133,12 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
     if (chosen === undefined || chosen === null) return;
     const { row, type, shortfall } = chosen;
 
-    // The same sizing a Write for this search gets, so both sides of the
-    // daily decision are right-sized alike (§7, 2026-09-16): a search
-    // outsized for the site offers no update either (§6, 2026-09-16). The
-    // competition bar gates `keyword_page` only (§6, 2026-09-15), and no
-    // Improve type is one, so otherwise the band is recorded and never
-    // drops a page.
-    const sizing = {
+    // The same sizing a Write for this search gets, so both sides of the daily decision rank alike; an outsized one ranks lower.
+    const band = rightSizedBand({
       top10RankedCounts: rankedCountsFor((resolvedRows(serp.organic) ?? []).map((organic) => registrableDomain(organic.domain) ?? organic.domain), a.rankedCounts, at),
       ownRanked: a.ownRanked,
       volume: question.search.volume,
-    };
-    if (demandBand(sizing) === "not-yet") {
-      result.rejected.not_yet += 1;
-      return;
-    }
-    const band = rightSizedBand(sizing);
+    });
 
     const volume = measured(question.search.volume, at);
     const evidence: Evidence = {
