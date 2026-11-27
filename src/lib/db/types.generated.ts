@@ -1913,8 +1913,14 @@ export type Database = {
         Returns: string
       }
       box_trigger_claim: {
-        Args: { p_at: string; p_code: string; p_read: string; p_site: string }
-        Returns: boolean
+        Args: {
+          p_at: string
+          p_cap: number
+          p_code: string
+          p_read: string
+          p_site: string
+        }
+        Returns: string
       }
       draft_ledger_cents: { Args: { p_draft_id: string }; Returns: number }
       fetch_outcome: { Args: { p_payload: Json }; Returns: string }

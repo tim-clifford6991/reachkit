@@ -149,7 +149,7 @@ Sensitive rows are write-only. Agents never see a value.
 
 | Where it lives | Names |
 |---|---|
-| Vercel, both targets | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `RESEND_API_KEY`, `MAIL_FROM`, `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `ANTHROPIC_API_KEY`, `NANO_API_KEY`, `INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`, `IP_HASH_SALT`, `KILL_SWITCH`, `OWNER_EMAILS`, `NEXT_PUBLIC_APP_URL`, `HOSTED_EDGE_CNAME_TARGET`, `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `ANTHROPIC_ADMIN_KEY` (optional), `RESEND_WEBHOOK_SECRET` (optional; unset refuses every mail webhook), `BOX_TRIGGER_SECRET` (optional; unset refuses every `/api/ops/trigger` call) |
+| Vercel, both targets | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID`, `RESEND_API_KEY`, `MAIL_FROM`, `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`, `ANTHROPIC_API_KEY`, `NANO_API_KEY`, `INNGEST_SIGNING_KEY`, `INNGEST_EVENT_KEY`, `IP_HASH_SALT`, `KILL_SWITCH`, `OWNER_EMAILS`, `NEXT_PUBLIC_APP_URL`, `HOSTED_EDGE_CNAME_TARGET`, `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `ANTHROPIC_ADMIN_KEY` (optional), `RESEND_WEBHOOK_SECRET` (optional; unset refuses every mail webhook), `BOX_TRIGGER_SECRET` (optional; unset refuses every `/api/ops/trigger` call; set it or leave it absent, never blank, which fails the boot) |
 | Vercel, dev and preview only | `HOSTED_TEST_HOST` (ignored on production) |
 | The owner's shell only, never Vercel | `DATABASE_URL` (Supabase → Project Settings → Database) |
 | Nowhere | `RK_FIXED_NOW`, a test fixture; a real deployment refuses to boot with it |
@@ -247,7 +247,7 @@ before any claim: no or wrong secret 401 (unset secret: every call), any other b
 `KILL_SWITCH` 423, 07:30–08:30 UTC 409 `quiet_window`, no listed site 409 `not_a_test_site`, over the
 day's cap 429 `{kind, count, cap}`. The cap is **2 re-runs and 4 test writes a UTC day**, counted from
 `ops_events` rows of kind `box_trigger` (code `rerun:<weekStart>:<n>` or `test:<publishDate>:<n>`,
-read `{key}`), each claimed before its send through `box_trigger_claim`; `<n>` is one more than any
+read `{key}`), each claimed before its send through `box_trigger_claim`, which counts the day's claims and inserts under one lock; `<n>` is one more than any
 key already stored for that week or date. A conflicting claim answers 409 `retry`, a claim that
 cannot be written 503 (so the route refuses every call until migration `20261127120000_jobs_box_trigger_claims`
 is applied), and a send that throws 502 (the claim still counts). Accepted is 202 with the key. Every

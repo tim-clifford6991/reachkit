@@ -84,9 +84,11 @@ async function accepted(body: z.infer<typeof Body>, now: Date, send: Send): Prom
   const n = 1 + Math.max(0, ...held.data.map((row) => keyOf(row.read)).filter((key) => key.startsWith(prefix)).map((key) => Number(key.slice(prefix.length))).filter(Number.isInteger));
   const key = `${prefix}${n}`, code = `${kind}:${date}:${n}`;
 
-  const claim = await db.rpc("box_trigger_claim", { p_site: site.id, p_code: code, p_read: JSON.stringify({ key }), p_at: now.toISOString() });
+  // The count above refuses early at 0¢; the claim counts again under a lock, so concurrent calls cannot pass the cap.
+  const claim = await db.rpc("box_trigger_claim", { p_site: site.id, p_code: code, p_read: JSON.stringify({ key }), p_at: now.toISOString(), p_cap: CAP[kind] });
   if (claim.error !== null) return { status: 503, body: { error: "unclaimed" } };
-  if (claim.data !== true) return { status: 409, body: { error: "retry" } };
+  if (claim.data === "capped") return { status: 429, body: { kind, count: CAP[kind], cap: CAP[kind] } };
+  if (claim.data !== "claimed") return { status: 409, body: { error: "retry" } };
   try {
     if (body.kind === "rerun") {
       await send("weekly/refresh", [{ key, data: { siteId: site.id, domain: site.domain, zone: site.zone, weekStart: date, at: now.toISOString(), rerun: true, ...(body.early === true ? { early: true } : {}) } }]);

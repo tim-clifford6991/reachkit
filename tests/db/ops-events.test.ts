@@ -103,17 +103,18 @@ describe("the box trigger: its own secret, the owner's daily caps, one send per 
     expect([claims(), sent.length]).toEqual(["0", 0]);
   });
 
-  it("two re-runs claim two keys; the third answers 429 and is never sent", async () => {
-    const [first, second] = [await call({ kind: "rerun" }, "s"), await call({ kind: "rerun" }, "s")];
-    expect([first.status, second.status, first.body.key !== second.body.key]).toEqual([202, 202, true]);
+  it("with one re-run claimed, two concurrent calls send one more and the next answers 429", async () => {
+    const first = await call({ kind: "rerun" }, "s");
+    const pair = await Promise.all([call({ kind: "rerun" }, "s"), call({ kind: "rerun" }, "s")]);
+    expect([first.status, pair.filter((answer) => answer.status === 202).length, sent.length, new Set(sent).size]).toEqual([202, 1, 2, 2]);
     expect(await call({ kind: "rerun" }, "s")).toMatchObject({ status: 429, body: { kind: "rerun", count: 2, cap: 2 } });
-    expect(sent).toEqual([first.body.key, second.body.key]);
+    expect(sent).toHaveLength(2);
   });
 
   it("the fifth test write answers 429; a repeat of a held claim is refused, so its key is sent once", async () => {
     for (let i = 0; i < 4; i++) expect((await call({ kind: "test", date: "2026-11-12" }, "s")).status).toBe(202);
     expect(await call({ kind: "test", date: "2026-11-12" }, "s")).toMatchObject({ status: 429, body: { kind: "test", count: 4, cap: 4 } });
-    expect(value(`set role service_role; select box_trigger_claim('${SITE}', 'test:2026-11-12:1', '{}', now());`)).toBe("f");
+    expect(value(`set role service_role; select box_trigger_claim('${SITE}', 'test:2026-11-12:1', '{}', '2026-11-11T12:00:00Z', 4);`)).toBe("held");
     expect(sent.filter((key) => key === `draft:${SITE}:2026-11-12:test:1`)).toHaveLength(1);
   });
 });
