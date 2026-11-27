@@ -10,7 +10,9 @@ import { storedRivalRows } from "@/lib/vendors/dataforseo/labs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import { assessFixPages } from "./fix-page";
-import type { KnownMatch } from "@/lib/known-content/types";
+import type { KnownPage } from "@/lib/known-content/types";
+import { contentTypeOf } from "./content-type";
+import type { Candidate } from "./derive/candidate";
 import { deriveOpportunities, type DeriveInput } from "./derive";
 import { afterReadiness } from "./derive/ledger";
 import { liveTwinIds } from "./plan";
@@ -70,20 +72,20 @@ export const cachedRivalRows = (siteId: string) => async (domains: readonly stri
 /** The net-new gate: the page the site already has on a topic, and whether its destination can update it.
  *  `undefined` where the index cannot be read, so nothing is converted or refused. */
 async function knownGateFor(a: { siteId: string; report: StoredReport; market: DeriveInput["market"] }): Promise<DeriveInput["known"]> {
-  const { alreadyCovered } = await import("@/lib/known-content/match");
+  const { alreadyCovered, productsOf } = await import("@/lib/known-content/match");
   const store = opportunityStore();
   const canUpdate = canUpdateFrom(await store.hostedOwnPages(a.siteId));
   // One read per search, resolved first so the gate the candidates pass through is pure.
-  const topics = new Map<string, KnownMatch | null>();
-  const queries =
-    a.report.questions.kind === "unmeasured"
-      ? []
-      : a.report.questions.value.map((question) => question.search.keyword);
-  const read = async (query: string, title?: string | null) => alreadyCovered({ query, title }, await store.knownContentNear({ siteId: a.siteId, query }), a.market);
-  for (const query of new Set(queries)) if (query.trim() !== "") topics.set(query.trim().toLowerCase(), await read(query));
+  const near = new Map<string, readonly KnownPage[]>();
+  const queries = a.report.questions.kind === "unmeasured" ? [] : a.report.questions.value.map((question) => question.search.keyword);
+  for (const query of new Set(queries)) if (query.trim() !== "") near.set(query.trim().toLowerCase(), await store.knownContentNear({ siteId: a.siteId, query }));
+  const names = productsOf(a.report.domain, a.market ?? null);
+  // A list or comparison is also matched on the products its page compares, which its search's words may not share.
+  const products = { names, pages: await store.knownContentNear({ siteId: a.siteId, query: names.join(" or ") }) };
+  const match = (c: Candidate, pages: readonly KnownPage[] | undefined, title?: string | null) => (pages === undefined ? null : alreadyCovered({ query: c.targetQuery ?? "", title, ...(contentTypeOf(c) === "listicle" ? { products } : {}) }, pages, a.market));
   return {
-    covered: (candidate) => topics.get((candidate.targetQuery ?? "").trim().toLowerCase()) ?? null,
-    read: async (candidate) => (candidate.targetQuery === null ? null : read(candidate.targetQuery, candidate.title)),
+    covered: (candidate) => match(candidate, near.get((candidate.targetQuery ?? "").trim().toLowerCase())),
+    read: async (candidate) => (candidate.targetQuery === null ? null : match(candidate, await store.knownContentNear({ siteId: a.siteId, query: candidate.targetQuery }), candidate.title)),
     canUpdate,
     at: a.report.verdict.measuredAt,
   };
@@ -105,10 +107,7 @@ export async function deriveForPass(
   }
 ): Promise<PassOutcome> {
   const store = opportunityStore();
-  const [hostedHost, inventory] = await Promise.all([
-    store.hostedHostFor(a.siteId),
-    store.inventoryFor(a.report.domain),
-  ]);
+  const [hostedHost, inventory] = await Promise.all([store.hostedHostFor(a.siteId), store.inventoryFor(a.report.domain)]);
 
   // Before the derivation, so the net-new rule reads this pass's index of the site and not last week's. Never throws.
   await store.refreshKnownContent({ siteId: a.siteId, domain: a.report.domain, inventory });
@@ -137,10 +136,7 @@ export async function deriveForPass(
   const twins = derived === null ? new Set<string>() : await liveTwinIds(a.siteId, a.report.verdict.measuredAt);
   const supply = derived === null ? null : afterReadiness(derived.supply, (await store.openRankable(a.siteId)).filter((row) => !twins.has(row.id)).map(readOpportunity));
   // `spentCents` tells a spent reserve (at the cap) from a day or site ceiling (below it), which `capHit()` lumps.
-  const derivation =
-    supply === null
-      ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() }
-      : { derived: added, ...supply };
+  const derivation = supply === null ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() } : { derived: added, ...supply };
   // Rows, not log lines: the runtime log drops a long request's tail, and the daily check tells a thin pass from a dry source.
   await recordOpsEvent("supply_pass", JSON.stringify({ tier: a.tier, added, ...derivation }), a.report.scanId, a.siteId);
   if (supply !== null && supply.have < SUPPLY_SHORT_BELOW) {

@@ -15,6 +15,9 @@
 // would dilute every score by the length of the page.
 import { KNOWN_CONTENT } from "@/lib/config/constants";
 import { marketTokens, type MarketWords } from "@/lib/market/infer/terms";
+import type { MarketConclusion } from "@/lib/market/infer/types";
+import { brandOf } from "@/lib/market/questions/select";
+import { namesBrand } from "@/lib/opportunities/derive/topics";
 import { topicSimilarity } from "./similarity";
 import type { KnownMatch, KnownPage } from "./types";
 
@@ -23,6 +26,24 @@ import type { KnownMatch, KnownPage } from "./types";
 export interface PlannedTopic {
   query: string | null;
   title?: string | null;
+  /** A list or comparison topic only: the business and its tracked rivals, which such a page compares, and the pages naming them. */
+  products?: { names: readonly string[]; pages: readonly KnownPage[] };
+}
+
+/** The business and its tracked rivals, by name. */
+export function productsOf(domain: string, market: Pick<MarketConclusion, "rivals"> | null): string[] {
+  return [brandOf(domain), ...(market?.rivals ?? []).map((rival) => rival.name)];
+}
+
+/** A live page whose headings name the products this topic's page would compare, all but at most one and at most one
+ *  other: the same products in the same shape are the same question, however the search is worded. */
+function sameProducts(topic: PlannedTopic, page: KnownPage): boolean {
+  const all = topic.products?.names ?? [];
+  if (!page.live || page.url === null || all.length === 0) return false;
+  const asked = all.filter((product) => namesBrand(topic.query ?? "", product));
+  const mine = asked.length >= 2 ? asked : all;
+  const named = all.filter((product) => page.headings.some((heading) => namesBrand(heading, product)));
+  return mine.length >= 3 && mine.filter((p) => !named.includes(p)).length <= 1 && named.filter((p) => !mine.includes(p)).length <= 1;
 }
 
 function textsOf(topic: PlannedTopic): string[] {
@@ -77,7 +98,7 @@ function better(page: KnownPage, than: KnownPage): boolean {
 }
 
 /**
- * Whether the site already covers this topic.
+ * Whether the site already covers this topic: a page close enough in words, or else a live page on the same products.
  *
  * One threshold, `KNOWN_CONTENT.COVERED_MIN`, read here and nowhere else:
  * the rule is "never write the same page twice", not a per-customer
@@ -85,5 +106,7 @@ function better(page: KnownPage, than: KnownPage): boolean {
  */
 export function alreadyCovered(topic: PlannedTopic, pages: readonly KnownPage[], market?: MarketWords | null): KnownMatch | null {
   const closest = closestKnown(topic, pages, market);
-  return closest !== null && closest.score >= KNOWN_CONTENT.COVERED_MIN ? closest : null;
+  if (closest !== null && closest.score >= KNOWN_CONTENT.COVERED_MIN) return closest;
+  const [same] = [...pages, ...(topic.products?.pages ?? [])].filter((page) => sameProducts(topic, page)).sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0));
+  return same === undefined ? null : { page: same, score: pageScore(topic, same, market) };
 }

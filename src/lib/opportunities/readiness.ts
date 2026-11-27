@@ -10,7 +10,7 @@ import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
 import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
 import type { KnownMatch } from "@/lib/known-content/types";
-import type { MarketWords } from "@/lib/market/infer/terms";
+import type { MarketConclusion } from "@/lib/market/infer/types";
 import { queryKey } from "./cluster";
 import { contentTypeOf, SHAPED } from "./content-type";
 import { freshRead, offeringTopTen, type KindOfBusiness, type TopTenRead } from "./derive/top-ten-kind";
@@ -82,16 +82,19 @@ function ownRankedOf(report: StoredReport | null): number | null {
 }
 
 /** The page the site already has on each row's topic; an unreadable index refuses no topic. */
-async function coveredTopics(siteId: string, rows: readonly Opportunity[], market: MarketWords | null): Promise<Map<string, KnownMatch>> {
+async function coveredTopics(siteId: string, rows: readonly Opportunity[], market: MarketConclusion | null, domain: string | null): Promise<Map<string, KnownMatch>> {
   const out = new Map<string, KnownMatch>();
-  const { alreadyCovered } = await import("@/lib/known-content/match");
+  const { alreadyCovered, productsOf } = await import("@/lib/known-content/match");
   const store = opportunityStore();
+  const names = domain === null ? [] : productsOf(domain, market);
+  // A list or comparison is also matched on the products its page compares, which its search's words may not share.
+  const products = { names, pages: names.length > 0 && rows.some((o) => contentTypeOf(o) === "listicle") ? await store.knownContentNear({ siteId, query: names.join(" or ") }) : [] };
   for (const row of rows) {
     if (row.family === "improve" || row.family === "fix") continue;
     const query = row.targetQuery ?? "";
     if (query.trim() === "") continue;
     const near = await store.knownContentNear({ siteId, query });
-    const match = alreadyCovered({ query, title: row.title }, near, market);
+    const match = alreadyCovered({ query, title: row.title, ...(contentTypeOf(row) === "listicle" ? { products } : {}) }, near, market);
     if (match !== null) out.set(row.id, match);
   }
   return out;
@@ -138,7 +141,7 @@ export async function assessReadiness(
   const ownPages = rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
   // One narrowed read per row whose topic could be covered, before the loop,
   // so `eligible` stays pure and synchronous.
-  const covered = await coveredTopics(siteId, rows.map(readOpportunity), market);
+  const covered = await coveredTopics(siteId, rows.map(readOpportunity), market, report?.domain ?? null);
   const readOf = (o: Opportunity) => (o.targetQuery === null ? null : (topTens.get(queryKey(o.targetQuery)) ?? null));
   const ctx: ReadinessContext = {
     now,
