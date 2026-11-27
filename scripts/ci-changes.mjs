@@ -81,7 +81,7 @@ const DB = [
   /^src\/lib\/publish\/attempt\/unpublish\.ts$/,
   /^src\/lib\/limits\//,
   /^src\/lib\/known-content\/store\.ts$/,
-  /^src\/lib\/scan\/weekly\/(index|access)\.ts$/,
+  /^src\/lib\/scan\/weekly\/(index|access|store|market-changes)\.ts$/,
   /^src\/lib\/account\/billing\/index\.ts$/,
   /^src\/lib\/account\/lifecycle\/purge\.ts$/,
   /^scripts\/daily-check\/(settings-reads|runway)\.mjs$/,

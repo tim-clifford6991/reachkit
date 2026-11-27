@@ -177,6 +177,11 @@ async function recordWeek(a: { scanId: string; siteId: string; weekStart: string
   const found = await withCostContext({ scanId: a.scanId, cap: "WEEK", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, (c) =>
     buyMarketChanges(c, { siteId: a.siteId, locale, terms: newsQueries(site.stored, market.category), notOurs, market, today: a.now, ...(a.again ? { again: true as const } : {}) })
   );
+  return storeWeek(a, found);
+}
+
+/** Stores a read as the week's: its changes, each change the week already held still inside the window, and what became of each story. */
+export async function storeWeek(a: { scanId: string; siteId: string; weekStart: string; now: Date }, found: Awaited<ReturnType<typeof buyMarketChanges>>): Promise<number> {
   // A change seen in an earlier week keeps the week it was first seen.
   const weeks = await readMarketChanges({ siteIds: [a.siteId], from: new Date(Date.parse(`${a.weekStart}T00:00:00Z`) - 5 * 7 * 86_400_000).toISOString().slice(0, 10) });
   const stored = (week?: string) => weeks.filter((held) => week === undefined || held.weekStart === week).flatMap((held) => held.changes as Partial<MarketChange>[])

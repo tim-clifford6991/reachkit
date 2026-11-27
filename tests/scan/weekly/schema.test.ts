@@ -48,6 +48,7 @@ const SUBSCRIPTION_MIGRATION = path.join(MIGRATIONS, "20260906120000_users_subsc
 // The week's market changes are claimed on their own row; its policy reads `users.deleted_at`, which the RLS migration adds.
 const RLS_MIGRATION = path.join(MIGRATIONS, "00000000000002_rls.sql");
 const MARKET_MIGRATION = path.join(MIGRATIONS, "20261122200000_scans_market_changes.sql");
+const OPS_MIGRATION = path.join(MIGRATIONS, "20261103150000_jobs_ops_events.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
 /** Runs `sql` and returns whether it raised (never throws itself). */
@@ -86,6 +87,7 @@ beforeAll(() => {
     FLIP_MIGRATION,
     WEEKLY_MIGRATION,
     MARKET_MIGRATION,
+    OPS_MIGRATION,
   ]) {
     psql(["-v", "ON_ERROR_STOP=1", "-f", file]);
   }
@@ -318,5 +320,25 @@ describe("ADR-050 · issue #180 — the weekly selection decides who pays, throu
       `insert into sites (user_id, domain) values ('${user?.[0]}', 'nozone.example.com');`,
     ]);
     expect(await dueSites(MONDAY_0600_UTC)).toEqual([]);
+  });
+
+  it("a re-run whose news read finds nothing keeps the week's change, and its pass row holds each story's outcome", async () => {
+    clearRows();
+    const site = givenSite("market", "2026-12-31T00:00:00Z"), week = { siteId: site, weekStart: "2026-11-23", now: new Date("2026-11-27T08:00:00Z") };
+    const [monday, rerun] = ["monday", "rerun"].map(() => psqlRows(`insert into scans (site_id, domain, tier, status) values ('${site}', 'market.example.com', 'weekly', 'done') returning id;`)[0]![0]!);
+    const { claimMarketWeek } = await import("../../../src/lib/scan/weekly/store");
+    const { storeWeek } = await import("../../../src/lib/scan/weekly/market-changes");
+    const claims = ["a.com", "b.com"].map((host) => ({ url: `https://${host}/x`, publisher: host, publishedAt: "2026-11-24", quote: "Acme 5 ships today." }));
+    const held = { title: "Acme 5 ships", names: "Acme 5", reportedOn: "2026-11-24", words: ["acme", "5", "ships"], claims };
+    expect(await claimMarketWeek({ ...week, scanId: monday })).toBe(true);
+    await storeWeek({ ...week, scanId: monday, now: new Date("2026-11-24T08:00:00Z") }, { changes: [held], stories: [{ title: held.title, outcome: "change" }] });
+    expect(await claimMarketWeek({ ...week, scanId: rerun })).toBe(true);
+    const stories = [{ title: "Acme 5 ships", outcome: "not_an_event" }, { title: "Acme rivals", outcome: "one_source" }, { title: "Acme 6", outcome: "cap" }] as const;
+    expect(await storeWeek({ ...week, scanId: rerun }, { changes: [], stories: [...stories] })).toBe(1);
+    const [changes] = psqlRows(`select changes from market_changes where site_id = '${site}' and week_start = '2026-11-23';`)[0]!;
+    expect((JSON.parse(changes!) as { title: string; firstSeen: string }[]).map((c) => [c.title, c.firstSeen])).toEqual([["Acme 5 ships", "2026-11-24"]]);
+    const [read] = psqlRows(`select read from ops_events where kind = 'market_changes_pass' and code = '${rerun}';`)[0]!;
+    expect((JSON.parse(read!) as { stories: unknown[] }).stories).toEqual(stories);
+    psql(["-c", "delete from market_changes; delete from ops_events;"]);
   });
 });
