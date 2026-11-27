@@ -1,7 +1,7 @@
 // SPEC §6 *Every topic is an angle* (owner rulings 91–92, #2722): the one place a found search becomes a page's angle.
 // The model proposes two or three angles per search in one of five patterns; code keeps the one with the fewest faults
 // that promises most of what the top results miss. Only a name no source holds excludes one. The weekly topic step and the hot-topic lane both call `pickAngle`.
-import { carriesAsk, plannedTitleFaults } from "@/lib/generate/rules/title";
+import { carriesAsk, names, plannedTitleFaults } from "@/lib/generate/rules/title";
 import { languagePack, SHAPES } from "@/lib/locale/language";
 import type { Language } from "@/lib/locale/locales";
 import { contentTokens } from "@/lib/market/questions/select";
@@ -47,6 +47,8 @@ export interface AngleContext {
   language?: Language;
   /** The business's brand and offering texts, and the outcome its buyer wants: a title that sells the offering is a `claim`. */
   offering?: NonNullable<Parameters<typeof plannedTitleFaults>[3]>;
+  /** A page on a market event: the event's name and the reports' quotes, which its title leads with and takes its figure from. */
+  hot?: { event: string; claims: readonly string[] };
 }
 
 const lowered = (text: string): string => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -112,13 +114,15 @@ export const UNSUPPORTED: readonly string[] = ["empty", "names", "rival"];
 
 /** The gates an angle fails, by name: its fact is a passage shown, its pattern fits the search's intent, it passes the
  *  writer's own wording rules (`plannedTitleFaults`), every figure and name in it is in the search or a source, a
- *  comparison names no rival the search does not, it adds a word to the search, and it keeps every word the search asks for. */
+ *  comparison names no rival the search does not, it adds a word to the search, it keeps every word the search asks for, and
+ *  a news page names its event and a figure the reports state. */
 export function angleGates(angle: ProposedAngle, a: AngleContext): string[] {
   const title = angle.title.trim();
   if (title === "" || !ANGLE_PATTERNS.includes(angle.pattern)) return ["empty"];
   const gates: (string | false)[] = [
     a.passages !== undefined && angle.fact !== null && (angle.fact < 0 || angle.fact >= a.passages) && "fact",
     !patternAllowed(angle.pattern, a.search) && "pattern",
+    a.hot !== undefined && !(names(title, a.hot.event) && (/\d/.test(title) || !/\d/.test(a.hot.claims.join(" ")))) && "promise_figure",
     ...plannedTitleFaults(title, a.search, a.language, a.offering && { ...a.offering, common: [...a.offering.common, ...a.ranks] }),
     !namesAreReal(title, a) && "names",
     namesOtherRival(angle, a) && "rival",

@@ -30,10 +30,10 @@ const SCHEMA = z.strictObject({
   ),
 });
 
-const TASK = [`Each of \`searches\` is a page this business will write this week. For each, give \`angles\`: ${ANGLE_ASK.pages}`, ANGLE_ASK.title].join(" ");
+const TASK = [`Each of \`searches\` is a page this business will write this week. For each, give \`angles\`: ${ANGLE_ASK.pages}`, ANGLE_ASK.title, "A search with `news` is a page on that event: its title names `news.event` and a figure `news.claims` state, and answers the search's own question."].join(" ");
 const RETRY = [
   TASK,
-  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the search's words, with or without a break; promise_figure, a price leading a page not about price; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; ask, it drops a word the search asks for; fact, its passage was not shown. Give new angles that pass them.",
+  "Each search's `rejected` angles failed the `gates` named: term, it does not lead with the search's main noun phrase; banned, a hype word, a trope or a word said twice; claim, a clause about this business after the search's words, with or without a break, what it sells or promises, or a buyer the site does not state; promise_figure, a price leading a page not about price, or a news page's title without its event and a figure its claims state; pattern, the pattern does not fit the search; names, it names what no source writes; rival, it names a rival the search does not; restates, it adds nothing to the search; ask, it drops a word the search asks for, or the question it asks; fact, its passage was not shown. Give new angles that pass them.",
 ].join(" ");
 
 /** Titles the open rows of the site's committed week that have none, or a new page's that fails today's title checks,
@@ -93,9 +93,15 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
   );
   const rivals = market?.rivals.flatMap((rival) => [rival.name, rival.domain]) ?? [];
   const sources = [...(knowledge ?? []).map((passage) => passage.text), report.domain, ...rivals];
-  const says = [profile?.offeringType ?? "", ...(knowledge ?? []).filter((passage) => passage.about === "offering").map((passage) => passage.text)];
-  const offering = { brand: brandOf(report.domain), says, common: [market?.job ?? profile?.job ?? ""] };
-  const context = (search: (typeof all)[number]): AngleContext => ({ search: search.query, sources, ranks: search.ranks, rivals, offering, language: locale.language, ...(knowledge == null ? {} : { passages: knowledge.length }) });
+  // What the business sells and promises (its cadence, its scan), and the buyer it states: a title that names either unasked is an ad or a claim.
+  const says = [profile?.offeringType ?? "", ...(profile?.offerings ?? []).map((line) => line.name), ...(market?.differentiators ?? []), ...(knowledge ?? []).filter((passage) => passage.about === "offering" || passage.about === "differentiator").map((passage) => passage.text)];
+  const audience = [market?.buyer ?? profile?.audienceTerms.join(", ") ?? "", ...(knowledge ?? []).map((passage) => passage.text)];
+  const offering = { brand: brandOf(report.domain), says, common: [market?.job ?? profile?.job ?? ""], audience };
+  const context = (search: (typeof all)[number]): AngleContext => {
+    const evidence = readOpportunity(search.row).evidence, hot = evidence.family === "write" ? evidence.hot : undefined;
+    const news: Pick<AngleContext, "hot"> = hot?.reason?.event ? { hot: { event: hot.reason.event, claims: hot.claims.map((claim) => claim.quote) } } : {};
+    return { search: search.query, sources: [...sources, ...(news.hot === undefined ? [] : [news.hot.event, ...news.hot.claims])], ranks: search.ranks, rivals, offering, language: locale.language, ...news, ...(knowledge == null ? {} : { passages: knowledge.length }) };
+  };
   const searches = all.filter((search) => staleTitle(search.row.title ?? "", context(search)));
   if (searches.length === 0) return 0;
   const ask = (task: string, list: readonly Record<string, unknown>[]) =>
@@ -114,7 +120,7 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
         searches: list,
       },
     });
-  const shown = (search: (typeof searches)[number], i: number) => ({ i, search: search.query, ...(search.ranks.length === 0 ? {} : { ranks: search.ranks }) });
+  const shown = (search: (typeof searches)[number], i: number) => ({ i, search: search.query, ...(search.ranks.length === 0 ? {} : { ranks: search.ranks }), ...(context(search).hot === undefined ? {} : { news: context(search).hot }) });
   const proposed = new Map<number, ProposedAngle[]>();
   const kept = new Map<number, NonNullable<ReturnType<typeof pickAngle>>>();
   const take = (answer: Awaited<ReturnType<typeof ask>>): void => {
