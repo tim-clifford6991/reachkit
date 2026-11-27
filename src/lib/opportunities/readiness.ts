@@ -9,12 +9,10 @@ import { isResting, isRetarget, OUTSIZED, qualifiesForADay, type Winnability } f
 import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
 import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
-import type { IntentPrompt } from "./intent";
 import type { KnownMatch } from "@/lib/known-content/types";
 import type { MarketWords } from "@/lib/market/infer/terms";
 import { queryKey } from "./cluster";
 import { contentTypeOf, SHAPED } from "./content-type";
-import { comparisonUnasked, type AskedBeside, type ComparisonBrands, type MeasuredAnswer } from "./derive/topics";
 import { freshRead, offeringTopTen, type KindOfBusiness, type TopTenRead } from "./derive/top-ten-kind";
 import type { Evidence, Opportunity, UnreadyReason } from "./types";
 
@@ -27,52 +25,6 @@ export interface ReadinessContext {
   canUpdate: (url: string) => boolean;
   /** The page this site already has on the row's topic, resolved before the loop so `eligible` stays pure. */
   coveredBy: (o: Opportunity) => KnownMatch | null;
-}
-
-/** What `comparisonWithoutAsking` reads beside the row. Absent members read none. */
-export interface AskingContext {
-  /** Issue 1506: the names a "vs" search is read by. Absent reads no search as one between products. */
-  brands?: ComparisonBrands;
-  /** The prompts the site tracks today. */
-  prompts?: readonly IntentPrompt[];
-  /** Issue 1506: what buyers were seen asking beside the market's searches. */
-  asked?: readonly AskedBeside[];
-  /** Issue 1520: the newest measured answers to the tracked prompts. */
-  answers?: readonly MeasuredAnswer[];
-  /** Issue 1520: whether a search is one ReachKit composed from the market. */
-  composed?: (query: string) => boolean;
-}
-
-function volumeOf(o: Opportunity): number {
-  return o.volume === null || o.volume.kind === "unmeasured" ? 0 : o.volume.value;
-}
-
-/** A comparison, alternatives or composed search nothing observed anyone asking; the answer a row came from counts. */
-export function comparisonWithoutAsking(
-  o: Opportunity,
-  ctx: AskingContext
-): boolean {
-  if (ctx.brands === undefined) return false;
-  if (o.evidence.family === "write" && o.evidence.askedBeside !== undefined) return false;
-  const query = o.targetQuery ?? "";
-  const composed =
-    o.family === "write" && ((o.evidence.family === "write" && o.evidence.composed === true) || ctx.composed?.(query) === true);
-  const answeredRival =
-    o.evidence.family === "earn" && o.evidence.source.surface === "ai_answer"
-      ? o.evidence.rival.domain
-      : o.source === "ai_gap" && "rival" in o.evidence
-        ? (o.evidence.rival?.domain ?? null)
-        : null;
-  return comparisonUnasked({
-    query,
-    volume: volumeOf(o),
-    brands: ctx.brands,
-    prompts: ctx.prompts ?? [],
-    answers: ctx.answers ?? [],
-    answeredRival,
-    asked: ctx.asked ?? [],
-    composed,
-  });
 }
 
 /** Why this row may not fill a day, or `null` where it may. Pure. */
