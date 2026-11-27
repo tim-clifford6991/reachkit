@@ -481,35 +481,15 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     const fitOf = new Map((site.topics ?? []).map((topic) => [topic.query, topic.fit ?? 2]));
     const serps = site.searches.map(serpOf);
     // The run did not store its rival sizes; the top tens' domains are sized small, as a city's bakeries rank.
-    const rivalSizes = measured(
-      [...new Set(serps.flatMap((one) => one.organic.map((row) => row.domain)))].map((domain) => ({
-        domain,
-        state: "sized" as const,
-        rankedCount: 40,
-        countIs: "total" as const,
-        band: "near" as const,
-        at: AT,
-        current: true,
-      })),
-      AT
-    );
-    const report: StoredReport = {
-      ...reportOf(
-        {
-          questions: site.searches.map((keyword, n) =>
-            question({ id: `q${n}`, text: keyword, search: search({ keyword, volume: 50 + n }) })
-          ),
-          serps,
-        },
-        { rivalSizes }
-      ),
-      domain: site.site.domain as CanonicalDomain,
-    };
+    const domains = [...new Set(serps.flatMap((one) => one.organic.map((row) => row.domain)))];
+    const rivalSizes = measured(domains.map((domain) => ({ domain, state: "sized" as const, rankedCount: 40, countIs: "total" as const, band: "near" as const, at: AT, current: true })), AT);
+    const questions = site.searches.map((keyword, n) => question({ id: `q${n}`, text: keyword, search: search({ keyword, volume: 50 + n }) }));
+    const report: StoredReport = { ...reportOf({ questions, serps }, { rivalSizes }), domain: site.site.domain as CanonicalDomain };
     // What buyers were seen asking beside those searches is what the model writes back as their searches.
     const phrased = [...new Set(serps.flatMap((one) => [...(one.peopleAlsoAsk ?? []), ...(one.relatedSearches ?? [])]))];
     // The topics the run held stay open: judged, with the passage a usual week's carry; unjudged, judged again beside this pass's.
     const state = newMemoryState({
-      knownContent: (site.topics ?? []).slice(0, a.covered ?? 0).map((topic) => ({ source: "crawl" as const, ref: topic.query, url: `https://${site.site.domain}/${topic.query.replaceAll(" ", "-")}`, title: topic.query, headings: [], live: true, publishedAt: AT })),
+      knownContent: (site.topics ?? []).slice(0, a.covered ?? 0).map((topic) => ({ source: "site" as const, ref: topic.query, url: `https://${site.site.domain}/${topic.query.replaceAll(" ", "-")}`, title: topic.query, headings: [], live: true, publishedAt: AT })),
       rows: (site.topics ?? []).map((topic, n) => [rowOf(site.site.domain, { ...topic, ready: a.covered !== undefined } as StoredTopic, n), topic] as const).map(([row, topic]) => ({ ...row, site_id: SITE_ID, business_fit: a.heldJudged ? (topic.fit ?? 2) : null, ...(a.heldJudged ? { evidence: { ...(row.evidence as object), fitFact: KNOWN[0] } } : {}) })),
     });
     setOpportunityStore({
@@ -581,7 +561,7 @@ describe("a weekly pass whose measurement would spend its whole cap", () => {
     expect(closed).toBeLessThanOrEqual(CAPS.WEEK_C);
   });
 
-  // Re-run 7 (27 Nov): rows a live page answers were counted as supply, so the top-up stopped short and the week had empty days.
+  // A row a live page answers is no supply: counted, it stops the top-up short and leaves the week empty days.
   it("a week's supply is counted after readiness holds the rows a live page answers, so the top-up is sized on what is left", async () => {
     await deriveAtTheLine({ site: panel("2026-10-07").find((one) => one.site.domain === "tattly.com")!, heldJudged: true, covered: 4 });
     const pass = db.queries.find((q) => q.table === "ops_events" && q.values?.kind === "supply_pass");
