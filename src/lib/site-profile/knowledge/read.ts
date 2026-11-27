@@ -54,7 +54,8 @@ export function knowledgeDigest(base: KnowledgeBase): KnowledgeDigest {
 /** Keeps a fit fact only where its page's stored read says it (hard rule 1's check, once, where a fit fact is stored). */
 export async function fitFactsQuoted(siteId: string): Promise<(fit: FitFact | null | undefined) => FitFact | null> {
   const { readAllFacts, fitFactRead } = await import("@/lib/generate/pipeline/grounding");
-  const facts = await readAllFacts({ siteId });
+  // The latest scans' capped reads, so it does not grow with the site's history; a fact only an older pass read is none.
+  const facts = await readAllFacts({ siteId, latest: true });
   return (fit) => fitFactRead(fit, facts);
 }
 

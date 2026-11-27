@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import { checkGrounding } from "../../../src/lib/generate/rules/grounding";
 import { fitFactRead, newestReads } from "../../../src/lib/generate/pipeline/grounding";
 import { checkRivalSource } from "../../../src/lib/generate/rules/rivals";
+import { boundTopFit } from "../../../src/lib/opportunities/derive/fit";
 import { GROUNDED, SOURCE_TEXT } from "../fixtures";
 
 describe("§8 hard rule 1 — grounded in the customer's own live page", () => {
@@ -40,6 +41,12 @@ describe("§8 hard rule 1 — grounded in the customer's own live page", () => {
 
   it("a fit fact quoted from a page is one its read says: an offering's digest is on no page", () => {
     expect(["Acme; Plan projects; Track seats", GROUNDED.passage].map((text) => fitFactRead({ text, source: { kind: "page" as const, url: `${GROUNDED.url}/` } }, [{ fact: GROUNDED, sourceText: SOURCE_TEXT }])?.text ?? null)).toEqual([null, GROUNDED.passage]);
+  });
+
+  it("a fit fact its page does not say is stored as none, at the fit it was judged", () => {
+    const page = { kind: "page" as const, url: GROUNDED.url };
+    const judged = boundTopFit([0, 1].map((i) => ({ i, fit: 3, fact: i })), [0, 1], [{ query: "a" }, { query: "b" }], [{ about: "problem", text: "Not on the page.", source: page, unquoted: true }, { about: "problem", text: GROUNDED.passage, source: page }]);
+    expect([0, 1].map((i) => [judged.get(i)?.fit, judged.get(i)?.fact?.text ?? null])).toEqual([[3, null], [3, GROUNDED.passage]]);
   });
 
   it("a site fact is read only off its URL's newest read: a sentence an older read had is not quoted", () => {

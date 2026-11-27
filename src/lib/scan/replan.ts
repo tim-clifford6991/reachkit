@@ -90,7 +90,8 @@ export async function replanSites(
   const told: Replan[] = [];
   for (const site of due) {
     const id = site.siteId;
-    await inStep(`replan-fit-facts-${id}`, () => unquoteFitFacts(id));
+    // A failed read or write cleans what it reached and never stops the site's re-plan; the next planner tries again.
+    await inStep(`replan-fit-facts-${id}`, () => unquoteFitFacts(id).catch((error: unknown) => (console.warn(JSON.stringify({ event: "fit_facts_unread", siteId: id, errorClass: error instanceof Error ? error.name : "unknown" })), 0)));
     const plan = await inStep(`replan-dry-${id}`, () => dryReplan(id, { now: a.now, clock: site, fingerprint }));
     const state = plan === null ? "no-week" : plan.empty !== null ? "empty" : plan.held !== null ? "held" : sameWeek(plan) ? "unchanged" : plan.from;
     // Claimed only after the apply, so an apply that never ran is tried again on the next tick; a changed week's claim time is a commit the daily tick reads.
