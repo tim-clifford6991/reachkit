@@ -72,7 +72,28 @@ export function pageScore(topic: PlannedTopic, page: KnownPage, market?: MarketW
 function inMarketWords(mine: string, theirs: string, market: MarketWords | null | undefined): number {
   if (market == null) return 0;
   const [a, b] = [marketTokens(mine, market), marketTokens(theirs, market)];
-  return a.joined && b.joined ? topicSimilarity(a.tokens.join(" "), b.tokens.join(" ")) : 0;
+  if (!a.joined || !b.joined) return 0;
+  const score = topicSimilarity(a.tokens.join(" "), b.tokens.join(" "));
+  const [kind, other] = [kindOf(mine), kindOf(theirs)];
+  if (kind === null || other === null) return score;
+  // The market's price page or its definition answers every rewording of that one question, and only that one (ruling 110).
+  return kind === other ? Math.max(score, KNOWN_CONTENT.COVERED_MIN) : 0;
+}
+
+const KINDS = [
+  { kind: "price", words: /\b(?:prices?|pricing|priced|costs?)\b|\bhow much\b(?:.*\b(?:charges?|pay)\b|\s+(?:is|are|does|do)\s+(?:it|they)\b)|[€$£]\s?\d|\d\s?(?:€|eur|usd|gbp)\b/ },
+  { kind: "definition", words: /\bwhat\s+(?:is|are)\b|\bwhat\b.*\bmeans?\b|\bmeaning\b|\bdefinition\b/ },
+] as const;
+// A list of products is its own question, and a cost or a figure that only narrows the search asks no price.
+const LIST = /\b(?:best|top)\b|\b(?:tools|software|platforms|apps)\b/;
+const NARROWS = /\blow[- ]cost\b|\bcost[- ]effective\b|\b(?:under|below|less than|up to|cheaper than)\s+\S+/g;
+
+/** The question a text asks of its subject, where it is one every wording folds to: what it costs, or what it is. */
+function kindOf(text: string): (typeof KINDS)[number]["kind"] | null {
+  const lower = text.toLowerCase();
+  if (LIST.test(lower)) return null;
+  const asked = lower.replace(NARROWS, " ");
+  return KINDS.find((k) => k.words.test(asked))?.kind ?? null;
 }
 
 /**
@@ -98,7 +119,8 @@ function better(page: KnownPage, than: KnownPage): boolean {
 }
 
 /**
- * Whether the site already covers this topic: a page close enough in words, or else a live page on the same products.
+ * Whether the site already covers this topic: a page close enough in words (the market's price or definition question
+ * in any wording among them), or else a live page on the same products.
  *
  * One threshold, `KNOWN_CONTENT.COVERED_MIN`, read here and nowhere else:
  * the rule is "never write the same page twice", not a per-customer
