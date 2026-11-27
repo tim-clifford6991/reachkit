@@ -138,6 +138,7 @@ const ROUTE: Route = {
   "vendor-low": (i) => [`$${(i.balanceCents / 100).toFixed(2)}${i.daysLeft === null ? "" : `, ${Math.floor(i.daysLeft)} days`}`],
   "mail-stopped": (i) => i.domains.map((domain) => `${domain} ${i.cause}`),
   "step-retried": (i) => [`${i.step} attempt ${i.attempt} ${i.cents}¢`],
+  "weekly-failed": (i) => [`${i.weekStart} ${i.reason} → ${i.retake}`],
 };
 
 /** Whether the occasion was told at once or stored, for a caller that stamps its own once-ness. */
