@@ -165,11 +165,21 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
     const serp = await cachedSerp(researchSerps({ siteId, locale, target }, 0)[0]!, DRAFT_POLICY_VERSION);
     if (serp === null) return null;
     // A comparison's own products' pages are its first-hand evidence, never an independent source; other rivals' stay out.
-    const compared = new Set(site === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, report === null ? null : siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? [])),
+    const products = site === null || !compares({ target }) ? [] : namedRivals(site.rivals, report === null ? null : siteWritingMarket(site, report).market);
+    const compared = new Set(namedIn(target, products).flatMap((domain) => registrableDomain(domain) ?? [])),
       ofCompared = (url: string) => compared.has(registrableDomain(url) ?? "") && (site === null || !isOwnDomain(url, site.domain));
     const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && (foreign(url) || ofCompared(url)));
     const held = await Promise.all(urls.map(cached));
     if (held.some((page) => page === undefined)) return null;
+    // A comparison also reads third parties' reviews and listings of its products, on its results and on the scan's for a search
+    // naming one; only the row's own results decide whether it is measured, so one of these not held is no result.
+    const naming = products.filter((product) => compared.has(registrableDomain(product.domain) ?? ""));
+    const reviews = (organic: readonly { url: string }[]) => organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && !urls.includes(url) && (foreign(url) || (isListingAddress(url) && !others.has(registrableDomain(url) ?? ""))));
+    const scanned = report === null || report.questions.kind === "unmeasured" || naming.length === 0 ? [] : report.questions.value.flatMap((question, at) => {
+      const beside = report.serps[at];
+      return beside === undefined || beside.kind === "unmeasured" || namedIn(question.search.keyword, naming).length === 0 ? [] : reviews(beside.value.organic);
+    });
+    held.push(...(await Promise.all([...new Set([...(naming.length === 0 ? [] : reviews(serp.organic)), ...scanned])].map(cached))).map((page) => page ?? null));
     const versus = site === null || report === null ? [] : versusRivals(site, report, { targetQuery: target, absorbedQueries: [], title: null });
     if (versus.length > 0 && cost === undefined) return null;
     const rivals = [...new Set([...versus.map((domain) => registrableDomain(domain) ?? domain), ...compared])];
