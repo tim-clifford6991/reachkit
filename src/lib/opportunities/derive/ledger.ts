@@ -67,3 +67,15 @@ export function supplyLedger(a: {
   const dry = LEDGER_SOURCES.filter((source) => sources[source].added === 0);
   return afterReadiness({ sources, have: 0, short: 0, dry, unworded: a.unworded ?? 0, ...(a.topUp === undefined ? {} : { topUp: a.topUp }) }, a.rows);
 }
+
+/** Pure. A short week's sources for the digest: per source, what was offered, then its rows placed and held by each reason. */
+export function shortfallOf(sources: SupplyLedger["sources"], rows: readonly Opportunity[], twins: ReadonlySet<string>): string {
+  const counts = new Map<LedgerSource, Record<string, number>>();
+  for (const row of rows.filter((one) => one.family === "write" || one.family === "earn")) {
+    const reason = twins.has(row.id) ? "live_twin" : writable(row) ? "placed" : (row.unreadyReason ?? "not_assessed");
+    const of = counts.get(ledgerSourceOf(row)) ?? {};
+    counts.set(ledgerSourceOf(row), { ...of, [reason]: (of[reason] ?? 0) + 1 });
+  }
+  const line = (source: LedgerSource) => [`offered ${sources[source].offered}`, ...Object.entries(counts.get(source) ?? {}).map(([reason, n]) => `${reason} ${n}`)].join(", ");
+  return LEDGER_SOURCES.filter((source) => sources[source].offered > 0 || counts.has(source)).map((source) => `${source}: ${line(source)}`).join("; ") || "none";
+}

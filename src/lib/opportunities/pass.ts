@@ -14,7 +14,7 @@ import type { KnownPage } from "@/lib/known-content/types";
 import { contentTypeOf } from "./content-type";
 import type { Candidate } from "./derive/candidate";
 import { deriveOpportunities, type DeriveInput } from "./derive";
-import { afterReadiness } from "./derive/ledger";
+import { afterReadiness, shortfallOf } from "./derive/ledger";
 import { liveTwinIds } from "./plan";
 import { assessReadiness, canUpdateFrom } from "./readiness";
 import { opportunityStore, readOpportunity } from "./store";
@@ -35,31 +35,9 @@ export function rankedCountsOf(report: StoredReport): RankedCounts {
   return rankedCountsFromSizes(report.rivalSizes.value, at);
 }
 
-function inputFor(a: {
-  siteId: string;
-  report: StoredReport;
-  hostedHost: string | null;
-  inventory: readonly InventoryRow[];
-  known: DeriveInput["known"];
-  market: DeriveInput["market"];
-  knowledge: DeriveInput["knowledge"];
-  competitors: readonly string[];
-  prompts: readonly string[];
-}): DeriveInput {
-  return {
-    siteId: a.siteId,
-    scanId: a.report.scanId,
-    report: a.report,
-    ownRanked: a.report.ownRanked,
-    rankedCounts: rankedCountsOf(a.report),
-    hostedHost: a.hostedHost,
-    inventory: a.inventory,
-    market: a.market ?? null,
-    knowledge: a.knowledge ?? null,
-    competitors: a.competitors,
-    prompts: a.prompts,
-    ...(a.known === undefined ? {} : { known: a.known }),
-  };
+function inputFor(a: { siteId: string; report: StoredReport; hostedHost: string | null; inventory: readonly InventoryRow[]; known: DeriveInput["known"]; market: DeriveInput["market"]; knowledge: DeriveInput["knowledge"]; competitors: readonly string[]; prompts: readonly string[] }): DeriveInput {
+  const { siteId, report, hostedHost, inventory, competitors, prompts } = a;
+  return { siteId, scanId: report.scanId, report, ownRanked: report.ownRanked, rankedCounts: rankedCountsOf(report), hostedHost, inventory, market: a.market ?? null, knowledge: a.knowledge ?? null, competitors, prompts, ...(a.known === undefined ? {} : { known: a.known }) };
 }
 
 /** SPEC §6 *A competitor wins, the site is absent*: each competitor's ranked rows its sizing cached, 0¢; a miss reads as nothing read. */
@@ -125,6 +103,8 @@ export async function deriveForPass(
   await assessFixPages(a.siteId, { report: a.report });
   if (a.tier === "weekly" && !a.hasActiveAccess) return { tier: a.tier, added: 0 };
 
+  // Readiness first, so the top-up and the offers are sized on what is still writable once live pages hold their twins.
+  if (!c.capHit()) await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
   // One derivation over fixed measurements; a pass with no money left spends none.
   const derived = c.capHit() ? null : await deriveOpportunities(c, input);
   // A deep pass changed what the site holds, so its next evening commits the week again.
@@ -134,13 +114,14 @@ export async function deriveForPass(
   if (derived !== null) await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
   // Supply counts what the commit can place: a live page's twin it refuses is no place.
   const twins = derived === null ? new Set<string>() : await liveTwinIds(a.siteId, a.report.verdict.measuredAt);
-  const supply = derived === null ? null : afterReadiness(derived.supply, (await store.openRankable(a.siteId)).filter((row) => !twins.has(row.id)).map(readOpportunity));
+  const rows = derived === null ? [] : (await store.openRankable(a.siteId)).map(readOpportunity);
+  const supply = derived === null ? null : afterReadiness(derived.supply, rows.filter((row) => !twins.has(row.id)));
   // `spentCents` tells a spent reserve (at the cap) from a day or site ceiling (below it), which `capHit()` lumps.
   const derivation = supply === null ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() } : { derived: added, ...supply };
   // Rows, not log lines: the runtime log drops a long request's tail, and the daily check tells a thin pass from a dry source.
   await recordOpsEvent("supply_pass", JSON.stringify({ tier: a.tier, added, ...derivation }), a.report.scanId, a.siteId);
   if (supply !== null && supply.have < SUPPLY_SHORT_BELOW) {
-    await recordOpsEvent("supply_short", supply.dry.join(",") || "none", String(SUPPLY_SHORT_BELOW - supply.have), a.siteId);
+    await recordOpsEvent("supply_short", shortfallOf(supply.sources, rows, twins), String(SUPPLY_SHORT_BELOW - supply.have), a.siteId);
   }
   return { tier: a.tier, added };
 }
