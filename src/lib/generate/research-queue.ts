@@ -155,26 +155,31 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
   };
   const oldest = now.getUTCFullYear() - RESEARCH.statisticMaxAgeYears;
   const cached = async (url: string) => ((await readCache({ source: RESEARCH_READ_SOURCE, cacheKey: url, policyVersion: DRAFT_POLICY_VERSION, freshnessDays: RESEARCH.freshnessDays }))?.payload as ReadPage | undefined) ?? (cost === undefined ? undefined : readFresh(cost, url));
-  // Whether a rival has an own page that reads, found as research finds it (D56): its home page's links, then its sitemap.
-  const ownPageRead = async (domain: string): Promise<boolean> => {
+  // A rival's own pages that read, found as research finds it (D56): its home page's links, then its sitemap.
+  const ownPagesRead = async (domain: string): Promise<ReadPage[]> => {
     const [home, sitemap] = await Promise.all([fetchBody(`https://${domain}/`), sitemapOf(domain)]);
     const urls = new Set((["rival_pricing", "rival_features"] as const).flatMap((kind) => rivalPage(kind, domain, home, sitemap) ?? []));
-    return (await Promise.all([...urls].map(cached))).some((page) => page != null);
+    return (await Promise.all([...urls].map(cached))).flatMap((page) => (page == null ? [] : [page]));
   };
   const read = async (target: string): Promise<ResearchRead | null> => {
     const serp = await cachedSerp(researchSerps({ siteId, locale, target }, 0)[0]!, DRAFT_POLICY_VERSION);
     if (serp === null) return null;
     // A comparison's own products' pages are its first-hand evidence, never an independent source; other rivals' stay out.
-    const compared = new Set(site === null || report === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? [])),
+    const compared = new Set(site === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, report === null ? null : siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? [])),
       ofCompared = (url: string) => compared.has(registrableDomain(url) ?? "") && (site === null || !isOwnDomain(url, site.domain));
     const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && (foreign(url) || ofCompared(url)));
     const held = await Promise.all(urls.map(cached));
     if (held.some((page) => page === undefined)) return null;
-    const rivals = site === null || report === null ? [] : versusRivals(site, report, { targetQuery: target, absorbedQueries: [], title: null });
-    if (rivals.length > 0 && cost === undefined) return null;
+    const versus = site === null || report === null ? [] : versusRivals(site, report, { targetQuery: target, absorbedQueries: [], title: null });
+    if (versus.length > 0 && cost === undefined) return null;
+    const rivals = [...new Set([...versus.map((domain) => registrableDomain(domain) ?? domain), ...compared])];
     const topic = words(target), readable = held.flatMap((page) => (page == null ? [] : [page])).filter((page) => page.text.split(/\s+/).length >= READ.words && (languageOfText(page.text) ?? locale.language) === locale.language);
     const [own, pages] = [readable.filter((page) => ofCompared(page.url)), readable.filter((page) => !ofCompared(page.url) && holds(topic, page.title))];
-    const firstHand = await Promise.all(rivals.map((domain) => own.some((page) => registrableDomain(page.url) === registrableDomain(domain)) || ownPageRead(domain)));
+    // A compared product's search seldom ranks its own site, so with none in the results its own pages are read from it.
+    const firstHand = await Promise.all(rivals.map(async (domain) => {
+      const ranked = own.filter((page) => registrableDomain(page.url) === domain);
+      return ranked.length > 0 ? ranked : ownPagesRead(domain);
+    }));
     const questions: string[] = [];
     for (const asked of [...(serp.peopleAlsoAsk ?? []), ...pages.flatMap((page) => (page.headings ?? []).filter(isQuestionShaped))]) {
       if (!questions.some((held) => stemKey(held, locale.language) === stemKey(asked, locale.language) || alikeHeadings(held, asked))) questions.push(asked);
@@ -190,8 +195,8 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
       F: pages.filter((page) => page.text.split(/(?<=[.!?])\s+/).some(figured)).length,
       stepPages: pages.filter((page) => (page.headings ?? []).filter((heading) => STEP_RE.test(heading)).length >= READ.steps).length,
       asked: serp.peopleAlsoAsk?.length ?? 0,
-      urls: [...pages, ...own].map((page) => page.url),
-      ...(rivals.length === 0 ? {} : { rivals: { need: rivals.length, have: firstHand.filter(Boolean).length } }),
+      urls: [...pages, ...firstHand.flat()].map((page) => page.url),
+      ...(rivals.length === 0 ? {} : { rivals: { need: rivals.length, have: firstHand.filter((read) => read.length > 0).length } }),
       top: serp.organic.slice(0, 10).map(({ domain, url, title }) => ({ domain, url, title })),
       ...(facts === null ? {} : { facts: facts.some((text) => shares(topicWords(target), text)) ? facts.length : 0 }),
     };
