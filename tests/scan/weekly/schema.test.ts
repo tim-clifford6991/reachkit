@@ -336,7 +336,7 @@ describe("ADR-050 · issue #180 — the weekly selection decides who pays, throu
     const claims = ["a.com", "b.com"].map((host) => ({ url: `https://${host}/x`, publisher: host, publishedAt: "2026-11-24", quote: "Acme 5 ships today." }));
     const held = { title: "Acme 5 ships", names: "Acme 5", reportedOn: "2026-11-24", words: ["acme", "5", "ships"], claims };
     expect(await claimMarketWeek({ ...week, scanId: monday })).toBe(true);
-    await storeWeek({ ...week, scanId: monday, now: new Date("2026-11-24T08:00:00Z") }, { changes: [held], stories: [{ title: held.title, outcome: "change" }] });
+    await storeWeek({ ...week, scanId: monday, now: new Date("2026-11-24T08:00:00Z") }, { changes: [held], stories: [{ title: held.title, publishers: ["a.com", "b.com"], names: "Acme 5", outcome: "change" }] });
     expect(await claimMarketWeek({ ...week, scanId: rerun })).toBe(true);
     const stories = [{ title: "Acme 5 ships", outcome: "not_our_market" }, { title: "Acme rivals", outcome: "one_source" }, { title: "Acme 6", outcome: "cap" }].map((s) => ({ ...s, publishers: ["a.com"], names: null })) as StoryOutcome[];
     expect(await storeWeek({ ...week, scanId: rerun }, { changes: [], stories: [...stories] })).toBe(1);
@@ -352,6 +352,7 @@ describe("ADR-050 · issue #180 — the weekly selection decides who pays, throu
     const site = givenSite("weak", "2026-12-31T00:00:00Z"), now = new Date("2026-11-27T00:00:00Z");
     const scanId = psqlRows(`insert into scans (site_id, domain, tier, status) values ('${site}', 'weak.example.com', 'weekly', 'done') returning id;`)[0]![0]!;
     const { storeWeek } = await import("../../../src/lib/scan/weekly/market-changes"), { readHotEvents } = await import("../../../src/lib/hot/detect");
+    await (await import("../../../src/lib/scan/weekly/store")).claimMarketWeek({ siteId: site, weekStart: "2026-11-23", scanId });
     const { hotRow } = await import("../../../src/lib/hot/offer"), { timelyOf } = await import("../../../src/lib/hot/timely");
     const claims = ["a.com", "b.com"].map((host) => ({ url: `https://${host}/s`, publisher: host, publishedAt: "2026-11-24", quote: "AI answers cut clicks by 40%." }));
     const change = { title: "AI answers cut clicks by 40%, a study finds", names: null, weak: "not_named" as const, reportedOn: "2026-11-24", words: ["ai", "answers", "clicks", "study"], claims };
