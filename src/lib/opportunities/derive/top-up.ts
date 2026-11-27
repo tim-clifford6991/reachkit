@@ -107,7 +107,7 @@ export function topUpTopics(a: TopUpArgs): TopUpTopic[] {
   const seen = new Set(a.taken.map(queryKey));
   const ceiling = qualifyingDemand(a.ownRanked);
   const out: TopUpTopic[] = [];
-  const reasonOf = (key: string, read: { volume: number; difficulty: number | null } | undefined): TopUpReason | Winnability => {
+  const reasonOf = (key: string, read: { volume: number; difficulty: number | null } | undefined): "not_a_topic" | "unmeasured" | Winnability => {
     const named = { market: a.market, own: a.own, rivals: a.rivals };
     if (malformedSearch(key, a.market?.rivals) !== null || rivalBrandOnly(key, named) || namesOwnOnly(key, named) || noLongerRelevant(key, named) !== null || (profile !== null && classifyIntent(key, profile) === "own_brand")) return "not_a_topic";
     if (read === undefined) {
