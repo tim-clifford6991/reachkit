@@ -13,6 +13,7 @@ import { contentTypeOf } from "@/lib/opportunities/content-type";
 import { LEDGER_SOURCES, supplyLedger } from "@/lib/opportunities/derive/ledger";
 import { sourceOf } from "@/lib/opportunities/derive/topics";
 import { pageForDay, planFirstWeek, planWeek } from "@/lib/opportunities/plan";
+import { assessReadiness } from "@/lib/opportunities/readiness";
 import { readOpportunity, setOpportunityStore, type OpportunityRow } from "@/lib/opportunities/store";
 import type { OwnLivePage } from "@/lib/opportunities/refresh";
 import { canonicalUrl } from "@/lib/measure/page-reading";
@@ -278,5 +279,19 @@ describe("two stored market changes join the ranked week and take its earliest d
     const choice = chosen(timely);
     await expect(render(timely, choice)).toMatchFileSnapshot(`./results/timely/${domain}.md`);
     expect(choice.committed.slice(0, 2).map((entry) => [entry.opportunityId, entry.reason.hot?.key])).toEqual([["timely-fresh", "news:timely-fresh"], ["timely-older", "news:timely-older"]]);
+  });
+});
+
+describe("a reworded roundup of the products a live roundup names is that page's, and a comparison of two is not", () => {
+  afterEach(() => setOpportunityStore(null));
+
+  it("savvycal.com", async () => {
+    const site = panelSite("savvycal.com"), base = site.rows.find((row) => row.family === "write")!;
+    const row = (id: string, type: string, search: string): OpportunityRow => ({ ...base, id, type, target_query: search, title: null, ready: false, unready_reason: "not_assessed", evidence: { ...(base.evidence as object), query: search } } as OpportunityRow);
+    const roundup = { source: "reachkit", ref: "roundup", url: "https://savvycal.com/blog/roundup", title: "Six tools side by side", headings: ["How we chose", "SavvyCal", "Calendly", "Acuity Scheduling", "Koalendar", "LunaCal", "YouCanBook.me", "Which to pick"], live: true, publishedAt: new Date(AT.getTime() - 40 * 86_400_000) };
+    const state = newMemoryState({ profile: site.profile, market: site.market, now: AT, rows: [row("reworded", "listed_page", "top booking tools for consultants"), row("pair", "comparison_page", "savvycal vs calendly")], report: { domain: "savvycal.com" } as never, knownContent: [roundup as never] });
+    setOpportunityStore(memoryStore(state));
+    await assessReadiness(SITE_ID, { at: AT, now: AT });
+    await expect(state.rows.map((r) => `${r.target_query}: ${r.ready ? "placed" : `held, ${r.unready_reason}`}`).join("\n") + "\n").toMatchFileSnapshot("./results/covered.md");
   });
 });
