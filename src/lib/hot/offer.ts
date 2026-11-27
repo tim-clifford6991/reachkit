@@ -12,7 +12,7 @@ import { slugify } from "@/lib/opportunities/derive/candidate";
 import { type OpportunityInsert, opportunityStore } from "@/lib/opportunities/store";
 import { claimOpsEvent, opsEventHeld, opsEventRead, opsEventsOf, releaseOpsEvent, replaceOpsEvent } from "@/lib/ops/events";
 import { MARKET_PASS, type StoryOutcome } from "@/lib/scan/weekly/market-changes";
-import { type HotAngle, angleFor } from "./angle";
+import { type AngleRead, type HotAngle, angleFor } from "./angle";
 import { type HotEvent, type HotReason, readHotEvents } from "./detect";
 
 /** The ops row a pass holds when one of its topics could not be stored, keyed by its scan. */
@@ -22,11 +22,11 @@ export const HOT_FAILED = "hot_topic_failed";
 export const topicUnstored = async (siteId: string, scanId: string | null): Promise<boolean> => scanId !== null && (await opsEventHeld(HOT_FAILED, siteId, scanId));
 
 /** The topic an event's angle becomes; a write row publishes under its ref, as `insertFor` proposes it. */
-export function hotRow(a: { siteId: string; scanId: string; language: Language; angle: HotAngle; event: Pick<HotEvent, "claims">; reason: HotReason; now: Date }): OpportunityInsert {
+export function hotRow(a: { siteId: string; scanId: string; language: Language; angle: HotAngle; event: Pick<HotEvent, "claims" | "weak">; reason: HotReason; now: Date }): OpportunityInsert {
   const { angle } = a, ref = slugify(angle.search, a.language);
   return {
     site_id: a.siteId, scan_id: a.scanId, type: "keyword_page", family: "write", target_query: angle.search, target_ref: ref, proposed_slug: ref, title: angle.title, volume: null,
-    evidence: { family: "write", query: angle.search, volume: unmeasured<number>("not_attempted", a.now), rival: null, fitFact: angle.fact, angle: angle.angle, hot: { claims: a.event.claims, reason: a.reason, changes: angle.changes } },
+    evidence: { family: "write", query: angle.search, volume: unmeasured<number>("not_attempted", a.now), rival: null, fitFact: angle.fact, angle: angle.angle, hot: { claims: a.event.claims, reason: a.reason, changes: angle.changes, ...(a.event.weak === undefined ? {} : { weak: a.event.weak }) } },
     acceptance: { form: "top20", query: angle.search }, fit_band: "reach", business_fit: angle.fit, source: "category", effort: EFFORT_BY_TYPE.keyword_page,
   };
 }
@@ -51,7 +51,8 @@ export async function releaseUnlanded(siteId: string, now: Date): Promise<Map<st
   return held;
 }
 
-type HotOutcome = { key: string; outcome: string; on?: string };
+/** What became of one event, and for one it judged, the angle and title it got and every angle read. */
+type HotOutcome = { key: string; outcome: string; on?: string; search?: string | null; title?: string | null; angles?: AngleRead[] };
 
 /** Offers the week's events as topics; how many it added. Never throws: the week is judged either way. */
 export async function offerHotTopics(a: { siteId: string; scanId: string; now: Date }): Promise<number> {
@@ -65,7 +66,7 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
     let read: ReturnType<typeof context> | undefined;
     if (events.length > 0) await withCostContext({ scanId: a.scanId, cap: "WEEK", policyVersion: DRAFT_POLICY_VERSION, rollUp: "none", activity: "weekly" }, async (c) => {
       for (const event of events) {
-        const claim = { day, signal: event.signal, at: a.now.toISOString() }, told = (outcome: string, on?: string) => outcomes.push({ key: event.key, outcome, ...(on === undefined ? {} : { on }) });
+        const claim = { day, signal: event.signal, at: a.now.toISOString() }, told = (outcome: string, on?: string, judged?: Pick<HotOutcome, "search" | "title" | "angles">) => outcomes.push({ key: event.key, outcome, ...(on === undefined ? {} : { on }), ...judged });
         if (c.capHit()) { told("cap"); continue; }
         if (!(await claimOpsEvent("hot_topic", a.siteId, event.key, JSON.stringify(claim)))) { told("claimed", held.get(event.key)?.day); continue; }
         // Read once, and only for an event this run claimed.
@@ -77,6 +78,7 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
         const reason = { signal: event.signal, event: event.event, date: event.date, a: event.a, b: event.b, key: event.key, detectedOn: day };
         console.log(JSON.stringify({ event: "hot_topic_judged", siteId: a.siteId, day, signal: event.signal, result: angle === null ? "no_angle" : "angle", fit: angle?.fit ?? null, title: angle?.title ?? null, search: angle?.search ?? null, reason, ...("miss" in judged ? { miss: judged.miss } : {}), angles: judged.angles }));
         let outcome = "miss" in judged ? `no_angle:${judged.miss}` : "offered";
+        const audit = { search: angle?.search ?? null, title: angle?.title ?? null, angles: judged.angles };
         if (angle !== null) {
           try {
             const inserted = await store.insert(hotRow({ siteId: a.siteId, scanId: report.scanId, language: measuredLocale(report).language, angle, event, reason, now: a.now }));
@@ -89,11 +91,11 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
             // Released so a later run judges this news again, and held against the scan so its pass is not reported done.
             await releaseOpsEvent("hot_topic", a.siteId, event.key);
             await claimOpsEvent(HOT_FAILED, a.siteId, a.scanId, JSON.stringify({ key: event.key, because: because.slice(0, 300) }));
-            told("failed");
+            told("failed", undefined, audit);
             continue;
           }
         }
-        told(outcome);
+        told(outcome, undefined, audit);
         // The claim says what became of it, so no later pass takes it for one whose row never landed.
         await replaceOpsEvent("hot_topic", a.siteId, event.key, JSON.stringify({ ...claim, outcome }));
       }
@@ -111,9 +113,9 @@ async function tellHot(a: { siteId: string; scanId: string }, outcomes: readonly
   try {
     const pass = JSON.parse((await opsEventRead(MARKET_PASS, a.siteId, a.scanId)) ?? "{}") as { stories?: StoryOutcome[] };
     await replaceOpsEvent(MARKET_PASS, a.siteId, a.scanId, JSON.stringify({ ...pass, events: outcomes }));
-    const offered = outcomes.filter((o) => o.outcome === "offered").length, tally = new Map<string, number>();
+    const offered = outcomes.flatMap((o) => (o.outcome === "offered" ? [o.title ?? o.search ?? o.key] : [])), tally = new Map<string, number>();
     for (const outcome of [...(pass.stories ?? []).filter((s) => s.outcome !== "change"), ...outcomes].map((o) => o.outcome)) tally.set(outcome, (tally.get(outcome) ?? 0) + 1);
-    const because = broke ? "the hot step failed" : offered > 0 ? null : pass.stories === undefined ? "no news read this pass" : [...tally].map(([outcome, n]) => `${n} ${outcome}`).join(", ") || "no story in the news";
+    const because = broke ? "the hot step failed" : offered.length > 0 ? null : pass.stories === undefined ? "no news read this pass" : [...tally].map(([outcome, n]) => `${n} ${outcome}`).join(", ") || "no story in the news";
     await (await import("@/lib/mail/ops/incident")).reportIncident({ occasion: "hot", stories: pass.stories?.length ?? null, events: outcomes.length, offered, because });
   } catch (error) {
     console.warn(JSON.stringify({ event: "hot_told_failed", siteId: a.siteId, because: error instanceof Error ? error.message : String(error) }));

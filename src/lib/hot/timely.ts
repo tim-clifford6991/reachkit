@@ -6,12 +6,13 @@ import type { Opportunity, PlanReason } from "@/lib/opportunities/types";
 /** An event first reported within 7 days, then within 14 (the coordinator's defaults under ruling 97). */
 export const TIMELY = Object.freeze({ week: 4, fortnight: 2 });
 
-/** A timely page's points at `at`, by the age of its event, where the event changes what a buyer does. Stored jsonb. */
+/** A timely page's points at `at`, by the age of its event, where the event changes what a buyer does; a weak event's at most a fortnight's. Stored jsonb. */
 export function timelyOf(o: Pick<Opportunity, "evidence">, at: Date): number {
   const hot = o.evidence?.family === "write" ? o.evidence.hot : undefined;
   if (typeof hot?.reason?.date !== "string" || hot.changes === false) return 0;
   const days = (at.getTime() - Date.parse(`${hot.reason.date}T00:00:00Z`)) / 86_400_000;
-  return days <= 7 ? TIMELY.week : days <= 14 ? TIMELY.fortnight : 0;
+  const n = days <= 7 ? TIMELY.week : days <= 14 ? TIMELY.fortnight : 0;
+  return hot.weak === undefined ? n : Math.min(n, TIMELY.fortnight);
 }
 
 /** Adds each scored row's `timely` part; none where `at` is absent. */
