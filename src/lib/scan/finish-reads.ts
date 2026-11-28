@@ -25,7 +25,7 @@ export interface UnreadSearch {
 
 /** The searches of a report that were chosen and not read. A search the
  *  vendor answered with nothing is read; on a free report the two arms that say
- *  nobody knows are unread, on a paid one only a task still out at its ceiling. */
+ *  nobody knows are unread, on a paid one any cell with no settled failure, since a task posted just before the seal leaves its cell as it was. */
 export function unreadSearches(report: Pick<StoredReport, "tier" | "questions" | "serps">): UnreadSearch[] {
   if (report.questions.kind === "unmeasured") return [];
   const out: UnreadSearch[] = [];
@@ -33,7 +33,7 @@ export function unreadSearches(report: Pick<StoredReport, "tier" | "questions" |
     const serp = report.serps[index];
     const unread =
       report.tier !== "free"
-        ? serp?.kind === "unmeasured" && serp.because === "deadline"
+        ? serp?.kind === "unmeasured" && (serp.because === undefined || serp.because === "deadline")
         : serp === undefined || (serp.kind === "unmeasured" && (serp.reason === "not_attempted" || serp.reason === "undeterminable"));
     if (unread) out.push({ index, keyword: question.search.keyword });
   });
@@ -160,6 +160,8 @@ export async function finishReads(
           if (cell.kind === "unmeasured" && heard.failure !== null) {
             cell = unmeasured(cell.reason, cell.at, heard.failure.vendorFailure);
           }
+          // A paid cell nothing was posted for keeps what the pass wrote.
+          if (report.tier !== "free" && cell.kind === "unmeasured" && heard.failure === null && !("because" in (report.serps[search.index] ?? {}))) continue;
           cells.set(search.index, cell);
         }
       };

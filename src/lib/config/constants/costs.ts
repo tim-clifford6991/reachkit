@@ -216,8 +216,9 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   "question-phrasing": 800,
   "opportunity-typing": 256,
   /** `{ pairs: { search, sameAs }[] }` over at most the pass's candidates:
-   *  ~25 a pair. */
-  "topic-same-question": 512,
+   *  ~25 a pair. Sized to a whole batch pairing: 2,397 tokens in is about 70 topics, ~1,750 out, cut off at 512.
+   *  About 1¢ reserved at the Haiku price, under the fit call's peak in `TYPING_RESERVE_C`. */
+  "topic-same-question": 2048,
   /** `{ scores: { i, fit, fact, angles }[], strongest: number[] }` over at
    *  most `TOPIC_FIT.maxCandidates` searches: ~21 a score as the model writes
    *  it, and ~60 an angle, two on each 3 (at most `TOPIC_FIT.topShare`), so
