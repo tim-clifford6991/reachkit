@@ -5,6 +5,7 @@
 // Live only: a page is written inside one invocation, shorter than the standard queue's wait. A wrapped answer is reported.
 // Cached like the organic SERP, on query, locale and whose purchase it is; the window is the caller's.
 import type { CostContext } from "@/lib/costs";
+import { readCache } from "@/lib/costs/cache";
 import { PRICE_BOOK, VENDOR } from "@/lib/config/constants";
 import type { Locale } from "@/lib/locale/locales";
 import { localeCacheKey } from "./transport";
@@ -79,7 +80,7 @@ export async function serpNews(
   }
 ): Promise<Measured<NewsRow[]>> {
   let reused = false;
-  const cacheKey = `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${a.resolveRedirects ? "|goto" : ""}${a.pastWeek ? "|w" : ""}`;
+  const cacheKey = newsCacheKey(a);
   const fields = { keyword: a.query, ...(a.pastWeek ? { search_param: "&tbs=qdr:w" } : {}) };
   const rows = await ledgered<NewsRow>(c, {
     source: SOURCE,
@@ -102,4 +103,12 @@ export async function serpNews(
     void reportUnreadable({ source: SOURCE, label: "news", queue: "live", cacheKey, scope: a.scope }, links);
   }
   return rows;
+}
+
+const newsCacheKey = (a: Parameters<typeof serpNews>[1]): string => `${a.query}|${localeCacheKey(a.locale)}|${scopeKey(a.scope)}${a.resolveRedirects ? "|goto" : ""}${a.pastWeek ? "|w" : ""}`;
+
+/** The news `serpNews` would serve from the ledger for the same read, at 0¢ and with no vendor call; `null` where none is held. */
+export async function cachedNews(a: Parameters<typeof serpNews>[1], policyVersion: number): Promise<NewsRow[] | null> {
+  const hit = await readCache({ source: SOURCE, cacheKey: newsCacheKey(a), policyVersion, freshnessDays: a.freshnessDays });
+  return hit === null || !Array.isArray(hit.payload) ? null : (hit.payload as NewsRow[]);
 }

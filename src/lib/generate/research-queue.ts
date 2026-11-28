@@ -19,12 +19,13 @@ import { contentTypeOf, type ContentType } from "@/lib/opportunities/content-typ
 import type { Opportunity, PlanWriteAs } from "@/lib/opportunities/types";
 import type { Locale } from "@/lib/locale/locales";
 import type { StoredReport } from "@/lib/scan/report";
+import { serpNews } from "@/lib/vendors/dataforseo";
 import { cachedSerp, serpOrganic } from "@/lib/vendors/dataforseo/serp";
 import { DRAFT_POLICY_VERSION, openDayCost } from "./cost";
 import { competitorOf, targetSearches } from "./pipeline";
 import { builtFromOutside, fellTo, ownTypeOf, researchedAs, typeTheResearchFills, type ResearchRead } from "./standard";
 import { compares, credibleAt, credibleSearch, namedIn, studySubject } from "./pipeline/source-tier";
-import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, readFresh, researchMarket, researchSerps, rivalPage, sitemapOf, storedAsk, type MarketResearch } from "./pipeline/research";
+import { NO_RESEARCH, RESEARCH_READ_SOURCE, fetchBody, newsReads, readFresh, researchMarket, researchSerps, rivalPage, sitemapOf, storedAsk, type MarketResearch } from "./pipeline/research";
 import { knowledgeTexts, shares, topicWords } from "./pipeline/pack";
 import { alikeHeadings } from "./rules/headings";
 import { namedRivals } from "./rules/rivals";
@@ -47,8 +48,11 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
   if (report === null) return 0;
   const locale = await siteLocale(a.siteId);
   const as = type === null ? null : researchedAs(type, own);
-  const asked = { siteId: a.siteId, locale, target: target ?? "", market: site === null ? "" : siteWritingMarket(site, report).category, guidance: as !== null && builtFromOutside(as), options: as === "listicle" };
+  const writingFor = site === null ? null : siteWritingMarket(site, report);
+  const asked = { siteId: a.siteId, locale, target: target ?? "", market: writingFor?.category ?? "", guidance: as !== null && builtFromOutside(as), options: as === "listicle" };
   const reads = as === null || !TEMPLATES[as].research || target === undefined || (await (await import("./day-refresh")).refreshedInCode(a.siteId, o!, false)) ? [] : researchSerps({ ...asked, ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
+  // A resolved news read takes minutes, so it is bought here, in its own step, and the write reads it from the cache.
+  const news = as !== "insights" || reads.length === 0 || writingFor === null ? [] : newsReads({ siteId: a.siteId, locale, recent: { searches: recentTerms(o!, writingFor) } });
   const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
   const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
   if (reads.length + beside.length === 0) return 0;
@@ -56,7 +60,7 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
     let waiting = 0;
     const onFailure = (failed: { taskId?: string }) => void (waiting += failed.taskId === undefined ? 0 : 1);
     // Together, since every read waits to the one `untilMs`; the update's read never holds the day's own write.
-    await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure })), ...beside.map((read) => serpOrganic(cost, read))]);
+    await Promise.all([...reads.map((read) => serpOrganic(cost, { ...read, onFailure })), ...beside.map((read) => serpOrganic(cost, read)), ...news.map((read) => serpNews(cost, read))]);
     // A study search with no credible host among its results posts the credible one beside it, for the write to read; waited on as the topic's own, since the queue answers in minutes.
     const study = reads[1] === undefined ? null : await cachedSerp(reads[1], DRAFT_POLICY_VERSION).catch(() => null);
     const credible = study === null || study.organic.some((row) => credibleAt(row.url, locale.language)) ? undefined : credibleSearch(reads[1]!, studySubject(asked));
@@ -64,6 +68,9 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
     return waiting;
   });
 }
+
+/** A *current insights* page's news terms: its market, else its target, and the market's other names. */
+const recentTerms = (o: Opportunity, writingFor: Pick<WritingMarket, "category" | "synonyms">): string[] => [writingFor.category === "" ? (targetSearches(o)[0] ?? "") : writingFor.category, ...writingFor.synonyms];
 
 /** A day's page type, its stored one else the one its cached research fills, and its query's own type where the ladder
  *  fell from it, read at 0¢; a stored type that is its shape's own reads nothing, and nothing cached keeps the shape's.
@@ -118,7 +125,7 @@ export async function researchFor(
           // A how-to or a Q&A is built from cited outside facts, so its one search reads the target's own guidance.
           guidance: builtFromOutside(as), study: as !== "update",
           ...(as === "insights"
-            ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
+            ? { recent: { searches: recentTerms(o, writingFor), days: RESEARCH.recentDays, market: writingFor } }
             : {}),
         }).catch((error: unknown) => {
           console.warn(JSON.stringify({ event: "draft_research_failed", siteId: a.siteId, error: String(error).slice(0, 200) }));

@@ -41,7 +41,8 @@ import { generateDraft, targetSearches, type GenerateOutcome } from "@/lib/gener
 import { allowedFacts, readAllFacts } from "@/lib/generate/pipeline/grounding";
 import { buildPack, type ContextPack } from "@/lib/generate/pipeline/pack";
 import { builtFromOutside } from "@/lib/generate/standard";
-import { researchMarket, storedAsk, type MarketResearch } from "@/lib/generate/pipeline/research";
+import { newsReads, researchMarket, storedAsk, type MarketResearch } from "@/lib/generate/pipeline/research";
+import { serpNews } from "@/lib/vendors/dataforseo";
 import { readRecordedRules, readRecordedVerdict } from "@/lib/generate/record";
 import { HARD_RULES } from "@/lib/generate/rules/types";
 import { setGenerateStore, type DraftInsert, type DraftPatch, type DraftRow, type GenerateStore } from "@/lib/generate/store";
@@ -341,6 +342,8 @@ export async function main(opts: Options): Promise<number> {
     // how code reads a pack is tested without buying the research again.
     let cached: CachedResearch | null = !opts.fresh && existsSync(packFile) ? reviveResearch(JSON.parse(readFileSync(packFile, "utf8")) as CachedResearch) : null;
     if (cached === null) {
+      // Research reads the news from the cache only, so this run buys it first, as the day's asking step does.
+      if (template.research && type === "insights") await Promise.all(newsReads({ siteId: SITE_ID, locale, recent: { searches: [category, ...writingFor.synonyms] } }).map((read) => serpNews(cost, read)));
       const research = !template.research
         ? storedAsk(report, targetSearches(opportunity))
         : await researchMarket(cost, {
