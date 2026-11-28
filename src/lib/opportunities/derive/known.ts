@@ -71,14 +71,11 @@ export function updateColumns(u: Candidate): Pick<OpportunityInsert, "type" | "f
  *  written, so it is young; a crawled page with none has an age we never
  *  read, and is not held back by it. */
 export function tooYoungToRefresh(page: KnownMatch["page"], at: Date): boolean {
-  if (page.publishedAt === null) return page.source === "reachkit";
-  return !pastRefreshFloor(page.publishedAt, at);
+  return page.publishedAt === null ? page.source === "reachkit" : !pastRefreshFloor(page.publishedAt, at);
 }
 
 /** §6's floor, the one comparison against `REFRESH_MIN_AGE_DAYS`: a page exactly that old is past it. */
-export function pastRefreshFloor(publishedAt: Date, at: Date): boolean {
-  return at.getTime() - publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * 86_400_000;
-}
+export const pastRefreshFloor = (publishedAt: Date, at: Date): boolean => at.getTime() - publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * 86_400_000;
 
 /**
  * The candidates, with every repeat either turned into an update or left to

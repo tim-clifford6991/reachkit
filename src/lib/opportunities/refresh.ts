@@ -212,7 +212,6 @@ function snippetDue(page: OwnLivePage, at: Date): boolean {
 /** Why this page is due at `at`, or `null` where it is not. */
 export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date): RefreshCause | null {
   if (!pastRefreshFloor(page.publishedAt, at)) return null;
-  const age = at.getTime() - page.publishedAt.getTime();
   if (page.ownFigures === true) return "own_figures";
   if (unseenDue(page, at) && page.closeElsewhere === true) return "unseen";
   if ((page.reading?.unindexedWeeks ?? 0) >= NOT_INDEXED_WEEKS) return "not_indexed";
@@ -223,7 +222,7 @@ export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date)
   if (!held && snippetDue(page, at)) return "snippet";
   if (hasNewerFact(page, pools)) return "newer_fact";
   if (pricesStale(page, at)) return "stale_prices";
-  if (age >= PACE.REFRESH_AGE_DAYS * DAY_MS) return "aged";
+  if (at.getTime() - page.publishedAt.getTime() >= PACE.REFRESH_AGE_DAYS * DAY_MS) return "aged";
   // Any refresh starts from the repaired text, so this cause is named only where no other is due.
   return (page.structure ?? []).length > 0 && page.edited !== true ? "structure" : null;
 }
@@ -254,14 +253,7 @@ export function unseenLinkCandidates(pages: readonly OwnLivePage[], at: Date): C
     );
     if (siblings.some((other) => (other.markdown ?? "").toLowerCase().includes(addressKey(page.url)))) continue;
     const strongest = siblings
-      .filter(
-        (other) =>
-          other.row.targetQuery !== null &&
-          other.found !== false &&
-          other.edited !== true &&
-          other.stopped !== true &&
-          pastRefreshFloor(other.publishedAt, at)
-      )
+      .filter((other) => other.row.targetQuery !== null && other.found !== false && other.edited !== true && other.stopped !== true && pastRefreshFloor(other.publishedAt, at))
       .sort(
         (x, y) =>
           (x.readPlace ?? Number.POSITIVE_INFINITY) - (y.readPlace ?? Number.POSITIVE_INFINITY) ||
