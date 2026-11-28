@@ -90,7 +90,9 @@ import { byTier, cappedSites, compares, credibleAt, credibleSearch, hostOf, mixO
 import { readClaims } from "./claims-read";
 import { sourcedBlocks, toOriginals, type SourcedBlock } from "./original";
 import { datedOf, datesOf, type ClaimDates, type PageDates } from "./dated";
-import { keywordOverview, serpNews, serpOrganic } from "@/lib/vendors/dataforseo";
+import { keywordOverview, serpOrganic } from "@/lib/vendors/dataforseo";
+import { cachedNews } from "@/lib/vendors/dataforseo/news";
+import { DRAFT_POLICY_VERSION } from "../cost";
 
 /** The `fetches.source` of every public page this step reads. */
 export const RESEARCH_READ_SOURCE = "generate.research.read";
@@ -454,18 +456,12 @@ async function recentPages(
   a: { siteId: string; locale: Locale; today: Date; recent: { searches: readonly string[]; days: number; market: Pick<WritingMarket, "category" | "synonyms" | "market"> } },
   notOurs: (url: string) => boolean,
   taken: ReadonlySet<string>
-): Promise<{ pages: RecentRead[]; news: JudgedResult[] }> {
+): Promise<{ pages: RecentRead[]; news: JudgedResult[]; held: number }> {
   const today = a.today.toISOString().slice(0, 10);
   const since = new Date(a.today.getTime() - a.recent.days * 86_400_000).toISOString().slice(0, 10);
   const inWindow = (day: string): boolean => day >= since && day <= today;
-  const terms = [...new Set(a.recent.searches.map((term) => term.trim()).filter((term) => term !== ""))].slice(0, RESEARCH.newsSearches);
-  const results: NewsRow[][] = [];
-  for (const query of terms) {
-    if (c.capHit()) break;
-    const news = await serpNews(c, { query, locale: a.locale, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.news });
-    if (news.kind === "unmeasured") continue;
-    results.push(news.value.filter((row) => inWindow(row.publishedAt) && notOurs(row.url) && !taken.has(row.url)));
-  }
+  // Only what the asking step bought: a resolved read can outlast the time the write step has left, and an unresolved one links no page.
+  const results = (await Promise.all(newsReads(a).map((read) => cachedNews(read, DRAFT_POLICY_VERSION)))).flatMap((news) => (news === null ? [] : [news.filter((row) => inWindow(row.publishedAt) && notOurs(row.url) && !taken.has(row.url))]));
   const dated: NewsRow[] = [];
   for (let round = 0; results.some((rows) => rows[round] !== undefined); round++) {
     for (const rows of results) {
@@ -485,7 +481,7 @@ async function recentPages(
     });
   }
   const read = pages.slice(0, RESEARCH.recentJudged);
-  if (read.length === 0 || c.capHit()) return { pages: [], news: [] };
+  if (read.length === 0 || c.capHit()) return { pages: [], news: [], held: results.length };
 
   const market = a.recent.market;
   const job = market.market?.job ?? null;
@@ -504,7 +500,7 @@ async function recentPages(
         "story that only shares words with the category, or is about one of `market.notOurMarket` or another " +
         "neighbouring market, is not. Answer for every result by its number; where you cannot tell, answer false.",
       market: {
-        category: market.category.trim() === "" ? (terms[0] ?? "") : market.category,
+        category: market.category.trim() === "" ? (newsReads(a)[0]?.query ?? "") : market.category,
         synonyms: market.synonyms,
         ...(job === null ? {} : { job }),
         notOurMarket: market.market?.notOurMarket ?? [],
@@ -517,19 +513,18 @@ async function recentPages(
       })),
     },
   });
-  if (answer.kind === "unmeasured") return { pages: [], news: [] };
+  if (answer.kind === "unmeasured") return { pages: [], news: [], held: results.length };
   const about = new Set(answer.value.results.filter((row) => row.about).map((row) => row.result));
   return {
     pages: read.filter((_, index) => about.has(index + 1)).slice(0, RESEARCH.recentPages),
-    news: read.map((page, index) => ({
-      url: page.url,
-      title: page.title,
-      publishedAt: page.publishedAt,
-      source: page.source,
-      onMarket: about.has(index + 1),
-    })),
+    news: read.map((page, index) => ({ url: page.url, title: page.title, publishedAt: page.publishedAt, source: page.source, onMarket: about.has(index + 1) })),
+    held: results.length,
   };
 }
+
+/** A *current insights* page's news searches, each term once, with Google's links resolved: the day's asking step buys them. */
+export const newsReads = (a: { siteId: string; locale: Locale; recent: { searches: readonly string[] } }) =>
+  [...new Set(a.recent.searches.map((term) => term.trim()).filter((term) => term !== ""))].slice(0, RESEARCH.newsSearches).map((query) => ({ query, locale: a.locale, scope: { site: a.siteId }, freshnessDays: CACHE_WINDOWS_D.news, resolveRedirects: true as const }));
 
 type SerpRead = Parameters<typeof serpOrganic>[1];
 
@@ -763,7 +758,7 @@ export async function researchMarket(
     studies: pages.filter((page) => page.kind === "study").length,
     primary: pages.filter((page) => page.kind === "primary").length,
     recent: pages.filter((page) => page.kind === "recent").length,
-    newsOffMarket: recent === null ? null : recent.news.filter((result) => !result.onMarket).length,
+    newsOffMarket: recent === null ? null : recent.news.filter((result) => !result.onMarket).length, newsHeld: recent === null ? null : recent.held,
     facts: ordered.length,
     originals: ordered.filter((fact) => fact.via !== undefined).length,
     secondHand: ordered.filter((fact) => fact.secondHand === true).length,
