@@ -8,6 +8,11 @@
     "tests": { "share": 0.3333, "floor": 200 }
   },
   "ratchets": { "dbAdminCasts": 81, "minimalClients": 63, "fixtureBranches": 32, "timeoutCopies": 3 },
-  "lists": { "hardRules": 16, "stoppingRules": 8, "mechanicalRules": 5, "pipelineSteps": 5 },
+  "lists": { "hardRules": 16, "stoppingRules": 8, "mechanicalRules": 5, "pipelineSteps": 5, "planStops": 18 },
+  "oneCheck": {
+    "predicates": { "src/app/(account)/app/draft/[draftId]/store.ts": 1, "src/lib/known-content/index.ts": 1, "src/lib/known-content/match.ts": 3, "src/lib/opportunities/choose.ts": 6, "src/lib/opportunities/live-topics.ts": 1, "src/lib/opportunities/pass.ts": 1, "src/lib/opportunities/readiness.ts": 1 },
+    "floor": { "src/lib/generate/day-refresh.ts": 1, "src/lib/opportunities/live-topics.ts": 1, "src/lib/opportunities/rank/open.ts": 1, "src/lib/opportunities/refresh.ts": 6 },
+    "ranking": {}
+  },
   "blockRules": { "§0": 5, "§1": 0, "§2": 0, "§3": 0, "§4": 0, "§5": 0, "§6": 0, "§7": 0, "§8": 0, "§9": 0, "§11": 0, "§12": 0 }
 }

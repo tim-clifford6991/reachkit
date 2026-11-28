@@ -260,6 +260,10 @@ describe("a week whose rows all go unready mid-week is committed again from the 
     const twin = state.rows.find((row) => row.planned_for === days[5])!, page = { url: `https://${site.domain}/live`, publishedAt: new Date(AT.getTime() - 9 * 86_400_000), row: readOpportunity({ ...twin, id: "live" }), declined: false };
     state.livePages = [page as unknown as OwnLivePage];
     expect([await pageForDay(SITE_ID, days[5]!, AT, true)].map((o) => [o === null, o?.id === twin.id])).toEqual([[false, false]]);
+    // And its repeat: a dated roundup whose title nearly copies a week-old live page's, on another search.
+    const repeat = Object.assign(state.rows.find((row) => row.planned_for === days[6])!, { type: "listed_page", target_query: "best emergency plumber austin", title: "Best Emergency Plumber in Austin: 5 Answers" });
+    state.livePages = [{ ...page, url: `https://${site.domain}/best`, title: "Best emergency plumber in Austin: 6 options compared", row: readOpportunity({ ...repeat, id: "best", target_query: "most reliable emergency plumbing services austin" }) } as unknown as OwnLivePage];
+    expect((await pageForDay(SITE_ID, days[6]!, AT, true))?.id).not.toBe(repeat.id);
     const second = await monday();
     await short(second.state, second.days[1]!);
     const places = second.state.rows.flatMap((row) => (row.plan_place == null ? [] : [row.plan_place]));

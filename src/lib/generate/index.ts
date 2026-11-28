@@ -31,6 +31,7 @@
 // `regenerateRestarted` is the customer's Regenerate carried out: the next draft tick rewrites the row for its date.
 import { answeredQueries } from "@/lib/measure/page-reading";
 import { answeredHere } from "@/lib/opportunities/cluster";
+import { plannedTopic } from "@/lib/opportunities/plan";
 import {
   opportunityById,
   pageForDay,
@@ -49,7 +50,7 @@ import { readRecordedRules } from "./record";
 import { COLLECT, askDayResearch, dayTypes, researchFor } from "./research-queue";
 import { dayInputs, linkBackOf } from "./day-inputs";
 import { repairStructure } from "./rules/structure";
-import { addsOverLive, mendPage, plannedTopic, refreshedInCode, rivalsAnswer } from "./day-refresh";
+import { addsOverLive, mendPage, refreshedInCode, rivalsAnswer } from "./day-refresh";
 import { writtenFor } from "./fix-step";
 import { urlKey, type LinkTarget } from "./links/select";
 import { withMovedLink } from "./links/moved";
@@ -142,7 +143,7 @@ async function dayReady(siteId: string, publishDate: string): Promise<NoPage | {
 export async function decideDayPage(a: { siteId: string; publishDate: string; now: Date }): Promise<NoPage | { ok: true; opportunityId: string }> {
   const ready = await dayReady(a.siteId, a.publishDate);
   if (!ready.ok) return ready;
-  let first = inTest() ? await plannedTopic(a.siteId, a.publishDate, a.now) : await pageForDay(a.siteId, a.publishDate, a.now);
+  let first = inTest() ? (await plannedTopic(a.siteId, a.publishDate, a.now)).topic : await pageForDay(a.siteId, a.publishDate, a.now);
   if (inTest()) return first === null ? { ok: false, because: "no_opportunity" } : { ok: true, opportunityId: first.id };
   for (let tries = 0; first !== null && tries < DAY_TOPICS_MAX && !(await rivalsAnswer(ready, first)); tries++) {
     await restTopic(first.id, a.now, { zone: ready.site.timeZone });

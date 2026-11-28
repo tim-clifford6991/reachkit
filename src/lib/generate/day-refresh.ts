@@ -192,15 +192,6 @@ export async function rivalsAnswer(day: { site: SiteFacts; report: StoredReport 
   return !(await Promise.all(versusRivals(day.site, day.report, topic).map((domain) => fetchBody(`https://${domain}/`)))).includes(null);
 }
 
-/** A test write's topic, read and never planned: the date's open planned row, else the first open spare, skipping a row the
- *  duplicate check now refuses as new, as the real day does. */
-export async function plannedTopic(siteId: string, date: string, now = new Date()): Promise<Opportunity | null> {
-  const { liveTwinIds } = await import("@/lib/opportunities/plan"), twins = await liveTwinIds(siteId, now, true);
-  const open = (await opportunityStore().plannedRows(siteId)).filter((row) => row.status === "open" && row.ready && !(twins.has(row.id) && row.family !== "improve"));
-  const row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
-  return row === undefined ? null : row.plan_write_as == null ? readOpportunity(row) : { ...readOpportunity(row), writeAs: row.plan_write_as };
-}
-
 /** A day the fallback kept no page for: each update candidate's gate. */
 type Passed = { ok: false; because: "passed"; why: string };
 

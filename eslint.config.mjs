@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import nextConfig from "eslint-config-next";
 import ts from "typescript";
 import tseslint from "typescript-eslint";
+import { oneCheckPerReason } from "./scripts/lib/one-check-per-reason.mjs";
 import { serpNormalQueue } from "./scripts/lib/serp-normal-queue.mjs";
 
 /**
@@ -198,11 +199,11 @@ const noPlainAppLink = {
  * (SPEC §7, issue 1559): from the plan it may take only the date's page and
  * the committed week, and it may not reach the ranking or the choice.
  */
-// `liveTwinIds` is the duplicate check a test write consults as the real day does; it reads stored rows and commits nothing.
-const DAILY_READS = new Set(["pageForDay", "committedWeek", "liveTwinIds"]);
+// `plannedTopic` is the day's own read, which a test write takes as the real day does; it commits nothing.
+const DAILY_READS = new Set(["pageForDay", "committedWeek", "plannedTopic"]);
 const DAILY_NEVER = new Set(["planWeek", "rankOpen", "rankScore", "rankedCountsOf"]);
 const DAILY_MESSAGE =
-  "SPEC §7 (issue 1559): src/lib/generate reads the committed week — only pageForDay, committedWeek and the duplicate check (liveTwinIds) from opportunities/plan, and nothing that ranks.";
+  "SPEC §7 (issue 1559): src/lib/generate reads the committed week — only pageForDay, committedWeek and plannedTopic from opportunities/plan, and nothing that ranks.";
 
 const dailyReadsCommit = {
   meta: { type: "problem", docs: { description: DAILY_MESSAGE } },
@@ -453,6 +454,7 @@ const STRUCTURAL_ATTRIBUTES = [
 export const localImportRules = {
   rules: {
     "serp-normal-queue": serpNormalQueue,
+    "one-check-per-reason": oneCheckPerReason,
     // (a) BP-002 boundary: "no import of src/lib/db internals outside
     // src/lib/db". Only `src/lib/db`'s own two clients (`db()`,
     // `dbAdmin()`, imported from the bare `@/lib/db` entry point) may be
@@ -698,6 +700,8 @@ export default tseslint.config(
       "local/no-db-admin-in-client": "error",
       "local/no-select-star": "error",
       "local/serp-normal-queue": "error",
+      // Today's copies of a reason's one check are allowed in scripts/budgets.json, whose counts only fall.
+      "local/one-check-per-reason": ["error", JSON.parse(readFileSync(new URL("./scripts/budgets.json", import.meta.url), "utf8")).oneCheck],
     },
   },
   {
