@@ -1,0 +1,5 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["scripts/**/*.mjs", "scripts/*/run.ts", "scripts/eval-content/*.ts"],
+  "ignore": ["tests/archive/**", ".claude/**", ".factory/**"]
+}
