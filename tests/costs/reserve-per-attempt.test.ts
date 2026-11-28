@@ -129,4 +129,12 @@ describe("a model call reserves one attempt at a time", () => {
     const logged = vi.mocked(console.log).mock.calls.map(([line]) => JSON.parse(String(line)) as Record<string, unknown>);
     expect(logged).toContainEqual(expect.objectContaining({ site: "generate.fix", failure: "parse", retryExhausted: "cap" }));
   });
+
+  it("a call refused for lack of credit is ledgered at 0¢ and marks the day refused for funds", async () => {
+    const low = '400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}';
+    createMock.mockRejectedValueOnce(Object.assign(new Error(low), { status: 400 }));
+    const [result, refused] = await draftDay(0, async (cost) => [await fix(cost), cost.fundsRefused?.()] as const);
+    expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
+    expect([refused, rows()[0]?.costCents]).toEqual([true, 0]);
+  });
 });

@@ -317,6 +317,8 @@ export function render(report: CostsReport): string {
     if (line.calls.count > 0) lines.push(`              Calls that carry the vendor's own charge: ${line.calls.count}, ${money(line.calls.billed)} billed against ${money(line.calls.estimated)} estimated`);
   }
   if (!report.adminKey) lines.push("  AI spend: estimated from tokens; no admin key");
+  // No reading of the credit left is ever taken, so it is never shown as a figure or as healthy.
+  lines.push("  AI credit left: not known; Anthropic's balance is not read, and a run-out ends the day as generate:vendor_funds");
   if (!report.ledgerRead) lines.push("  Production ledger: not read (no database key on the box, and no --ledger file). Recorded is test spend only.");
 
   const billedOnly = (line: VendorDay): string => (line.billed === null ? "not known" : money(line.billed));

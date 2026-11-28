@@ -116,7 +116,7 @@ export type DayPageOutcome =
   | { ok: false; because: "step_failed"; draftId: string | null; step: string }
   /** Its research is still on the vendor's queue: no row and no rest, and the next tick asks again. */
   | { ok: false; because: "research_pending" }
-  /** DataForSEO refused the page's research for lack of credit. */
+  /** A vendor refused the page's research or a model call for lack of credit. */
   | { ok: false; because: "vendor_funds" }
   | { ok: false; because: "fix_owed"; draftId: string }; // Its write step had no room for its fix call (`fixOwedPage`).
 
@@ -205,6 +205,8 @@ export async function generateDayPage(a: {
           if (!(error instanceof PageStopped)) throw error;
           outcome = { ok: false, because: "no_opportunity" };
         }
+        // Out of credit, every topic would be refused the same: the day ends as funds and no topic rests.
+        if (!outcome.ok && own.fundsRefused?.() === true) outcome = { ok: false, because: "vendor_funds" };
         // A test draft is one page that moves no topic: its row is ended by `writeTestDraft`.
         if (inTest()) return outcome;
         await settle(outcome, opportunity.id, now, site);
@@ -561,6 +563,7 @@ async function writePage(a: PageInput & { attempts: number; startedAt?: number }
     });
     if (last.draftId !== null) draftId = last.draftId;
     if (last.ok) return { ok: true, draftId: last.draftId };
+    if (cost.fundsRefused?.() === true) return { ok: false, because: "vendor_funds" };
     if ("owed" in last && last.draftId !== null) return { ok: false, because: "fix_owed", draftId: last.draftId };
     if (last.reason === "rules") {
       return { ok: false, because: "rules", draftId: draftId ?? null, attempts: last.attempt, ...(last.fix === undefined ? {} : { stopped: last.fix }), ...(last.stop === undefined ? {} : { stop: last.stop }) };
