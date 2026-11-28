@@ -141,7 +141,7 @@ describe("the marker a free pass stores (issue 1440)", () => {
 
   it("names every chosen search the pass did not read, by its place", () => {
     expect(unreadSearches(report).map((s) => s.index)).toEqual([...KEYWORDS.keys()]);
-    expect(unreadSearches({ ...report, tier: "deep" })).toEqual([]);
+    expect(unreadSearches({ ...report, tier: "deep" }).map((s) => s.index)).toEqual([0, 2, 4, 6, 8, 10]);
   });
 
   it("is stored only where something is unread and the free cap still holds money", () => {
@@ -248,7 +248,7 @@ describe("one attempt: a search that fails again stays unmeasured with its reaso
 describe("a weekly pass's searches whose queued task outlived its ceiling", () => {
   it("reads only those and writes them into the report", async () => {
     const report: Record<string, unknown> = { ...zeroOfTwelve(), tier: "weekly", finishingReads: undefined };
-    report.serps = KEYWORDS.map((keyword, i) => (i < 5 ? measured(serpFor(keyword), NOW) : unmeasured("undeterminable", NOW, "deadline")));
+    report.serps = KEYWORDS.map((keyword, i) => (i < 5 ? measured(serpFor(keyword), NOW) : i === 10 ? unmeasured("not_attempted", NOW) : unmeasured("undeterminable", NOW, "deadline")));
     const db = storeOf(report);
     const v = vendorOf({ spentCents: 0, centsPerRead: 0, answer: (query) => (query === KEYWORDS[11] ? unmeasured("undeterminable", NOW) : measured(serpFor(query), NOW)) });
     expect(await finish(db.store, v.vendor)).toEqual({ finished: true, asked: 7, read: 6, written: true });
