@@ -20,19 +20,16 @@ import { scheduleRetry, type RetryDecision } from "./retry";
 export type ApprovedDelivery =
   | { kind: "delivered"; publicationId: string; verifyDue: boolean; alreadyPublished: boolean }
   | { kind: "held"; heldBy: HeldBy }
+  | { kind: "taken" }
   | { kind: "failed"; reason: FailureReason; decision: RetryDecision };
 
 /** The job makes every move on this edge; whatever sent the event is already in the page's history. */
 const BY: Actor = { kind: "system", job: "publish/execute" };
 
-interface DraftSiteRow {
-  site_id: string;
-}
-
 /** The page's site, for the switch the retry policy reads. */
 async function siteOf(draftId: string): Promise<string | null> {
   const { data, error } = await publishDb()
-    .from<DraftSiteRow>("drafts")
+    .from<{ site_id: string }>("drafts")
     .select("site_id")
     .eq("id", draftId)
     .limit(1);
@@ -88,6 +85,7 @@ export async function deliverApproved(a: {
   }
 
   if (result.reason === "held") return { kind: "held", heldBy: result.heldBy };
+  if (result.reason === "taken") return { kind: "taken" };
 
   const decision = await scheduleRetry({
     draftId: a.draftId,

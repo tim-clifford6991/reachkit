@@ -138,6 +138,14 @@ describe("ADR-080 case 1 — a retry of an attempt whose outcome was never confi
     expect(second.attemptNo).toBe(2);
   });
 
+  it("a second claim on a page another attempt took is taken, not held, and writes no second publication", async () => {
+    const first = await claim({ draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps() });
+    const second = await claim({ draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps() });
+    expect(first.ok).toBe(true);
+    expect(second).toEqual({ ok: false, reason: "taken" });
+    expect(db.rows("publications")).toHaveLength(1);
+  });
+
   it("a delivered row refuses the re-claim and reports alreadyPublished", async () => {
     await claim({ draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps() });
     const row = db.rows("publications")[0]!;

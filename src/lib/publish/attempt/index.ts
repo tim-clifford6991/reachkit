@@ -47,7 +47,8 @@ export type PublishResult =
   | { ok: true; publicationId: string; liveUrl?: string; alreadyPublished: boolean }
   | { ok: false; reason: FailureReason; retryable: boolean; attemptNo: number }
   /** `matchedEntry` rides the `claim_recheck` hold only: the customer's own words (BUILD §8 hard rule 4). */
-  | { ok: false; reason: "held"; heldBy: HeldBy; matchedEntry?: string };
+  | { ok: false; reason: "held"; heldBy: HeldBy; matchedEntry?: string }
+  | { ok: false; reason: "taken" };
 
 export interface PublishArgs {
   draftId: string;

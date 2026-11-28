@@ -50,7 +50,8 @@ export type ClaimResult =
       /** On `claim_recheck` only, where the last check named an entry: the customer's own words, rendered through
        *  `draft.claim.matched`. Absent for a stale list hash, so no claim is attributed to them. */
       matchedEntry?: string;
-    };
+    }
+  | { ok: false; reason: "taken" };
 
 export interface ClaimArgs {
   draftId: string;
@@ -78,8 +79,7 @@ interface DraftRow {
   sites?: { mode?: string | null } | null;
 }
 
-/** Postgres' unique-violation SQLSTATE: a losing insert re-reads the winner's row. */
-const UNIQUE_VIOLATION = "23505";
+const TAKEN: readonly string[] = ["publishing", "published"];
 
 export async function claim(a: ClaimArgs): Promise<ClaimResult> {
   const at = a.at ?? new Date();
@@ -96,6 +96,8 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
     reason: "publish/execute",
   });
   if (!moved.ok) {
+    // A refused edge or a lost lock re-reads the page: one already publishing or published is another attempt's, not a hold.
+    if (moved.refused === "not_a_transition" && TAKEN.includes((await loadDraft(a.draftId))?.state ?? "")) return { ok: false, reason: "taken" };
     return {
       ok: false,
       reason: "held",
@@ -260,10 +262,7 @@ async function insertPublication(a: {
       // call did to the page, never a property of the destination's kind.
     })
     .select("id");
-  if (error !== null) {
-    if (error.code === UNIQUE_VIOLATION) return null;
-    return null;
-  }
+  if (error !== null) return null;
   const [row] = data ?? [];
   return row ?? null;
 }
