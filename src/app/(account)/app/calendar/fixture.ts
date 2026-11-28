@@ -219,7 +219,7 @@ const EVIDENCE: Evidence = {
   fitFact: { text: "Most teams are set up in an afternoon, with a guided import from their spreadsheet.", source: { kind: "page", url: "https://content.example.com/onboarding" } },
   angle: { pattern: "P2", promise: "what keeps a team using it after the first week", gap: 1 },
 };
-const PARTS: PlanReason["parts"] = (["fit", "demand", "ai_gap", "rising", "new_site", "outsized", "no_footprint"] as const).map((part) => ({ part, n: part === "fit" ? 3 : 1 }));
+const PARTS: PlanReason["parts"] = (["fit", "demand", "ai_gap", "rising", "new_site", "outsized", "no_footprint", "not_working"] as const).map((part) => ({ part, n: part === "fit" ? 3 : 1 }));
 const URLS = ["https://www.pipedrive.com/en/blog/crm-adoption", "https://blog.hubspot.com/sales/crm-adoption", "https://www.reddit.com/r/sales/comments/crm_adoption"];
 const PLANS: Readonly<Record<DayKey, DraftOnDay["plan"]>> = {
   "2026-09-18": { evidence: EVIDENCE, reason: { points: 6, parts: PARTS, rule: "best", research: { state: "met", R: 6, Q: 4, F: 2, estWords: 1400, urls: URLS } } },

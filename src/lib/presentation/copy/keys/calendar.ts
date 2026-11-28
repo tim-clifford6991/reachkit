@@ -393,6 +393,7 @@ export const CALENDAR_COPY = Object.freeze({
   // The two parts that lower a page's rank, said as a note and never as a reason it was picked.
   "calendar.reason.outsized": "This search is bigger than your site usually wins today. It’s in the week because nothing better-sized was ready.",
   "calendar.reason.no-footprint": "List and comparison pages do better once your site shows up in your market’s searches. Yours doesn’t yet, so this one ranked lower.",
+  "calendar.reason.not-working": "Two weekly checks after we updated this page found it off Google’s first 2 pages. No AI answer linked it, so this one ranked lower.",
   "calendar.day.held-for-fix": "Waiting on your fix: {fix}.",
   "calendar.day.held-for-fix.link": "Open This Fix in Site Fixes",
   "calendar.day.stopped.line": "Stopped by you on {day}. Other days are not affected.",

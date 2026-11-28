@@ -18,6 +18,7 @@ import { canonicalUrl } from "@/lib/measure/page-reading";
 import { sameTopic } from "../cluster";
 import { contentTypeOf } from "../content-type";
 import { waitsForFootprint } from "../readiness";
+import { suppressionOf, type NotWorkingVerdict } from "../suppression";
 import { footprintOpen } from "@/lib/market/footprint";
 import { pageTypeOf } from "../page-type";
 import type { Opportunity, PlaceRule, PlanReason, Ranked } from "../types";
@@ -162,6 +163,8 @@ export interface RankLoad {
   floored?: readonly string[];
   /** `false` while the site's market footprint is closed; absent reads it open. */
   footprint?: boolean;
+  /** Owned URLs whose update was judged not working in two weeks; absent retires none. */
+  retired?: ReadonlySet<string>;
 }
 
 /** Why a row the store holds open takes no place in the list. */
@@ -177,7 +180,7 @@ export function eligible(row: OpportunityRow): Rejection | null {
  *  where it is given (a week's spares, issue 1559). */
 export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<string>, record = false): Promise<RankLoad> {
   const store = opportunityStore();
-  const [open, profile, fixRows, cited, report, market, live] = await Promise.all([
+  const [open, profile, fixRows, cited, report, market, live, verdicts] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
     store.openFixPages(siteId),
@@ -190,6 +193,8 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
     // An unreadable market or set of live pages joins no topic.
     store.marketFor(siteId).then((read) => read.market, () => null),
     Promise.resolve().then(() => store.refreshPages(siteId)).catch(() => [] as readonly OwnLivePage[]),
+    // Verdicts that cannot be read lower no row.
+    Promise.resolve().then(() => store.notWorkingVerdicts(siteId)).catch(() => [] as readonly NotWorkingVerdict[]),
   ]);
   // §6's floor: a refresh of our page whose live version is younger than it takes no place; unreadable pages keep it.
   const young = (row: OpportunityRow) => row.type === "refresh_page" && live.some((page) => !pastRefreshFloor(page.publishedAt, at) && canonicalUrl(page.url) === canonicalUrl(row.target_ref));
@@ -202,7 +207,7 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
   const linkedClusters = cited.length === 0 ? [] : await store.clustersAt(siteId, cited).catch(() => [] as readonly string[]);
   // Read only where a row could take the penalty; an unreadable footprint reads closed.
   const footprint = !rows.some((row) => waitsForFootprint(readOpportunity(row))) || (await footprintOpen(store, siteId, { report, market, record }).catch(() => false));
-  return { rows, fixRows, profile, cited, topTens, linkedClusters, ownRanked, market, live, floored: open.filter(young).map((row) => row.id), footprint };
+  return { rows, fixRows, profile, cited, topTens, linkedClusters, ownRanked, market, live, floored: open.filter(young).map((row) => row.id), footprint, retired: suppressionOf(verdicts).retiredUrls };
 }
 
 function topTensFor(rows: readonly OpportunityRow[], only?: ReadonlySet<string>, live: readonly string[] = []) {
@@ -234,7 +239,7 @@ export function rankingOf(
   const mixed = load.rows.filter((row) => named(row, only) && keep(row)).map(readOpportunity);
   if (mixed.length === 0) return { scored: [], fixes, rotation: {}, rejected };
 
-  const seen: Seen = { cited: new Set(load.cited.map(canonicalUrl)) };
+  const seen: Seen = { cited: new Set(load.cited.map(canonicalUrl)), retired: load.retired };
   const scored = mixed.map((opportunity) => ({ opportunity, ...pointsOf(opportunity, seen) }));
   // A cluster an AI answer linked earns one more page: its best new page.
   for (const cluster of new Set(load.linkedClusters ?? [])) {

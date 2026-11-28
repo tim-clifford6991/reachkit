@@ -1,4 +1,4 @@
-// SPEC §6, issue 477 — an owned URL whose Improve was judged not working twice is retired.
+// SPEC §6 — an owned URL whose Improve was judged not working twice is retired, and a row targeting it ranks lower.
 import "./env";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
@@ -56,7 +56,7 @@ afterEach(() => setOpportunityStore(null));
 describe("an owned URL whose Improve was judged not working twice", () => {
   const improve = (week: string) => notWorking({ week, family: "improve", targetRef: OWNED });
 
-  it("is retired after the second week, and no open row targets it", async () => {
+  it("is retired after the second week, and the row targeting it ranks lower, never held", async () => {
     expect(suppressionOf([improve(JUDGED)]).retiredUrls.size).toBe(0);
     // One week judged twice is one verdict, not two.
     expect(suppressionOf([improve(JUDGED), improve(JUDGED)]).retiredUrls.size).toBe(0);
@@ -68,11 +68,9 @@ describe("an owned URL whose Improve was judged not working twice", () => {
     state.notWorking = [improve("2026-06-01"), improve("2026-06-08")];
 
     await assessReadiness(SITE_ID, { at: NEXT_WEEK });
-    expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
-      ["improve-own", "resting"],
-      ["improve-other", null],
-    ]);
-    expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve-other"]);
+    expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([["improve-own", null], ["improve-other", null]]);
+    const ranked = (await rankOpen(SITE_ID)).map((r) => [r.opportunityId, r.reason.parts.some((p) => p.part === "not_working")]);
+    expect(ranked).toEqual([["improve-other", false], ["improve-own", true]]);
   });
 });
 
