@@ -106,6 +106,8 @@ async function draftSite(input: JobInput): Promise<Outcome> {
     // generation that falls over must not also cost the customer the only
     // telling they get that their pages are going nowhere.
     await step("notice", () => noticeBrokenDestination({ siteId, now: input.now }));
+    // Before the write, so the day's own row is still open and a title planned by older rules is asked again.
+    await step("titles", async () => (await import("@/lib/scan/weekly/titles")).titleWeek(siteId));
     const result = await generateDraft({ siteId, publishDate, now: hour, since: at, again, ...(input.step === undefined ? {} : { step: input.step }) });
     // Issue 1455: the day keeps its reason after the next tick has run.
     await recordDraftDay(
@@ -115,8 +117,6 @@ async function draftSite(input: JobInput): Promise<Outcome> {
     );
     // Last, so a page the recheck rescued or the review let through is seen and nothing it covered is mailed.
     if (site !== null) await step("alert", () => alertSiteDay({ site, hour }));
-    // A planned page whose title the commit's call missed is asked again, once a day.
-    await step("titles", async () => (await import("@/lib/scan/weekly/titles")).titleWeek(siteId));
     return "degraded" in result ? { outcome: "degraded", subjectId: siteId, step: result.degraded } : { outcome: "ran", subjectId: siteId };
   } catch (error) {
     const reason = error instanceof Error ? error.name : "unknown";

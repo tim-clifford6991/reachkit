@@ -58,6 +58,7 @@ export const RULE_BRIEF: Readonly<Record<HardRule, (a: BriefLineInputs) => strin
   traceable_numerals: () => `Write no number of ${REGISTER_FLOOR} or more that \`pack\` or the target search do not contain; a year is not a number for this rule.`,
   first_block_answers: (a) =>
     `\`answer\` is the page's short answer: one paragraph of ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} words that answers the target plainly — write 45 to 55, in two or three sentences, and count them: outside ${PAGE_BLOCKS.answerWords.min} to ${PAGE_BLOCKS.answerWords.max} the page is stopped.` +
+    (a.pack.hot === true ? " Its first sentence states the event in the news and one figure its reports state, dated as reported (\"reported on\" and the date its report was published, never \"a study\" of that month), and then it answers the target." : "") +
     (a.pack.type === "listicle" ? " It answers for the whole field: name the real options and how they differ, and this business as one of them, the publisher's own, never as the answer. It never quotes `pack.fitFact`: the business section does, once." : ""),
   required_blocks: () =>
     `\`takeaways\`: ${PAGE_BLOCKS.takeaways.min} to ${PAGE_BLOCKS.takeaways.max} key takeaways, one sentence each. \`closing\`: one line that points the reader to the one action this page's reader should take, linking the page in \`pack.links\` where they take it.`,
