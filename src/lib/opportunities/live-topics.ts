@@ -9,10 +9,11 @@
 // §6), the one with fewer Google impressions, or the newer of a measured 0–0 pair, is merged into the other once both are
 // read. A page on the customer's own host has no 301 of ours: it stays live and is named in the run's report. A page is
 // never corrected by a row edit alone (ADR-080).
-import { AI_BLOG_ENGINES, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
+import { AI_BLOG_ENGINES } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { canonicalUrl, googleRead, readingOf } from "@/lib/measure/page-reading";
 import { oneQuestion, queryKey } from "./cluster";
+import { pastRefreshFloor } from "./derive/known";
 import { productsNamed, rivalNamesOf } from "./derive/topics";
 import { freshTopTen, otherKindTopTen, type KindOfBusiness, type OtherKind, type TopTenRow } from "./derive/top-ten-kind";
 import { isRetarget, type Opportunity } from "./types";
@@ -283,7 +284,7 @@ export async function retireOffTopicPages(a: { now: Date; deps?: LiveTopicDeps; 
       } else if (verdict.kind === "refresh") {
         for (const row of site.open) if (isRetarget(row) && row.targetRef === page.liveUrl && (await deps.cancel(row.id))) outcome.cancelled.push(page.liveUrl);
         // §6's 30 days stand, and one planned update of a page is enough.
-        const due = a.now.getTime() - page.signals.publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * DAY_MS;
+        const due = pastRefreshFloor(page.signals.publishedAt, a.now);
         const planned = site.open.some((row) => row.family === "improve" && row.targetRef === page.liveUrl);
         if (!due || planned) continue;
         if (await deps.refresh(page, a.now)) outcome.refreshed.push(page.liveUrl);

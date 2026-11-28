@@ -8,12 +8,12 @@
 // **A ready `fix_page` is placed, not scored** (SPEC §9, owner ruling
 // 2026-09-14): it goes immediately ahead of the first Write row in its
 // cluster, and while clusters are not derived, ahead of the first Write row.
-import { PLAN_DEPTH, REFRESH_MIN_AGE_DAYS } from "@/lib/config/constants";
+import { PLAN_DEPTH } from "@/lib/config/constants";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { MarketConclusion } from "@/lib/market/infer/types";
+import { pastRefreshFloor } from "../derive/known";
 import type { OwnLivePage } from "../refresh";
-import { opportunityStore } from "../store";
-import { readOpportunity, type DraftedPage, type OpportunityRow } from "../store";
+import { opportunityStore, readOpportunity, type DraftedPage, type OpportunityRow } from "../store";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { sameTopic } from "../cluster";
 import { contentTypeOf } from "../content-type";
@@ -192,7 +192,7 @@ export async function loadRanking(siteId: string, at: Date, only?: ReadonlySet<s
     Promise.resolve().then(() => store.refreshPages(siteId)).catch(() => [] as readonly OwnLivePage[]),
   ]);
   // §6's floor: a refresh of our page whose live version is younger than it takes no place; unreadable pages keep it.
-  const young = (row: OpportunityRow) => row.type === "refresh_page" && live.some((page) => at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000 && canonicalUrl(page.url) === canonicalUrl(row.target_ref));
+  const young = (row: OpportunityRow) => row.type === "refresh_page" && live.some((page) => !pastRefreshFloor(page.publishedAt, at) && canonicalUrl(page.url) === canonicalUrl(row.target_ref));
   const rows = open.filter((row) => !young(row));
   // An unmeasured count is the cold-start 0, as the pass reads it.
   const ownRanked = report === null ? null : report.ownRanked.kind === "measured" ? report.ownRanked.value : 0;

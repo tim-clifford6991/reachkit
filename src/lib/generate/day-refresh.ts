@@ -3,10 +3,11 @@
 // standard, kept only where it adds real substance. A short pack writes its own planned page, so no topic is written
 // anyway here.
 import { z } from "zod";
-import { REFRESH_MIN_AGE_DAYS, RESEARCH, SITE_PROFILE, TITLE } from "@/lib/config/constants";
+import { RESEARCH, SITE_PROFILE, TITLE } from "@/lib/config/constants";
 import { googleRead, readingOf } from "@/lib/measure/page-reading";
 import { siteLocale } from "@/lib/locale/site";
 import { opportunityById, type Opportunity } from "@/lib/opportunities";
+import { pastRefreshFloor } from "@/lib/opportunities/derive/known";
 import { addressKey, persistAssessed, refreshOfPage, stoppedRefreshes, type OwnLivePage } from "@/lib/opportunities/refresh";
 import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
 import { isResting } from "@/lib/opportunities/types";
@@ -169,15 +170,11 @@ export async function addsOverLive(draftId: string, update?: { ok: boolean; sinc
   return false;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-/** A version live since `publishedAt` is at least the refresh floor old at `at`: nothing younger is refreshed for a day. */
-const pastFloor = (publishedAt: Date, at: Date): boolean => at.getTime() - publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * DAY_MS;
-
 /** A site none of whose live pages of ours has stood the refresh floor (owner, 2026-11-18): its pages are short by
  *  nature, and its shortfall is not shown. A read that fails reads as an established site, which shows it. */
 export async function newSite(siteId: string, at: Date): Promise<boolean> {
   const pages = await opportunityStore().refreshPages(siteId).catch(() => null);
-  return pages !== null && !pages.some((page) => page.takenDown !== true && pastFloor(page.publishedAt, at));
+  return pages !== null && !pages.some((page) => page.takenDown !== true && pastRefreshFloor(page.publishedAt, at));
 }
 
 /** R31's rivals of a `vs` topic, as its pack names them: the domains a page on it must read first-hand. */
@@ -217,8 +214,8 @@ async function updateCandidates(siteId: string, at: Date, passed: string[] = [])
     const meta = metaOf((await generateStore().liveVersionAt(siteId, page.url))?.draft.meta);
     const standard = Array.isArray(metaOf(meta.standard).parts) ? (meta.standard as Candidate["standard"]) : null;
     // Its one early update is the live version, so it is not picked again until it is past the floor.
-    const early = !pastFloor(page.publishedAt, at) && standard?.met === false && meta.early !== true;
-    if (early || pastFloor(page.publishedAt, at)) found.push({ page, standard, early });
+    const early = !pastRefreshFloor(page.publishedAt, at) && standard?.met === false && meta.early !== true;
+    if (early || pastRefreshFloor(page.publishedAt, at)) found.push({ page, standard, early });
     else passed.push("floor");
   }
   const met = (each: Candidate): number => each.standard?.parts.filter((part) => part.state === "met").length ?? Number.POSITIVE_INFINITY;
