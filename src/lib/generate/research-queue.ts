@@ -51,8 +51,8 @@ export async function askDayResearch(a: { siteId: string; opportunityId: string;
   const writingFor = site === null ? null : siteWritingMarket(site, report);
   const asked = { siteId: a.siteId, locale, target: target ?? "", market: writingFor?.category ?? "", guidance: as !== null && builtFromOutside(as), options: as === "listicle" };
   const reads = as === null || !TEMPLATES[as].research || target === undefined || (await (await import("./day-refresh")).refreshedInCode(a.siteId, o!, false)) ? [] : researchSerps({ ...asked, ...(as === "insights" ? { recent: true } : {}) }, a.waitMs);
-  // A resolved news read takes minutes, so it is bought here, in its own step, and the write reads it from the cache.
-  const news = as !== "insights" || reads.length === 0 || writingFor === null ? [] : newsReads({ siteId: a.siteId, locale, recent: { searches: recentTerms(o!, writingFor) } });
+  // A resolved news read takes minutes, so the day's first ask buys it in its own step and the write reads it from the cache; a collect round never buys it again.
+  const news = as !== "insights" || reads.length === 0 || writingFor === null || a.waitMs !== COLLECT.askMs ? [] : newsReads({ siteId: a.siteId, locale, recent: { searches: recentTerms(o!, writingFor) } });
   const update = await (await import("./day-refresh")).updateSearch(a.siteId, a.now);
   const beside = update === null ? [] : researchSerps({ siteId: a.siteId, locale, target: update, study: false }, a.waitMs).filter((read) => !reads.some((own) => own.query === read.query));
   if (reads.length + beside.length === 0) return 0;
