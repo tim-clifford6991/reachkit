@@ -113,11 +113,9 @@ export async function researchFor(
           options: as === "listicle",
           marketWords: [category, ...writingFor.synonyms],
           today: new Date(),
-          // Issue 1390: every page that is researched reads what buyers
-          // ask beside its target, for its headings.
+          // Every page that is researched reads what buyers ask beside its target, for its headings.
           questions: true,
-          // Issue 1486: a how-to or a Q&A is built from cited outside facts,
-          // so its one search reads the target's own guidance.
+          // A how-to or a Q&A is built from cited outside facts, so its one search reads the target's own guidance.
           guidance: builtFromOutside(as), study: as !== "update",
           ...(as === "insights"
             ? { recent: { searches: [category === "" ? (targetSearches(o)[0] ?? "") : category, ...writingFor.synonyms], days: RESEARCH.recentDays, market: writingFor } }
@@ -149,10 +147,7 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
   const foreign = (url: string) => (site === null || !isOwnDomain(url, site.domain)) && !others.has(registrableDomain(url) ?? "") && !isListingAddress(url) && !isMarketplaceHost(url) && !isPlatformDomain(url);
   const words = (text: string) => new Set(stemKey(text, locale.language).split(" ").filter((word) => word !== ""));
   // At least half of `topic`'s words are in `text`.
-  const holds = (topic: Set<string>, text: string) => {
-    const said = words(text);
-    return topic.size > 0 && [...topic].filter((word) => said.has(word)).length * 2 >= topic.size;
-  };
+  const holds = (topic: Set<string>, text: string, said = words(text)) => topic.size > 0 && [...topic].filter((word) => said.has(word)).length * 2 >= topic.size;
   const oldest = now.getUTCFullYear() - RESEARCH.statisticMaxAgeYears;
   const cached = async (url: string) => ((await readCache({ source: RESEARCH_READ_SOURCE, cacheKey: url, policyVersion: DRAFT_POLICY_VERSION, freshnessDays: RESEARCH.freshnessDays }))?.payload as ReadPage | undefined) ?? (cost === undefined ? undefined : readFresh(cost, url));
   // A rival's own pages that read, found as research finds it (D56): its home page's links, then its sitemap.
@@ -165,11 +160,15 @@ export async function researchHeld(siteId: string, rows: readonly WeekRow[], now
     const serp = await cachedSerp(researchSerps({ siteId, locale, target }, 0)[0]!, DRAFT_POLICY_VERSION);
     if (serp === null) return null;
     // A comparison's own products' pages are its first-hand evidence, never an independent source; other rivals' stay out.
-    const compared = new Set(site === null || !compares({ target }) ? [] : namedIn(target, namedRivals(site.rivals, report === null ? null : siteWritingMarket(site, report).market)).flatMap((domain) => registrableDomain(domain) ?? [])),
+    const products = site === null || !compares({ target }) ? [] : namedRivals(site.rivals, report === null ? null : siteWritingMarket(site, report).market), compared = new Set(namedIn(target, products).flatMap((domain) => registrableDomain(domain) ?? [])),
       ofCompared = (url: string) => compared.has(registrableDomain(url) ?? "") && (site === null || !isOwnDomain(url, site.domain));
     const urls = serp.organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && (foreign(url) || ofCompared(url)));
     const held = await Promise.all(urls.map(cached));
     if (held.some((page) => page === undefined)) return null;
+    // A comparison also reads third parties' reviews and listings of its products, on its results and the scan's for a search naming one; one not held is no result.
+    const naming = products.filter((product) => compared.has(registrableDomain(product.domain) ?? "")), reviews = (organic: readonly { url: string }[]) => organic.slice(0, READ.results).map((row) => row.url).filter((url) => googleWrapper(url) === null && !urls.includes(url) && (foreign(url) || (isListingAddress(url) && !others.has(registrableDomain(url) ?? ""))));
+    const scanned = report === null || report.questions.kind === "unmeasured" || naming.length === 0 ? [] : report.questions.value.flatMap((question, at, _, beside = report.serps[at]) => (beside === undefined || beside.kind === "unmeasured" || namedIn(question.search.keyword, naming).length === 0 ? [] : reviews(beside.value.organic)));
+    held.push(...(await Promise.all([...new Set([...(naming.length === 0 ? [] : reviews(serp.organic)), ...scanned])].map(cached))).map((page) => page ?? null));
     const versus = site === null || report === null ? [] : versusRivals(site, report, { targetQuery: target, absorbedQueries: [], title: null });
     if (versus.length > 0 && cost === undefined) return null;
     const rivals = [...new Set([...versus.map((domain) => registrableDomain(domain) ?? domain), ...compared])];
