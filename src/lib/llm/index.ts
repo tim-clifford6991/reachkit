@@ -20,10 +20,10 @@ export type LlmCallSite = keyof typeof INFERENCE_MAX_OUTPUT_TOKENS;
 
 type ParseOutcome = "success" | "unparseable" | "unavailable" | "not_attempted";
 
-/** Why a call came back without a conforming answer, in one closed word: the vendor's HTTP status, `timeout`,
+/** Why a call came back without a conforming answer, in one closed word: the vendor's HTTP status, `funds`, `timeout`,
  *  `parse` (answers came back and none conformed) or `vendor`. Read off the error's shape, never its text, which
  *  can echo the request and its credentials. */
-type FailureClass = "timeout" | "parse" | "vendor" | `http_${number}`;
+type FailureClass = "funds" | "timeout" | "parse" | "vendor" | `http_${number}`;
 
 /** Why an answer that came back was not used: `json`, no JSON in the text; `schema`, JSON the caller's schema
  *  refused; `cut_off`, the answer stopped at the length limit; `refusal`, the model declined to answer. */
@@ -88,21 +88,9 @@ const TIMEOUT_ERROR_NAMES: ReadonlySet<string> = new Set([
   "AbortError",
 ]);
 
-/** Classified by the error's **shape**, deliberately not by `instanceof`
- *  against the SDK's exported classes. Nine test suites replace
- *  `@anthropic-ai/sdk` with a mock of their own (the seam is the one door
- *  to a vendor, so anything exercising a pipeline has to), and an
- *  identity check against a named export would make this function's
- *  answer depend on whether a given suite happened to re-export that
- *  class. A status and a name are shapes every one of them can produce.
- *
- *  Order matters: `APIError` carries the response `status` and is the
- *  most specific thing there is to say, so it is read first; the SDK's
- *  own timeout class carries no status and reports `name` as the base
- *  `Error`, so it is recognised by its constructor and, failing that, by
- *  the one sentence it is constructed with ("Request timed out."). The
- *  message is *read* and discarded — the class word is the only thing
- *  that ever reaches a log (see `logCall`). */
+/** Classified by the error's shape, not `instanceof`, since suites replace `@anthropic-ai/sdk` with their own mock.
+ *  The status is read first; the SDK's timeout carries none and is known by its name or its one sentence. Out of
+ *  credit is a 402 or a 400 naming the credit balance. A message is read and discarded: only the class is logged. */
 function failureClassOf(error: unknown): FailureClass {
   const shape = error as
     | { status?: unknown; name?: unknown; message?: unknown; constructor?: { name?: unknown } }
@@ -111,7 +99,8 @@ function failureClassOf(error: unknown): FailureClass {
 
   const status = shape?.status;
   if (typeof status === "number" && Number.isInteger(status) && status >= 100 && status <= 599) {
-    return `http_${status}`;
+    const credit = status === 400 && typeof shape?.message === "string" && /credit balance/i.test(shape.message);
+    return status === 402 || credit ? "funds" : `http_${status}`;
   }
 
   for (const candidate of [shape?.name, shape?.constructor?.name]) {
@@ -563,7 +552,11 @@ export async function llm<T>(
     ...(c.cap === "WEEK" ? { sameScan: true as const, unusable: (outcome: unknown) => (outcome as AttemptOutcome).parseOutcome !== "success" } : {}),
     costCents: attemptCents,
     settleCents: (outcome) => costCentsFor(call.tier, outcome.tokensIn, outcome.tokensOut),
-    run: (more) => runAttempts(binding, call.schema, prompt, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site], attempts, async () => more === undefined || (await more(attemptCents))),
+    run: async (more) => {
+      const outcome = await runAttempts(binding, call.schema, prompt, maxOutputTokens, tool, INFERENCE_TEMPERATURE[call.site], attempts, async () => more === undefined || (await more(attemptCents)));
+      // Unbilled and marked funds, so the cost context names the day's cause as credit.
+      return outcome.failure === "funds" ? Object.assign(outcome, { vendorFailure: "funds", endpoint: call.site, billed: false, funds: true as const }) : outcome;
+    },
   });
 
   if ("skipped" in result) {
