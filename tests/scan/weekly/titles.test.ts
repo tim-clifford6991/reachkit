@@ -14,7 +14,7 @@ const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 const create = vi.fn();
 vi.mock("@anthropic-ai/sdk", () => ({ default: class { messages = { create: (...a: unknown[]) => create(...a) }; } }));
-const { titleWeek } = await import("../../../src/lib/scan/weekly/titles");
+const { staleTitle, titleWeek } = await import("../../../src/lib/scan/weekly/titles");
 const { angleGates } = await import("../../../src/lib/market/questions/angle");
 const { setOpportunityStore } = await import("../../../src/lib/opportunities/store");
 
@@ -78,4 +78,10 @@ it("keeps an angle that leads with the search's subject and drops its ranking wo
 it("writes a known name in its known casing over the model's, keeps a casing nothing contradicts, and closes an opening yes-or-no question with its mark", () => {
   const titles = [pageTitle("Is chatGPT Worth It for iPhone Apps: What Founders Found", "en"), pageTitle("can chatGPT do seo", "en", ownCasings(["ChatGPT and SEO", "the model's chatGPT"])), pageTitle("How to Rank in chatGPT", "en"), pageTitle("Lohnt sich ChatGPT für Bäckereien", "de")];
   expect(titles).toEqual(["Is ChatGPT Worth It for iPhone Apps? What Founders Found", "Can ChatGPT Do SEO?", "How to Rank in ChatGPT", "Lohnt sich ChatGPT für Bäckereien?"]);
+});
+
+it("asks again for a news page's title that sells the business and drops its figure", () => {
+  const hot = { event: "Google AI Overviews", claims: ["Google AI Overviews cut clicks to websites by about 40%."] }, title = "Not Cited in Google AI Overviews? Fix It with Weekly Pages";
+  const a = { search: "not cited in google ai overviews", sources: [hot.event, ...hot.claims], ranks: [], hot, offering: { brand: "reachkit", says: ["weekly pages"], common: ["be found"] } };
+  expect([staleTitle(title, a), angleGates({ pattern: "P2", title, promise: "", fact: null }, a)]).toEqual([true, ["promise_figure", "claim"]]);
 });
