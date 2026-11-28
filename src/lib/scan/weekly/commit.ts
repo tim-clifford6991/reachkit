@@ -45,24 +45,22 @@ export async function commitWeek(a: { siteId: string; scanId?: string; weekStart
   // The pass plans a full week from its first unwritten date, and records the span it planned.
   const week = await planWeek(a.siteId, { now: a.now, record: true, days: WEEK_PLAN.days, research: new Map(a.checks) });
   await titleWeek(a.siteId, a.scanId);
-  await recordWeek(a, week, week.rested, { from: week.from, days: week.days });
+  await recordWeek(a, week, { from: week.from, days: week.days });
 }
 
 /** The first week's record, from the rows committed, whichever commit made it: the first draft's from its own date, or
- *  `planFirstWeek`. A checked row neither committed nor resting is not counted. */
+ *  `planFirstWeek`. */
 export async function recordFirstWeek(a: { siteId: string; now: Date; rows: readonly WeekRow[]; checks: Checks }): Promise<void> {
   if (a.rows.length === 0) return;
-  const store = opportunityStore(), held = await store.plannedRows(a.siteId), planned = new Set(held.map((row) => row.id));
+  const held = await opportunityStore().plannedRows(a.siteId);
   const week = held.map((row) => ({ opportunityId: row.id, plannedFor: row.planned_for ?? null, reason: row.plan_reason ?? {} }));
-  const others = await Promise.all(a.rows.filter((row) => !planned.has(row.id)).map((row) => store.byId(row.id)));
-  const rested = others.flatMap((row) => (row?.rest_until != null && Date.parse(row.rest_until) > a.now.getTime() ? [{ opportunityId: row.id, short: [] }] : []));
   // The first week runs to the first Monday from its first date: a Wednesday 5 days, a Monday 7.
   const first = week.flatMap((entry) => entry.plannedFor ?? []).sort()[0], days = first === undefined ? WEEK_PLAN.days : (8 - new Date(`${first}T00:00:00Z`).getUTCDay()) % 7 || WEEK_PLAN.days;
-  await recordWeek({ ...a, weekStart: a.now.toISOString().slice(0, 10) }, week, rested, { from: first ?? a.now.toISOString().slice(0, 10), days });
+  await recordWeek({ ...a, weekStart: a.now.toISOString().slice(0, 10) }, week, { from: first ?? a.now.toISOString().slice(0, 10), days });
 }
 
-async function recordWeek(a: { siteId: string; scanId?: string; weekStart: string; again?: boolean; rows: readonly WeekRow[]; checks: Checks }, week: readonly { opportunityId: string; plannedFor: string | null; reason: Pick<PlanReason, "research"> }[], rested: readonly { opportunityId: string; short: string[] }[], span: { from: string; days: number }): Promise<void> {
-  const marks = [...week.flatMap((entry) => entry.reason.research ?? []), ...rested.map((r) => ({ state: "short" as const, short: r.short }))];
+async function recordWeek(a: { siteId: string; scanId?: string; weekStart: string; again?: boolean; rows: readonly WeekRow[]; checks: Checks }, week: readonly { opportunityId: string; plannedFor: string | null; reason: Pick<PlanReason, "research"> }[], span: { from: string; days: number }): Promise<void> {
+  const marks = week.flatMap((entry) => entry.reason.research ?? []);
   const count = (state: string) => marks.filter((mark) => mark.state === state).length;
   const short: Record<string, number> = {};
   for (const part of marks.flatMap((mark) => (mark.state === "short" ? (mark.short ?? []) : []))) short[part] = (short[part] ?? 0) + 1;
@@ -73,7 +71,6 @@ async function recordWeek(a: { siteId: string; scanId?: string; weekStart: strin
     at_margin: count("at_margin"),
     queued: count("queued"),
     short: { rows: count("short"), ...short },
-    rested: rested.map((r) => ({ id: r.opportunityId, short: r.short })),
     top_up: await topUpOf(a.siteId, a.scanId).catch(() => null),
     spares_met: spares.filter((entry) => ["met", "at_margin"].includes(entry.reason.research?.state ?? "")).length,
     // Not measured is never met: a spare the commit did not check is counted apart.
