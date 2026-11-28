@@ -1,6 +1,6 @@
 // SPEC §7 *The week is committed on Monday*: the week a pass commits from stored rows, and the page a date's run writes.
 import { unstable_cache } from "next/cache";
-import { CACHE_WINDOWS_D, PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN, WEEK_RESEARCH } from "@/lib/config/constants";
+import { PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN, WEEK_RESEARCH } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { choose, liveTwinsOf } from "./choose";
 import { assessFixPages } from "./fix-page";
@@ -54,21 +54,18 @@ export const weekCandidates = async (siteId: string, now: Date): Promise<Opportu
 
 /** Commits and returns the site's week, from `from` where it is given; what is chosen is `choose`'s. `research` is the
  *  row checks the Monday job already made; a best row it lacks is read from the cache. */
-export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean; keepLater?: boolean; keepDates?: boolean; days?: number; research?: ReadonlyMap<string, ResearchRead | null> } = {}): Promise<readonly PlanEntry[] & { from: string; days: number; rejected: Record<string, { n: number; ids?: string[] }>; rested: { opportunityId: string; short: string[] }[] }> {
+export async function planWeek(siteId: string, a: { now?: Date; from?: string; record?: boolean; keepLater?: boolean; keepDates?: boolean; days?: number; research?: ReadonlyMap<string, ResearchRead | null> } = {}): Promise<readonly PlanEntry[] & { from: string; days: number; rejected: Record<string, { n: number; ids?: string[] }> }> {
   const now = a.now ?? new Date(), store = opportunityStore();
   const { input, order, best, later, top, from, days } = await ranked(siteId, { ...a, now });
   // The ranking's best rows are then ordered by what research the cache holds for them.
   const unread = best.filter((r) => !a.research?.has(r.id) && !input.verdicts?.has(r.id)), held = store.researchHeld === undefined || unread.length === 0 ? new Map() : await store.researchHeld(siteId, unread, now);
   const choice = store.researchHeld === undefined && a.research === undefined && input.verdicts === undefined ? order : choose({ ...input, research: new Map([...held, ...(a.research ?? [])]) });
-  // A short row no day or spare took rests until its SERP is read again.
-  const rested = choice.rejected.flatMap((r) => (r.reason === "short" ? [{ opportunityId: r.opportunityId, short: r.short ?? [] }] : []));
-  for (const r of rested) await store.rest(r.opportunityId, new Date(now.getTime() + CACHE_WINDOWS_D.serp * DAY_MS));
   // The day keeps place 0, which no later row holds; the spares follow the kept rows so no two rows share a place.
   const entries = choice.committed.map((e) => (e.plannedFor === null ? { ...e, place: top + e.place } : e)), rejected: Record<string, { n: number; ids?: string[] }> = {};
   for (const r of choice.rejected) { const tally = (rejected[r.reason] ??= r.reason === "after_the_week" ? { n: 0 } : { n: 0, ids: [] }); tally.n++; tally.ids?.push(r.opportunityId); }
   await store.commitPlan(siteId, entries, a.keepLater ? from : undefined);
   console.log(JSON.stringify({ event: "week_planned", siteId, from, days: Math.min(entries.length, days), spares: Math.max(0, entries.length - days), kept: later.size, rejected }));
-  return Object.assign(entries, { from, days, rejected, rested });
+  return Object.assign(entries, { from, days, rejected });
 }
 
 /** A new site's first week, committed when setup's pass ends so Plan shows it before the first evening, filled by the

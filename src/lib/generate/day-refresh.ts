@@ -229,7 +229,7 @@ export async function updateSearch(siteId: string, at: Date): Promise<string | n
 
 /** The candidate's open refresh that is not resting, where it has one, else an `aged` one planned and assessed as
  *  Monday's are, beside any resting row at the address (a retarget); else why none is. */
-async function refreshRow(siteId: string, page: OwnLivePage, at: Date, plan = true): Promise<Opportunity | "row_resting" | "row_unready"> {
+async function refreshRow(siteId: string, page: OwnLivePage, at: Date): Promise<Opportunity | "row_resting" | "row_unready"> {
   const store = opportunityStore();
   const openAt = async () => (await store.openRankable(siteId)).map(readOpportunity).filter((o) => o.type === "refresh_page" && addressKey(o.targetRef ?? "") === addressKey(page.url));
   // Only a harm or customer stop (`resting`) holds a row back from its page's update; a gate on a new topic does not.
@@ -237,7 +237,7 @@ async function refreshRow(siteId: string, page: OwnLivePage, at: Date, plan = tr
   let open = await openAt();
   // Titled as the page is, so the writer finds its live text even before the known-content copy lists it.
   const planned = { ...refreshOfPage(page, "aged", at), title: page.title || null };
-  if (plan && usable(open) === undefined && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt();
+  if (usable(open) === undefined && (await persistAssessed(siteId, [planned], at)) > 0) open = await openAt();
   return usable(open) ?? (open.some((o) => isResting(o, at)) ? "row_resting" : "row_unready");
 }
 
@@ -250,11 +250,10 @@ async function writtenUpdate(page: Day & { opportunity: Opportunity }, marks: Me
 }
 
 /** The day's update (SPEC §7): each candidate's one target SERP read on the normal queue, cached or bought inside the
- *  date's cap, and the first whose research reads is written. A page published short is passed over where its research
- *  holds no more questions than it has sections. `null` where none kept the day. */
+ *  date's cap, and the first whose research reads is written. `null` where none kept the day. */
 async function dayUpdate(day: Day, trigger: string, now: Date, cost: CostContext, giveUp: () => Promise<void>, passed: string[]): Promise<{ ok: true; draftId: string } | null> {
   const locale = await siteLocale(day.siteId);
-  for (const { page, standard, early } of await updateCandidates(day.siteId, now, passed)) {
+  for (const { page, early } of await updateCandidates(day.siteId, now, passed)) {
     if (cost.capHit() || !roomForFix(cost)) return (passed.push("cap"), null);
     const [read] = researchSerps({ siteId: day.siteId, locale, target: page.row.targetQuery!, study: false }, RESEARCH.queueWaitS * 1000);
     const serp = await serpOrganic(cost, read!);
@@ -262,11 +261,7 @@ async function dayUpdate(day: Day, trigger: string, now: Date, cost: CostContext
       passed.push("serp_unmeasured");
       continue;
     }
-    const sections = standard?.parts.find((part) => part.part === "sections")?.have ?? 0;
-    // The questions its research answers, where the commit checked its update, else the SERP's own count.
-    const known = standard?.met === false ? await refreshRow(day.siteId, page, now, false) : null;
-    const asked = standard?.met === false ? ((typeof known === "string" ? undefined : known?.planReason?.research?.Q) ?? serp.value.peopleAlsoAsk?.length ?? 0) : Infinity;
-    const opportunity = asked <= sections ? "asked<=sections" : await refreshRow(day.siteId, page, now);
+    const opportunity = await refreshRow(day.siteId, page, now);
     if (typeof opportunity === "string") {
       passed.push(opportunity);
       continue;
