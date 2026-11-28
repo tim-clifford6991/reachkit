@@ -500,7 +500,7 @@ async function recentPages(
         "story that only shares words with the category, or is about one of `market.notOurMarket` or another " +
         "neighbouring market, is not. Answer for every result by its number; where you cannot tell, answer false.",
       market: {
-        category: market.category.trim() === "" ? (terms[0] ?? "") : market.category,
+        category: market.category.trim() === "" ? (newsReads(a)[0]?.query ?? "") : market.category,
         synonyms: market.synonyms,
         ...(job === null ? {} : { job }),
         notOurMarket: market.market?.notOurMarket ?? [],
