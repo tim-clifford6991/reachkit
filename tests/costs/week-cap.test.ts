@@ -88,7 +88,7 @@ describe("a site's week spends from one sum", () => {
 
   it("a hot page's angle is refused once the day's page cap is spent: no model is asked, so no page is placed", async () => {
     const { angleFor } = await import("@/lib/hot/angle");
-    const event = { key: "news:k", signal: "news", event: "Acme 5", date: "2026-11-18", a: "a.com", b: "b.com", title: "Acme 5 ships", claims: [] } as const;
+    const event = { key: "news:k", signal: "news", event: "Acme 5", names: "Acme 5", date: "2026-11-18", a: "a.com", b: "b.com", title: "Acme 5 ships", claims: [] } as const;
     const profile = { category: "crm", job: "track deals", audienceTerms: [] } as unknown as Profile;
     const angle = await withCostContext({ scanId: WEEK, cap: "DRAFT", policyVersion: 1, rollUp: "none", priorCents: CAPS.DRAFT_C }, (c) =>
       angleFor(c, { event: { ...event, claims: [] }, locale: DEFAULT_LOCALE, market: null, profile, domain: "example.com", knowledge: null })

@@ -71,7 +71,7 @@ export async function angleFor(
     instructions: ["task", "locale"],
     input: {
       task: TASK,
-      event: { name: a.event.event, title: a.event.title, reports: a.event.claims.map((claim) => ({ publisher: claim.publisher, date: claim.publishedAt, quote: claim.quote })) },
+      event: { name: a.event.names, title: a.event.title, reports: a.event.claims.map((claim) => ({ publisher: claim.publisher, date: claim.publishedAt, quote: claim.quote })) },
       business: {
         category: a.market?.category ?? a.profile?.category ?? "",
         job: a.market?.job ?? a.profile?.job ?? null,

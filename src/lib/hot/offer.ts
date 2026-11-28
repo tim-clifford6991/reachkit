@@ -75,7 +75,7 @@ export async function offerHotTopics(a: { siteId: string; scanId: string; now: D
         const profile = report.market.kind === "unmeasured" ? null : report.market.value.profile;
         const judged = await angleFor(c, { event, locale, market: quoted.market, profile, domain: report.domain, knowledge: quoted.knowledge ?? null });
         const angle = "miss" in judged ? null : judged;
-        const reason = { signal: event.signal, event: event.event, date: event.date, a: event.a, b: event.b, key: event.key, detectedOn: day };
+        const reason = { signal: event.signal, event: event.event, names: event.names, date: event.date, a: event.a, b: event.b, key: event.key, detectedOn: day };
         console.log(JSON.stringify({ event: "hot_topic_judged", siteId: a.siteId, day, signal: event.signal, result: angle === null ? "no_angle" : "angle", fit: angle?.fit ?? null, title: angle?.title ?? null, search: angle?.search ?? null, reason, ...("miss" in judged ? { miss: judged.miss } : {}), angles: judged.angles }));
         let outcome = "miss" in judged ? `no_angle:${judged.miss}` : "offered";
         const audit = { search: angle?.search ?? null, title: angle?.title ?? null, angles: judged.angles };

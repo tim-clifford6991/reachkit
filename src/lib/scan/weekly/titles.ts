@@ -99,7 +99,7 @@ async function angleTitles(c: CostContext, siteId: string, rows: readonly Opport
   const offering = { brand: brandOf(report.domain), says, common: [market?.job ?? profile?.job ?? ""], audience };
   const context = (search: (typeof all)[number]): AngleContext => {
     const evidence = readOpportunity(search.row).evidence, hot = evidence.family === "write" ? evidence.hot : undefined;
-    const news: Pick<AngleContext, "hot"> = hot?.reason?.event ? { hot: { event: hot.reason.event, claims: hot.claims.map((claim) => claim.quote) } } : {};
+    const news: Pick<AngleContext, "hot"> = hot?.reason?.event ? { hot: { event: hot.reason.names ?? hot.reason.event, claims: hot.claims.map((claim) => claim.quote) } } : {};
     return { search: search.query, sources: [...sources, ...(news.hot === undefined ? [] : [news.hot.event, ...news.hot.claims])], ranks: search.ranks, rivals, offering, language: locale.language, ...news, ...(knowledge == null ? {} : { passages: knowledge.length }) };
   };
   const searches = all.filter((search) => staleTitle(search.row.title ?? "", context(search)));

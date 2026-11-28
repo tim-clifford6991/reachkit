@@ -1,6 +1,8 @@
 // SPEC §7 *Ranked by points*, `timely`: a page on a stored event scores by the event's age, and takes the week's earliest
 // open dates. Pure.
+import { TEMPLATES } from "@/lib/generate/templates";
 import type { Scored } from "@/lib/opportunities/rank/open";
+import { hotFacts } from "./facts";
 import type { Opportunity, PlanReason } from "@/lib/opportunities/types";
 
 /** An event first reported within 7 days, then within 14 (the coordinator's defaults under ruling 97). */
@@ -13,6 +15,14 @@ export function timelyOf(o: Pick<Opportunity, "evidence">, at: Date): number {
   const days = (at.getTime() - Date.parse(`${hot.reason.date}T00:00:00Z`)) / 86_400_000;
   const n = days <= 7 ? TIMELY.week : days <= 14 ? TIMELY.fortnight : 0;
   return hot.weak === undefined ? n : Math.min(n, TIMELY.fortnight);
+}
+
+/** A timely page's research at the commit: its event's reports, which the weekly pass read at 0¢ and its page is written
+ *  from, against the sources the page cites; `null` on any other page. What it did not measure is null, never 0. */
+export function hotResearch(o: Pick<Opportunity, "evidence">) {
+  const urls = [...new Set(hotFacts(o).map((fact) => fact.url))], need = TEMPLATES.insights.sources;
+  if (urls.length === 0) return null;
+  return { standard: { parts: [{ part: "sources" as const, have: urls.length, need, state: urls.length >= need ? "met" : "short" }], met: urls.length >= need, pending: false }, read: { R: urls.length, Q: null, F: null, urls } };
 }
 
 /** Adds each scored row's `timely` part; none where `at` is absent. */
