@@ -18,7 +18,7 @@ import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
 import { improveCandidates } from "./improve";
-import { brandTokensOf, collapse, coveredTopics, queryKey, topTenRowsOf, topTensOf } from "../cluster";
+import { brandTokensOf, collapse, queryKey, topTenRowsOf, topTensOf } from "../cluster";
 import { rebandFor } from "../readiness";
 import { opportunityStore, readOpportunity, type DismissedSearch } from "../store";
 import { persist } from "./persist";
@@ -419,7 +419,6 @@ export async function deriveOpportunities(
     existing,
     candidates: [...labelled, ...questions],
     brandTokens,
-    pass: { scanId: a.scanId, covered: coveredTopics(a.report, brandTokens, market) },
     topTens,
     sameQuestion,
     market,

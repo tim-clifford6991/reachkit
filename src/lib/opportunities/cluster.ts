@@ -108,26 +108,6 @@ export function brandTokensOf(report: StoredReport): readonly string[] {
   return [...own, ...rivals].filter((token) => token.trim() !== "");
 }
 
-/** Every parent topic this pass measured, keyed as a row's own query is: a pass that read a search and proposed nothing
- *  for it decided against it, so a superseded row on it must not outlive it. Unmeasured parts cover nothing. */
-export function coveredTopics(report: StoredReport, brandTokens: readonly string[], market?: MarketWords | null): ReadonlySet<string> {
-  const searches: string[] = [];
-  if (report.market.kind !== "unmeasured") {
-    for (const row of report.market.value.suggestions) searches.push(row.keyword);
-    // A thin market's searches come from the widened pool.
-    for (const row of report.market.value.pool ?? []) searches.push(row.keyword);
-  }
-  if (report.questions.kind !== "unmeasured") {
-    for (const question of report.questions.value) searches.push(question.search.keyword);
-  }
-  const topics = new Set<string>();
-  for (const search of searches) {
-    const key = clusterKey(search, brandTokens, market);
-    if (key !== null) topics.add(key);
-  }
-  return topics;
-}
-
 const SOLUTION_TOKENS: ReadonlySet<string> = new Set(["tool", "software", "app", "platform", "solution"].flatMap((word) => contentTokens(word)));
 const LIST_TOKENS: ReadonlySet<string> = new Set(["best", "top", "compare", "comparison"].flatMap((word) => contentTokens(word)));
 const HEAD_TOKENS: ReadonlySet<string> = new Set([...SOLUTION_TOKENS, ...contentTokens("checker service")]);
@@ -186,7 +166,7 @@ export function comparePrecedence(
 export type ClusteredCandidate = Candidate & { clusterKey: string | null; absorbedQueries: readonly string[] };
 
 export interface CollapsePlan {
-  /** Open rows that lost their cluster, and superseded ones; applied last, so a failed write dismisses no topic. */
+  /** Open rows that lost their cluster; applied last, so a failed write dismisses no topic. */
   dismiss: readonly string[];
   /** Rows that keep their place and take a cluster key or more absorbed searches. */
   update: readonly { id: string; clusterKey: string | null; absorbedQueries: readonly string[] }[];
@@ -244,13 +224,11 @@ function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability |
 /** One survivor per cluster over the site's open, queued and done non-Fix rows and this pass's candidates. The
  *  survivor absorbs every other member's search (a live page's best other member is kept as its update and absorbs
  *  instead); a losing open row is dismissed and a losing candidate is not written, while a row with a page is never
- *  dismissed. An open survivor of a topic this pass covered, put no candidate in and did not derive is superseded and dismissed too. */
+ *  dismissed. */
 export function collapse(a: {
   existing: readonly Opportunity[];
   candidates: readonly Candidate[];
   brandTokens: readonly string[];
-  /** The pass these candidates came from; absent collapses clusters and supersedes nothing. */
-  pass?: { scanId: string; covered: ReadonlySet<string> };
   /** A stored row's band as today's right-sizing reads it; absent, the row's own column stands. */
   today?: (row: Opportunity) => Winnability | null;
   /** The stored top ten of a search, by `queryKey`; a search with none joins nothing by overlap. */
@@ -302,20 +280,11 @@ export function collapse(a: {
   const groups = joinTopics(byKey, a.topTens ?? new Map(), a.sameQuestion ?? new Map(), (query) => (a.market == null ? null : clusterKey(query, a.brandTokens, a.market)), rank);
   const isLive = (m: Member): boolean => m.kind === "row" && (m.row.status === "done" || a.live?.has(m.row.id) === true);
 
-  /** Whether this pass has superseded the row that survived `key`: it read the topic, wrote no candidate on it, and did not derive the row. */
-  const superseded = (row: Opportunity, key: string, hadCandidate: boolean): boolean =>
-    a.pass !== undefined &&
-    !hadCandidate &&
-    row.status === "open" &&
-    row.scanId !== a.pass.scanId &&
-    a.pass.covered.has(key);
-
   const dismiss: string[] = [];
   const update: { id: string; clusterKey: string | null; absorbedQueries: string[] }[] = [];
   for (const members of groups) {
     const [first, ...others] = [...members].sort(rank);
     if (first === undefined) continue;
-    const hadCandidate = members.some((member) => member.kind === "candidate");
     // A live page keeps its searches and its best other member stays as its update, unless a page of it is being written.
     const best = !isLive(first) ? first : others.some((m) => hasAPage(m) && !isLive(m)) ? undefined : others.find((m) => !hasAPage(m));
     // Losers are dismissed after the survivor is written, so a candidate for the target an open row holds yields to that row, and a key another open or queued row holds stays its own.
@@ -337,9 +306,6 @@ export function collapse(a: {
     if (survivor === undefined) continue;
     if (survivor.kind === "candidate") {
       insert.push({ ...survivor.candidate, clusterKey: written, absorbedQueries });
-    } else if (superseded(survivor.row, keyOf.get(first) as string, hadCandidate)) {
-      // The whole cluster goes: its losers are already dismissed above, and the searches they absorbed have nothing to hang on.
-      dismiss.push(survivor.row.id);
     } else if (survivor.row.clusterKey !== written || absorbedQueries.join("\n") !== [...survivor.row.absorbedQueries].sort().join("\n")) {
       update.push({ id: survivor.row.id, clusterKey: written, absorbedQueries });
     }
