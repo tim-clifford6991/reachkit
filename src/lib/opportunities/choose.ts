@@ -8,7 +8,9 @@ import { canonicalUrl } from "@/lib/measure/page-reading";
 import { oneHead, oneQuestion, queryKey, shareATopTen } from "./cluster";
 import { asUpdate, tooYoungToRefresh, updateColumns } from "./derive/known";
 import { placeFixPages, rankingOf, type RankLoad, type Rejection } from "./rank/open";
+import { hotFacts } from "@/lib/hot/facts";
 import { timelyFirst } from "@/lib/hot/timely";
+import { TEMPLATES } from "@/lib/generate/templates";
 import type { OwnLivePage } from "./refresh";
 import { readOpportunity, type PlanEntry } from "./store";
 import { PLAN_WRITE_AS, type Opportunity, type Ranked } from "./types";
@@ -59,13 +61,17 @@ function byResearch(ranked: Joined[], input: ChooseInput): Joined[] {
     if (stored(entry) !== undefined) return stored(entry)!;
     const o = rows.get(entry.opportunityId), read = input.research!.get(entry.opportunityId);
     const type = entry.set?.type === undefined && o !== undefined ? typeTheResearchFills(o, read ?? null) : null;
-    const standard = read === undefined || type === null ? { parts: [], met: true, pending: false } : meetsStandard({ type, read, demand: mustShowDemand(o!, type) });
+    // A hot page is written from its event's reports, which the weekly pass read at 0¢: they are its research, against the sources it cites.
+    const reports = [...new Set(o === undefined ? [] : hotFacts(o).map((fact) => fact.url))], cites = TEMPLATES.insights.sources;
+    const standard = reports.length > 0 ? { parts: [{ part: "sources" as const, have: reports.length, need: cites, state: reports.length >= cites ? "met" : "short" }], met: reports.length >= cites, pending: false }
+      : read === undefined || type === null ? { parts: [], met: true, pending: false } : meetsStandard({ type, read, demand: mustShowDemand(o!, type) });
+    const got = reports.length > 0 ? { R: reports.length, Q: null, F: null, urls: reports } : { R: read?.R ?? null, Q: read?.Q ?? null, F: read?.F ?? null, urls: read?.urls ?? [] };
     // The margin is the commit's alone: the draft and the rules hold a page to the pass mark.
     const roomy = standard.parts.every((part) => (part.part !== "sources" && (part.part !== "sections" || type !== "qa")) || part.have! - part.need >= WEEK_RESEARCH.margin);
     const state = standard.pending || "unchecked" in standard ? "queued" : !standard.met ? "short" : roomy ? "met" : "at_margin";
     const words = standard.parts.find((part) => part.part === "words")?.have ?? null;
     const filled = read != null && standard.met && PLAN_WRITE_AS.find((each) => each === type);
-    return { ...entry, ...(filled ? { writeAs: filled } : {}), reason: { ...entry.reason, research: { state, R: read?.R ?? null, Q: read?.Q ?? null, F: read?.F ?? null, estWords: words, urls: read?.urls ?? [], ...(state === "short" ? { short: standard.parts.filter((part) => part.state === "short").map((part) => part.part) } : {}) } } };
+    return { ...entry, ...(filled ? { writeAs: filled } : {}), reason: { ...entry.reason, research: { state, ...got, estWords: words, ...(state === "short" ? { short: standard.parts.filter((part) => part.state === "short").map((part) => part.part) } : {}) } } };
   });
   const tier = (entry: Joined) => TIERS.indexOf(entry.reason.research?.state ?? "met");
   return [...head.sort((a, b) => tier(a) - tier(b)), ...ranked.slice(WEEK_RESEARCH.rowsMax).map((entry) => stored(entry) ?? entry)];
