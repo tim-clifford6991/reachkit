@@ -442,12 +442,11 @@ async function reviewWritten(outcome: DayPageOutcome, now: Date, since = now): P
 // can fail after the page is `published` and no attempt returns to it. The
 // job's `publicationId` key and the recorded outcome keep it to one check.
 //
-// **Neither a hold nor a failure throws.** A held page is §9 working —
-// the switch is off, a ceiling is reached, the claim needs re-checking —
-// and the page keeps its state and resumes in the order it was held. A
-// failure has already been written as it happened and passed through the retry policy inside the leaf. Both
-// are reported as the step they stopped at, so an operator sees a page that did not go out rather than a run
-// that claims it did.
+// **Neither a hold nor a failure throws.** A held page is §9 working — the switch is off, a ceiling is reached, the
+// claim needs re-checking — and the page keeps its state and resumes in the order it was held. A failure has already
+// been written as it happened and passed through the retry policy inside the leaf. Both are reported as the step they
+// stopped at, so an operator sees a page that did not go out rather than a run that claims it did. A page another
+// attempt already took is that attempt's to finish, so it is done here and never a hold.
 //
 // Imported at the call, for the same reason as `activeSites()` above.
 
@@ -456,6 +455,7 @@ export async function publishApproved(a: { readonly draftId: string; readonly de
   const outcome = await deliverApproved({ draftId: a.draftId, destinationId: a.destinationId, ...(a.by === undefined ? {} : { by: a.by }) });
 
   if (outcome.kind === "held") return { degraded: `held:${outcome.heldBy}` };
+  if (outcome.kind === "taken") return { done: true, instead: "taken" };
   if (outcome.kind === "failed") return { degraded: `publish:${outcome.reason}` };
 
   if (outcome.verifyDue) {
