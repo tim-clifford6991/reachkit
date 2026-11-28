@@ -28,7 +28,7 @@ export interface Brief {
 }
 
 const ORDER: readonly PointPart[] = [...new Set(WHY_LINE.map((line) => line.part)), "rising", "new_site"];
-const LOWERING: readonly PointPart[] = ["outsized", "no_footprint"];
+const LOWERING: readonly PointPart[] = ["outsized", "no_footprint", "not_working"];
 
 const row = (text: string): ReasonRow => ({ text, link: null });
 
@@ -83,6 +83,8 @@ function sentenceOf(part: PlanReason["parts"][number], evidence: Evidence): stri
       return copy("calendar.reason.outsized");
     case "no_footprint":
       return copy("calendar.reason.no-footprint");
+    case "not_working":
+      return copy("calendar.reason.not-working");
     // A dated event says its own sentence first; a search with no demand is never in a week.
     case "timely":
     case "no_demand":

@@ -8,7 +8,6 @@ import { opportunityStore, readOpportunity } from "./store";
 import { isResting, isRetarget, OUTSIZED, qualifiesForADay, type Winnability } from "./types";
 import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
-import { heldByVerdict, suppressionOf, type Suppression } from "./suppression";
 import type { KnownMatch } from "@/lib/known-content/types";
 import type { MarketConclusion } from "@/lib/market/infer/types";
 import { queryKey } from "./cluster";
@@ -21,8 +20,6 @@ import type { Evidence, Opportunity, UnreadyReason } from "./types";
 export interface ReadinessContext {
   /** The clock a topic's rest is read against. */
   now: Date;
-  /** What this site's Monday verdicts hold back. */
-  suppression: Suppression;
   /** Whether the site's destination can deliver an update of the page at this address (issue 781). */
   canUpdate: (url: string) => boolean;
   /** The page this site already has on the row's topic, resolved before the loop so `eligible` stays pure. */
@@ -31,7 +28,7 @@ export interface ReadinessContext {
 
 /** Why this row may not fill a day, or `null` where it may. Pure. */
 export function eligible(o: Opportunity, ctx: ReadinessContext): UnreadyReason | null {
-  if (isResting(o, ctx.now) || heldByVerdict(o, ctx.suppression)) return "resting";
+  if (isResting(o, ctx.now)) return "resting";
   if (o.family === "improve" && !ctx.canUpdate(o.targetRef)) return "destination_cannot_address";
   // An Improve row is the update of the page that covers its topic.
   if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "destination_cannot_address";
@@ -120,8 +117,7 @@ export async function assessReadiness(
   const rows = a.only === undefined ? open : open.filter((row) => a.only!.has(row.id));
   if (rows.length === 0) return { ready: 0, unready: 0 };
 
-  const [verdicts, report, sited, topTens, drafts] = await Promise.all([
-    store.notWorkingVerdicts(siteId),
+  const [report, sited, topTens, drafts] = await Promise.all([
     store.currentReport(siteId),
     store.marketFor(siteId).catch(() => null),
     store.topTenRows([...new Set(rows.map((row) => row.scan_id))]),
@@ -148,7 +144,6 @@ export async function assessReadiness(
   const readOf = (o: Opportunity) => (o.targetQuery === null ? null : (topTens.get(queryKey(o.targetQuery)) ?? null));
   const ctx: ReadinessContext = {
     now,
-    suppression: suppressionOf(verdicts),
     canUpdate: canUpdateFrom(ownPages),
     coveredBy: (o) => covered.get(o.id) ?? null,
   };

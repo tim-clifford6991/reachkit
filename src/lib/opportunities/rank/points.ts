@@ -4,6 +4,7 @@
 import { CLOSE_PAGE_POSITION_BAND, WRITE_VOLUME_FLOOR_PER_MONTH } from "@/lib/config/constants";
 import { canonicalUrl } from "@/lib/measure/page-reading";
 import { measuredVolume } from "../intent";
+import { urlKey } from "../suppression";
 import { OUTSIZED, type Opportunity, type PlanReason, type Shortfall } from "../types";
 
 /** The points each part is worth (owner ruling of 2026-10-19, "all as
@@ -18,6 +19,7 @@ export const POINTS = Object.freeze({
   notMoving: 0,
   outsized: -2,
   noFootprint: -2,
+  notWorking: -2,
 });
 
 /** The quarterly change in searches, in percent, from which a search is rising. */
@@ -37,9 +39,11 @@ export const fitOf = (o: Pick<Opportunity, "businessFit">): number => o.business
 /** What the parts read beyond the row: the site's own pages a stored AI answer linked (canonical addresses). */
 export interface Seen {
   cited: ReadonlySet<string>;
+  /** Owned URLs whose update was judged not working in two weeks (`suppressionOf`); absent retires none. */
+  retired?: ReadonlySet<string>;
 }
 
-type Scorable = Pick<Opportunity, "businessFit" | "volume" | "source" | "targetQuery"> & {
+type Scorable = Pick<Opportunity, "businessFit" | "volume" | "source" | "targetQuery"> & Partial<Pick<Opportunity, "family" | "targetRef">> & {
   evidence?: Opportunity["evidence"] | null;
   fitBand?: Opportunity["fitBand"];
 };
@@ -98,6 +102,7 @@ export function pointsOf(o: Scorable, seen: Seen): Omit<PlanReason, "rule"> {
   if (due?.kind === "due" && due.cause === "snippet" && typeof due.shown === "number") parts.push({ part: "shown_no_visits", n: 0, shown: due.shown });
   // Too big for the site today ranks lower, and is still written when nothing ranks above it.
   if (o.fitBand === OUTSIZED) parts.push({ part: "outsized", n: POINTS.outsized });
+  if (o.family !== "fix" && o.targetRef !== undefined && seen.retired?.has(urlKey(o.targetRef))) parts.push({ part: "not_working", n: POINTS.notWorking });
   return { points: parts.reduce((sum, part) => sum + part.n, 0), parts };
 }
 

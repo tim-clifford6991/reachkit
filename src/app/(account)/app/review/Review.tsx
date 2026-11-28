@@ -62,6 +62,7 @@ const PART: Record<PointPart, CopyKey> = {
   outsized: "review.part.outsized",
   no_demand: "review.part.no_demand",
   no_footprint: "review.part.no_footprint",
+  not_working: "review.part.not_working",
   rising: "review.part.rising",
   timely: "review.part.timely",
 };

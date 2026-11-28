@@ -35,7 +35,7 @@ export { planLinkBacks, planMovedLinks, planRefreshes } from "./refresh";
 export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
 export { assessReadiness, eligible, type ReadinessContext } from "./readiness";
 export { clusterKey, collapse, comparePrecedence } from "./cluster";
-export { heldByVerdict, suppressionOf, type NotWorkingVerdict, type Suppression } from "./suppression";
+export { suppressionOf, type NotWorkingVerdict, type Suppression } from "./suppression";
 export {
   committedWeek,
   weekChosenOn,

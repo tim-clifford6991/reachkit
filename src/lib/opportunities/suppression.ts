@@ -1,7 +1,6 @@
 // SPEC §6 — what a Monday "not working" does downstream: an owned URL whose
-// Improve has been judged not working twice is retired, and nothing further
-// targets it. A cluster is never held back, since the week takes the
-// highest-value topics (owner 2026-11-08).
+// Improve has been judged not working twice is retired, and a row targeting it
+// ranks lower (`not_working`), never held. A cluster is never held back.
 //
 // Pure. The verdicts are `page_verdicts` rows as `judgeWeek` wrote them,
 // read back joined through their publication to the opportunity that page
@@ -10,7 +9,7 @@
 // fact, and this only reads what it implies for the rows still open.
 import { IMPROVE_RETIRE_AFTER_NOT_WORKING } from "@/lib/config/constants";
 import { canonicalUrl } from "@/lib/measure/page-reading";
-import type { Family, Opportunity } from "./types";
+import type { Family } from "./types";
 
 /** One `not_working` verdict, with the opportunity behind the judged page.
  *  The three opportunity fields are `null` where the publication has no
@@ -51,9 +50,4 @@ export function suppressionOf(verdicts: readonly NotWorkingVerdict[]): Suppressi
     if (weeks.size >= IMPROVE_RETIRE_AFTER_NOT_WORKING) retiredUrls.add(url);
   }
   return { retiredUrls };
-}
-
-/** Whether a verdict holds this open row back: a retired URL, whatever the family but Fix. */
-export function heldByVerdict(o: Opportunity, s: Suppression): boolean {
-  return o.family !== "fix" && s.retiredUrls.has(urlKey(o.targetRef));
 }

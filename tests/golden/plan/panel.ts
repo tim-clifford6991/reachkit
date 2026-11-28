@@ -82,7 +82,7 @@ export function panelSite(domain: string): PanelSite {
     const rows = site.topics!.filter((topic) => malformedSearch(topic.query, site.market!.rivals) === null).map((topic, n) => rowOf(domain, topic, n)).map((row) => {
       const read = freshRead(serps.get(queryKey(row.target_query ?? "")), AT);
       const o = { ...readOpportunity(row), evidence: shapedEvidence(readOpportunity(row), read, business) }; // Today's readiness.
-      return { ...row, evidence: o.evidence, ready: eligible(o, { now: AT, suppression: { retiredUrls: new Set() }, canUpdate: () => true, coveredBy: () => null }) === null };
+      return { ...row, evidence: o.evidence, ready: eligible(o, { now: AT, canUpdate: () => true, coveredBy: () => null }) === null };
     });
     return { domain, run, profile: profileOf(site), market: site.market, rows };
   }
