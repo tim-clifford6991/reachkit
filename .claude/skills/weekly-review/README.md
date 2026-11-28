@@ -13,7 +13,7 @@ set -euo pipefail
 cd /root/projects/reachkit
 # The subscription, never the API: with a key in the environment, claude bills it.
 unset ANTHROPIC_API_KEY
-read_tools="Read Grep Glob Task Skill WebFetch Edit(./.review/weekly/**) Bash(git fetch -q origin) Bash(git ls-files src) Bash(xargs wc -l) Bash(sort -n) Bash(tail -21) Bash(mkdir -p .review/weekly) Bash(date -u +%F) Bash(date -u -d '7 days ago' +%F) Bash(curl -fsS https://reachkit.app/api/health) Bash(npm run orphans) Bash(npm run costs -- --stored) Bash(npm outdated --json) Bash(npm audit --omit=dev --json) Bash(node scripts/hygiene.mjs) Bash(node scripts/this-week.mjs) Bash(gh issue list:*) Bash(gh issue view:*) Bash(gh pr list:*) Bash(gh run list:*) Bash(gh api 'repos/tim-clifford6991/reachkit/actions/runs?per_page=100' --jq:*)"
+read_tools="Read Grep Glob Task Skill WebFetch Edit(./.review/weekly/**) Bash(git fetch -q origin) Bash(git ls-files src) Bash(xargs wc -l) Bash(sort -n) Bash(tail -21) Bash(mkdir -p .review/weekly) Bash(date -u +%F) Bash(date -u -d '7 days ago' +%F) Bash(curl -fsS https://reachkit.app/api/health) Bash(npm run unused) Bash(npm run costs -- --stored) Bash(npm outdated --json) Bash(npm audit --omit=dev --json) Bash(node scripts/hygiene.mjs) Bash(node scripts/this-week.mjs) Bash(gh issue list:*) Bash(gh issue view:*) Bash(gh pr list:*) Bash(gh run list:*) Bash(gh api 'repos/tim-clifford6991/reachkit/actions/runs?per_page=100' --jq:*)"
 # The only file it may write is under .review/weekly/; a dry run is given no tool that writes to GitHub.
 write_tools="Bash(gh issue edit:*)"
 [[ "${1:-}" == "dry-run" ]] && write_tools=""
