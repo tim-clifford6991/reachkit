@@ -72,7 +72,12 @@ export function updateColumns(u: Candidate): Pick<OpportunityInsert, "type" | "f
  *  read, and is not held back by it. */
 export function tooYoungToRefresh(page: KnownMatch["page"], at: Date): boolean {
   if (page.publishedAt === null) return page.source === "reachkit";
-  return at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * 86_400_000;
+  return !pastRefreshFloor(page.publishedAt, at);
+}
+
+/** §6's floor, the one comparison against `REFRESH_MIN_AGE_DAYS`: a page exactly that old is past it. */
+export function pastRefreshFloor(publishedAt: Date, at: Date): boolean {
+  return at.getTime() - publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * 86_400_000;
 }
 
 /**

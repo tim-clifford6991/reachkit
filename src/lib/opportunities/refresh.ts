@@ -19,7 +19,7 @@
 //   not_indexed    Google's coverage line kept it out of the index for `NOT_INDEXED_WEEKS` weekly readings in a row;
 //   snippet        a hosted page Google showed `SNIPPET_REFRESH_IMPRESSIONS` times in 28 days with no click and no
 //                  counted visit: its title and description are rewritten, nothing else.
-// §6's floor (`REFRESH_MIN_AGE_DAYS`) stands for every cause. A page the customer edited, stopped a refresh of, or took
+// §6's floor (`pastRefreshFloor`) stands for every cause. A page the customer edited, stopped a refresh of, or took
 // down is theirs: no cause plans it. A climbing page is left alone by every cause its results drive; one still not
 // moving 8 weeks after its refresh has its question retired. A page never seen in a stored SERP or ranked row is not
 // retargeted for `unmet`. Nothing is bought and no model is asked; the partial unique index keeps one open or queued
@@ -32,7 +32,6 @@ import {
   INTENT_UNMET_WEEKS,
   NOT_INDEXED_WEEKS,
   PACE,
-  REFRESH_MIN_AGE_DAYS,
   RIVAL_PRICE_MAX_AGE_D,
   SEARCH_READING_WINDOW_D,
   SNIPPET_REFRESH_IMPRESSIONS,
@@ -48,6 +47,7 @@ import { takenDownByCustomer } from "@/lib/publish/take-down/standing";
 import { measured } from "@/lib/measure/measured";
 import { canonicalUrl, googleRead, readingOf, type PageReading } from "@/lib/measure/page-reading";
 import type { Candidate } from "./derive/candidate";
+import { pastRefreshFloor } from "./derive/known";
 import { persist } from "./derive/persist";
 import { closestPrompt, measuredVolume } from "./intent";
 import { assessReadiness } from "./readiness";
@@ -211,8 +211,8 @@ function snippetDue(page: OwnLivePage, at: Date): boolean {
 
 /** Why this page is due at `at`, or `null` where it is not. */
 export function refreshCauseOf(page: OwnLivePage, pools: RefreshPools, at: Date): RefreshCause | null {
+  if (!pastRefreshFloor(page.publishedAt, at)) return null;
   const age = at.getTime() - page.publishedAt.getTime();
-  if (age < REFRESH_MIN_AGE_DAYS * DAY_MS) return null;
   if (page.ownFigures === true) return "own_figures";
   if (unseenDue(page, at) && page.closeElsewhere === true) return "unseen";
   if ((page.reading?.unindexedWeeks ?? 0) >= NOT_INDEXED_WEEKS) return "not_indexed";
@@ -260,7 +260,7 @@ export function unseenLinkCandidates(pages: readonly OwnLivePage[], at: Date): C
           other.found !== false &&
           other.edited !== true &&
           other.stopped !== true &&
-          at.getTime() - other.publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * DAY_MS
+          pastRefreshFloor(other.publishedAt, at)
       )
       .sort(
         (x, y) =>
@@ -317,7 +317,7 @@ function linkBacksAmong(pages: readonly OwnLivePage[], freshUrl: string, at: Dat
         page !== fresh &&
         page.row.targetQuery !== null &&
         page.publishedAt.getTime() < fresh.publishedAt.getTime() &&
-        at.getTime() - page.publishedAt.getTime() >= REFRESH_MIN_AGE_DAYS * DAY_MS &&
+        pastRefreshFloor(page.publishedAt, at) &&
         page.edited !== true &&
         page.stopped !== true &&
         !(page.markdown ?? "").toLowerCase().includes(addressKey(fresh.url))
@@ -722,7 +722,7 @@ export function movedLinkCandidates(
   return pages.flatMap((page): Candidate[] => {
     if (addressKey(page.url) === addressKey(moved.to) || page.row.targetQuery === null) return [];
     if (page.edited === true || page.stopped === true || page.takenDown === true) return [];
-    if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
+    if (!pastRefreshFloor(page.publishedAt, at)) return [];
     const replaces = linkInto(page.markdown ?? "", moved.from);
     return replaces === null ? [] : [refreshOfPage(page, "link", at, { url: moved.to, title: moved.title, replaces })];
   });
@@ -752,7 +752,7 @@ export function structureCandidates(pages: readonly OwnLivePage[], at: Date): Ca
   return pages.flatMap((page): Candidate[] => {
     if (page.row.targetQuery === null || page.edited === true || page.stopped === true || page.takenDown === true) return [];
     if ((page.structure ?? []).length === 0) return [];
-    if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
+    if (!pastRefreshFloor(page.publishedAt, at)) return [];
     return [refreshOfPage(page, "structure", at)];
   });
 }
@@ -762,7 +762,7 @@ export function structureCandidates(pages: readonly OwnLivePage[], at: Date): Ca
 export function stalePriceCandidates(pages: readonly OwnLivePage[], at: Date): Candidate[] {
   return pages.flatMap((page): Candidate[] => {
     if (page.row.targetQuery === null || page.stopped === true || page.takenDown === true || !pricesStale(page, at)) return [];
-    if (at.getTime() - page.publishedAt.getTime() < REFRESH_MIN_AGE_DAYS * DAY_MS) return [];
+    if (!pastRefreshFloor(page.publishedAt, at)) return [];
     return [refreshOfPage(page, "stale_prices", at)];
   });
 }
