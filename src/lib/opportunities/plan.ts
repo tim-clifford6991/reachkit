@@ -2,7 +2,7 @@
 import { unstable_cache } from "next/cache";
 import { CACHE_WINDOWS_D, PLAN_DEPTH, SUPPLY_SHORT_BELOW, WEEK_PLAN, WEEK_RESEARCH } from "@/lib/config/constants";
 import { stoppedOnCeiling } from "@/lib/scan/market-floor";
-import { choose } from "./choose";
+import { choose, liveTwinsOf } from "./choose";
 import { assessFixPages } from "./fix-page";
 import { firstOpenDay, loadRanking, writableDays } from "./rank/open";
 import { assessReadiness } from "./readiness";
@@ -35,11 +35,18 @@ async function ranked(siteId: string, a: { now: Date; from?: string; record?: bo
   return { input, order, best: [...best].flatMap((id) => input.rows.filter((r) => r.id === id)), later, top, from, days };
 }
 
-/** The open rows the commit refuses as a live page's twin, by its own test, so supply never counts a place no week can use;
- *  `asNew` adds a planned row's twin and a live page's update, which no day writes as a new page. */
-export async function liveTwinIds(siteId: string, now: Date, asNew = false): Promise<Set<string>> {
-  const order = choose({ ...(await loadRanking(siteId, now)), at: now, from: now.toISOString().slice(0, 10) });
-  return new Set([...order.rejected.filter((r) => r.reason === "live_twin" || (asNew && r.reason === "same_topic")), ...order.committed.filter((e) => asNew && e.set?.family === "improve")].map((r) => r.opportunityId));
+/** The open ready rows, or those of `rows`, a live page of ours already is (`liveTwinsOf`), read from stored rows and never ranked. */
+export async function liveTwinIds(siteId: string, now: Date, asNew = false, rows?: readonly OpportunityRow[]): Promise<Set<string>> {
+  const store = opportunityStore(), [held, live, market, profile] = await Promise.all([rows ?? store.openRankable(siteId), store.refreshPages(siteId).catch(() => []), store.marketFor(siteId).then((read) => read.market, () => null), store.profileForSite(siteId)]);
+  const ready = held.filter((row) => row.status === "open" && row.ready), topTens = await store.topTens([...new Set([...ready.map((row) => row.scan_id), ...live.map((page) => page.row.scanId)])]);
+  return liveTwinsOf({ rows: ready, live, market, profile, topTens, at: now }, asNew);
+}
+
+/** A date's page as its day reads it, never planned: its row, else the first spare, less a live page's twin, whose date the next spare or the recommit takes. */
+export async function plannedTopic(siteId: string, date: string, now: Date = new Date()): Promise<{ open: OpportunityRow[]; topic: Opportunity | null }> {
+  const held = await opportunityStore().plannedRows(siteId), twins = await liveTwinIds(siteId, now, true, held);
+  const open = held.filter((row) => row.status === "open" && row.ready && !twins.has(row.id)), row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
+  return { open, topic: row === undefined ? null : planned(row) };
 }
 
 /** The rows the Monday commit checks the research of, best first. */
@@ -75,8 +82,7 @@ export async function planFirstWeek(siteId: string, now: Date = new Date(), rese
  *  no commit covers is committed from the date; one whose slot and spares are used up while ready rows wait commits its
  *  own date and spares, once. `null` where nothing left can be written; `updatesTried` once the update fallback had its turn. */
 export async function pageForDay(siteId: string, date: string, now: Date = new Date(), updatesTried = false): Promise<Opportunity | null> {
-  const store = opportunityStore();
-  const held = await store.plannedRows(siteId);
+  const store = opportunityStore(), held = await store.plannedRows(siteId);
   if (!held.some((row) => row.planned_for != null && row.planned_for >= date)) {
     await planWeek(siteId, { now, from: date });
   } else {
@@ -85,10 +91,8 @@ export async function pageForDay(siteId: string, date: string, now: Date = new D
     await assessReadiness(siteId, { at: now, now, only });
     await assessFixPages(siteId, { report: null, now, only });
   }
-  // A row the duplicate check now refuses is not written as new: the next spare, or the recommit, takes its date.
-  const twins = await liveTwinIds(siteId, now, true), open = (await store.plannedRows(siteId)).filter((row) => row.status === "open" && row.ready && !(twins.has(row.id) && row.family !== "improve"));
-  const row = open.find((r) => r.planned_for === date) ?? open.find((r) => r.planned_for == null);
-  if (row !== undefined) return planned(row);
+  const { open, topic } = await plannedTopic(siteId, date, now);
+  if (topic !== null) return topic;
   // A ready update dated later is the day's update fallback's to take first, so the recommit stays the last resort.
   if (!updatesTried && open.some((r) => r.family === "improve" && r.planned_for != null && r.planned_for > date)) return null;
   const waiting = (await store.countUnused(siteId)) - open.filter((r) => r.family !== "fix").length;

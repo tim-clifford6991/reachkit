@@ -63,6 +63,8 @@ export function budgetFindings({ budgets, base, files, decided = false }) {
       }
     } else if (!key.startsWith("blockRules.") && was.has(key) && value > was.get(key)) {
       findings.push(`scripts/budgets.json raises ${key} from ${was.get(key)} to ${value}; a budget only goes down`);
+    } else if (key.startsWith("oneCheck.") && base?.oneCheck && !was.has(key)) {
+      findings.push(`scripts/budgets.json adds ${key}: a reason's one check is called, never copied into another file`);
     }
   }
   return findings;
@@ -207,14 +209,30 @@ function entriesOf(text, start) {
   return [...body.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 }
 
+// The literals that can stop a topic or a page before it is written: readiness, the commit, the top-up and a live topic.
+export const PLAN_STOPS = [
+  ["src/lib/opportunities/types.ts", "export type UnreadyReason", ";"],
+  ["src/lib/opportunities/rank/open.ts", "export type Rejection", ";"],
+  ["src/lib/opportunities/choose.ts", "reason: Rejection", ";"],
+  ["src/lib/opportunities/derive/top-up.ts", "const REASONS", "]"],
+  ["src/lib/opportunities/live-topics.ts", "export type LiveTopicFailure", ";"],
+];
+
+// The quoted literals from `start` to the first `close` after it, comments aside; null where `start` is gone.
+function literalsOf(text, start, close) {
+  const at = text?.indexOf(start) ?? -1;
+  return at < 0 ? null : [...text.slice(at, text.indexOf(close, at + start.length)).replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+}
+
 // `read` returns a repo file's text. A stop turned into a warning is a reduction, so WARNING_RULES has no ceiling of its own.
 export function listFindings({ budget, read }) {
   if (!budget) return [];
   const got = Object.fromEntries(Object.entries(LISTS).map(([name, [rel, start]]) => [name, entriesOf(read(rel), start)]));
-  const counts = { hardRules: got.hardRules, mechanicalRules: got.mechanicalRules, pipelineSteps: got.pipelineSteps, stoppingRules: got.hardRules && got.warningRules && got.hardRules.filter((r) => !got.warningRules.includes(r)) };
+  const stops = PLAN_STOPS.map(([rel, start, close]) => literalsOf(read(rel), start, close));
+  const counts = { hardRules: got.hardRules, mechanicalRules: got.mechanicalRules, pipelineSteps: got.pipelineSteps, stoppingRules: got.hardRules && got.warningRules && got.hardRules.filter((r) => !got.warningRules.includes(r)), planStops: stops.includes(null) ? null : stops.flat() };
   return Object.entries(budget).flatMap(([name, cap]) => {
     if (!(name in counts)) return [`scripts/budgets.json lists.${name} counts nothing`];
-    if (counts[name] === null) return [`lists.${name}: ${LISTS[name]?.[1] ?? "HARD_RULES or WARNING_RULES"} is not found; remove lists.${name} from scripts/budgets.json with it`];
+    if (counts[name] === null) return [`lists.${name}: ${LISTS[name]?.[1] ?? (name === "planStops" ? "a PLAN_STOPS declaration" : "HARD_RULES or WARNING_RULES")} is not found; remove lists.${name} from scripts/budgets.json with it`];
     return counts[name].length <= cap ? [] : [`lists.${name} has ${counts[name].length} entries, over ${cap} in scripts/budgets.json; it only goes down`];
   });
 }

@@ -76,7 +76,7 @@ type Joined = Ranked & Pick<PlanEntry, "set">;
 /** SPEC §6 *One URL per question*, from stored rows: of two open rows of one topic the higher-ranked is the new page and
  *  absorbs the other's search, and one naming a kept row's product ranks after the rest; a twin of a live page of ours is
  *  its update, waiting while the page is younger than the refresh floor. Given no market nor live pages, the ranking's order. */
-function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: Choice["rejected"]): Joined[] {
+function oneTopicEach(ranked: readonly Ranked[], input: Parameters<typeof liveTwinsOf>[0], rejected: Choice["rejected"]): Joined[] {
   if (input.market === undefined && input.live === undefined) return [...ranked];
   const market = input.market ?? null;
   const joined = oneQuestion({ topTens: input.topTens, market, brandTokens: input.profile?.brandTokens ?? [] });
@@ -114,6 +114,12 @@ function oneTopicEach(ranked: readonly Ranked[], input: ChooseInput, rejected: C
     kept.push({ o, entry: held });
   }
   return [...out, ...later];
+}
+
+/** The rows a live page of ours already is, by the commit's own check over the rows unranked; `asNew` adds what no day writes as new. */
+export function liveTwinsOf(input: Pick<ChooseInput, "rows" | "live" | "topTens" | "market" | "profile" | "at">, asNew = false): Set<string> {
+  const rejected: Choice["rejected"] = [], kept = oneTopicEach(input.rows.map((row) => ({ opportunityId: row.id }) as Ranked), input, rejected);
+  return new Set([...rejected.filter((r) => r.reason === "live_twin" || (asNew && r.reason === "same_topic")), ...kept.filter((e) => asNew && e.set?.family === "improve")].map((r) => r.opportunityId));
 }
 
 const searchesOf = (o: Opportunity): string[] => [o.targetQuery ?? [], ...o.absorbedQueries].flat().map(queryKey);

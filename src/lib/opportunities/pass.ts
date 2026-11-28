@@ -23,17 +23,10 @@ import { rankedCountsFromSizes, type RankedCounts } from "./winnability/counts";
 /** Which pass is asking; a free scan has no site to hold supply for. */
 export type PassTier = "deep" | "weekly";
 
-export interface PassOutcome {
-  tier: PassTier;
-  added: number;
-}
+export type PassOutcome = { tier: PassTier; added: number };
 
 /** Rival sizing as winnability reads it; unsized is an empty lookup, so every domain reads `undeterminable`, never 0. */
-export function rankedCountsOf(report: StoredReport): RankedCounts {
-  const at = report.verdict.measuredAt;
-  if (report.rivalSizes.kind === "unmeasured") return rankedCountsFromSizes([], at);
-  return rankedCountsFromSizes(report.rivalSizes.value, at);
-}
+export const rankedCountsOf = (report: StoredReport): RankedCounts => rankedCountsFromSizes(report.rivalSizes.kind === "unmeasured" ? [] : report.rivalSizes.value, report.verdict.measuredAt);
 
 function inputFor(a: { siteId: string; report: StoredReport; hostedHost: string | null; inventory: readonly InventoryRow[]; known: DeriveInput["known"]; market: DeriveInput["market"]; knowledge: DeriveInput["knowledge"]; competitors: readonly string[]; prompts: readonly string[] }): DeriveInput {
   const { siteId, report, hostedHost, inventory, competitors, prompts } = a;
@@ -113,15 +106,12 @@ export async function deriveForPass(
   // Supply is what can fill a day: readiness decides it before it is counted, so a row a live page covers is not supply.
   if (derived !== null) await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
   // Supply counts what the commit can place: a live page's twin it refuses is no place.
-  const twins = derived === null ? new Set<string>() : await liveTwinIds(a.siteId, a.report.verdict.measuredAt);
-  const rows = derived === null ? [] : (await store.openRankable(a.siteId)).map(readOpportunity);
+  const open = derived === null ? [] : await store.openRankable(a.siteId), twins = derived === null ? new Set<string>() : await liveTwinIds(a.siteId, a.report.verdict.measuredAt, false, open), rows = open.map(readOpportunity);
   const supply = derived === null ? null : afterReadiness(derived.supply, rows.filter((row) => !twins.has(row.id)));
   // `spentCents` tells a spent reserve (at the cap) from a day or site ceiling (below it), which `capHit()` lumps.
   const derivation = supply === null ? { derived: "not_run" as const, because: "spend_ceiling" as const, spentCents: c.spentCents() } : { derived: added, ...supply };
   // Rows, not log lines: the runtime log drops a long request's tail, and the daily check tells a thin pass from a dry source.
   await recordOpsEvent("supply_pass", JSON.stringify({ tier: a.tier, added, ...derivation }), a.report.scanId, a.siteId);
-  if (supply !== null && supply.have < SUPPLY_SHORT_BELOW) {
-    await recordOpsEvent("supply_short", shortfallOf(supply.sources, rows, twins), String(SUPPLY_SHORT_BELOW - supply.have), a.siteId);
-  }
+  if (supply !== null && supply.have < SUPPLY_SHORT_BELOW) await recordOpsEvent("supply_short", shortfallOf(supply.sources, rows, twins), String(SUPPLY_SHORT_BELOW - supply.have), a.siteId);
   return { tier: a.tier, added };
 }
